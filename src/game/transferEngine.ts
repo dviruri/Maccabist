@@ -13,6 +13,12 @@ import { applyEffects, cloneCareer, moveToClub } from './progressionEngine';
 import { clamp, type Rng } from './random';
 import { isAtMaccabiSenior, isInAcademy, isOnLoan } from './rules';
 
+/**
+ * Small additive floor so a destination draw is never empty, but low enough that a club the
+ * player clearly cannot play for stays unlikely rather than becoming a coin flip.
+ */
+const RELEASE_INTEREST_FLOOR = 0.05;
+
 /** A rough 0-100 read of how attractive the player is on the market. */
 export function marketValue(career: Career): number {
   return clamp(career.ability * 0.5 + career.reputation * 0.55 + career.roleValue * 0.08);
@@ -285,16 +291,25 @@ export function seniorTransitionOffers(
   }
 
   if (verdict.path === 'released') {
-    // Two real alternatives - being released is a fork in the story, not the end of it.
+    /*
+     * Two real alternatives - being released is a fork in the story, not the end of it.
+     *
+     * Deliberately no israeli_top here: a club that has just decided not to keep an 18 year
+     * old does not hand him to the best side in the league, and landing at quality 66+ would
+     * bury him on the bench and quietly end the career. The story continues further down the
+     * pyramid, where he actually plays.
+     */
     const destinations = ALL_CLUBS.filter(
-      (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_top',
+      (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low',
     ).filter((c) => c.id !== MACCABI_ID);
     const offers: TransferOffer[] = [];
-    const first = rng.weighted(destinations, (c) => interestWeight(career, c) + 0.2);
+    // The floor stays small so club fit dominates - otherwise every club looks equally likely
+    // to a low-value player, whose real interest weights are all near zero.
+    const first = rng.weighted(destinations, (c) => interestWeight(career, c) + RELEASE_INTEREST_FLOOR);
     if (first) offers.push(releaseOffer(first));
     const second = rng.weighted(
       destinations.filter((c) => c.id !== first?.id),
-      (c) => interestWeight(career, c) + 0.35,
+      (c) => interestWeight(career, c) + RELEASE_INTEREST_FLOOR,
     );
     if (second) offers.push(releaseOffer(second));
     return offers;
