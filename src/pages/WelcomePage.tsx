@@ -5,12 +5,23 @@ import { positionLabel, seasonLabel } from '../ui/format';
 interface Props {
   meta: MetaProgress;
   savedCareer: Career | null;
+  /** A save from an older version could not be loaded and was cleared. */
+  legacySaveDropped: boolean;
   onStart: () => void;
   onResume: () => void;
   onDiscard: () => void;
+  onDismissLegacyNotice: () => void;
 }
 
-export function WelcomePage({ meta, savedCareer, onStart, onResume, onDiscard }: Props): JSX.Element {
+export function WelcomePage({
+  meta,
+  savedCareer,
+  legacySaveDropped,
+  onStart,
+  onResume,
+  onDiscard,
+  onDismissLegacyNotice,
+}: Props): JSX.Element {
   const canResume = savedCareer !== null && !savedCareer.retired;
 
   return (
@@ -26,6 +37,19 @@ export function WelcomePage({ meta, savedCareer, onStart, onResume, onDiscard }:
       </div>
 
       <div className="stack" style={{ marginTop: 22 }}>
+        {legacySaveDropped && (
+          <div className="notice">
+            <span aria-hidden>♻️</span>
+            <span style={{ flex: 1 }}>
+              הקריירה השמורה שלך נוצרה בגרסה קודמת של המשחק ולא מתאימה למבנה החדש של מחלקת
+              הנוער. צריך להתחיל קריירה חדשה.
+            </span>
+            <button type="button" onClick={onDismissLegacyNotice} aria-label="לסגור">
+              ✕
+            </button>
+          </div>
+        )}
+
         {canResume && savedCareer && (
           <div className="card card-green">
             <div className="stack-sm">

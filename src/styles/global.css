@@ -381,8 +381,46 @@ p {
   pointer-events: none;
 }
 
+/* The academy stage is the player's identity - it leads the card, age is secondary. */
+.stage-headline {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.stage-name {
+  font-size: clamp(28px, 9vw, 38px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  color: var(--maccabi-green-light);
+}
+
+.stage-club {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--white);
+  margin-top: 2px;
+}
+
+.stage-meta {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.player-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .player-name {
-  font-size: clamp(26px, 8vw, 34px);
+  font-size: clamp(20px, 6vw, 24px);
   font-weight: 900;
   letter-spacing: -0.03em;
   color: var(--white);
@@ -477,6 +515,9 @@ p {
 }
 .bar-fill.tone-ability {
   background: var(--white);
+}
+.bar-fill.tone-trust {
+  background: var(--gold);
 }
 
 /* =========================================================================
@@ -1213,4 +1254,117 @@ p {
     margin-inline: auto;
     width: 100%;
   }
+}
+
+/* =========================================================================
+   Choice risk hints + season / promotion cards (v0.2)
+   ========================================================================= */
+
+/* A qualitative tint only - the player never sees a percentage. */
+.btn-choice.risk-safe {
+  border-inline-start: 3px solid rgba(124, 196, 255, 0.75);
+}
+.btn-choice.risk-balanced {
+  border-inline-start: 3px solid rgba(255, 255, 255, 0.28);
+}
+.btn-choice.risk-risky {
+  border-inline-start: 3px solid rgba(255, 95, 82, 0.8);
+}
+.btn-choice.risk-opportunity {
+  border-inline-start: 3px solid var(--maccabi-green-light);
+}
+
+.promotion-card {
+  border: 1px solid rgba(41, 217, 106, 0.34);
+  background: linear-gradient(160deg, #0b3d21 0%, var(--ink) 68%);
+  text-align: center;
+}
+
+.promotion-card.tone-stay,
+.promotion-card.tone-released {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: linear-gradient(160deg, #2a1d1b 0%, var(--ink) 68%);
+}
+
+.promotion-icon {
+  font-size: 52px;
+  line-height: 1;
+  animation: pop-in 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.promotion-title {
+  font-size: clamp(24px, 7.5vw, 32px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--white);
+  margin-top: 8px;
+}
+
+.promotion-card .card-body {
+  margin-top: 2px;
+}
+
+.promotion-card .btn {
+  margin-top: 6px;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* =========================================================================
+   Debug panel odds inspector
+   ========================================================================= */
+
+.debug-odds {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.debug-odds-title {
+  font-weight: 800;
+  margin-bottom: 4px;
+  color: var(--maccabi-green-light);
+}
+
+.debug-odds-choice {
+  margin-top: 6px;
+  opacity: 0.75;
+  font-style: italic;
+}
+
+/* =========================================================================
+   Legacy-save notice
+   ========================================================================= */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 201, 74, 0.1);
+  border: 1px solid rgba(255, 201, 74, 0.32);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.notice button {
+  background: none;
+  border: 0;
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0 4px;
+  flex-shrink: 0;
 }

@@ -5,7 +5,7 @@ import { WelcomePage } from './pages/WelcomePage';
 import { useGame } from './state/useGame';
 
 export function App(): JSX.Element {
-  const { career, meta, screen, actions } = useGame();
+  const { career, meta, screen, legacySaveDropped, actions } = useGame();
 
   return (
     <div className="app">
@@ -29,9 +29,11 @@ export function App(): JSX.Element {
         <WelcomePage
           meta={meta}
           savedCareer={career}
+          legacySaveDropped={legacySaveDropped}
           onStart={actions.openCreate}
           onResume={actions.resumeCareer}
           onDiscard={actions.abandonCareer}
+          onDismissLegacyNotice={actions.dismissLegacyNotice}
         />
       )}
     </div>
