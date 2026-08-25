@@ -381,7 +381,10 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
     if (career.age >= TRANSFERS.returnAgeBonusFrom) {
       chance += (career.age - TRANSFERS.returnAgeBonusFrom) * TRANSFERS.returnAgeBonusPerYear;
     }
-    const goodEnough = career.ability >= 55;
+    // Measured against Maccabi's own squad strength rather than a flat number, so a
+    // mid-table journeyman does not get a call from the club that let him go.
+    const maccabi = getClub(MACCABI_ID);
+    const goodEnough = career.ability >= maccabi.quality - TRANSFERS.returnAbilityMargin;
     const notTooExpensive = career.reputation < 88 || career.age > 29;
     if (goodEnough && notTooExpensive && rng.chance(clamp(chance, 0, 0.85))) {
       offers.push(returnHomeOffer(career));

@@ -303,10 +303,24 @@ export const PROMOTION = {
   /** Playing up already proves the point. */
   olderGroupBonus: { none: 0, training: 5, playing: 11 },
   noise: 11,
-  /** Score needed to skip a level entirely. */
-  earlyThreshold: 92,
-  /** Score needed for the normal one-step promotion. */
-  normalThreshold: 30,
+  /*
+   * Both thresholds are set from the measured in-play score distribution
+   * (scripts/simulate.ts and the ladder diagnostic): median ~14, p95 ~30, p99 ~38.
+   */
+  /**
+   * Score needed to skip a level entirely - up near p99, so it stays a genuine surprise.
+   * At 92 it was unreachable and early promotion was dead content, firing in 0.00% of careers.
+   */
+  earlyThreshold: 40,
+  /**
+   * Score needed for the normal one-step promotion.
+   *
+   * At 30 this sat above the median, so ~45% of season-ends failed the roll: players repeated
+   * nearly every age group and did not leave the academy until 24. The ladder is meant to run
+   * roughly one stage per year from 9, with repeating a year as the exception that carries a
+   * message, so this sits near p10 instead.
+   */
+  normalThreshold: 1,
   /** A player can only be fast-tracked so often. */
   maxEarlyPromotions: 2,
   /** Repeating a level twice in a row is not allowed - the ladder keeps moving. */
@@ -328,10 +342,15 @@ export const YOUTH_TO_SENIOR = {
   reputationWeight: 0.1,
   formWeight: 0.06,
   noise: 12,
-  /** Score thresholds for the four paths. */
-  contractThreshold: 62,
-  loanThreshold: 50,
-  anotherYearThreshold: 41,
+  /*
+   * Score thresholds for the four paths, set from the measured readiness distribution.
+   * At 62/50/41 roughly 86% of careers were released and only ~13% signed, which is closer
+   * to a real academy's attrition than to a game anyone wants to replay - the fantasy has to
+   * be reachable while still being the minority outcome.
+   */
+  contractThreshold: 50,
+  loanThreshold: 40,
+  anotherYearThreshold: 33,
   /** Chance a contract offer comes bundled with a loan recommendation. */
   loanRecommendationChance: 0.42,
 };
@@ -369,10 +388,18 @@ export const TRANSFERS = {
   loanMinAge: 17,
   loanMaxAge: 23,
   loanMaxAppearances: 12,
-  returnBaseChance: 0.14,
-  returnAgeBonusFrom: 27,
-  returnAgeBonusPerYear: 0.05,
-  returnMaccabismWeight: 0.0055,
+  /*
+   * Coming home is rolled once per off-season, so these have to stay small: a 0.5 per-season
+   * chance compounds to a near-certainty across a 15 season senior career, which is how more
+   * than half of all careers used to end up back at Maccabi. Kept low so a homecoming is a
+   * story beat rather than the default path.
+   */
+  returnBaseChance: 0.006,
+  returnAgeBonusFrom: 28,
+  returnAgeBonusPerYear: 0.012,
+  returnMaccabismWeight: 0.0004,
+  /** Maccabi only comes calling for a player who could actually hold a place in the side. */
+  returnAbilityMargin: 8,
 };
 
 /* ------------------------------------------------------------------ */

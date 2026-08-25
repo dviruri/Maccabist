@@ -107,7 +107,15 @@ export function moveToClub(career: Career, clubId: string, options: MoveOptions 
       next.maccabi.everLeft = true;
       next.captain = false;
     }
-    if (clubId === MACCABI_ID && career.maccabi.everLeft && !career.maccabi.returned) {
+    /*
+     * A homecoming counts whether the player walked out of the senior team or was released
+     * by the academy as a teenager. The second route used to be missed entirely - `everLeft`
+     * is only set on a senior departure - so "released, developed elsewhere, bought back
+     * years later" scored as if the player had simply always been here.
+     */
+    const wasAwayFromMaccabi =
+      career.maccabi.everLeft || career.flags.includes('released_by_maccabi');
+    if (clubId === MACCABI_ID && wasAwayFromMaccabi && !career.maccabi.returned) {
       next.maccabi.returned = true;
       next.maccabi.returnAge = career.age;
     }

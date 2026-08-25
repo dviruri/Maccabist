@@ -66,13 +66,15 @@ describe('the academy ladder', () => {
 
 describe('academy progression', () => {
   it('promotes one step for an ordinary season', () => {
+    // Genuinely ordinary: ability level with the age group, middling trust, squad-level role.
+    // A player clearly ahead of his age group is supposed to be skipping levels, not stepping.
     const career = academyCareer({
       academyStage: 'children_b',
-      coachTrust: 60,
-      roleValue: 55,
-      ability: 40,
+      coachTrust: 40,
+      roleValue: 25,
+      ability: 30,
     });
-    const { career: next, result } = resolveAcademyProgression(career, 62, createRng(1));
+    const { career: next, result } = resolveAcademyProgression(career, 56, createRng(1));
     expect(result.kind).toBe('normal');
     expect(next.academyStage).toBe('children_a');
     expect(stageOrder(next.academyStage)).toBe(stageOrder('children_b') + 1);
@@ -165,7 +167,12 @@ describe('coach trust drives promotion', () => {
   });
 
   it('makes promotion measurably more likely across many rolls', () => {
-    const base = { academyStage: 'youth_b' as const, roleValue: 50, ability: 50 };
+    /*
+     * The fixture has to be a player whose promotion is genuinely in the balance - one
+     * trailing his age group. For a comfortable player the roll succeeds regardless of
+     * trust, so the comparison would measure nothing.
+     */
+    const base = { academyStage: 'youth_a' as const, roleValue: 8, ability: 30 };
     const count = (coachTrust: number): number => {
       let promoted = 0;
       for (let i = 0; i < 300; i += 1) {
@@ -175,6 +182,10 @@ describe('coach trust drives promotion', () => {
       }
       return promoted;
     };
-    expect(count(88)).toBeGreaterThan(count(25));
+    const trusted = count(88);
+    const distrusted = count(25);
+    expect(trusted).toBeGreaterThan(distrusted);
+    // And the gap should be substantial, not a rounding artefact.
+    expect(trusted - distrusted).toBeGreaterThan(30);
   });
 });
