@@ -5,10 +5,13 @@ import {
   beginSeason,
   chooseOffer,
   continueAfterEvent,
+  continueAfterMidSeason,
+  continueAfterProgression,
   continueAfterSeason,
   createCareer,
   decideRetirement,
   rejectOffers,
+  resolveYouthTransition,
   type NewCareerInput,
   type RetirementDecision,
 } from '../game/careerEngine';
@@ -21,6 +24,8 @@ export interface GameState {
   career: Career | null;
   meta: MetaProgress;
   screen: Screen;
+  /** A save from an older version had to be dropped. */
+  legacySaveDropped: boolean;
   actions: GameActions;
 }
 
@@ -30,10 +35,14 @@ export interface GameActions {
   startCareer(input: NewCareerInput): void;
   resumeCareer(): void;
   abandonCareer(): void;
+  dismissLegacyNotice(): void;
   nextSeason(): void;
   answer(eventId: string, choiceId: string): void;
   continueEvent(): void;
+  continueMidSeason(): void;
   continueSeason(): void;
+  continueProgression(): void;
+  chooseYouthPath(offerId: string | null): void;
   takeOffer(offerId: string): void;
   refuseOffers(): void;
   retirementChoice(decision: RetirementDecision): void;
@@ -44,6 +53,7 @@ export interface GameActions {
 export function useGame(): GameState {
   const [career, setCareer] = useState<Career | null>(() => storage.loadCareer());
   const [meta, setMeta] = useState<MetaProgress>(() => storage.loadMeta());
+  const [legacySaveDropped, setLegacySaveDropped] = useState(() => storage.hadIncompatibleSave());
   const [screen, setScreen] = useState<Screen>(() => {
     const saved = storage.loadCareer();
     if (!saved) return 'welcome';
@@ -69,14 +79,12 @@ export function useGame(): GameState {
   }, []);
 
   /**
-   * Keeps the loop tight: the "here we go" pre-season card is worth one click at the very
-   * start of a career, but not every single summer. After the first season we roll straight
-   * into the next set of events.
+   * Keeps the loop tight: the pre-season card is worth one click at the very start of a
+   * career, but not every summer. After the first season we roll straight into the next one.
    */
   const rollIntoSeason = useCallback((current: Career): Career => {
     if (current.phase !== 'preseason' || current.seasonHistory.length === 0) return current;
-    const started = beginSeason(current);
-    return started.phase === 'preseason' ? continueAfterEvent(started) : started;
+    return beginSeason(current);
   }, []);
 
   const actions = useMemo<GameActions>(
@@ -101,22 +109,25 @@ export function useGame(): GameState {
         setCareer(null);
         setScreen('welcome');
       },
-      nextSeason: () =>
-        step((c) => {
-          const started = beginSeason(c);
-          // No eligible event this year - go straight into the season.
-          return started.phase === 'preseason' ? continueAfterEvent(started) : started;
-        }),
+      dismissLegacyNotice: () => {
+        storage.acknowledgeIncompatibleSave();
+        setLegacySaveDropped(false);
+      },
+      nextSeason: () => step(beginSeason),
       answer: (eventId, choiceId) => step((c) => answerEvent(c, eventId, choiceId)),
       continueEvent: () => step(continueAfterEvent),
+      continueMidSeason: () => step(continueAfterMidSeason),
       continueSeason: () => step((c) => rollIntoSeason(continueAfterSeason(c))),
+      continueProgression: () => step((c) => rollIntoSeason(continueAfterProgression(c))),
+      chooseYouthPath: (offerId) => step((c) => rollIntoSeason(resolveYouthTransition(c, offerId))),
       takeOffer: (offerId) => step((c) => rollIntoSeason(chooseOffer(c, offerId))),
       refuseOffers: () => step((c) => rollIntoSeason(rejectOffers(c))),
-      retirementChoice: (decision) => step((c) => rollIntoSeason(decideRetirement(c, decision))),
+      retirementChoice: (decision) =>
+        step((c) => rollIntoSeason(decideRetirement(c, decision))),
       overrideCareer: (next) => setCareer(next),
     }),
     [step, rollIntoSeason],
   );
 
-  return { career, meta, screen, actions };
+  return { career, meta, screen, legacySaveDropped, actions };
 }

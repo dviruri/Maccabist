@@ -1,5 +1,5 @@
 /**
- * Maccabist domain model.
+ * Maccabist domain model (v0.2).
  * Everything here is plain data - no React, no DOM, no side effects.
  * The whole Career object is JSON-serialisable so it can be saved, replayed and simulated headlessly.
  */
@@ -10,24 +10,30 @@
 
 export type Position = 'GK' | 'CB' | 'FB' | 'CM' | 'WG' | 'ST';
 
-export type CareerStage =
-  | 'kids' // 9-12
-  | 'youth' // 13-15
-  | 'breakthrough_youth' // 16-18
-  | 'breakthrough' // 19-23
-  | 'prime' // 24-30
-  | 'veteran'; // 31+
+/**
+ * The Maccabi Haifa academy ladder. This - not age - is the player's identity
+ * for the whole youth career.
+ */
+export type AcademyStage =
+  | 'pre_b' // טרום ב׳
+  | 'pre_a' // טרום א׳
+  | 'children_c' // ילדים ג׳
+  | 'children_b' // ילדים ב׳
+  | 'children_a' // ילדים א׳
+  | 'youth_c' // נערים ג׳
+  | 'youth_b' // נערים ב׳
+  | 'youth_a' // נערים א׳
+  | 'u19' // נוער
+  | 'senior'; // בוגרים
 
-/** Descriptive standing inside the current club. Derived from a numeric 0-100 statusValue. */
-export type PlayerStatus =
-  | 'academy'
-  | 'prospect'
-  | 'squad'
-  | 'rotation'
-  | 'starter'
-  | 'key_player'
-  | 'star'
-  | 'icon';
+/** Coarse grouping used to theme events and pacing. */
+export type StageBand = 'children' | 'teens' | 'u19' | 'senior';
+
+/** The player's role inside the team he is currently part of. */
+export type TeamRole = 'squad' | 'rotation' | 'starter' | 'key' | 'star' | 'icon';
+
+/** Whether the player has been pulled up to the age group above him. */
+export type OlderGroupStatus = 'none' | 'training' | 'playing';
 
 /* ------------------------------------------------------------------ */
 /* Clubs                                                               */
@@ -46,7 +52,6 @@ export type ClubTier =
 export interface Club {
   id: string;
   name: string;
-  /** Short name used in tight UI spots (timeline, chips). */
   shortName?: string;
   country: string;
   league: string;
@@ -57,18 +62,31 @@ export interface Club {
   /** How well the club develops players, 0-100. */
   development: number;
   tier: ClubTier;
-  /** Per-season chance of winning the domestic league. */
   titleChance: number;
-  /** Per-season chance of winning the domestic cup. */
   cupChance: number;
-  /** Per-season chance of a memorable European run. */
   europeChance: number;
-  /** True for every Maccabi Haifa entity (academy / youth / senior). */
   isMaccabi?: boolean;
   /** Only the senior team counts towards the Maccabi legacy stats. */
   isSenior?: boolean;
-  /** Number of competitive games in a season at this level. */
   seasonGames: number;
+}
+
+/**
+ * The competitive level the player is actually playing at this season.
+ * For academy players it comes from the academy stage, for everyone else from the club.
+ */
+export interface LevelContext {
+  /** Display name of the team ("נערים ב׳" / "מכבי חיפה"). */
+  teamName: string;
+  league: string;
+  quality: number;
+  development: number;
+  prestige: number;
+  seasonGames: number;
+  titleChance: number;
+  cupChance: number;
+  europeChance: number;
+  isAcademy: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -81,7 +99,9 @@ export interface SeasonStats {
   goals: number;
   assists: number;
   cleanSheets: number;
-  /** Average season performance rating, 0-100. */
+  /** Goalkeepers only. */
+  goalsConceded: number;
+  /** Average performance rating, 0-100. */
   rating: number;
   injuredGames: number;
 }
@@ -108,13 +128,14 @@ export interface MaccabiRecord {
   everLeft: boolean;
   returned: boolean;
   returnAge: number | null;
-  /** Seasons played for Maccabi after coming back home. */
   seasonsAfterReturn: number;
-  /** Loyalty flashpoints: turned down a big money move, stayed when it hurt, etc. */
   loyaltyMoments: number;
-  /** Times the player pushed to leave / forced a transfer. */
   betrayalMoments: number;
   debutAge: number | null;
+  /** Seasons completed inside the Maccabi youth structure. */
+  academySeasons: number;
+  /** Times the player was pushed up an age group early. */
+  earlyPromotions: number;
 }
 
 export interface Trophy {
@@ -123,7 +144,6 @@ export interface Trophy {
   season: number;
   clubId: string;
   clubName: string;
-  /** Weight used by the Legend Score. */
   weight: number;
 }
 
@@ -138,72 +158,43 @@ export interface Achievement {
 export interface SeasonRecord {
   season: number;
   age: number;
+  academyStage: AcademyStage;
   clubId: string;
   clubName: string;
+  /** The age-group / senior team actually played for. */
+  teamName: string;
   league: string;
   onLoan: boolean;
   stats: SeasonStats;
+  firstHalf: SeasonStats | null;
   ability: number;
-  status: PlayerStatus;
+  role: TeamRole;
   trophies: Trophy[];
   captain: boolean;
+  olderGroup: OlderGroupStatus;
 }
 
 /* ------------------------------------------------------------------ */
 /* Events                                                              */
 /* ------------------------------------------------------------------ */
 
-export interface EventConditions {
-  minAge?: number;
-  maxAge?: number;
-  stages?: CareerStage[];
-  minAbility?: number;
-  maxAbility?: number;
-  minMaccabism?: number;
-  maxMaccabism?: number;
-  minReputation?: number;
-  maxReputation?: number;
-  minStatusValue?: number;
-  maxStatusValue?: number;
-  atMaccabi?: boolean;
-  atMaccabiSenior?: boolean;
-  abroad?: boolean;
-  onLoan?: boolean;
-  isCaptain?: boolean;
-  hasLeftMaccabi?: boolean;
-  /** Appearances in the previous season. */
-  minLastAppearances?: number;
-  maxLastAppearances?: number;
-  /** Event can only ever fire once per career. */
-  once?: boolean;
-}
+export type EventCategory =
+  | 'development'
+  | 'coach'
+  | 'competition'
+  | 'match_moment'
+  | 'injury'
+  | 'discipline'
+  | 'opportunity'
+  | 'promotion'
+  | 'contract'
+  | 'transfer'
+  | 'family'
+  | 'random'
+  | 'rare';
 
-export interface EventEffects {
-  ability?: number;
-  potential?: number;
-  maccabism?: number;
-  reputation?: number;
-  statusValue?: number;
-  confidence?: number;
-  form?: number;
-  discipline?: number;
-  injuryRisk?: number;
-  pressure?: number;
-  /** 0-1 chance of picking up an injury that damages the coming season. */
-  injuryChance?: number;
-  /** Additive bonus to the chance of receiving offers at the end of the season. */
-  transferChance?: number;
-  /** Multiplier applied to next season's playing time. */
-  minutesModifier?: number;
-  /** Flags recorded on the career (loyalty moments, transfer requests, ...). */
-  flags?: CareerFlag[];
-  /** Grants an achievement by id. */
-  achievement?: string;
-  /** Immediately moves the player to this club (used by a few decisive youth events). */
-  transferTo?: string;
-  /** Hands over (or takes away) the captain's armband. */
-  captain?: boolean;
-}
+/** Which part of the season an event can appear in. */
+export type SeasonSlot = 'early' | 'mid' | 'late';
 
 export type CareerFlag =
   | 'loyalty_moment'
@@ -214,40 +205,154 @@ export type CareerFlag =
   | 'retirement_considered'
   | 'agent_signed'
   | 'academy_star'
-  | 'fan_favourite';
+  | 'fan_favourite'
+  | 'coach_favourite'
+  | 'injury_prone'
+  | 'discipline_problem'
+  | 'first_team_radar'
+  | 'tournament_star'
+  | 'released_by_maccabi';
+
+export interface EventConditions {
+  minAge?: number;
+  maxAge?: number;
+  stages?: AcademyStage[];
+  bands?: StageBand[];
+  positions?: Position[];
+  notPositions?: Position[];
+  minAbility?: number;
+  maxAbility?: number;
+  minPotential?: number;
+  minMaccabism?: number;
+  maxMaccabism?: number;
+  minReputation?: number;
+  maxReputation?: number;
+  minCoachTrust?: number;
+  maxCoachTrust?: number;
+  minForm?: number;
+  maxForm?: number;
+  minConfidence?: number;
+  maxConfidence?: number;
+  minRoleValue?: number;
+  maxRoleValue?: number;
+  roles?: TeamRole[];
+  olderGroup?: OlderGroupStatus[];
+  atMaccabi?: boolean;
+  atMaccabiSenior?: boolean;
+  abroad?: boolean;
+  onLoan?: boolean;
+  isCaptain?: boolean;
+  hasLeftMaccabi?: boolean;
+  /** Appearances so far this season (mid/late slots) or last season (early slot). */
+  minLastAppearances?: number;
+  maxLastAppearances?: number;
+  requiresFlags?: CareerFlag[];
+  forbidsFlags?: CareerFlag[];
+}
+
+/** Attributes an outcome weight modifier can read. */
+export type ModifierAttribute =
+  | 'ability'
+  | 'potential'
+  | 'form'
+  | 'confidence'
+  | 'coachTrust'
+  | 'maccabism'
+  | 'reputation'
+  | 'discipline'
+  | 'roleValue'
+  | 'age'
+  | 'injuryRisk'
+  | 'abilityVsLevel';
+
+/**
+ * Data-driven probability tuning. An outcome's weight is its baseWeight multiplied by every
+ * modifier whose threshold the player meets, so event designers tune odds without touching
+ * engine code.
+ */
+export interface OutcomeModifier {
+  attribute: ModifierAttribute;
+  /** Applies when the attribute is strictly above this value. */
+  above?: number;
+  /** Applies when the attribute is strictly below this value. */
+  below?: number;
+  multiplier: number;
+}
+
+export type Tone = 'good' | 'bad' | 'neutral';
+
+export interface EventEffects {
+  ability?: number;
+  potential?: number;
+  maccabism?: number;
+  reputation?: number;
+  coachTrust?: number;
+  /** Moves the player's standing inside the current team. */
+  roleValue?: number;
+  confidence?: number;
+  form?: number;
+  discipline?: number;
+  injuryRisk?: number;
+  pressure?: number;
+  /** 0-1 chance of picking up an injury that damages the coming half-season. */
+  injuryChance?: number;
+  transferChance?: number;
+  /** Multiplier applied to the remaining playing time this season. */
+  minutesModifier?: number;
+  /** Moves the player to / from the age group above. */
+  olderGroup?: OlderGroupStatus;
+  /** Additive bonus to this season's academy promotion roll. */
+  promotionBoost?: number;
+  flags?: CareerFlag[];
+  clearFlags?: CareerFlag[];
+  achievement?: string;
+  transferTo?: string;
+  captain?: boolean;
+}
 
 export interface EventOutcome {
-  /** Weight for weighted random selection between outcomes. */
-  weight: number;
-  /** Short Hebrew text shown after the decision. */
+  id: string;
+  /** Weight before modifiers. Relative to the other outcomes of the same choice. */
+  baseWeight: number;
+  /** Outcome is impossible unless these hold. */
+  conditions?: EventConditions;
+  modifiers?: OutcomeModifier[];
+  tone: Tone;
+  /** Short Hebrew narrative - the story comes first, numbers second. */
   text: string;
   effects: EventEffects;
-  tone?: 'good' | 'bad' | 'neutral';
 }
+
+/** Qualitative hint shown on a choice button instead of raw percentages. */
+export type ChoiceRisk = 'safe' | 'balanced' | 'risky' | 'opportunity';
 
 export interface EventChoice {
   id: string;
   label: string;
-  /** Optional one-line hint about the trade-off. */
   hint?: string;
-  /** Deterministic effects applied on every outcome of this choice. */
+  risk?: ChoiceRisk;
+  /** Applied on every outcome of this choice. Use sparingly - the outcomes carry the story. */
   effects?: EventEffects;
-  /** Weighted random outcomes. Exactly one is picked. */
-  outcomes?: EventOutcome[];
+  outcomes: EventOutcome[];
 }
 
 export interface GameEvent {
   id: string;
   title: string;
   description: string;
-  /** Optional flavour line shown above the title. */
   kicker?: string;
+  category: EventCategory;
+  /** Rare events are held back so they do not show up in every career. */
+  rarity?: 'common' | 'uncommon' | 'rare';
   conditions: EventConditions;
   weight: number;
+  slots?: SeasonSlot[];
+  oncePerCareer?: boolean;
+  oncePerStage?: boolean;
+  /** Minimum seasons before this event may fire again. */
+  cooldownSeasons?: number;
   choices: EventChoice[];
 }
-
-export type Tone = 'good' | 'bad' | 'neutral';
 
 export interface AttributeDelta {
   key: string;
@@ -259,10 +364,13 @@ export interface AttributeDelta {
 export interface CareerEventResult {
   eventId: string;
   eventTitle: string;
+  category: EventCategory;
   season: number;
   age: number;
+  stage: AcademyStage;
   choiceId: string;
   choiceLabel: string;
+  outcomeId: string;
   outcomeText: string;
   tone: Tone;
   deltas: AttributeDelta[];
@@ -272,7 +380,13 @@ export interface CareerEventResult {
 /* Transfers                                                           */
 /* ------------------------------------------------------------------ */
 
-export type OfferKind = 'transfer' | 'loan' | 'return_home' | 'contract' | 'release' | 'promotion';
+export type OfferKind =
+  | 'transfer'
+  | 'loan'
+  | 'return_home'
+  | 'contract'
+  | 'release'
+  | 'promotion';
 
 export interface TransferOffer {
   id: string;
@@ -283,50 +397,81 @@ export interface TransferOffer {
   country: string;
   title: string;
   description: string;
-  /** Effects applied if the offer is accepted. */
   acceptEffects: EventEffects;
-  /** Effects applied if the offer is turned down. */
   declineEffects: EventEffects;
   acceptLabel: string;
   declineLabel: string;
-  /** Some moves (release, promotion) cannot be refused. */
   mandatory?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
-/* Career                                                              */
+/* Career flow                                                         */
 /* ------------------------------------------------------------------ */
 
 export type CareerPhase =
-  | 'preseason' // showing state, events queued
-  | 'event' // player is answering an event
-  | 'season_result' // showing the simulated season
-  | 'offseason' // transfer / loan / contract decision
-  | 'retirement_decision' // continue for another season, or hang them up
+  | 'preseason' // season intro
+  | 'event' // answering an event (any slot)
+  | 'mid_season' // half-way summary
+  | 'season_result' // full season summary
+  | 'progression' // academy promotion / role change
+  | 'youth_to_senior' // the big transition out of נוער
+  | 'offseason' // transfers / loans / contracts
+  | 'retirement_decision'
   | 'retired';
 
+/** What the academy promotion roll decided at the end of a season. */
+export type ProgressionKind =
+  | 'normal' // one step up the ladder
+  | 'early' // skipped a level
+  | 'stay' // repeated the level
+  | 'senior' // promoted to the first team
+  | 'released' // Maccabi did not keep him
+  | 'none'; // senior player, nothing to report
+
+export interface ProgressionResult {
+  kind: ProgressionKind;
+  fromStage: AcademyStage;
+  toStage: AcademyStage;
+  title: string;
+  detail: string;
+  icon: string;
+  /** Worth a full celebration overlay. */
+  major: boolean;
+}
+
+/** Snapshot of the visible metrics at kick-off, so the season summary can show real movement. */
+export interface SeasonOpening {
+  ability: number;
+  coachTrust: number;
+  maccabism: number;
+  reputation: number;
+  roleValue: number;
+}
+
 export interface HiddenAttributes {
+  /** Talent ceiling. Never shown, and not an absolute cap. */
   potential: number;
   form: number;
   confidence: number;
   injuryRisk: number;
   discipline: number;
   pressure: number;
-  /** Temporary multiplier applied to next season's playing time (from events). */
+  /** One-season multiplier on playing time (from events). */
   minutesModifier: number;
-  /** Temporary additive bonus to offer generation. */
   transferBoost: number;
+  /** One-season additive bonus to the promotion roll. */
+  promotionBoost: number;
 }
 
 export interface Career {
   id: string;
+  schemaVersion: number;
   createdAt: number;
   playerName: string;
   position: Position;
 
   age: number;
   startAge: number;
-  /** Calendar year the current season ends in (e.g. 2035). */
   currentSeason: number;
   startSeason: number;
 
@@ -335,11 +480,18 @@ export interface Career {
 
   maccabism: number;
   reputation: number;
-  statusValue: number;
-  status: PlayerStatus;
+  /** אמון המאמן - one of the most important academy variables. */
+  coachTrust: number;
+  /** Numeric backing for `role`. */
+  roleValue: number;
+  role: TeamRole;
+
+  academyStage: AcademyStage;
+  olderGroup: OlderGroupStatus;
+  /** Seasons spent at the current academy stage (drives repeat / early promotion). */
+  seasonsAtStage: number;
 
   currentClubId: string;
-  /** Set while on loan - the club that owns the player. */
   parentClubId: string | null;
   loanSeasonsLeft: number;
 
@@ -354,23 +506,29 @@ export interface Career {
   trophies: Trophy[];
   achievements: Achievement[];
   eventsHistory: CareerEventResult[];
-  seenEventIds: string[];
   flags: CareerFlag[];
 
   phase: CareerPhase;
+  /** Which part of the season the loop is in. */
+  seasonSlot: SeasonSlot;
   pendingEventIds: string[];
+  /** Events already scheduled for the later slots of this season. */
+  plannedEvents: { slot: SeasonSlot; eventId: string }[];
   pendingOffers: TransferOffer[];
+
+  /** Stats accumulated in the first half of the season in progress. */
+  firstHalfStats: SeasonStats | null;
+  seasonOpening: SeasonOpening | null;
   lastSeasonRecord: SeasonRecord | null;
   lastSeasonDeltas: AttributeDelta[];
   lastEventResult: CareerEventResult | null;
-  /** Achievements unlocked by the most recent step, for the celebration layer. */
   lastAchievements: Achievement[];
+  lastProgression: ProgressionResult | null;
 
   retired: boolean;
   retirementAge: number | null;
   legend: LegendResult | null;
 
-  /** Seeded RNG state - makes a career fully reproducible and resumable. */
   seed: number;
   rngState: number;
 }

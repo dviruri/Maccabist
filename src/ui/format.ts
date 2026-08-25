@@ -1,9 +1,16 @@
 /** Presentation helpers. UI-only - the engine never imports this. */
 
+import { stageLabel as academyStageLabel, stageConfig } from '../data/academy';
 import { getClub } from '../data/clubs';
-import { POSITIONS, STAGE_LABELS, STATUS_ICONS, STATUS_LABELS } from '../game/balance';
-import { stageForAge } from '../game/rules';
-import type { Career, PlayerStatus, Position, SeasonRecord } from '../types';
+import { CAPTAIN_LABEL, POSITIONS, ROLE_ICONS, ROLE_LABELS } from '../game/balance';
+import type {
+  AcademyStage,
+  Career,
+  OlderGroupStatus,
+  Position,
+  SeasonRecord,
+  TeamRole,
+} from '../types';
 
 export function positionLabel(position: Position): string {
   return POSITIONS[position].label;
@@ -13,16 +20,49 @@ export function positionIcon(position: Position): string {
   return POSITIONS[position].icon;
 }
 
-export function statusText(status: PlayerStatus): string {
-  return STATUS_LABELS[status];
+export function roleText(career: Career): string {
+  return career.captain ? CAPTAIN_LABEL : ROLE_LABELS[career.role];
 }
 
-export function statusIcon(status: PlayerStatus): string {
-  return STATUS_ICONS[status];
+export function roleTextOf(role: TeamRole, captain = false): string {
+  return captain ? CAPTAIN_LABEL : ROLE_LABELS[role];
 }
 
-export function stageLabel(age: number): string {
-  return STAGE_LABELS[stageForAge(age)];
+export function roleIcon(career: Career): string {
+  return career.captain ? '🅲' : ROLE_ICONS[career.role];
+}
+
+export function stageLabel(stage: AcademyStage): string {
+  return academyStageLabel(stage);
+}
+
+/** "מכבי חיפה" for academy stages, the actual club once the player is a senior. */
+export function teamLine(career: Career): string {
+  const club = getClub(career.currentClubId);
+  if (career.academyStage !== 'senior') return 'מכבי חיפה';
+  return club.name;
+}
+
+/** The headline the career screen leads with: the academy stage, or the club. */
+export function headlineTitle(career: Career): string {
+  return career.academyStage === 'senior'
+    ? getClub(career.currentClubId).name
+    : stageLabel(career.academyStage);
+}
+
+export function headlineSubtitle(career: Career): string {
+  return career.academyStage === 'senior' ? stageConfig('senior').league : 'מכבי חיפה';
+}
+
+export const OLDER_GROUP_LABELS: Record<OlderGroupStatus, string> = {
+  none: '',
+  training: 'מתאמן עם השנתון שמעליך',
+  playing: 'משחק עם השנתון שמעליך',
+};
+
+export function olderGroupLine(career: Career): string | null {
+  if (career.olderGroup === 'none') return null;
+  return `⬆️ ${OLDER_GROUP_LABELS[career.olderGroup]}`;
 }
 
 /** 2038 -> "2037/38" — how a season is actually written on a shirt. */
@@ -35,15 +75,11 @@ export function clubName(clubId: string): string {
   return getClub(clubId).name;
 }
 
-export function shortClubName(clubId: string): string {
-  const club = getClub(clubId);
-  return club.shortName ?? club.name;
-}
-
-/** Consecutive seasons at the same club, collapsed into one timeline entry. */
+/** Consecutive seasons at the same team, collapsed into one timeline entry. */
 export interface CareerSpell {
+  key: string;
+  teamName: string;
   clubId: string;
-  clubName: string;
   fromSeason: number;
   toSeason: number;
   appearances: number;
@@ -52,6 +88,7 @@ export interface CareerSpell {
   trophies: number;
   onLoan: boolean;
   isMaccabi: boolean;
+  isAcademy: boolean;
 }
 
 export function buildTimeline(history: SeasonRecord[]): CareerSpell[] {
@@ -59,7 +96,7 @@ export function buildTimeline(history: SeasonRecord[]): CareerSpell[] {
 
   for (const record of history) {
     const last = spells[spells.length - 1];
-    if (last && last.clubId === record.clubId && last.onLoan === record.onLoan) {
+    if (last && last.teamName === record.teamName && last.onLoan === record.onLoan) {
       last.toSeason = record.season;
       last.appearances += record.stats.appearances;
       last.goals += record.stats.goals;
@@ -68,8 +105,9 @@ export function buildTimeline(history: SeasonRecord[]): CareerSpell[] {
       continue;
     }
     spells.push({
+      key: `${record.teamName}-${record.season}`,
+      teamName: record.teamName,
       clubId: record.clubId,
-      clubName: record.clubName,
       fromSeason: record.season,
       toSeason: record.season,
       appearances: record.stats.appearances,
@@ -78,6 +116,7 @@ export function buildTimeline(history: SeasonRecord[]): CareerSpell[] {
       trophies: record.trophies.length,
       onLoan: record.onLoan,
       isMaccabi: getClub(record.clubId).isMaccabi === true,
+      isAcademy: record.academyStage !== 'senior',
     });
   }
 
@@ -97,11 +136,15 @@ export function careerYears(career: Career): string {
   return `${first}–${last}`;
 }
 
-export function goalContributionLabel(position: Position): string {
-  return position === 'GK' ? 'שערים נקיים' : 'שערים';
-}
-
 /** Hebrew singular/plural: countLabel(1, 'שער אחד', 'שערים') -> "שער אחד". */
 export function countLabel(count: number, singular: string, plural: string): string {
   return count === 1 ? singular : `${count} ${plural}`;
 }
+
+/** Qualitative risk hint shown on a choice button - never a percentage. */
+export const RISK_LABELS: Record<string, string> = {
+  safe: 'בחירה בטוחה',
+  balanced: 'מאוזן',
+  risky: 'סיכון גבוה',
+  opportunity: 'הזדמנות גדולה',
+};

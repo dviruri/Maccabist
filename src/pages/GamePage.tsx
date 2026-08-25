@@ -3,14 +3,18 @@ import { DebugPanel } from '../components/DebugPanel';
 import { EventCard, OutcomeCard } from '../components/EventCard';
 import { OffersCard } from '../components/OffersCard';
 import { PlayerCard } from '../components/PlayerCard';
-import { SeasonResultCard } from '../components/SeasonResultCard';
+import {
+  MidSeasonCard,
+  ProgressionCard,
+  SeasonResultCard,
+  YouthTransitionCard,
+} from '../components/SeasonCards';
 import { Timeline } from '../components/Timeline';
 import { Chip, Logo, Ltr } from '../components/primitives';
-import { getClub } from '../data/clubs';
 import { EVENTS_BY_ID } from '../data/events';
 import type { GameActions } from '../state/useGame';
 import type { Career } from '../types';
-import { seasonLabel, stageLabel } from '../ui/format';
+import { headlineTitle, olderGroupLine, seasonLabel } from '../ui/format';
 
 interface Props {
   career: Career;
@@ -27,9 +31,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
           מכבי<span>סט</span>
         </div>
         <div className="spacer" />
-        <Chip tone="plain">
-          עונת <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
-        </Chip>
+        <Chip tone="plain">{headlineTitle(career)}</Chip>
         <button type="button" className="debug-toggle" onClick={onExit}>
           תפריט
         </button>
@@ -53,7 +55,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         </main>
       </div>
 
-      <Celebration achievements={career.lastAchievements} />
+      <Celebration achievements={career.lastAchievements} progression={career.lastProgression} />
       {import.meta.env.DEV && <DebugPanel career={career} onChange={actions.overrideCareer} />}
     </div>
   );
@@ -67,20 +69,29 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
           <OutcomeCard
             result={career.lastEventResult}
             onContinue={actions.continueEvent}
-            continueLabel={career.pendingEventIds.length > 0 ? 'הלאה' : 'לשחק את העונה'}
+            continueLabel={career.pendingEventIds.length > 0 ? 'הלאה' : 'להמשך העונה'}
           />
         );
       }
       const eventId = career.pendingEventIds[0];
       const event = eventId ? EVENTS_BY_ID[eventId] : undefined;
       if (!event || !eventId) {
-        return <ContinueCard title="העונה מתחילה" onContinue={actions.continueEvent} label="קדימה" />;
+        return <ContinueCard title="העונה ממשיכה" onContinue={actions.continueEvent} label="קדימה" />;
       }
       return <EventCard event={event} onChoose={(choiceId) => actions.answer(eventId, choiceId)} />;
     }
 
+    case 'mid_season':
+      return <MidSeasonCard career={career} onContinue={actions.continueMidSeason} />;
+
     case 'season_result':
       return <SeasonResultCard career={career} onContinue={actions.continueSeason} />;
+
+    case 'progression':
+      return <ProgressionCard career={career} onContinue={actions.continueProgression} />;
+
+    case 'youth_to_senior':
+      return <YouthTransitionCard career={career} onChoose={actions.chooseYouthPath} />;
 
     case 'offseason':
       return (
@@ -101,24 +112,22 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
 }
 
 function PreSeasonCard({ career, onStart }: { career: Career; onStart: () => void }): JSX.Element {
-  const club = getClub(career.currentClubId);
-  const onLoan = career.parentClubId !== null;
+  const older = olderGroupLine(career);
+  const first = career.seasonHistory.length === 0;
 
   return (
     <article className="card">
       <div className="stack">
-        <div className="kicker">לפני העונה</div>
+        <div className="kicker">{first ? 'הצעד הראשון' : 'לפני העונה'}</div>
         <h2 className="card-title">
-          עונת <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
+          {headlineTitle(career)} · <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
         </h2>
         <p className="card-body">
-          אתה בן <Ltr>{career.age}</Ltr>, ב{club.shortName ?? club.name}
-          {onLoan ? ' (בהשאלה)' : ''}, {club.league}.
+          {first
+            ? 'האימון הראשון שלך במגרשי האימונים של מכבי חיפה. מכאן זו דרך ארוכה מאוד.'
+            : `עוד עונה במדים הירוקים. אתה בן ${career.age}.`}
         </p>
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          <Chip tone="plain">{stageLabel(career.age)}</Chip>
-          {career.captain && <Chip tone="gold">🅲 אתה הקפטן</Chip>}
-        </div>
+        {older && <Chip>{older}</Chip>}
         <button type="button" className="btn btn-primary" onClick={onStart}>
           להתחיל את העונה
         </button>
@@ -134,8 +143,6 @@ function RetirementDecision({
   career: Career;
   actions: GameActions;
 }): JSX.Element {
-  const club = getClub(career.currentClubId);
-
   return (
     <article className="card event-card">
       <div className="stack">
@@ -144,8 +151,8 @@ function RetirementDecision({
           אתה בן <Ltr>{career.age}</Ltr>. כמה עוד נשאר?
         </h2>
         <p className="card-body">
-          הגוף מזכיר לך כל בוקר כמה שנים עברו. ב{club.name} כבר מדברים על מה יהיה אחריך.
-          אתה יכול למשוך עוד עונה - או לסיים את זה בזמן, בתנאים שלך.
+          הגוף מזכיר לך כל בוקר כמה שנים עברו. אתה יכול למשוך עוד עונה - או לסיים את זה
+          בזמן, בתנאים שלך.
         </p>
         <div className="stack-sm">
           <button

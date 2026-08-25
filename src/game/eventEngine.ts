@@ -1,81 +1,179 @@
 /**
  * Data-driven event selection and resolution.
+ *
  * The engine knows nothing about specific events - everything comes from src/data/events.ts.
+ * Its jobs are: decide how many decision points a season gets, pick events that fit the
+ * player's situation without repeating themselves, and resolve a choice into a weighted outcome.
  */
 
-import { EVENTS, getEvent } from '../data/events';
-import type { Achievement, Career, CareerEventResult, EventEffects, GameEvent } from '../types';
+import { stageConfig } from '../data/academy';
+import { EVENTS_BY_ID, EVENT_POOL } from '../data/events';
+import type {
+  Achievement,
+  Career,
+  CareerEventResult,
+  EventCategory,
+  GameEvent,
+  SeasonSlot,
+} from '../types';
+import { EVENTS } from './balance';
+import { matchesConditions, type ConditionContext } from './conditions';
+import { selectWeightedOutcome } from './outcomeEngine';
 import { applyEffects, cloneCareer, diffCareer } from './progressionEngine';
 import type { Rng } from './random';
-import {
-  isAtMaccabi,
-  isAtMaccabiSenior,
-  isOnLoan,
-  isPlayingAbroad,
-  stageForAge,
-} from './rules';
 
-/** Weight multiplier for an event the player has already seen in this career. */
-const REPEAT_PENALTY = 0.3;
+/* ------------------------------------------------------------------ */
+/* Context                                                             */
+/* ------------------------------------------------------------------ */
 
-export function isEventEligible(event: GameEvent, career: Career): boolean {
-  const c = event.conditions;
-  const lastApps = career.lastSeasonRecord?.stats.appearances ?? 0;
-
-  if (c.once && career.seenEventIds.includes(event.id)) return false;
-  if (c.minAge !== undefined && career.age < c.minAge) return false;
-  if (c.maxAge !== undefined && career.age > c.maxAge) return false;
-  if (c.stages && !c.stages.includes(stageForAge(career.age))) return false;
-  if (c.minAbility !== undefined && career.ability < c.minAbility) return false;
-  if (c.maxAbility !== undefined && career.ability > c.maxAbility) return false;
-  if (c.minMaccabism !== undefined && career.maccabism < c.minMaccabism) return false;
-  if (c.maxMaccabism !== undefined && career.maccabism > c.maxMaccabism) return false;
-  if (c.minReputation !== undefined && career.reputation < c.minReputation) return false;
-  if (c.maxReputation !== undefined && career.reputation > c.maxReputation) return false;
-  if (c.minStatusValue !== undefined && career.statusValue < c.minStatusValue) return false;
-  if (c.maxStatusValue !== undefined && career.statusValue > c.maxStatusValue) return false;
-  if (c.atMaccabi !== undefined && isAtMaccabi(career) !== c.atMaccabi) return false;
-  if (c.atMaccabiSenior !== undefined && isAtMaccabiSenior(career) !== c.atMaccabiSenior)
-    return false;
-  if (c.abroad !== undefined && isPlayingAbroad(career) !== c.abroad) return false;
-  if (c.onLoan !== undefined && isOnLoan(career) !== c.onLoan) return false;
-  if (c.isCaptain !== undefined && career.captain !== c.isCaptain) return false;
-  if (c.hasLeftMaccabi !== undefined && career.maccabi.everLeft !== c.hasLeftMaccabi) return false;
-  if (c.minLastAppearances !== undefined && lastApps < c.minLastAppearances) return false;
-  if (c.maxLastAppearances !== undefined && lastApps > c.maxLastAppearances) return false;
-
-  return true;
+/**
+ * Early-slot events read last season's appearances; once the season is under way they read
+ * what has actually happened so far this season.
+ */
+export function conditionContext(career: Career, slot: SeasonSlot): ConditionContext {
+  if (slot === 'early') {
+    return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0 };
+  }
+  return { appearances: career.firstHalfStats?.appearances ?? 0 };
 }
 
-export function eligibleEvents(career: Career): GameEvent[] {
-  return EVENTS.filter((event) => isEventEligible(event, career));
+/* ------------------------------------------------------------------ */
+/* Repetition control                                                  */
+/* ------------------------------------------------------------------ */
+
+function lastSeasonSeen(career: Career, eventId: string): number | null {
+  let latest: number | null = null;
+  for (const entry of career.eventsHistory) {
+    if (entry.eventId === eventId) latest = Math.max(latest ?? entry.season, entry.season);
+  }
+  return latest;
 }
 
-/** Picks up to `count` distinct events for the coming season. */
-export function pickEvents(career: Career, rng: Rng, count: number): string[] {
-  const pool = eligibleEvents(career);
-  const picked: string[] = [];
+function seenThisStage(career: Career, eventId: string): boolean {
+  return career.eventsHistory.some(
+    (e) => e.eventId === eventId && e.stage === career.academyStage,
+  );
+}
 
-  for (let i = 0; i < count; i += 1) {
-    const remaining = pool.filter((event) => !picked.includes(event.id));
-    if (remaining.length === 0) break;
-    const chosen = rng.weighted(remaining, (event) =>
-      career.seenEventIds.includes(event.id) ? event.weight * REPEAT_PENALTY : event.weight,
-    );
-    if (!chosen) break;
-    picked.push(chosen.id);
+/** Categories used earlier in the current season - kept for variety. */
+export function categoriesThisSeason(career: Career): EventCategory[] {
+  return career.eventsHistory
+    .filter((e) => e.season === career.currentSeason)
+    .map((e) => e.category);
+}
+
+/** Categories that hit last season and should not immediately repeat (injury, discipline). */
+function blockedCategories(career: Career): EventCategory[] {
+  const blocked = EVENTS.blockedRepeatCategories as readonly EventCategory[];
+  return career.eventsHistory
+    .filter((e) => e.season === career.currentSeason - 1 && blocked.includes(e.category))
+    .map((e) => e.category);
+}
+
+/* ------------------------------------------------------------------ */
+/* Eligibility                                                         */
+/* ------------------------------------------------------------------ */
+
+export function isEventEligible(event: GameEvent, career: Career, slot: SeasonSlot): boolean {
+  if (event.slots && !event.slots.includes(slot)) return false;
+
+  if (event.oncePerCareer && lastSeasonSeen(career, event.id) !== null) return false;
+  if (event.oncePerStage && seenThisStage(career, event.id)) return false;
+
+  const last = lastSeasonSeen(career, event.id);
+  if (last !== null) {
+    const cooldown = event.cooldownSeasons ?? EVENTS.defaultCooldownSeasons;
+    if (career.currentSeason - last < cooldown) return false;
   }
 
-  return picked;
+  return matchesConditions(career, event.conditions, conditionContext(career, slot));
 }
 
-/** How many events a season should present. Big career moments deserve a busier season. */
-export function eventsPerSeason(career: Career, rng: Rng): number {
-  const stage = stageForAge(career.age);
-  if (stage === 'kids') return rng.chance(0.25) ? 2 : 1;
-  if (stage === 'youth') return rng.chance(0.35) ? 2 : 1;
-  return rng.chance(0.45) ? 2 : 1;
+export function eligibleEvents(career: Career, slot: SeasonSlot): GameEvent[] {
+  return EVENT_POOL.filter((event) => isEventEligible(event, career, slot));
 }
+
+/** Effective selection weight for an event, after variety and rarity throttling. */
+export function selectionWeight(
+  event: GameEvent,
+  career: Career,
+  usedCategories: EventCategory[],
+  blocked: EventCategory[],
+): number {
+  if (blocked.includes(event.category)) return 0;
+
+  let weight = event.weight * EVENTS.rarityWeight[event.rarity ?? 'common'];
+  if (lastSeasonSeen(career, event.id) !== null) weight *= EVENTS.repeatPenalty;
+  if (usedCategories.includes(event.category)) weight *= EVENTS.sameCategoryPenalty;
+  return weight;
+}
+
+/** Picks a single event for a slot, or null when nothing fits. */
+export function pickEventForSlot(
+  career: Career,
+  rng: Rng,
+  slot: SeasonSlot,
+  usedCategories: EventCategory[],
+  exclude: string[] = [],
+): GameEvent | null {
+  const blocked = blockedCategories(career);
+  const pool = eligibleEvents(career, slot).filter((e) => !exclude.includes(e.id));
+  if (pool.length === 0) return null;
+  return rng.weighted(pool, (event) => selectionWeight(event, career, usedCategories, blocked));
+}
+
+/* ------------------------------------------------------------------ */
+/* Season planning                                                     */
+/* ------------------------------------------------------------------ */
+
+/** How many decision points this season should contain, from the stage config. */
+export function eventBudget(career: Career, rng: Rng): number {
+  const stage = stageConfig(career.academyStage);
+  if (stage.maxEvents <= stage.minEvents) return stage.minEvents;
+  return rng.int(stage.minEvents, stage.maxEvents);
+}
+
+export interface PlannedEvent {
+  slot: SeasonSlot;
+  eventId: string;
+}
+
+/**
+ * Lays out the season's decision points across the early / mid / late slots.
+ * Events are chosen one at a time so each pick can avoid repeating the previous category.
+ */
+export function planSeason(career: Career, rng: Rng): PlannedEvent[] {
+  const budget = eventBudget(career, rng);
+  const slots: SeasonSlot[] =
+    budget <= 1
+      ? [rng.chance(0.6) ? 'early' : 'mid']
+      : budget === 2
+        ? ['early', 'mid']
+        : ['early', 'mid', 'late'];
+
+  const planned: PlannedEvent[] = [];
+  const used: EventCategory[] = [];
+  for (const slot of slots) {
+    // The late "key moment" slot is not always used, even when budgeted.
+    if (slot === 'late' && !rng.chance(EVENTS.lateSlotChance + 0.35)) continue;
+    const event = pickEventForSlot(
+      career,
+      rng,
+      slot,
+      used,
+      planned.map((p) => p.eventId),
+    );
+    if (!event) continue;
+    planned.push({ slot, eventId: event.id });
+    used.push(event.category);
+  }
+
+  return planned;
+}
+
+/* ------------------------------------------------------------------ */
+/* Resolution                                                          */
+/* ------------------------------------------------------------------ */
 
 export interface ResolvedEvent {
   career: Career;
@@ -83,14 +181,19 @@ export interface ResolvedEvent {
   achievements: Achievement[];
 }
 
-/** Applies a decision: fixed choice effects first, then one weighted random outcome. */
+/**
+ * Applies a decision. The choice's fixed effects land first, then exactly one weighted
+ * outcome - which is where the story and most of the numbers come from.
+ */
 export function resolveEventChoice(
   career: Career,
   eventId: string,
   choiceId: string,
   rng: Rng,
+  slot: SeasonSlot,
 ): ResolvedEvent {
-  const event = getEvent(eventId);
+  const event = EVENTS_BY_ID[eventId];
+  if (!event) throw new Error(`Unknown event: ${eventId}`);
   const choice = event.choices.find((ch) => ch.id === choiceId);
   if (!choice) throw new Error(`Unknown choice ${choiceId} for event ${eventId}`);
 
@@ -98,36 +201,40 @@ export function resolveEventChoice(
   let next = career;
   const achievements: Achievement[] = [];
 
-  const applyOne = (effects: EventEffects): void => {
-    const applied = applyEffects(next, effects, rng);
+  if (choice.effects) {
+    const applied = applyEffects(next, choice.effects, rng);
     next = applied.career;
     achievements.push(...applied.achievements);
-  };
+  }
 
-  if (choice.effects) applyOne(choice.effects);
+  const ctx = conditionContext(career, slot);
+  const outcome = selectWeightedOutcome(choice.outcomes, next, rng, ctx);
 
   let outcomeText = '';
+  let outcomeId = 'none';
   let tone: CareerEventResult['tone'] = 'neutral';
-  if (choice.outcomes?.length) {
-    const outcome = rng.weighted(choice.outcomes, (o) => o.weight) ?? choice.outcomes[0];
-    if (outcome) {
-      outcomeText = outcome.text;
-      tone = outcome.tone ?? 'neutral';
-      applyOne(outcome.effects);
-    }
+  if (outcome) {
+    outcomeId = outcome.id;
+    outcomeText = outcome.text;
+    tone = outcome.tone;
+    const applied = applyEffects(next, outcome.effects, rng);
+    next = applied.career;
+    achievements.push(...applied.achievements);
   }
 
   next = cloneCareer(next);
-  if (!next.seenEventIds.includes(eventId)) next.seenEventIds.push(eventId);
   next.pendingEventIds = next.pendingEventIds.filter((id) => id !== eventId);
 
   const result: CareerEventResult = {
     eventId,
     eventTitle: event.title,
+    category: event.category,
     season: career.currentSeason,
     age: career.age,
+    stage: career.academyStage,
     choiceId,
     choiceLabel: choice.label,
+    outcomeId,
     outcomeText,
     tone,
     deltas: diffCareer(before, next),

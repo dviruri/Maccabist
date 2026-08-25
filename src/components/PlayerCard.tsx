@@ -1,12 +1,20 @@
-import { getClub } from '../data/clubs';
 import type { Career } from '../types';
-import { positionIcon, positionLabel, stageLabel, statusIcon, statusText } from '../ui/format';
+import {
+  headlineSubtitle,
+  headlineTitle,
+  olderGroupLine,
+  positionIcon,
+  positionLabel,
+  roleIcon,
+  roleText,
+  seasonLabel,
+} from '../ui/format';
 import { Chip, Ltr } from './primitives';
 
 interface StatProps {
   label: string;
   value: number;
-  tone: 'ability' | 'maccabism' | 'rep' | 'status';
+  tone: 'ability' | 'maccabism' | 'rep' | 'trust';
 }
 
 function Stat({ label, value, tone }: StatProps): JSX.Element {
@@ -21,23 +29,31 @@ function Stat({ label, value, tone }: StatProps): JSX.Element {
   );
 }
 
+/**
+ * The academy stage - not the age - is the player's identity, so it leads the card.
+ */
 export function PlayerCard({ career }: { career: Career }): JSX.Element {
-  const club = getClub(career.currentClubId);
   const onLoan = career.parentClubId !== null;
+  const older = olderGroupLine(career);
 
   return (
     <section className="player-card">
-      <div className="row-between">
-        <div>
-          <div className="player-name">{career.playerName}</div>
-          <div className="player-club">
-            {club.name}
-            {onLoan ? ' (בהשאלה)' : ''}
-          </div>
+      <div className="stage-headline">
+        <div className="stage-name">{headlineTitle(career)}</div>
+        <div className="stage-club">
+          {headlineSubtitle(career)}
+          {onLoan ? ' · בהשאלה' : ''}
         </div>
+        <div className="stage-meta">
+          בן <Ltr>{career.age}</Ltr> • עונת <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
+        </div>
+      </div>
+
+      <div className="player-name-row">
+        <div className="player-name">{career.playerName}</div>
         <div className="status-badge">
-          <span aria-hidden>{statusIcon(career.status)}</span>
-          {statusText(career.status)}
+          <span aria-hidden>{roleIcon(career)}</span>
+          {roleText(career)}
         </div>
       </div>
 
@@ -45,18 +61,14 @@ export function PlayerCard({ career }: { career: Career }): JSX.Element {
         <Chip tone="plain">
           {positionIcon(career.position)} {positionLabel(career.position)}
         </Chip>
-        <Chip tone="plain">
-          גיל <Ltr>{career.age}</Ltr>
-        </Chip>
-        <Chip tone="plain">{stageLabel(career.age)}</Chip>
-        {career.captain && <Chip tone="gold">🅲 קפטן</Chip>}
+        {older && <Chip>{older}</Chip>}
       </div>
 
       <div className="stat-grid">
         <Stat label="יכולת" value={career.ability} tone="ability" />
+        <Stat label="אמון המאמן" value={career.coachTrust} tone="trust" />
         <Stat label="מכביסטיות" value={career.maccabism} tone="maccabism" />
         <Stat label="מוניטין" value={career.reputation} tone="rep" />
-        <Stat label="מעמד" value={career.statusValue} tone="status" />
       </div>
     </section>
   );

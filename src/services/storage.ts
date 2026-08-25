@@ -5,16 +5,24 @@
  * swapped for a backend repository (Base44, an API, whatever) without touching the UI.
  */
 
+import { SCHEMA_VERSION } from '../game/careerEngine';
 import type { Career, CareerSummary, MetaProgress } from '../types';
 
-const SCHEMA_VERSION = 1;
 const CAREER_KEY = 'maccabist:career:v1';
 const META_KEY = 'maccabist:meta:v1';
+/** Set when a save from an older schema had to be dropped, so the UI can explain itself. */
+const LEGACY_FLAG = 'maccabist:legacy-save-dropped';
+
+/** Meta progression survives schema changes - it is a small, stable shape. */
+const META_VERSION = 1;
 
 export interface GameRepository {
   loadCareer(): Career | null;
   saveCareer(career: Career): void;
   clearCareer(): void;
+  /** True when a save existed but belonged to an incompatible older version. */
+  hadIncompatibleSave(): boolean;
+  acknowledgeIncompatibleSave(): void;
   loadMeta(): MetaProgress;
   saveMeta(meta: MetaProgress): void;
   recordFinishedCareer(career: Career): MetaProgress;
@@ -41,27 +49,65 @@ function hasStorage(): boolean {
   }
 }
 
-function read<T>(key: string): T | null {
-  if (!hasStorage()) return null;
+function readRaw<T>(key: string, expectedVersion: number): { data: T | null; stale: boolean } {
+  if (!hasStorage()) return { data: null, stale: false };
   try {
     const raw = window.localStorage.getItem(key);
-    if (!raw) return null;
+    if (!raw) return { data: null, stale: false };
     const parsed = JSON.parse(raw) as Envelope<T>;
-    if (parsed.version !== SCHEMA_VERSION) return null;
-    return parsed.data;
+    if (parsed.version !== expectedVersion) return { data: null, stale: true };
+    return { data: parsed.data, stale: false };
   } catch {
-    return null;
+    // Corrupted JSON is treated exactly like an incompatible save: dropped, never crashed on.
+    return { data: null, stale: true };
   }
 }
 
-function write<T>(key: string, data: T): void {
+function write<T>(key: string, version: number, data: T): void {
   if (!hasStorage()) return;
   try {
-    const envelope: Envelope<T> = { version: SCHEMA_VERSION, data };
+    const envelope: Envelope<T> = { version, data };
     window.localStorage.setItem(key, JSON.stringify(envelope));
   } catch {
     // Quota or private mode - the game keeps working, it just will not resume.
   }
+}
+
+function remove(key: string): void {
+  if (!hasStorage()) return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
+function markLegacy(): void {
+  if (!hasStorage()) return;
+  try {
+    window.localStorage.setItem(LEGACY_FLAG, '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Basic sanity check. A v0.1 career has no `academyStage`, and a half-written save could be
+ * missing anything - either way we refuse it rather than letting the engine crash on it.
+ */
+function isUsableCareer(career: unknown): career is Career {
+  if (!career || typeof career !== 'object') return false;
+  const c = career as Partial<Career>;
+  return (
+    typeof c.id === 'string' &&
+    typeof c.academyStage === 'string' &&
+    typeof c.coachTrust === 'number' &&
+    typeof c.roleValue === 'number' &&
+    typeof c.phase === 'string' &&
+    Array.isArray(c.seasonHistory) &&
+    !!c.hidden &&
+    !!c.maccabi
+  );
 }
 
 export function summariseCareer(career: Career): CareerSummary {
@@ -82,18 +128,35 @@ export function summariseCareer(career: Career): CareerSummary {
 
 function createLocalRepository(): GameRepository {
   return {
-    loadCareer: () => read<Career>(CAREER_KEY),
-    saveCareer: (career) => write(CAREER_KEY, career),
-    clearCareer: () => {
-      if (!hasStorage()) return;
+    loadCareer() {
+      const { data, stale } = readRaw<Career>(CAREER_KEY, SCHEMA_VERSION);
+      if (stale) {
+        markLegacy();
+        remove(CAREER_KEY);
+        return null;
+      }
+      if (!isUsableCareer(data)) {
+        if (data !== null) {
+          markLegacy();
+          remove(CAREER_KEY);
+        }
+        return null;
+      }
+      return data;
+    },
+    saveCareer: (career) => write(CAREER_KEY, SCHEMA_VERSION, career),
+    clearCareer: () => remove(CAREER_KEY),
+    hadIncompatibleSave() {
+      if (!hasStorage()) return false;
       try {
-        window.localStorage.removeItem(CAREER_KEY);
+        return window.localStorage.getItem(LEGACY_FLAG) === '1';
       } catch {
-        /* ignore */
+        return false;
       }
     },
-    loadMeta: () => read<MetaProgress>(META_KEY) ?? { ...emptyMeta },
-    saveMeta: (meta) => write(META_KEY, meta),
+    acknowledgeIncompatibleSave: () => remove(LEGACY_FLAG),
+    loadMeta: () => readRaw<MetaProgress>(META_KEY, META_VERSION).data ?? { ...emptyMeta },
+    saveMeta: (meta) => write(META_KEY, META_VERSION, meta),
     recordFinishedCareer(career) {
       const meta = this.loadMeta();
       const summary = summariseCareer(career);

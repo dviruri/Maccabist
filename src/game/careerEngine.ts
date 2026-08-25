@@ -4,24 +4,50 @@
  * React only ever calls these functions - it never touches the other engine modules.
  * Every function takes a Career and returns a new Career, with the RNG state carried
  * inside the career itself so a save file resumes the exact same random stream.
+ *
+ * The season is a small state machine:
+ *
+ *   preseason → [early event] → first half → [mid summary] → [mid event]
+ *             → second half → [late key moment] → season summary
+ *             → progression / youth-to-senior / transfers → next season
  */
 
+import { FIRST_STAGE, stageConfig } from '../data/academy';
 import { MACCABI_ACADEMY_ID, getClub } from '../data/clubs';
 import { EVENTS_BY_ID } from '../data/events';
-import type { Career, Position } from '../types';
-import { RETIREMENT_FORCED_AGE, RETIREMENT_MIN_AGE, START, START_AGE, START_SEASON_MAX, START_SEASON_MIN } from './balance';
-import { eventsPerSeason, pickEvents, resolveEventChoice } from './eventEngine';
+import type { AttributeDelta, Career, Position, SeasonSlot } from '../types';
+import {
+  RETIREMENT_FORCED_AGE,
+  RETIREMENT_MIN_AGE,
+  START,
+  START_AGE,
+  START_SEASON_MAX,
+  START_SEASON_MIN,
+} from './balance';
+import { planSeason, resolveEventChoice } from './eventEngine';
 import { computeLegendScore } from './legendEngine';
-import { applyEffects, checkAchievements, cloneCareer } from './progressionEngine';
+import {
+  applyEffects,
+  checkAchievements,
+  cloneCareer,
+  endOfSeasonReset,
+  resolveAcademyProgression,
+} from './progressionEngine';
 import { clamp, createRng, randomSeed, round, type Rng } from './random';
-import { playSeason } from './seasonEngine';
-import { isAtMaccabiSenior, statusFromValue } from './rules';
+import { isAtMaccabiSenior, isInAcademy, roleFromValue } from './rules';
+import { playFirstHalf, playSecondHalf } from './seasonEngine';
 import {
   acceptOffer as acceptTransferOffer,
   applyAutomaticMoves,
   declineAllOffers,
+  evaluateSeniorTransition,
   generateOffers,
+  seniorTransitionOffers,
+  stayAnotherYouthYear,
+  verdictToProgression,
 } from './transferEngine';
+
+export const SCHEMA_VERSION = 2;
 
 /** Runs `fn` with a fresh Rng seeded from the career and stores the advanced state back. */
 function withRng<T extends { rngState: number }>(career: T, fn: (rng: Rng) => T): T {
@@ -37,7 +63,7 @@ function withRng<T extends { rngState: number }>(career: T, fn: (rng: Rng) => T)
 export interface NewCareerInput {
   playerName: string;
   position: Position;
-  /** Optional fixed seed - the same seed and the same decisions produce the same career. */
+  /** Optional fixed seed - the same seed and the same decisions reproduce the career. */
   seed?: number;
 }
 
@@ -47,11 +73,12 @@ export function createCareer(input: NewCareerInput): Career {
 
   const isWonderkid = rng.chance(START.wonderkidChance);
   const potential = isWonderkid
-    ? rng.int(START.wonderkidPotentialMin, 99)
+    ? rng.int(START.wonderkidPotentialMin, START.wonderkidPotentialMax)
     : rng.int(START.potentialMin, START.potentialMax);
 
   const career: Career = {
     id: `career_${seed.toString(36)}_${Date.now().toString(36)}`,
+    schemaVersion: SCHEMA_VERSION,
     createdAt: Date.now(),
     playerName: input.playerName.trim() || 'מכביסט',
     position: input.position,
@@ -71,12 +98,18 @@ export function createCareer(input: NewCareerInput): Career {
       pressure: START.pressure + rng.int(-8, 8),
       minutesModifier: 1,
       transferBoost: 0,
+      promotionBoost: 0,
     },
 
     maccabism: rng.int(START.maccabismMin, START.maccabismMax),
     reputation: START.reputation,
-    statusValue: START.statusValue,
-    status: statusFromValue(START.statusValue),
+    coachTrust: rng.int(START.coachTrustMin, START.coachTrustMax),
+    roleValue: START.roleValue + rng.int(-6, 6),
+    role: 'squad',
+
+    academyStage: FIRST_STAGE,
+    olderGroup: 'none',
+    seasonsAtStage: 0,
 
     currentClubId: MACCABI_ACADEMY_ID,
     parentClubId: null,
@@ -104,6 +137,8 @@ export function createCareer(input: NewCareerInput): Career {
       loyaltyMoments: 0,
       betrayalMoments: 0,
       debutAge: null,
+      academySeasons: 0,
+      earlyPromotions: 0,
     },
     peakAbility: 0,
 
@@ -111,16 +146,21 @@ export function createCareer(input: NewCareerInput): Career {
     trophies: [],
     achievements: [],
     eventsHistory: [],
-    seenEventIds: [],
     flags: [],
 
     phase: 'preseason',
+    seasonSlot: 'early',
     pendingEventIds: [],
+    plannedEvents: [],
     pendingOffers: [],
+
+    firstHalfStats: null,
+    seasonOpening: null,
     lastSeasonRecord: null,
     lastSeasonDeltas: [],
     lastEventResult: null,
     lastAchievements: [],
+    lastProgression: null,
 
     retired: false,
     retirementAge: null,
@@ -132,74 +172,203 @@ export function createCareer(input: NewCareerInput): Career {
 
   career.startSeason = career.currentSeason;
   career.peakAbility = career.ability;
+  career.role = roleFromValue(career.roleValue);
   return career;
 }
 
 /* ------------------------------------------------------------------ */
-/* Season loop                                                         */
+/* Season flow                                                         */
 /* ------------------------------------------------------------------ */
 
-/** Preseason -> queue this season's events and open the first one. */
-export function beginSeason(career: Career): Career {
-  return withRng(career, (rng) => {
-    const next = cloneCareer(career);
-    next.pendingEventIds = pickEvents(next, rng, eventsPerSeason(next, rng));
-    next.lastEventResult = null;
-    next.lastAchievements = [];
-    next.phase = next.pendingEventIds.length > 0 ? 'event' : 'preseason';
-    return next;
-  });
-}
-
-/** Applies a decision. The career stays in the `event` phase so the outcome can be shown. */
-export function answerEvent(career: Career, eventId: string, choiceId: string): Career {
-  return withRng(career, (rng) => {
-    const { career: next } = resolveEventChoice(career, eventId, choiceId, rng);
-    return next;
-  });
-}
-
-/** After the outcome is read: next event, or straight into the season. */
-export function continueAfterEvent(career: Career): Career {
+function snapshotOpening(career: Career): Career {
   const next = cloneCareer(career);
-  next.lastEventResult = null;
-  next.lastAchievements = [];
-  if (next.pendingEventIds.length > 0) {
-    next.phase = 'event';
-    return next;
-  }
-  return simulateCurrentSeason(next);
+  next.seasonOpening = {
+    ability: career.ability,
+    coachTrust: career.coachTrust,
+    maccabism: career.maccabism,
+    reputation: career.reputation,
+    roleValue: career.roleValue,
+  };
+  return next;
 }
 
-/** Runs the season simulation and moves to the results screen. */
-export function simulateCurrentSeason(career: Career): Career {
+function loadSlotEvents(career: Career, slot: SeasonSlot): Career {
+  const next = cloneCareer(career);
+  next.seasonSlot = slot;
+  next.pendingEventIds = next.plannedEvents.filter((p) => p.slot === slot).map((p) => p.eventId);
+  next.plannedEvents = next.plannedEvents.filter((p) => p.slot !== slot);
+  return next;
+}
+
+function seasonDeltas(career: Career): AttributeDelta[] {
+  const open = career.seasonOpening;
+  if (!open) return [];
+  const rows: AttributeDelta[] = [
+    { key: 'ability', label: 'יכולת', from: Math.round(open.ability), to: Math.round(career.ability) },
+    {
+      key: 'coachTrust',
+      label: 'אמון המאמן',
+      from: Math.round(open.coachTrust),
+      to: Math.round(career.coachTrust),
+    },
+    {
+      key: 'maccabism',
+      label: 'מכביסטיות',
+      from: Math.round(open.maccabism),
+      to: Math.round(career.maccabism),
+    },
+    {
+      key: 'reputation',
+      label: 'מוניטין',
+      from: Math.round(open.reputation),
+      to: Math.round(career.reputation),
+    },
+  ];
+  return rows.filter((row) => row.from !== row.to);
+}
+
+/**
+ * The single driver that walks a season forward from wherever it currently is.
+ * Every UI "continue" ends up here.
+ */
+function advanceSeasonFlow(career: Career): Career {
   return withRng(career, (rng) => {
-    const before = career;
-    const { career: played } = playSeason(career, rng);
-    const next = cloneCareer(played);
-    next.lastSeasonDeltas = [
-      { key: 'ability', label: 'יכולת', from: Math.round(before.ability), to: Math.round(next.ability) },
-      { key: 'maccabism', label: 'מכביסטיות', from: Math.round(before.maccabism), to: Math.round(next.maccabism) },
-      { key: 'reputation', label: 'מוניטין', from: Math.round(before.reputation), to: Math.round(next.reputation) },
-      { key: 'statusValue', label: 'מעמד', from: Math.round(before.statusValue), to: Math.round(next.statusValue) },
-    ].filter((delta) => delta.from !== delta.to);
+    let next = cloneCareer(career);
+
+    // An event is waiting in the current slot - hand it to the player.
+    if (next.pendingEventIds.length > 0) {
+      next.phase = 'event';
+      return next;
+    }
+
+    if (next.seasonSlot === 'early') {
+      next = playFirstHalf(next, rng);
+      next = loadSlotEvents(next, 'mid');
+      if (stageConfig(next.academyStage).showMidSeason) {
+        next.phase = 'mid_season';
+        return next;
+      }
+      if (next.pendingEventIds.length > 0) {
+        next.phase = 'event';
+        return next;
+      }
+      // fall through to the second half
+    }
+
+    if (next.seasonSlot === 'mid') {
+      const played = playSecondHalf(next, rng);
+      next = loadSlotEvents(played.career, 'late');
+      if (next.pendingEventIds.length > 0) {
+        next.phase = 'event';
+        return next;
+      }
+    }
+
+    // Season is done.
+    next = cloneCareer(next);
+    next.lastSeasonDeltas = seasonDeltas(next);
     next.phase = 'season_result';
     return next;
   });
 }
 
-/** After the season card: generate summer business, or roll straight into next season. */
-export function continueAfterSeason(career: Career): Career {
-  const withOffers = withRng(career, (rng) => {
-    let next = cloneCareer(career);
+/** Preseason -> plan the season's decision points and start it. */
+export function beginSeason(career: Career): Career {
+  const prepared = withRng(career, (rng) => {
+    let next = snapshotOpening(career);
+    next.plannedEvents = planSeason(next, rng);
+    next.lastEventResult = null;
     next.lastAchievements = [];
+    next.lastProgression = null;
+    next.firstHalfStats = null;
+    next = loadSlotEvents(next, 'early');
+    return next;
+  });
+  return advanceSeasonFlow(prepared);
+}
+
+/** Applies a decision. The career stays in the `event` phase so the outcome can be shown. */
+export function answerEvent(career: Career, eventId: string, choiceId: string): Career {
+  return withRng(career, (rng) => {
+    const { career: next } = resolveEventChoice(career, eventId, choiceId, rng, career.seasonSlot);
+    return next;
+  });
+}
+
+/** After the outcome card: next event in this slot, or on with the season. */
+export function continueAfterEvent(career: Career): Career {
+  const cleared = cloneCareer(career);
+  cleared.lastEventResult = null;
+  cleared.lastAchievements = [];
+  return advanceSeasonFlow(cleared);
+}
+
+/** After the mid-season card. */
+export function continueAfterMidSeason(career: Career): Career {
+  return advanceSeasonFlow(career);
+}
+
+/* ------------------------------------------------------------------ */
+/* End of season                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Season summary -> academy promotion, the נוער verdict, or the senior transfer window. */
+export function continueAfterSeason(career: Career): Career {
+  const rating = career.lastSeasonRecord?.stats.rating ?? 55;
+
+  const resolved = withRng(career, (rng) => {
+    let next = endOfSeasonReset(career);
+    next.lastAchievements = [];
+
+    /* ---------- the big one: leaving נוער ---------- */
+    if (next.academyStage === 'u19' && next.age >= 17) {
+      const verdict = evaluateSeniorTransition(next, rng);
+      next = cloneCareer(next);
+      next.lastProgression = verdictToProgression(next, verdict);
+      next.pendingOffers = seniorTransitionOffers(next, verdict, rng);
+      if (verdict.path === 'another_year') {
+        next = stayAnotherYouthYear(next);
+        next.lastProgression = verdictToProgression(career, verdict);
+      }
+      next.phase = 'youth_to_senior';
+      return next;
+    }
+
+    /* ---------- academy ladder ---------- */
+    if (isInAcademy(next)) {
+      const promoted = resolveAcademyProgression(next, rating, rng);
+      next = cloneCareer(promoted.career);
+      next.lastProgression = promoted.result;
+      const checked = checkAchievements(next);
+      next = checked.career;
+      next.lastAchievements = checked.unlocked;
+      next.phase = 'progression';
+      return next;
+    }
+
+    /* ---------- senior transfer window ---------- */
     next = maybeAwardCaptaincy(next, rng);
     next.pendingOffers = generateOffers(next, rng);
     next.phase = next.pendingOffers.length > 0 ? 'offseason' : 'preseason';
     return next;
   });
-  // Nothing to decide - jump straight into next season.
-  return withOffers.phase === 'offseason' ? withOffers : advanceYear(withOffers);
+
+  // Quiet summer for a senior player - roll straight into the next season.
+  return resolved.phase === 'preseason' ? advanceYear(resolved) : resolved;
+}
+
+/** After the promotion card. */
+export function continueAfterProgression(career: Career): Career {
+  return advanceYear(career);
+}
+
+/** The player picks one of the paths offered by the נוער verdict. */
+export function resolveYouthTransition(career: Career, offerId: string | null): Career {
+  if (offerId === null) {
+    // "Another year in נוער" - nothing to sign.
+    return advanceYear(career);
+  }
+  return chooseOffer(career, offerId);
 }
 
 export function chooseOffer(career: Career, offerId: string): Career {
@@ -220,7 +389,7 @@ function maybeAwardCaptaincy(career: Career, rng: Rng): Career {
   if (career.captain) return career;
   if (!isAtMaccabiSenior(career)) return career;
   if (career.flags.includes('refused_captaincy')) return career;
-  if (career.statusValue < 82 || career.maccabi.seasons < 4) return career;
+  if (career.roleValue < 82 || career.maccabi.seasons < 4) return career;
   if (!rng.chance(0.45)) return career;
   const next = cloneCareer(career);
   next.captain = true;
@@ -243,6 +412,11 @@ export function advanceYear(career: Career): Career {
     let next = cloneCareer(career);
     next.age += 1;
     next.currentSeason += 1;
+    next.seasonSlot = 'early';
+    next.pendingEventIds = [];
+    next.plannedEvents = [];
+    next.pendingOffers = [];
+    next.firstHalfStats = null;
     next = applyAutomaticMoves(next);
 
     const checked = checkAchievements(next);
@@ -257,7 +431,6 @@ export function advanceYear(career: Career): Career {
     return next;
   });
 
-  // Past the hard limit the boots come off whether you like it or not.
   return aged.age >= RETIREMENT_FORCED_AGE ? retire(aged) : aged;
 }
 
@@ -266,7 +439,6 @@ export type RetirementDecision = 'continue' | 'retire';
 export function decideRetirement(career: Career, decision: RetirementDecision): Career {
   if (decision === 'retire') return retire(career);
   return withRng(career, (rng) => {
-    // One more year: a little extra determination, a little more wear.
     const next = cloneCareer(
       applyEffects(career, { form: 4, maccabism: 2, injuryRisk: 6, confidence: 3 }, rng).career,
     );
@@ -281,6 +453,7 @@ export function retire(career: Career): Career {
   next.retirementAge = next.age;
   next.phase = 'retired';
   next.pendingEventIds = [];
+  next.plannedEvents = [];
   next.pendingOffers = [];
   next.legend = computeLegendScore(next);
   next.ability = round(next.ability, 1);
@@ -296,24 +469,31 @@ export function clubOf(career: Career) {
 }
 
 /**
- * One "click" of the game loop, used by the debug panel and by headless simulation.
- * Chooses randomly whenever a decision is required.
+ * One "click" of the game loop, choosing at random whenever a decision is required.
+ * Used by the debug panel; the headless simulator has its own policy-driven version.
  */
 export function autoStep(career: Career): Career {
-  const rng = createRng(career.rngState ^ 0x9e3779b9);
+  const rng = createRng((career.rngState ^ 0x9e3779b9) >>> 0);
   switch (career.phase) {
     case 'preseason':
       return beginSeason(career);
     case 'event': {
       if (career.lastEventResult) return continueAfterEvent(career);
       const eventId = career.pendingEventIds[0];
-      if (!eventId) return continueAfterEvent(career);
-      const event = EVENTS_BY_ID[eventId];
-      const choice = event ? rng.pick(event.choices) : null;
-      return choice ? answerEvent(career, eventId, choice.id) : continueAfterEvent(career);
+      const event = eventId ? EVENTS_BY_ID[eventId] : undefined;
+      if (!event || !eventId) return continueAfterEvent(career);
+      return answerEvent(career, eventId, rng.pick(event.choices).id);
     }
+    case 'mid_season':
+      return continueAfterMidSeason(career);
     case 'season_result':
       return continueAfterSeason(career);
+    case 'progression':
+      return continueAfterProgression(career);
+    case 'youth_to_senior': {
+      const offer = career.pendingOffers[0];
+      return resolveYouthTransition(career, offer ? offer.id : null);
+    }
     case 'offseason': {
       const mandatory = career.pendingOffers.find((o) => o.mandatory);
       if (mandatory) return chooseOffer(career, mandatory.id);

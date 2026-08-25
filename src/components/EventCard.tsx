@@ -1,4 +1,5 @@
 import type { CareerEventResult, GameEvent } from '../types';
+import { RISK_LABELS } from '../ui/format';
 import { DeltaList } from './primitives';
 
 interface EventCardProps {
@@ -6,6 +7,10 @@ interface EventCardProps {
   onChoose: (choiceId: string) => void;
 }
 
+/**
+ * The decision. Choices carry a qualitative hint at most - never a percentage, because the
+ * player should be weighing a judgement call, not solving an equation.
+ */
 export function EventCard({ event, onChoose }: EventCardProps): JSX.Element {
   return (
     <article className="card event-card">
@@ -19,11 +24,13 @@ export function EventCard({ event, onChoose }: EventCardProps): JSX.Element {
             <button
               key={choice.id}
               type="button"
-              className="btn btn-choice"
+              className={`btn btn-choice risk-${choice.risk ?? 'balanced'}`}
               onClick={() => onChoose(choice.id)}
             >
               <span>{choice.label}</span>
-              {choice.hint && <span className="hint">{choice.hint}</span>}
+              <span className="hint">
+                {choice.hint ?? (choice.risk ? RISK_LABELS[choice.risk] : '')}
+              </span>
             </button>
           ))}
         </div>
@@ -38,6 +45,10 @@ interface OutcomeCardProps {
   continueLabel: string;
 }
 
+/**
+ * The outcome, deliberately shown on its own screen. Story first, numbers underneath - the
+ * same choice can land here very differently in another career.
+ */
 export function OutcomeCard({ result, onContinue, continueLabel }: OutcomeCardProps): JSX.Element {
   return (
     <article className="card">

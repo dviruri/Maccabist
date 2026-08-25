@@ -1,0 +1,216 @@
+import { trophyIcon } from '../data/trophies';
+import type { Career, SeasonStats } from '../types';
+import { headlineTitle, roleTextOf, seasonLabel } from '../ui/format';
+import { Chip, DeltaList, Ltr, NumberBox } from './primitives';
+
+/** Which numbers matter depends on where you play. */
+function StatBoxes({ career, stats }: { career: Career; stats: SeasonStats }): JSX.Element {
+  const isKeeper = career.position === 'GK';
+  const isDefender = career.position === 'CB' || career.position === 'FB';
+
+  return (
+    <div className="numbers">
+      <NumberBox value={stats.appearances} label="משחקים" />
+      <NumberBox value={stats.starts} label="בהרכב" />
+      {isKeeper ? (
+        <>
+          <NumberBox value={stats.cleanSheets} label="שערים נקיים" />
+          <NumberBox value={stats.goalsConceded} label="ספג" />
+        </>
+      ) : (
+        <>
+          <NumberBox value={stats.goals} label="שערים" />
+          <NumberBox value={stats.assists} label="בישולים" />
+          {isDefender && <NumberBox value={stats.cleanSheets} label="נקיים" />}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Coach's read at the half-way point - it colours what the mid-season event will be. */
+function coachVerdict(career: Career, stats: SeasonStats): string {
+  if (career.coachTrust >= 72) return 'המאמן מרוצה מאוד מההתקדמות שלך';
+  if (career.coachTrust >= 55) return 'המאמן מרוצה מההתקדמות שלך';
+  if (career.coachTrust >= 40) return 'המאמן עוד לא החליט מה הוא חושב עליך';
+  if (stats.appearances < 4) return 'המקום שלך בסגל בסכנה';
+  return 'המקום שלך בהרכב בסכנה';
+}
+
+interface MidProps {
+  career: Career;
+  onContinue: () => void;
+}
+
+export function MidSeasonCard({ career, onContinue }: MidProps): JSX.Element | null {
+  const stats = career.firstHalfStats;
+  if (!stats) return null;
+
+  return (
+    <article className="card event-card">
+      <div className="stack">
+        <div className="kicker">מחצית עונה</div>
+        <h2 className="card-title">
+          {headlineTitle(career)} · <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
+        </h2>
+
+        <StatBoxes career={career} stats={stats} />
+
+        <p className="card-body" style={{ marginTop: 2 }}>
+          {coachVerdict(career, stats)}.
+        </p>
+
+        <button type="button" className="btn btn-primary" onClick={onContinue}>
+          להמשך העונה
+        </button>
+      </div>
+    </article>
+  );
+}
+
+interface SeasonProps {
+  career: Career;
+  onContinue: () => void;
+}
+
+export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Element | null {
+  const record = career.lastSeasonRecord;
+  if (!record) return null;
+
+  const barelyPlayed = record.stats.appearances < 5 && record.age >= 16;
+
+  return (
+    <article className="card">
+      <div className="stack">
+        <div className="row-between">
+          <div className="kicker">סיכום עונה</div>
+          <Chip tone="plain">{roleTextOf(record.role, record.captain)}</Chip>
+        </div>
+
+        <div>
+          <div className="season-year">
+            עונת <Ltr>{seasonLabel(record.season)}</Ltr> הסתיימה
+          </div>
+          <div className="faint">
+            מכבי חיפה — {record.teamName}
+            {record.onLoan ? ' · בהשאלה' : ''}
+          </div>
+        </div>
+
+        <StatBoxes career={career} stats={record.stats} />
+
+        {record.stats.injuredGames > 0 && (
+          <p className="faint">
+            🩹 פספסת <Ltr>{record.stats.injuredGames}</Ltr> משחקים בגלל פציעה.
+          </p>
+        )}
+        {barelyPlayed && record.stats.injuredGames === 0 && (
+          <p className="faint">כמעט ולא ראית דקות העונה. זה מתחיל להיות בעיה.</p>
+        )}
+
+        {record.trophies.length > 0 && (
+          <div className="stack-sm">
+            {record.trophies.map((trophy, i) => (
+              <div
+                key={trophy.id}
+                className="trophy-line"
+                style={{ animationDelay: `${180 + i * 120}ms` }}
+              >
+                <span aria-hidden>{trophyIcon(trophy.id)}</span>
+                {trophy.name}!
+              </div>
+            ))}
+          </div>
+        )}
+
+        {career.lastSeasonDeltas.length > 0 && (
+          <div className="stack-sm">
+            <div className="kicker">התקדמות</div>
+            <DeltaList deltas={career.lastSeasonDeltas} />
+          </div>
+        )}
+
+        <button type="button" className="btn btn-primary" onClick={onContinue}>
+          המשך
+        </button>
+      </div>
+    </article>
+  );
+}
+
+interface ProgressionProps {
+  career: Career;
+  onContinue: () => void;
+}
+
+/** The academy ladder moment - promotion, a jumped year, or a season standing still. */
+export function ProgressionCard({ career, onContinue }: ProgressionProps): JSX.Element | null {
+  const progression = career.lastProgression;
+  if (!progression) return null;
+
+  return (
+    <article className={`card promotion-card tone-${progression.kind}`}>
+      <div className="stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+        <div className="promotion-icon" aria-hidden>
+          {progression.icon}
+        </div>
+        <h2 className="promotion-title">{progression.title}</h2>
+        <p className="card-body">{progression.detail}</p>
+        <button type="button" className="btn btn-primary" onClick={onContinue}>
+          לעונה הבאה
+        </button>
+      </div>
+    </article>
+  );
+}
+
+interface YouthProps {
+  career: Career;
+  onChoose: (offerId: string | null) => void;
+}
+
+/** נוער → בוגרים. The single biggest fork in the youth career. */
+export function YouthTransitionCard({ career, onChoose }: YouthProps): JSX.Element | null {
+  const verdict = career.lastProgression;
+  if (!verdict) return null;
+  const offers = career.pendingOffers;
+
+  return (
+    <article className={`card promotion-card tone-${verdict.kind}`}>
+      <div className="stack">
+        <div style={{ textAlign: 'center' }}>
+          <div className="promotion-icon" aria-hidden>
+            {verdict.icon}
+          </div>
+          <div className="kicker" style={{ marginTop: 6 }}>
+            סוף הדרך בנוער
+          </div>
+          <h2 className="promotion-title">{verdict.title}</h2>
+        </div>
+        <p className="card-body">{verdict.detail}</p>
+
+        {offers.length > 0 ? (
+          <div className="stack-sm">
+            {offers.map((offer) => (
+              <button
+                key={offer.id}
+                type="button"
+                className="btn btn-choice"
+                onClick={() => onChoose(offer.id)}
+              >
+                <span>{offer.acceptLabel}</span>
+                <span className="hint">
+                  {offer.clubName} · {offer.league}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button type="button" className="btn btn-primary" onClick={() => onChoose(null)}>
+            להמשיך
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
