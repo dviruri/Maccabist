@@ -70,6 +70,26 @@ function blockedCategories(career: Career): EventCategory[] {
     .map((e) => e.category);
 }
 
+/** How many seasons ago this event last fired, or null if it never has. */
+function seasonsSinceSeen(career: Career, eventId: string): number | null {
+  const last = lastSeasonSeen(career, eventId);
+  return last === null ? null : career.currentSeason - last;
+}
+
+/**
+ * Categories used in the previous few seasons (not the current one, which is handled
+ * separately). Used to discourage repetitive category sequences across seasons.
+ */
+export function recentCategories(career: Career): EventCategory[] {
+  const window = EVENTS.recentCategoryWindowSeasons;
+  return career.eventsHistory
+    .filter((e) => {
+      const ago = career.currentSeason - e.season;
+      return ago > 0 && ago <= window;
+    })
+    .map((e) => e.category);
+}
+
 /* ------------------------------------------------------------------ */
 /* Eligibility                                                         */
 /* ------------------------------------------------------------------ */
@@ -93,18 +113,33 @@ export function eligibleEvents(career: Career, slot: SeasonSlot): GameEvent[] {
   return EVENT_POOL.filter((event) => isEventEligible(event, career, slot));
 }
 
-/** Effective selection weight for an event, after variety and rarity throttling. */
+/**
+ * Effective selection weight for an event, after variety and rarity throttling.
+ *
+ * Repetition is handled here rather than by piling on more content: an event that just fired
+ * is suppressed hard and recovers gradually, and a category is penalised both inside the
+ * current season and across the last couple of seasons.
+ */
 export function selectionWeight(
   event: GameEvent,
   career: Career,
   usedCategories: EventCategory[],
   blocked: EventCategory[],
+  recent: EventCategory[] = [],
 ): number {
   if (blocked.includes(event.category)) return 0;
 
   let weight = event.weight * EVENTS.rarityWeight[event.rarity ?? 'common'];
-  if (lastSeasonSeen(career, event.id) !== null) weight *= EVENTS.repeatPenalty;
+
+  const since = seasonsSinceSeen(career, event.id);
+  if (since !== null) {
+    // Strongest right after it fired, fading back to full weight over the recovery window.
+    const recovered = Math.min(1, Math.max(0, since) / EVENTS.repeatRecoverySeasons);
+    weight *= EVENTS.repeatPenalty + (1 - EVENTS.repeatPenalty) * recovered;
+  }
+
   if (usedCategories.includes(event.category)) weight *= EVENTS.sameCategoryPenalty;
+  if (recent.includes(event.category)) weight *= EVENTS.recentCategoryPenalty;
   return weight;
 }
 
@@ -117,9 +152,15 @@ export function pickEventForSlot(
   exclude: string[] = [],
 ): GameEvent | null {
   const blocked = blockedCategories(career);
+  const recent = recentCategories(career);
   const pool = eligibleEvents(career, slot).filter((e) => !exclude.includes(e.id));
   if (pool.length === 0) return null;
-  return rng.weighted(pool, (event) => selectionWeight(event, career, usedCategories, blocked));
+  const picked = rng.weighted(pool, (event) =>
+    selectionWeight(event, career, usedCategories, blocked, recent),
+  );
+  // Every candidate can be penalised to zero (a fully blocked category); fall back to the
+  // eligible pool rather than silently dropping the slot.
+  return picked ?? rng.pick(pool);
 }
 
 /* ------------------------------------------------------------------ */

@@ -1,17 +1,19 @@
 import type { GameEvent } from '../../types';
 import { ACADEMY_EVENTS } from './academyEvents';
+import { POSITION_EVENTS } from './positionEvents';
 import { SENIOR_EVENTS } from './seniorEvents';
 import { SPONTANEOUS_EVENTS } from './spontaneousEvents';
 
 /**
  * The whole event pool.
  *
- * Adding an event = adding an object to one of these three files. Nothing in the engine
- * changes: `conditions` decide when it can appear, `weight` how often, `category` keeps a
- * season varied, and every choice's `outcomes` carry the probabilities.
+ * Adding an event = adding an object to one of these files. Nothing in the engine changes:
+ * `conditions` decide when it can appear, `weight` how often, `category` keeps a season
+ * varied, and every choice's `outcomes` carry the probabilities.
  */
 export const EVENT_POOL: GameEvent[] = [
   ...ACADEMY_EVENTS,
+  ...POSITION_EVENTS,
   ...SPONTANEOUS_EVENTS,
   ...SENIOR_EVENTS,
 ];
@@ -26,4 +28,4 @@ export function getEvent(id: string): GameEvent {
   return event;
 }
 
-export { ACADEMY_EVENTS, SENIOR_EVENTS, SPONTANEOUS_EVENTS };
+export { ACADEMY_EVENTS, POSITION_EVENTS, SENIOR_EVENTS, SPONTANEOUS_EVENTS };

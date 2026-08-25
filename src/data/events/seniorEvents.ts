@@ -885,4 +885,570 @@ export const SENIOR_EVENTS: GameEvent[] = [
       },
     ],
   },
+
+  /* ================================================================= */
+  /* A senior career is ~15 seasons long, so the pool has to be deep    */
+  /* enough that it does not start looping back on itself.              */
+  /* ================================================================= */
+  {
+    id: 'sen_title_run_in',
+    kicker: 'חמישה מחזורים לסוף, הפרש נקודה',
+    title: 'הסטרס של מאבק אליפות',
+    description:
+      'כל משחק הוא גמר. בעיתונות מדברים על לחץ, בחדר ההלבשה אף אחד לא מדבר בכלל.',
+    category: 'pressure',
+    conditions: { bands: ['senior'], minRoleValue: 42, minAge: 20 },
+    weight: 10,
+    cooldownSeasons: 2,
+    choices: [
+      {
+        id: 'lead',
+        label: 'לקחת אחריות על הקבוצה',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'delivered',
+            baseWeight: 42,
+            tone: 'good',
+            text: 'במשחקים שבהם צריך, אתה הטוב במגרש. אלה העונות שאחר כך זוכרים בשמך.',
+            effects: {
+              reputation: 8,
+              roleValue: 9,
+              coachTrust: 8,
+              maccabism: 5,
+              confidence: 8,
+              form: 5,
+            },
+            modifiers: [
+              { attribute: 'ability', above: 72, multiplier: 1.4 },
+              { attribute: 'confidence', above: 62, multiplier: 1.3 },
+              { attribute: 'form', below: 45, multiplier: 0.55 },
+            ],
+          },
+          {
+            id: 'froze',
+            baseWeight: 58,
+            tone: 'bad',
+            text: 'הרגליים כבדות בדיוק כשצריך שיהיו קלות. אתם מפסידים את זה בשתי נקודות, ואתה יודע איפה.',
+            effects: { confidence: -9, pressure: 10, roleValue: -4, form: -5 },
+          },
+        ],
+      },
+      {
+        id: 'quiet',
+        label: 'לעשות את שלך ולא להסתכל על הטבלה',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'steady',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'שיחקת את העונה שלך בלי עליות וירידות. לפעמים זה בדיוק מה שקבוצה צריכה.',
+            effects: { coachTrust: 4, form: 3, pressure: -4 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_national_call',
+    kicker: 'טלפון ממתאם הנבחרת',
+    title: 'זימון לנבחרת',
+    description:
+      'הקול בטלפון אומר את השם שלך ואת המילה "נבחרת" באותו משפט. אתה מבקש ממנו לחזור על זה.',
+    category: 'opportunity',
+    conditions: { bands: ['senior'], minAbility: 66, minReputation: 45, minAge: 19 },
+    weight: 7,
+    oncePerCareer: true,
+    choices: [
+      {
+        id: 'go',
+        label: 'ללכת ולתת הכול',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'star',
+            baseWeight: 34,
+            tone: 'good',
+            text: 'אתה נכנס בחלק השני ומשנה את המשחק. בבוקר אתה בעמוד הראשון של כל אתר ספורט בארץ.',
+            effects: {
+              reputation: 14,
+              confidence: 9,
+              roleValue: 5,
+              transferChance: 0.25,
+              flags: ['first_team_radar'],
+            },
+            modifiers: [
+              { attribute: 'ability', above: 74, multiplier: 1.5 },
+              { attribute: 'form', above: 62, multiplier: 1.3 },
+            ],
+          },
+          {
+            id: 'squad_player',
+            baseWeight: 48,
+            tone: 'neutral',
+            text: 'לא שיחקת דקה, אבל שרת את ההמנון בחולצה של הנבחרת. יש דברים ששווים גם בלי דקות.',
+            effects: { reputation: 5, confidence: 4, maccabism: 2 },
+          },
+          {
+            id: 'injured_there',
+            baseWeight: 18,
+            tone: 'bad',
+            text: 'נפצעת באימון של הנבחרת. חוזר לחיפה עם קביים ועם הרגשה שגנבו לך משהו.',
+            effects: { injuryChance: 1, injuryRisk: 10, confidence: -7, minutesModifier: 0.6 },
+          },
+        ],
+      },
+      {
+        id: 'decline_tired',
+        label: 'לוותר - הגוף צריך מנוחה',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'rested',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'הגוף מודה לך והמאמן במועדון מודה לך פעמיים. בנבחרת רושמים את זה במקום אחר.',
+            effects: { form: 6, injuryRisk: -5, reputation: -4, coachTrust: 4 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_new_signing_rivalry',
+    kicker: 'יום ההרשמה נסגר',
+    title: 'הביאו מישהו לעמדה שלך',
+    description:
+      'שחקן חדש, יקר, ועם ראיון היכרות שבו הוא אומר שהוא בא לשחק. אתם מסתכלים אחד על השני באימון הראשון.',
+    category: 'competition',
+    conditions: { bands: ['senior'], minAge: 20 },
+    weight: 10,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'compete',
+        label: 'להילחם על המקום',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'kept_it',
+            baseWeight: 40,
+            tone: 'good',
+            text: 'שיחקת את הפריסיזן הטוב בחיים שלך. המאמן משאיר אותך בהרכב, והוא שנכנס במקומך.',
+            effects: { coachTrust: 8, roleValue: 8, confidence: 8, form: 4 },
+            modifiers: [
+              { attribute: 'ability', above: 70, multiplier: 1.4 },
+              { attribute: 'coachTrust', above: 62, multiplier: 1.35 },
+              { attribute: 'age', above: 31, multiplier: 0.6 },
+            ],
+          },
+          {
+            id: 'rotation',
+            baseWeight: 37,
+            tone: 'neutral',
+            text: 'שניכם משחקים. לא הרכב ולא ספסל, אלא משהו באמצע שאף שחקן לא אוהב.',
+            effects: { minutesModifier: 0.82, roleValue: -3, pressure: 5 },
+          },
+          {
+            id: 'lost_it',
+            baseWeight: 23,
+            tone: 'bad',
+            text: 'הוא פשוט טוב יותר. אתה מגלה שיש גיל שבו הספסל מפסיק להיות זמני.',
+            effects: {
+              roleValue: -10,
+              coachTrust: -6,
+              confidence: -9,
+              minutesModifier: 0.55,
+              transferChance: 0.3,
+            },
+            modifiers: [{ attribute: 'age', above: 30, multiplier: 1.6 }],
+          },
+        ],
+      },
+      {
+        id: 'help_him',
+        label: 'לעזור לו להיכנס לקבוצה',
+        hint: 'חדר ההלבשה זוכר',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'respected',
+            baseWeight: 100,
+            tone: 'good',
+            text: 'לקחת אותו לארוחה ולמדת אותו את הקבוצה. הוא מספר על זה בראיון, והמועדון שומע.',
+            effects: { maccabism: 5, roleValue: 3, coachTrust: 5, reputation: 2, discipline: 4 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_mentor_youngster',
+    kicker: 'אימון בוקר, נער בן 17',
+    title: 'ילד מהנוער נדבק אליך',
+    description:
+      'הוא עלה מהנוער ומחקה כל מה שאתה עושה. אחרי אימון הוא שואל אם אתה יכול להישאר איתו עשר דקות.',
+    category: 'team',
+    conditions: { bands: ['senior'], minAge: 26, atMaccabi: true },
+    weight: 8,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'take_him_under',
+        label: 'לקחת אותו תחת חסות',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'legacy',
+            baseWeight: 100,
+            tone: 'good',
+            text: 'הוא מתפרץ שלוש שנים אחר כך ואומר בכל ראיון את השם שלך. זה סוג המוניטין שלא נמדד בשערים.',
+            effects: { maccabism: 8, roleValue: 4, coachTrust: 5, reputation: 3, discipline: 3 },
+          },
+        ],
+      },
+      {
+        id: 'not_my_job',
+        label: 'זו לא העבודה שלך',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'focused',
+            baseWeight: 62,
+            tone: 'neutral',
+            text: 'התרכזת בעצמך, וזה לגיטימי. אתה גם לא מקבל שום דבר בחזרה.',
+            effects: { form: 2 },
+          },
+          {
+            id: 'noticed_badly',
+            baseWeight: 38,
+            tone: 'bad',
+            text: 'בחדר ההלבשה שמו לב. שחקן ותיק שלא נותן לצעירים הוא שחקן ותיק שלא יקבל כלום כשיצטרך.',
+            effects: { roleValue: -4, maccabism: -3, coachTrust: -3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_contract_renewal',
+    kicker: 'משרדי המועדון, שנה לסיום החוזה',
+    title: 'שיחת חוזה',
+    description:
+      'מנהל הספורט מניח נייר על השולחן. המספרים בו לא רעים, וגם לא מה שהסוכן שלך אמר שתקבל.',
+    category: 'contract',
+    conditions: { bands: ['senior'], atMaccabiSenior: true, minAge: 21 },
+    weight: 9,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'sign_now',
+        label: 'לחתום ולא להתעסק בזה',
+        hint: 'שקט לעבוד',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'settled',
+            baseWeight: 100,
+            tone: 'good',
+            text: 'חתמת בעשר דקות ויצאת לאימון. השקט הזה שווה כל שקל שלא קיבלת.',
+            effects: { maccabism: 7, confidence: 5, form: 4, coachTrust: 4, flags: ['loyalty_moment'] },
+          },
+        ],
+      },
+      {
+        id: 'push_for_more',
+        label: 'לדרוש את מה שאתה שווה',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'got_it',
+            baseWeight: 40,
+            tone: 'good',
+            text: 'הם מכבדים את זה ומשפרים. חוזה של שחקן מוביל, עם המשמעות שנלווית לזה.',
+            effects: { roleValue: 6, confidence: 6, reputation: 4 },
+            modifiers: [
+              { attribute: 'roleValue', above: 70, multiplier: 1.5 },
+              { attribute: 'reputation', above: 65, multiplier: 1.35 },
+            ],
+          },
+          {
+            id: 'stalled',
+            baseWeight: 60,
+            tone: 'bad',
+            text: 'המשא ומתן נתקע ומישהו מדליף את זה לעיתונות. היציע לא אוהב לקרוא על כסף.',
+            effects: { maccabism: -6, roleValue: -3, pressure: 6, transferChance: 0.25 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_media_storm',
+    kicker: 'ראיון אחרי הפסד',
+    title: 'משפט אחד שיצא מהקשרו',
+    description:
+      'אמרת שהקבוצה "לא נראתה כמו קבוצה". בבוקר זו הכותרת, בלי ההמשך שבו אמרת שאתה חלק מזה.',
+    category: 'random',
+    conditions: { bands: ['senior'], minReputation: 35, minAge: 21 },
+    weight: 8,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'apologise',
+        label: 'להתנצל בפני הקבוצה',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'closed',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'דיברת חמש דקות בחדר ההלבשה וזה נגמר. הכותרות ממשיכות עוד יומיים ואז שוכחות.',
+            effects: { coachTrust: 3, discipline: 3, reputation: -2, pressure: -3 },
+          },
+        ],
+      },
+      {
+        id: 'double_down',
+        label: 'לעמוד מאחורי מה שאמרת',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'respected_voice',
+            baseWeight: 36,
+            tone: 'good',
+            text: 'היציע מאמץ את זה. סוף סוף מישהו אמר בקול מה שכולם חשבו.',
+            effects: { reputation: 7, maccabism: 5, roleValue: 5, flags: ['fan_favourite'] },
+            modifiers: [
+              { attribute: 'roleValue', above: 72, multiplier: 1.5 },
+              { attribute: 'maccabism', above: 75, multiplier: 1.3 },
+            ],
+          },
+          {
+            id: 'dressing_room_split',
+            baseWeight: 64,
+            tone: 'bad',
+            text: 'חלק מהקבוצה מפסיק לדבר איתך, והמאמן מבין את זה כאתגר לסמכות שלו.',
+            effects: {
+              coachTrust: -10,
+              roleValue: -5,
+              discipline: -5,
+              flags: ['discipline_problem'],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_injury_comeback',
+    kicker: 'חזרה לאימונים אחרי חודשיים',
+    title: 'הפעם הראשונה על הדשא',
+    description:
+      'הרגל מחוברת, הראש פחות. אתה עומד לפני הכניסה הראשונה לדו-קרב ושואל את עצמך אם תיכנס בלי לחשוב.',
+    category: 'injury',
+    conditions: { bands: ['senior'], minAge: 19 },
+    weight: 8,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'full_send',
+        label: 'להיכנס בלי לחשוב',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'back_for_real',
+            baseWeight: 52,
+            tone: 'good',
+            text: 'הכנסת רגל בדו-קרב הראשון וקמת. מהרגע הזה אתה שחקן שוב, לא פצוע שמתאמן.',
+            effects: { confidence: 9, form: 7, coachTrust: 5, injuryRisk: -4 },
+            modifiers: [
+              { attribute: 'confidence', above: 58, multiplier: 1.3 },
+              { attribute: 'injuryRisk', above: 45, multiplier: 0.6 },
+            ],
+          },
+          {
+            id: 'relapse',
+            baseWeight: 48,
+            tone: 'bad',
+            text: 'אותו מקום, אותו כאב. הפעם הרופא לא נותן תאריך.',
+            effects: {
+              injuryChance: 1,
+              injuryRisk: 14,
+              confidence: -10,
+              minutesModifier: 0.45,
+              flags: ['injury_prone'],
+            },
+          },
+        ],
+      },
+      {
+        id: 'take_it_slow',
+        label: 'לחזור בהדרגה',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'careful',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'שבועיים נוספים של עבודה לבד. איבדת מקום בהרכב, ושמרת על קריירה.',
+            effects: { injuryRisk: -8, minutesModifier: 0.8, coachTrust: -2, confidence: 2 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_cup_final',
+    kicker: 'גמר גביע המדינה',
+    title: 'תשעים דקות על תואר',
+    description:
+      'אצטדיון מלא, חצי ירוק. יש קריירות שנזכרות בזכות ערב אחד כזה, ויש כאלה שנזכרות בזכות ההחמצה בו.',
+    category: 'match_moment',
+    conditions: { bands: ['senior'], minRoleValue: 45, minAge: 20 },
+    weight: 7,
+    rarity: 'uncommon',
+    cooldownSeasons: 4,
+    choices: [
+      {
+        id: 'step_up',
+        label: 'לשחק את המשחק של החיים',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'hero',
+            baseWeight: 38,
+            tone: 'good',
+            text: 'אתה מכריע את הגמר. בשעה הבאה אתה מורם על הידיים ולא נוגע בדשא בכלל.',
+            effects: {
+              reputation: 12,
+              maccabism: 10,
+              roleValue: 10,
+              confidence: 12,
+              coachTrust: 7,
+              achievement: 'derby_moment',
+              flags: ['fan_favourite'],
+            },
+            modifiers: [
+              { attribute: 'ability', above: 74, multiplier: 1.45 },
+              { attribute: 'form', above: 65, multiplier: 1.35 },
+              { attribute: 'confidence', below: 45, multiplier: 0.5 },
+            ],
+          },
+          {
+            id: 'anonymous',
+            baseWeight: 62,
+            tone: 'bad',
+            text: 'נעלמת בגמר. אתה מסתכל על הקבוצה היריבה מרימה גביע ולומד משהו על עצמך.',
+            effects: { confidence: -8, pressure: 8, roleValue: -3 },
+          },
+        ],
+      },
+      {
+        id: 'do_the_job',
+        label: 'לשחק בלי סיכונים ולסמוך על הקבוצה',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'professional_final',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'משחק נכון וממושמע. אם הקבוצה תרים גביע, גם אתה תרים אותו.',
+            effects: { coachTrust: 5, maccabism: 4, confidence: 3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_agent_pressure',
+    kicker: 'שיחה עם הסוכן',
+    title: 'הסוכן דוחף אותך לזוז',
+    description:
+      '"יש חלון אחד שבו אתה שווה כסף אמיתי, ואתה בתוכו עכשיו. בעוד שנתיים לא נדבר על זה."',
+    category: 'transfer',
+    conditions: { bands: ['senior'], minAge: 21, maxAge: 29, minReputation: 40 },
+    weight: 9,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'listen',
+        label: 'להגיד לו לחפש הצעות',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'market_open',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'הוא מתחיל לעבוד. הטלפון שלך מתחיל לצלצל ממספרים שאתה לא מכיר.',
+            effects: { transferChance: 0.4, maccabism: -3, pressure: 4 },
+          },
+        ],
+      },
+      {
+        id: 'not_now',
+        label: 'להגיד לו שאתה מרוכז כאן',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'grounded',
+            baseWeight: 100,
+            tone: 'good',
+            text: 'סגרת את הנושא לפני שנפתח. אתה מגיע לאימון בבוקר בלי כלום בראש.',
+            effects: { maccabism: 6, form: 4, confidence: 3, flags: ['loyalty_moment'] },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_lost_captaincy',
+    kicker: 'תחילת עונה, מאמן חדש',
+    title: 'הסרט עובר לשחקן אחר',
+    description:
+      'המאמן מודיע לקבוצה מי הקפטן החדש, וזה לא אתה. הוא אומר לך אחר כך שזה "לא אישי".',
+    category: 'coach',
+    conditions: { bands: ['senior'], isCaptain: true, minAge: 24 },
+    weight: 7,
+    rarity: 'uncommon',
+    cooldownSeasons: 5,
+    choices: [
+      {
+        id: 'support',
+        label: 'לתמוך בו בפומבי',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'class',
+            baseWeight: 100,
+            tone: 'good',
+            text: 'אתה הראשון שמברך אותו, מול כל הקבוצה. הסרט עבר, המעמד שלך לא.',
+            effects: { captain: false, maccabism: 8, roleValue: 3, coachTrust: 6, discipline: 4 },
+          },
+        ],
+      },
+      {
+        id: 'take_it_hard',
+        label: 'לקחת את זה קשה',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'motivated',
+            baseWeight: 40,
+            tone: 'neutral',
+            text: 'הכעס עובד לטובתך. אתה משחק את חצי העונה הטובה שלך מתוך רצון להראות לו.',
+            effects: { captain: false, form: 8, confidence: 4, coachTrust: -3, pressure: 6 },
+          },
+          {
+            id: 'sulked',
+            baseWeight: 60,
+            tone: 'bad',
+            text: 'זה נראה בכל אימון. שחקן פגוע הוא שחקן שהמאמן מפסיק לסמוך עליו.',
+            effects: { captain: false, coachTrust: -9, roleValue: -6, form: -5, confidence: -6 },
+          },
+        ],
+      },
+    ],
+  },
 ];

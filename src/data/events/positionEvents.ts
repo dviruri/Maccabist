@@ -1,0 +1,838 @@
+import type { GameEvent } from '../../types';
+
+/**
+ * Position-specific storylines.
+ *
+ * Pure data, exactly like every other event file - the engine has no idea these exist and
+ * contains no per-position branching. `conditions.positions` does the gating, so a keeper
+ * never sees a striker's goal drought and a centre back never gets asked to take a penalty.
+ *
+ * Each position gets a mix of an opportunity, a pressure moment and a setback, so no position
+ * only ever receives good news.
+ */
+
+export const POSITION_EVENTS: GameEvent[] = [
+  /* ================================================================= */
+  /* שוער                                                              */
+  /* ================================================================= */
+  {
+    id: 'gk_penalty_save',
+    kicker: 'דקה 90, 1:1',
+    title: 'פנדל בסוף המשחק',
+    description:
+      'השופט מצביע על הנקודה הלבנה. אתה הולך לקו, מנקה את היד בגרביים, ומסתכל על הבעיטה שתחליט את המשחק.',
+    category: 'match_moment',
+    conditions: { positions: ['GK'], minAge: 12, minRoleValue: 25 },
+    weight: 8,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'read_him',
+        label: 'לקרוא אותו ולזוז מאוחר',
+        hint: 'אם תקרא נכון - זה שלך',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'saved',
+            baseWeight: 34,
+            tone: 'good',
+            text: 'חיכית, חיכית, וזזת ברגע האחרון. היד נשארת על הכדור והיציע מתפוצץ. גם החלוצים שלך רצים לחבק אותך.',
+            effects: {
+              reputation: 7,
+              roleValue: 7,
+              coachTrust: 7,
+              confidence: 11,
+              form: 6,
+              flags: ['fan_favourite'],
+            },
+            modifiers: [
+              { attribute: 'ability', above: 62, multiplier: 1.4 },
+              { attribute: 'confidence', above: 65, multiplier: 1.25 },
+              { attribute: 'form', below: 40, multiplier: 0.65 },
+            ],
+          },
+          {
+            id: 'wrong_way',
+            baseWeight: 66,
+            tone: 'bad',
+            text: 'זזת שמאלה. הכדור הלך ימינה. אתה נשאר שוכב על הדשא עוד כמה שניות יותר מהנדרש.',
+            effects: { confidence: -6, pressure: 5 },
+          },
+        ],
+      },
+      {
+        id: 'guess_early',
+        label: 'לבחור צד ולעוף',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'lucky',
+            baseWeight: 30,
+            tone: 'good',
+            text: 'ניחשת נכון והתעופפת. לא היה בזה שום דבר חכם, אבל אף אחד לא שואל שאלות אחרי הצלה.',
+            effects: { reputation: 5, coachTrust: 4, confidence: 8, roleValue: 4 },
+          },
+          {
+            id: 'beaten',
+            baseWeight: 70,
+            tone: 'bad',
+            text: 'עפת לפינה אחת והכדור נכנס בשנייה. המאמן לא אומר כלום, וזה יותר גרוע מאם היה צועק.',
+            effects: { confidence: -7, coachTrust: -3, pressure: 5 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'gk_keeper_competition',
+    kicker: 'חדר ההלבשה, תחילת עונה',
+    title: 'שוער חדש בקבוצה',
+    description:
+      'הביאו שוער. גבוה ממך, מבוגר ממך, ועם ניסיון שאין לך. מאמן השוערים אומר ששניכם "תתחרו בהוגנות".',
+    category: 'competition',
+    conditions: { positions: ['GK'], minAge: 13 },
+    weight: 9,
+    cooldownSeasons: 4,
+    choices: [
+      {
+        id: 'outwork',
+        label: 'להישאר אחרי כל אימון',
+        hint: 'העבודה נראית, גם אם לא מיד',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'won_shirt',
+            baseWeight: 40,
+            tone: 'good',
+            text: 'שלושה שבועות של בעיטות אחרי האימון. במשחק הראשון של העונה החולצה עם המספר אחת מחכה לך על הספסל שלך.',
+            effects: { ability: 2, coachTrust: 9, roleValue: 8, confidence: 6 },
+            modifiers: [
+              { attribute: 'discipline', above: 62, multiplier: 1.4 },
+              { attribute: 'ability', above: 60, multiplier: 1.3 },
+              { attribute: 'coachTrust', below: 35, multiplier: 0.7 },
+            ],
+          },
+          {
+            id: 'split',
+            baseWeight: 45,
+            tone: 'neutral',
+            text: 'מחלקים את העונה ביניכם. שבוע אתה, שבוע הוא. אף אחד לא מרוצה, ואולי זה בדיוק מה שהמאמן רצה.',
+            effects: { ability: 1.2, coachTrust: 2, minutesModifier: 0.85, pressure: 5 },
+          },
+          {
+            id: 'benched',
+            baseWeight: 25,
+            tone: 'bad',
+            text: 'הוא פשוט יותר טוב ממך כרגע. אתה מבלה את העונה בחימום שערים לפני משחקים שלא תשחק בהם.',
+            effects: { roleValue: -9, coachTrust: -5, confidence: -8, minutesModifier: 0.5, ability: 0.8 },
+            modifiers: [{ attribute: 'ability', above: 68, multiplier: 0.45 }],
+          },
+        ],
+      },
+      {
+        id: 'ask_to_leave',
+        label: 'לבקש לשחק במקום אחר',
+        hint: 'משחקים חשובים משם',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'loan_out',
+            baseWeight: 55,
+            tone: 'neutral',
+            text: 'במועדון מבינים. משחקים בגיל הזה שווים יותר מאימונים, וזה נרשם כמי שיודע מה הוא צריך.',
+            effects: { transferChance: 0.3, confidence: 3, maccabism: -3 },
+          },
+          {
+            id: 'taken_badly',
+            baseWeight: 45,
+            tone: 'bad',
+            text: 'מאמן השוערים שומע את זה כמו ויתור. "שוער לא מבקש לעבור. שוער לוקח את החולצה."',
+            effects: { coachTrust: -9, roleValue: -4, pressure: 6 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'gk_playing_out',
+    kicker: 'אימון טקטי, בוקר קר',
+    title: 'המאמן רוצה שתשחק עם הרגליים',
+    description:
+      'הכדור חוזר אליך, החלוץ נוגח, והמאמן צועק לא להעיף. "אתה מתחיל את המשחק שלנו. לא מסיים אותו."',
+    category: 'development',
+    conditions: { positions: ['GK'], minAge: 13 },
+    weight: 8,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'play_it',
+        label: 'לשחק מהיסוד, גם כשלוחצים',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'comfortable',
+            baseWeight: 45,
+            tone: 'good',
+            text: 'אחרי חודש אתה מוציא כדורים שלא ידעת שאתה יכול. הבלמים מתחילים לחפש אותך במקום לפחד ממך.',
+            effects: { ability: 2.6, coachTrust: 7, confidence: 6 },
+            modifiers: [
+              { attribute: 'potential', above: 80, multiplier: 1.35 },
+              { attribute: 'confidence', above: 60, multiplier: 1.2 },
+            ],
+          },
+          {
+            id: 'costly_error',
+            baseWeight: 55,
+            tone: 'bad',
+            text: 'מסירה אחת קצרה מדי, וזה 0:1. אתה שומע את היציע ולומדים אותך בכל וידאו של היריבות.',
+            effects: { confidence: -8, coachTrust: -4, pressure: 7, ability: 1 },
+            modifiers: [{ attribute: 'ability', above: 70, multiplier: 0.55 }],
+          },
+        ],
+      },
+      {
+        id: 'safety_first',
+        label: 'להעיף רחוק ולא להסתבך',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'no_risk',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'אף אחד לא יזכור שער שלא ספגת בגלל בעיטה ארוכה. גם אף אחד לא יזכור אותך בתור שוער מודרני.',
+            effects: { confidence: 2, ability: 0.4, coachTrust: -3 },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ================================================================= */
+  /* בלם                                                               */
+  /* ================================================================= */
+  {
+    id: 'cb_mark_the_star',
+    kicker: 'תדריך לפני משחק',
+    title: 'החלוץ שלהם הוא הבעיה שלך',
+    description:
+      'המאמן מקרין וידאו של החלוץ הכי טוב בליגה, ואז מסתכל עליך. "הוא שלך. כל המשחק. אל תיתן לו לנשום."',
+    category: 'match_moment',
+    conditions: { positions: ['CB'], minAge: 13, minRoleValue: 25 },
+    weight: 9,
+    cooldownSeasons: 2,
+    choices: [
+      {
+        id: 'physical',
+        label: 'להיצמד אליו ולא לתת לו רגע',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'shut_down',
+            baseWeight: 42,
+            tone: 'good',
+            text: 'הוא יורד בדקה 70 מתוסכל, בלי נגיחה אחת. בראיון אחרי המשחק הוא אומר את השם שלך, וזה יותר טוב מכל שער.',
+            effects: {
+              ability: 1.8,
+              reputation: 7,
+              coachTrust: 9,
+              roleValue: 8,
+              confidence: 8,
+            },
+            modifiers: [
+              { attribute: 'ability', above: 62, multiplier: 1.35 },
+              { attribute: 'form', above: 62, multiplier: 1.2 },
+              { attribute: 'discipline', below: 45, multiplier: 0.6 },
+            ],
+          },
+          {
+            id: 'booked_off',
+            baseWeight: 33,
+            tone: 'bad',
+            text: 'צהוב בדקה 20, ואז עוד עבירה טיפשית. אתה יוצא בדקה 55 והקבוצה נשארת בעשרה.',
+            effects: { discipline: -7, coachTrust: -7, confidence: -6, roleValue: -5 },
+            modifiers: [{ attribute: 'discipline', above: 70, multiplier: 0.5 }],
+          },
+          {
+            id: 'beaten_twice',
+            baseWeight: 25,
+            tone: 'bad',
+            text: 'הוא מהיר ממך, וזה נגמר בשני שערים. בוידאו של יום שני עוצרים את התמונה בדיוק עליך.',
+            effects: { confidence: -9, coachTrust: -5, pressure: 7 },
+          },
+        ],
+      },
+      {
+        id: 'zonal',
+        label: 'לשמור על העמדה ולא להיגרר',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'solid',
+            baseWeight: 62,
+            tone: 'good',
+            text: 'לא היה בזה דרמה. הוא נגע בכדור הרבה, לא עשה כלום, ואתה סיימת משחק בלי לרוץ אחורה אפילו פעם אחת.',
+            effects: { ability: 1.2, coachTrust: 5, roleValue: 4, confidence: 4 },
+            modifiers: [{ attribute: 'ability', above: 58, multiplier: 1.25 }],
+          },
+          {
+            id: 'one_moment',
+            baseWeight: 38,
+            tone: 'bad',
+            text: 'רגע אחד של חוסר תשומת לב, כדור לגב, וזה נגמר ברשת. משחק שלם נמחק בשלוש שניות.',
+            effects: { confidence: -5, coachTrust: -3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'cb_organise_defence',
+    kicker: 'הפסקת חצי, 0:2',
+    title: 'ההגנה מתפרקת',
+    description:
+      'ספגתם שניים ברבע שעה. הקו מבולבל, המגנים צועקים אחד על השני, ואף אחד לא לוקח אחריות.',
+    category: 'team',
+    conditions: { positions: ['CB'], minAge: 14 },
+    weight: 8,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'take_charge',
+        label: 'לקחת פיקוד על הקו',
+        hint: 'מנהיגות נרשמת',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'leader',
+            baseWeight: 44,
+            tone: 'good',
+            text: 'אתה מדבר, וזה עובד. במחצית השנייה הקו זז ביחד ולא ספגתם עוד. המאמן ראה בדיוק מי עשה את זה.',
+            effects: {
+              coachTrust: 10,
+              roleValue: 9,
+              confidence: 7,
+              reputation: 4,
+              flags: ['coach_favourite'],
+            },
+            modifiers: [
+              { attribute: 'roleValue', above: 55, multiplier: 1.4 },
+              { attribute: 'age', above: 16, multiplier: 1.25 },
+              { attribute: 'confidence', below: 42, multiplier: 0.55 },
+            ],
+          },
+          {
+            id: 'ignored',
+            baseWeight: 56,
+            tone: 'neutral',
+            text: 'אתה מנסה לדבר, ושחקן מבוגר ממך אומר לך לשתוק ולשחק. אולי הוא צודק. אולי עוד שנה זה יהיה אחרת.',
+            effects: { confidence: -4, pressure: 4, roleValue: 1 },
+          },
+        ],
+      },
+      {
+        id: 'just_play',
+        label: 'לשתוק ולעשות את העבודה שלך',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'quiet_game',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'שיחקת משחק נקי ובלי רעש. לא הצלת את המשחק, אבל גם לא היית חלק מהבלגן.',
+            effects: { coachTrust: 2, ability: 0.5 },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ================================================================= */
+  /* מגן                                                               */
+  /* ================================================================= */
+  {
+    id: 'fb_overlap_duty',
+    kicker: 'אימון טקטי',
+    title: 'המאמן רוצה אותך גבוה',
+    description:
+      'שיטה חדשה: המגנים עולים כמעט עד קו האמצע. "אתה תרוץ יותר מכולם," אומר המאמן, "וגם תיצור יותר מכולם."',
+    category: 'development',
+    conditions: { positions: ['FB'], minAge: 13 },
+    weight: 9,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'bomb_on',
+        label: 'לעלות בכל הזדמנות',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'created',
+            baseWeight: 46,
+            tone: 'good',
+            text: 'ההרמות שלך מתחילות ליפול בדיוק. עד סוף החודש אתה עם יותר בישולים מהכנפיים.',
+            effects: { ability: 2.4, roleValue: 7, coachTrust: 7, confidence: 6, reputation: 3 },
+            modifiers: [
+              { attribute: 'ability', above: 58, multiplier: 1.3 },
+              { attribute: 'form', above: 60, multiplier: 1.2 },
+            ],
+          },
+          {
+            id: 'caught_out',
+            baseWeight: 54,
+            tone: 'bad',
+            text: 'עלית, איבדו את הכדור, והכנף שלהם רץ לחלל שהשארת. שני שערים בשבועיים נכנסים מהצד שלך.',
+            effects: { coachTrust: -6, confidence: -6, injuryRisk: 4, ability: 0.9 },
+            modifiers: [{ attribute: 'ability', above: 68, multiplier: 0.6 }],
+          },
+        ],
+      },
+      {
+        id: 'stay_home',
+        label: 'להישאר אחורה ולהגן',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'reliable',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'הצד שלך נעול כל המשחק. אף אחד לא כותב על מגן שלא ספג, אבל המאמן יודע.',
+            effects: { coachTrust: 4, ability: 0.8, roleValue: 2 },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ================================================================= */
+  /* קשר                                                               */
+  /* ================================================================= */
+  {
+    id: 'cm_tempo_keeper',
+    kicker: 'שיחה אחרי אימון',
+    title: 'המאמן רוצה שאתה תקבע את הקצב',
+    description:
+      '"כל הכדורים עוברים דרכך. אם אתה משחק מהר - אנחנו מהירים. אם אתה מאבד - אנחנו רצים אחורה."',
+    category: 'coach',
+    conditions: { positions: ['CM'], minAge: 13 },
+    weight: 9,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'take_it',
+        label: 'לקחת את הכדור בכל מצב',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'metronome',
+            baseWeight: 48,
+            tone: 'good',
+            text: 'אתה מקבל בין הקווים, מסתובב, ומעביר. אחרי חודש אף אחד בקבוצה לא מחפש כדור בלעדיך.',
+            effects: { ability: 2.5, coachTrust: 9, roleValue: 8, confidence: 7 },
+            modifiers: [
+              { attribute: 'ability', above: 60, multiplier: 1.35 },
+              { attribute: 'potential', above: 82, multiplier: 1.25 },
+              { attribute: 'confidence', below: 40, multiplier: 0.6 },
+            ],
+          },
+          {
+            id: 'overrun',
+            baseWeight: 52,
+            tone: 'neutral',
+            text: 'לפעמים אתה לוקח כדור שאסור לקחת. הקהל נאנח, המאמן מסביר, ואתה לומד את ההבדל בין אמיץ לטיפש.',
+            effects: { ability: 1.3, confidence: -3, coachTrust: 1 },
+          },
+        ],
+      },
+      {
+        id: 'simple',
+        label: 'לשחק פשוט - מסירה אחת ולזוז',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'efficient',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'אחוזי מסירה מצוינים ואפס סיכון. שחקן טוב לקבוצה, ולא בהכרח שחקן שמישהו בא לראות.',
+            effects: { ability: 1, coachTrust: 4, confidence: 3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'cm_position_shift',
+    kicker: 'לוח טקטי, יום חמישי',
+    title: 'מזיזים אותך אחורה',
+    description:
+      'הקשר המגן נפצע. המאמן מסתכל על הסגל, ואז עליך. "אתה מבין משחק. תשחק עמדה אחת אחורה."',
+    category: 'development',
+    conditions: { positions: ['CM'], minAge: 14 },
+    weight: 8,
+    cooldownSeasons: 4,
+    choices: [
+      {
+        id: 'embrace',
+        label: 'ללמוד את העמדה החדשה',
+        hint: 'עמדה שקשה למצוא לה שחקנים',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'new_home',
+            baseWeight: 42,
+            tone: 'good',
+            text: 'מסתבר שמשם אתה רואה את כל המגרש. תוך חודשיים זו העמדה שלך, ופתאום אתה שחקן שקשה להחליף.',
+            effects: { ability: 2.8, coachTrust: 10, roleValue: 7, confidence: 6, potential: 1.5 },
+            modifiers: [
+              { attribute: 'potential', above: 80, multiplier: 1.3 },
+              { attribute: 'ability', above: 58, multiplier: 1.25 },
+            ],
+          },
+          {
+            id: 'lost',
+            baseWeight: 58,
+            tone: 'bad',
+            text: 'אתה לא מבין מתי ללחוץ ומתי לחכות. שלושה משחקים אחר כך מחזירים אותך קדימה, וגם שם כבר תפוס.',
+            effects: { confidence: -7, coachTrust: -4, roleValue: -4, ability: 0.6 },
+          },
+        ],
+      },
+      {
+        id: 'refuse',
+        label: 'להגיד שאתה קשר קדמי',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'respected',
+            baseWeight: 35,
+            tone: 'neutral',
+            text: 'המאמן מקבל את זה, בלי התלהבות. "בסדר. אז תוכיח לי קדימה." הרף עלה.',
+            effects: { pressure: 6, coachTrust: -2, confidence: 2 },
+          },
+          {
+            id: 'dropped',
+            baseWeight: 65,
+            tone: 'bad',
+            text: 'מי שאומר לא לעמדה, אומר לא להרכב. אתה מגלה את זה מהספסל.',
+            effects: { coachTrust: -9, roleValue: -7, minutesModifier: 0.65, confidence: -5 },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ================================================================= */
+  /* כנף                                                               */
+  /* ================================================================= */
+  {
+    id: 'wg_one_on_one',
+    kicker: 'קו הצד, דקה 63',
+    title: 'אחד על אחד עם המגן',
+    description:
+      'הכדור אצלך, המגן מולך, והקו הלבן קורא. היציע מתחיל לקום עוד לפני שעשית משהו.',
+    category: 'match_moment',
+    conditions: { positions: ['WG'], minAge: 12 },
+    weight: 9,
+    cooldownSeasons: 2,
+    choices: [
+      {
+        id: 'take_him',
+        label: 'לנסות לעבור אותו',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'destroyed_him',
+            baseWeight: 38,
+            tone: 'good',
+            text: 'תנועה אחת פנימה, ואז החוצה, והוא נשאר בדשא. ההרמה שלך נגמרת ברשת והיציע קורא בשמך.',
+            effects: {
+              ability: 1.8,
+              reputation: 8,
+              roleValue: 8,
+              confidence: 10,
+              coachTrust: 5,
+              flags: ['fan_favourite'],
+            },
+            modifiers: [
+              { attribute: 'ability', above: 60, multiplier: 1.4 },
+              { attribute: 'confidence', above: 65, multiplier: 1.3 },
+              { attribute: 'form', below: 42, multiplier: 0.6 },
+            ],
+          },
+          {
+            id: 'dispossessed',
+            baseWeight: 62,
+            tone: 'bad',
+            text: 'הוא לוקח לך את הכדור בנקיות והקהל נאנח. בפעם הבאה שהכדור מגיע אליך, אתה מוסר אחורה.',
+            effects: { confidence: -6, coachTrust: -3, pressure: 4 },
+          },
+        ],
+      },
+      {
+        id: 'early_cross',
+        label: 'להרים מוקדם',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'good_ball',
+            baseWeight: 55,
+            tone: 'good',
+            text: 'כדור מדויק לראש של החלוץ. לא כולם ראו מי נתן אותו, אבל המאמן כן.',
+            effects: { ability: 1, coachTrust: 5, roleValue: 4, confidence: 4 },
+          },
+          {
+            id: 'cleared',
+            baseWeight: 45,
+            tone: 'neutral',
+            text: 'הבלם מנקה בראש בלי להתאמץ. החלטה בטוחה, תוצאה אפסית.',
+            effects: { confidence: -1, ability: 0.4 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'wg_final_ball',
+    kicker: 'אימון אישי, אחרי כולם',
+    title: 'הכדור האחרון לא מגיע',
+    description:
+      'אתה עובר את המגן כל שבוע, ואז ההרמה נוגעת בבלם הראשון. מאמן הכושר אומר שהבעיה היא לא הרגליים - זו ההחלטה.',
+    category: 'development',
+    conditions: { positions: ['WG'], minAge: 13 },
+    weight: 8,
+    cooldownSeasons: 4,
+    choices: [
+      {
+        id: 'extra_work',
+        label: 'מאה הרמות ביום אחרי אימון',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'clicked',
+            baseWeight: 50,
+            tone: 'good',
+            text: 'אחרי שישה שבועות אתה מרים בלי להסתכל ויודע איפה החלוץ יהיה. הבישולים מתחילים להצטבר.',
+            effects: { ability: 2.6, coachTrust: 6, confidence: 5, reputation: 3 },
+            modifiers: [
+              { attribute: 'discipline', above: 60, multiplier: 1.4 },
+              { attribute: 'potential', above: 78, multiplier: 1.25 },
+            ],
+          },
+          {
+            id: 'still_missing',
+            baseWeight: 50,
+            tone: 'neutral',
+            text: 'הרגליים משתפרות, ההחלטות פחות. לפעמים זה פשוט לוקח עוד שנה.',
+            effects: { ability: 1, confidence: -2 },
+          },
+        ],
+      },
+      {
+        id: 'keep_dribbling',
+        label: 'להמשיך לעשות מה שאתה טוב בו',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'entertainer',
+            baseWeight: 100,
+            tone: 'neutral',
+            text: 'הקהל אוהב אותך. הסטטיסטיקה פחות. יש שחקנים שכל הקריירה שלהם היא הרגע שלפני ההרמה.',
+            effects: { reputation: 3, confidence: 3, coachTrust: -2, ability: 0.5 },
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ================================================================= */
+  /* חלוץ                                                              */
+  /* ================================================================= */
+  {
+    id: 'st_goal_drought',
+    kicker: 'שבע מחזורים, אפס שערים',
+    title: 'הבצורת',
+    description:
+      'אתה מגיע למצבים, ולא נכנס. בעיתונות מתחילים לספור, בבית שואלים אם הכול בסדר, ואתה חושב על זה בשינה.',
+    category: 'pressure',
+    conditions: { positions: ['ST'], minAge: 14, minRoleValue: 30 },
+    weight: 10,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'shoot_more',
+        label: 'להמשיך לבעוט מכל מצב',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'broke_it',
+            baseWeight: 42,
+            tone: 'good',
+            text: 'בעיטה במגרש ריק, וזה נכנס. ואז עוד אחד באותו שבוע. חלוץ צריך רק אחד כדי להיזכר מי הוא.',
+            effects: { form: 12, confidence: 12, coachTrust: 5, roleValue: 5, reputation: 4 },
+            modifiers: [
+              { attribute: 'ability', above: 65, multiplier: 1.35 },
+              { attribute: 'confidence', above: 55, multiplier: 1.25 },
+              { attribute: 'form', below: 35, multiplier: 0.6 },
+            ],
+          },
+          {
+            id: 'worse',
+            baseWeight: 58,
+            tone: 'bad',
+            text: 'כל בעיטה יותר לחוצה מהקודמת. בדקה 70 המאמן מחליף אותך והיציע לא שותק.',
+            effects: { confidence: -10, form: -6, coachTrust: -5, pressure: 9 },
+          },
+        ],
+      },
+      {
+        id: 'simplify',
+        label: 'לחזור ליסודות - לעבוד לקבוצה',
+        hint: 'לא הזוהר, אבל יוצא מהראש',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'assists_first',
+            baseWeight: 62,
+            tone: 'good',
+            text: 'הפסקת לחשוב על השער והתחלת לשחק. שני בישולים אחר כך, השערים חוזרים לבד.',
+            effects: { form: 7, confidence: 6, coachTrust: 6, ability: 1.2 },
+            modifiers: [{ attribute: 'discipline', above: 58, multiplier: 1.3 }],
+          },
+          {
+            id: 'forgotten',
+            baseWeight: 38,
+            tone: 'neutral',
+            text: 'אתה עובד קשה ולא נכנס. חלוץ שלא מבקיע נמדד בסוף בשערים, גם אם עשה הכול נכון.',
+            effects: { confidence: -4, coachTrust: 1, roleValue: -3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'st_hot_streak',
+    kicker: 'שלושה משחקים, חמישה שערים',
+    title: 'הכול נכנס',
+    description:
+      'אתה בתקופה שבה הכדור מוצא אותך. הרגל, הראש, הברך - לא משנה. אין תחושה כזאת בשום מקום אחר בעולם.',
+    category: 'development',
+    conditions: { positions: ['ST'], minAge: 13, minForm: 55 },
+    weight: 8,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'ride_it',
+        label: 'לרכוב על הגל ולבקש את הכדור',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'season_of_life',
+            baseWeight: 48,
+            tone: 'good',
+            text: 'הבצורת לא באה. אתה מסיים את העונה בתור מלך השערים של הליגה שלך, וכולם יודעים את השם.',
+            effects: {
+              form: 10,
+              confidence: 10,
+              reputation: 9,
+              roleValue: 8,
+              coachTrust: 7,
+              ability: 1.5,
+              flags: ['first_team_radar'],
+            },
+            modifiers: [
+              { attribute: 'ability', above: 62, multiplier: 1.35 },
+              { attribute: 'potential', above: 82, multiplier: 1.3 },
+            ],
+          },
+          {
+            id: 'came_down',
+            baseWeight: 52,
+            tone: 'neutral',
+            text: 'הגל נשבר אחרי עוד שני משחקים, כמו תמיד. אבל עכשיו אתה יודע שאתה יכול.',
+            effects: { confidence: 5, reputation: 3, form: -3, ability: 0.8 },
+          },
+        ],
+      },
+      {
+        id: 'stay_grounded',
+        label: 'לא להתרגש ולהמשיך לעבוד',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'professional',
+            baseWeight: 100,
+            tone: 'good',
+            text: 'אתה לא קורא את העיתונים ולא עונה לטלפונים. המאמן מציין את זה בפני כל הקבוצה.',
+            effects: { coachTrust: 7, discipline: 5, confidence: 4, form: 3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'st_lost_the_shirt',
+    kicker: 'הרכב על הלוח, בלי השם שלך',
+    title: 'איבדת את החולצה',
+    description:
+      'החלוץ החדש הבקיע בשני משחקים רצופים. ביום חמישי אתה מסתכל על הלוח ומחפש את עצמך, ולא מוצא.',
+    category: 'competition',
+    conditions: { positions: ['ST'], minAge: 15 },
+    weight: 9,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'fight',
+        label: 'להילחם על המקום באימונים',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'took_it_back',
+            baseWeight: 40,
+            tone: 'good',
+            text: 'שבועיים של אימונים שבהם אתה הכי טוב במגרש. המאמן לא אוהב לשנות, אבל הוא משנה.',
+            effects: { coachTrust: 8, roleValue: 8, confidence: 7, ability: 1.4 },
+            modifiers: [
+              { attribute: 'ability', above: 64, multiplier: 1.4 },
+              { attribute: 'coachTrust', above: 58, multiplier: 1.3 },
+              { attribute: 'confidence', below: 40, multiplier: 0.55 },
+            ],
+          },
+          {
+            id: 'still_out',
+            baseWeight: 60,
+            tone: 'bad',
+            text: 'אתה עושה הכול נכון וזה לא מספיק. עשרים דקות פה, עשרים דקות שם, ועונה שנמחקת.',
+            effects: { minutesModifier: 0.6, confidence: -8, roleValue: -5, coachTrust: -2 },
+          },
+        ],
+      },
+      {
+        id: 'demand_answers',
+        label: 'לדרוש הסבר מהמאמן',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'straight_answer',
+            baseWeight: 38,
+            tone: 'neutral',
+            text: 'הוא אומר לך בפנים בדיוק מה חסר. זה לא נעים לשמוע, אבל עכשיו יש לך רשימה.',
+            effects: { coachTrust: 2, ability: 1, pressure: 4, confidence: -2 },
+            modifiers: [{ attribute: 'coachTrust', above: 60, multiplier: 1.5 }],
+          },
+          {
+            id: 'row',
+            baseWeight: 62,
+            tone: 'bad',
+            text: 'זה נגמר בצעקות במסדרון. בקבוצה מדברים על זה, ובעיתון יודעים על זה למחרת.',
+            effects: {
+              coachTrust: -12,
+              discipline: -6,
+              roleValue: -6,
+              minutesModifier: 0.55,
+              flags: ['discipline_problem'],
+            },
+          },
+        ],
+      },
+    ],
+  },
+];

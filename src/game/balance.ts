@@ -360,10 +360,25 @@ export const YOUTH_TO_SENIOR = {
 /* ------------------------------------------------------------------ */
 
 export const EVENTS = {
-  /** Weight multiplier applied to an event already seen in this career. */
-  repeatPenalty: 0.35,
+  /**
+   * Weight multiplier applied to an event the moment after it has been seen. The penalty
+   * fades back towards 1 over `repeatRecoverySeasons`, so a story from a decade ago is not
+   * suppressed as hard as one from last season.
+   */
+  repeatPenalty: 0.12,
+  /**
+   * How long a seen event stays suppressed before it is fully back in the pool. A senior
+   * career runs ~15 seasons, so a short window lets everything come round twice.
+   */
+  repeatRecoverySeasons: 16,
   /** Weight multiplier for an event whose category already appeared this season. */
   sameCategoryPenalty: 0.25,
+  /**
+   * Milder penalty for a category seen in the last few seasons. Stops a career turning into
+   * four coach conversations in a row across consecutive seasons.
+   */
+  recentCategoryPenalty: 0.55,
+  recentCategoryWindowSeasons: 2,
   /** Default cooldown for events that do not declare one. */
   defaultCooldownSeasons: 3,
   /** Rare events are throttled hard so they stay special. */
