@@ -1,4 +1,11 @@
 {
+  /*
+   * Production / app project.
+   *
+   * `npm run build` typechecks exactly this project, so the shipped bundle can never be
+   * blocked by a test file that is mid-migration or uses a test-only helper.
+   * Tests are typechecked separately by tsconfig.test.json (see `npm test`).
+   */
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
@@ -12,6 +19,7 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "types": ["vite/client"],
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

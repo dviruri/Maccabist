@@ -7,7 +7,11 @@ export function Ltr({ children }: { children: ReactNode }): JSX.Element {
   return <span className="ltr">{children}</span>;
 }
 
-/** The supplied crest artwork. Lives in /public so it needs no bundler import. */
+/**
+ * The supplied crest artwork. Lives in /public, so the path has to be built from Vite's
+ * BASE_URL - a bare "/mark.png" would 404 on GitHub Pages, where the app is served
+ * from /Maccabist/ rather than the domain root.
+ */
 export function Logo({
   variant = 'full',
   className,
@@ -17,7 +21,7 @@ export function Logo({
   className?: string;
   width?: number | string;
 }): JSX.Element {
-  const src = variant === 'mark' ? '/mark.png' : '/logo.png';
+  const src = `${import.meta.env.BASE_URL}${variant === 'mark' ? 'mark.png' : 'logo.png'}`;
   return (
     <img
       src={src}
