@@ -269,6 +269,57 @@ export interface TrialResult {
 }
 
 /* ------------------------------------------------------------------ */
+/* Football World (v0.4)                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * How a club's season went, as a category rather than a table position.
+ *
+ * Categories keep the world cheap enough to simulate 100,000 careers while still giving a
+ * career the context it needs: "we nearly went down and you kept us up" is a different story
+ * from "we won it".
+ */
+export type ClubSeasonOutcome =
+  // top divisions
+  | 'champion'
+  | 'title_challenge'
+  | 'european_places'
+  | 'upper_table'
+  | 'mid_table'
+  | 'lower_table'
+  | 'relegation_battle'
+  | 'relegated'
+  // second divisions
+  | 'promoted'
+  | 'promotion_challenge'
+  | 'second_mid_table'
+  | 'struggled';
+
+export interface ClubSeasonResult {
+  season: number;
+  clubId: string;
+  leagueId: string;
+  outcome: ClubSeasonOutcome;
+  /** Hebrew summary line, e.g. "מאבק על מקומות אירופה". */
+  label: string;
+  /** How much the player moved this result, 0-1. Zero for a squad player. */
+  playerImpact: number;
+}
+
+/**
+ * The world outside the player, carried on the career so it stays seeded and serialisable.
+ *
+ * Deliberately sparse: only clubs that have actually moved division are recorded, and only the
+ * player's own club seasons are kept. There is no attempt to run every league.
+ */
+export interface WorldState {
+  /** clubId -> leagueId, for clubs that have been promoted or relegated. */
+  clubLeagues: Record<string, string>;
+  /** The player's club's season results, most recent last. */
+  clubSeasons: ClubSeasonResult[];
+}
+
+/* ------------------------------------------------------------------ */
 /* Career memory (v0.3)                                                */
 /* ------------------------------------------------------------------ */
 
@@ -318,7 +369,28 @@ export type MemoryKind =
   | 'returned_for_second_trial'
   | 'joined_maccabi_late'
   | 'signed_after_external_breakthrough'
-  | 'youngest_in_cohort_thriving';
+  | 'youngest_in_cohort_thriving'
+  // Football World (v0.4)
+  | 'won_promotion'
+  | 'suffered_relegation'
+  | 'survived_relegation_battle'
+  | 'won_title_outside_maccabi'
+  | 'breakout_at_small_club'
+  | 'moved_up_a_level'
+  | 'moved_down_a_level'
+  | 'first_move_abroad'
+  | 'failed_abroad'
+  | 'rebuilt_career'
+  | 'returned_to_israel'
+  | 'direct_europe_from_non_maccabi'
+  | 'loan_breakthrough'
+  // Maccabi relationship (v0.4)
+  | 'played_against_maccabi'
+  | 'scored_against_maccabi'
+  | 'refused_to_celebrate'
+  | 'celebrated_against_maccabi'
+  | 'booed_at_sami_ofer'
+  | 'applauded_at_sami_ofer';
 
 export interface CareerMemory {
   kind: MemoryKind;
@@ -836,6 +908,8 @@ export interface Career {
   arcs: ActiveArc[];
   completedArcs: ArcId[];
   traits: CareerTrait[];
+  /** The football world around the player (v0.4). */
+  world: WorldState;
   /** Meaningful story beats, for the timeline and the retirement narrative. */
   milestones: Milestone[];
 

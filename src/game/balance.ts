@@ -81,6 +81,47 @@ export const SENIOR_ELIGIBILITY = {
   exceptionalForm: 62,
 };
 
+/* ------------------------------------------------------------------ */
+/* Football World (v0.4)                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Season-level world simulation. Kept to a handful of numbers because the whole point is that
+ * a club season costs a few RNG calls, not a fixture list.
+ */
+export const WORLD = {
+  /** How many quality points separate "relegation fodder" from "champion" in a division. */
+  strengthSpread: 16,
+  /** How far a club's strength shifts its expected finish, in ladder positions. */
+  strengthToPositions: 2.6,
+  /** How far a season's luck can move it. */
+  seasonVariance: 1.5,
+
+  /** A player below this share of the club's games does not move the needle at all. */
+  impactMinShare: 0.25,
+  impactEdgeSpread: 14,
+  impactScale: 0.62,
+  impactMax: 1,
+  /** How far maximum player impact shifts the finish, in ladder positions. */
+  impactToPositions: 1.4,
+
+  /** How many club seasons to keep on the career. Enough for callbacks, not a full history. */
+  keepClubSeasons: 30,
+
+  /** Player impact at or above which he genuinely shaped the season. */
+  contributionThreshold: 0.25,
+  /** ...and at which carrying a small club counts as a breakout. */
+  breakoutImpact: 0.42,
+  /**
+   * League prestige at or below which a club counts as "small".
+   *
+   * Was 42, which included ליגת העל itself (prestige 40) - so carrying Maccabi to a title
+   * counted as a small-club breakout and the memory fired in 68% of careers. Only the second
+   * division and the smallest European leagues qualify.
+   */
+  smallClubPrestige: 32,
+};
+
 /** Retirement can start being offered here; it becomes increasingly likely afterwards. */
 export const RETIREMENT_MIN_AGE = 33;
 export const RETIREMENT_FORCED_AGE = 41;

@@ -41,6 +41,10 @@ export function cloneCareer(career: Career): Career {
     eventsHistory: [...career.eventsHistory],
     flags: [...career.flags],
     memories: [...career.memories],
+    world: {
+      clubLeagues: { ...career.world.clubLeagues },
+      clubSeasons: [...career.world.clubSeasons],
+    },
     arcs: career.arcs.map((arc) => ({ ...arc })),
     completedArcs: [...career.completedArcs],
     traits: career.traits.map((trait) => ({ ...trait })),

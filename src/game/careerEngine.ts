@@ -13,14 +13,16 @@
  */
 
 import { FIRST_STAGE, stageConfig } from '../data/academy';
-import { MACCABI_ACADEMY_ID, getClub } from '../data/clubs';
+import { MACCABI_ACADEMY_ID, MACCABI_ID, getClub } from '../data/clubs';
 import { EVENTS_BY_ID } from '../data/events';
 import { TRAIT_DEFS } from '../data/traits';
 import type {
   AttributeDelta,
   Career,
   CareerTrait,
+  ClubSeasonResult,
   DateOfBirth,
+  MemoryKind,
   Position,
   SeasonSlot,
   TraitId,
@@ -31,6 +33,7 @@ import {
   FIRST_ACADEMY_SEASON,
   ORIGIN,
   RECOVERY,
+  WORLD,
   RETIREMENT_FORCED_AGE,
   RETIREMENT_MIN_AGE,
   START,
@@ -38,11 +41,18 @@ import {
   TRAITS,
 } from './balance';
 import { daysInMonth, resolveDateOfBirth } from './calendar';
+import {
+  emptyWorld,
+  isGoodSeason,
+  leagueOf,
+  recordClubSeason,
+  simulateClubSeason,
+} from './worldEngine';
 import { ageAt } from './cohort';
 import { eligibleForRetrial, resolveOrigin, resolveRetrial } from './originEngine';
 import { planSeason, resolveEventChoice } from './eventEngine';
 import { computeLegendScore } from './legendEngine';
-import { hasTrait } from './memory';
+import { hasTrait, recordMemory } from './memory';
 import {
   addMilestone,
   applyEffects,
@@ -204,6 +214,7 @@ export function createCareer(input: NewCareerInput): Career {
     arcs: [],
     completedArcs: [],
     traits,
+    world: emptyWorld(),
     /*
      * The timeline opens at birth, not at joining a club - because whether he joins Maccabi
      * at all is now the first thing that happens to him, and resolveOrigin writes that beat.
@@ -250,6 +261,64 @@ export function createCareer(input: NewCareerInput): Career {
 
   // Every career passes through Maccabi's door - it just does not always open.
   return resolveOrigin(career, rng);
+}
+
+/**
+ * Turns a club's season into things the career will remember (v0.4).
+ *
+ * Only the beats worth referencing later - a promotion won, a relegation suffered, a title
+ * lifted somewhere other than Haifa. A mid-table finish is not a memory.
+ */
+function recordWorldMemories(career: Career, result: ClubSeasonResult): Career {
+  const contributed = result.playerImpact >= WORLD.contributionThreshold;
+  let next = career;
+
+  const remember = (kind: MemoryKind): void => {
+    next = { ...next, memories: recordMemory(next, kind) };
+  };
+
+  if (result.outcome === 'promoted') {
+    remember('won_promotion');
+    next = addMilestone(next, {
+      id: `promotion_${result.season}`,
+      icon: '⬆️',
+      text: `עלית לליגה הבכירה עם ${getClub(result.clubId).name}`,
+      major: true,
+    });
+  }
+
+  if (result.outcome === 'relegated') {
+    remember('suffered_relegation');
+    next = addMilestone(next, {
+      id: `relegation_${result.season}`,
+      icon: '⬇️',
+      text: `ירדת ליגה עם ${getClub(result.clubId).name}`,
+      major: true,
+    });
+  }
+
+  if (result.outcome === 'relegation_battle' && contributed) {
+    remember('survived_relegation_battle');
+  }
+
+  // A title anywhere but Maccabi is its own kind of story.
+  if (result.outcome === 'champion' && result.clubId !== MACCABI_ID) {
+    remember('won_title_outside_maccabi');
+    next = addMilestone(next, {
+      id: `title_elsewhere_${result.season}`,
+      icon: '🏆',
+      text: `אלוף עם ${getClub(result.clubId).name}`,
+      major: true,
+    });
+  }
+
+  // Carrying a small club to something it had no business achieving.
+  if (result.playerImpact >= WORLD.breakoutImpact && isGoodSeason(result.outcome)) {
+    const league = leagueOf(next.world, result.clubId);
+    if (league.prestige <= WORLD.smallClubPrestige) remember('breakout_at_small_club');
+  }
+
+  return next;
 }
 
 /**
@@ -375,6 +444,18 @@ function advanceSeasonFlow(career: Career): Career {
     next = cloneCareer(next);
     next.seasonPoint = 'season_end';
     next.age = ageAt(next.dateOfBirth, next.currentSeason, 'season_end');
+
+    /*
+     * The world has a season too (v0.4). Only for senior football - youth results are the age
+     * group's, not a club's league campaign - and it runs after the player's season so his
+     * contribution can shape the outcome.
+     */
+    if (!isInAcademy(next)) {
+      const clubResult = simulateClubSeason(next, next.lastSeasonRecord, rng);
+      next.world = recordClubSeason(next, clubResult);
+      next = recordWorldMemories(next, clubResult);
+    }
+
     next.lastSeasonDeltas = seasonDeltas(next);
     next.phase = 'season_result';
     return next;
