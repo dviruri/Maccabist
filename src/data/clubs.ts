@@ -1,4 +1,5 @@
 import type { Club, ClubTier } from '../types';
+import { EXTERNAL_YOUTH_CLUBS } from './youthClubs';
 
 /**
  * Compact club dataset for the MVP.
@@ -418,8 +419,13 @@ const clubList: Club[] = [
   },
 ];
 
+/**
+ * Lookup includes the external youth academies (v0.3.1) so a player Maccabi turned down has a
+ * resolvable club, but `ALL_CLUBS` deliberately does not - it drives transfer destinations,
+ * and nobody signs a professional contract with an under-11 side.
+ */
 export const CLUBS: Record<string, Club> = Object.fromEntries(
-  clubList.map((club) => [club.id, club]),
+  [...clubList, ...EXTERNAL_YOUTH_CLUBS].map((club) => [club.id, club]),
 );
 
 export const ALL_CLUBS: readonly Club[] = clubList;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ACADEMY_STAGES, STAGE_LADDER, stageAfter, stageOrder } from '../src/data/academy';
-import { PROMOTION } from '../src/game/balance';
+import { FIRST_ACADEMY_SEASON, PROMOTION } from '../src/game/balance';
 import { createCareer } from '../src/game/careerEngine';
 import { promotionScore, resolveAcademyProgression } from '../src/game/progressionEngine';
 import { createRng } from '../src/game/random';
@@ -9,6 +9,15 @@ import type { AcademyStage, Career } from '../src/types';
 
 function academyCareer(overrides: Partial<Career> = {}): Career {
   return { ...createCareer({ playerName: 'בודק', position: 'CM', seed: 42 }), ...overrides };
+}
+
+/**
+ * The season in which the 2021 cohort naturally plays a given stage. Fixtures need this so a
+ * player's `academyStage` and his cohort's stage line up - otherwise the progression rule sees
+ * a player playing above or below his year and behaves (correctly) differently.
+ */
+function naturalSeasonFor(stage: AcademyStage): number {
+  return FIRST_ACADEMY_SEASON + stageOrder(stage);
 }
 
 describe('the academy ladder', () => {
@@ -70,6 +79,7 @@ describe('academy progression', () => {
     // A player clearly ahead of his age group is supposed to be skipping levels, not stepping.
     const career = academyCareer({
       academyStage: 'children_b',
+      currentSeason: naturalSeasonFor('children_b'),
       coachTrust: 40,
       roleValue: 25,
       ability: 30,
@@ -83,6 +93,7 @@ describe('academy progression', () => {
   it('skips a level for an exceptional academy season', () => {
     const career = academyCareer({
       academyStage: 'children_b',
+      currentSeason: naturalSeasonFor('children_b'),
       coachTrust: 98,
       roleValue: 96,
       ability: 70,
@@ -95,34 +106,43 @@ describe('academy progression', () => {
     expect(next.maccabi.earlyPromotions).toBe(1);
   });
 
-  it('holds a struggling player back at the same stage', () => {
+  /*
+   * v0.3.1: an academy is organised by birth year, so a player registered with his own cohort
+   * moves up every season no matter how badly it went. These replace the old "held back" tests,
+   * which encoded a rule that does not exist in youth football.
+   */
+  it('moves a struggling player up with his cohort anyway', () => {
     const career = academyCareer({
       academyStage: 'youth_c',
+      currentSeason: naturalSeasonFor('youth_c'),
       coachTrust: 8,
       roleValue: 6,
       ability: 20,
     });
     const { career: next, result } = resolveAcademyProgression(career, 30, createRng(5));
-    expect(result.kind).toBe('stay');
-    expect(next.academyStage).toBe('youth_c');
-    expect(next.seasonsAtStage).toBe(1);
+    expect(result.kind).toBe('normal');
+    expect(next.academyStage).toBe('youth_b');
   });
 
-  it('never holds a player back twice in a row', () => {
-    const career = academyCareer({
-      academyStage: 'youth_c',
-      coachTrust: 2,
-      roleValue: 2,
-      ability: 10,
-      seasonsAtStage: PROMOTION.maxSeasonsAtStage - 1,
-    });
-    const { result } = resolveAcademyProgression(career, 25, createRng(9));
-    expect(result.kind).toBe('normal');
+  it('never leaves a player behind his own birth cohort, over many rolls', () => {
+    for (let seed = 1; seed <= 200; seed += 1) {
+      const career = academyCareer({
+        academyStage: 'children_b',
+        currentSeason: naturalSeasonFor('children_b'),
+        coachTrust: 2,
+        roleValue: 2,
+        ability: 8,
+      });
+      const { career: next } = resolveAcademyProgression(career, 20, createRng(seed));
+      // Next season the cohort is at children_a; he must be there or above, never below.
+      expect(stageOrder(next.academyStage)).toBeGreaterThanOrEqual(stageOrder('children_a'));
+    }
   });
 
   it('caps how often one player can be fast-tracked', () => {
     const career = academyCareer({
       academyStage: 'children_b',
+      currentSeason: naturalSeasonFor('children_b'),
       coachTrust: 99,
       roleValue: 99,
       ability: 80,
@@ -141,14 +161,14 @@ describe('academy progression', () => {
     // Ability has to match the stage, otherwise the promotion roll fails and nothing moves.
     const career = academyCareer({
       academyStage: 'youth_c',
-      age: 14,
+      currentSeason: naturalSeasonFor('youth_c'),
       ability: 55,
       coachTrust: 70,
       roleValue: 80,
       olderGroup: 'training',
     });
     const { career: next, result } = resolveAcademyProgression(career, 70, createRng(2));
-    expect(result.kind).not.toBe('stay');
+    expect(['normal', 'early']).toContain(result.kind);
     expect(next.roleValue).toBeLessThan(career.roleValue);
     expect(next.olderGroup).toBe('none');
   });
@@ -166,24 +186,28 @@ describe('coach trust drives promotion', () => {
     expect(a).toBeGreaterThan(b);
   });
 
-  it('makes promotion measurably more likely across many rolls', () => {
+  it('makes an EARLY promotion measurably more likely across many rolls', () => {
     /*
-     * The fixture has to be a player whose promotion is genuinely in the balance - one
-     * trailing his age group. For a comfortable player the roll succeeds regardless of
-     * trust, so the comparison would measure nothing.
+     * v0.3.1: ordinary promotion is no longer a roll - the cohort moves up regardless. What
+     * trust buys is being pushed up *ahead* of the cohort, so that is what this measures.
      */
-    const base = { academyStage: 'youth_a' as const, roleValue: 8, ability: 30 };
-    const count = (coachTrust: number): number => {
-      let promoted = 0;
+    const base = {
+      academyStage: 'youth_a' as const,
+      currentSeason: naturalSeasonFor('youth_a'),
+      roleValue: 70,
+      ability: 60,
+    };
+    const countEarly = (coachTrust: number): number => {
+      let early = 0;
       for (let i = 0; i < 300; i += 1) {
         const career = academyCareer({ ...base, coachTrust });
         const { result } = resolveAcademyProgression(career, 58, createRng(i + 1));
-        if (result.kind !== 'stay') promoted += 1;
+        if (result.kind === 'early') early += 1;
       }
-      return promoted;
+      return early;
     };
-    const trusted = count(88);
-    const distrusted = count(25);
+    const trusted = countEarly(88);
+    const distrusted = countEarly(25);
     expect(trusted).toBeGreaterThan(distrusted);
     // And the gap should be substantial, not a rounding artefact.
     expect(trusted - distrusted).toBeGreaterThan(30);

@@ -5,9 +5,46 @@
 
 import type { Position, TeamRole } from '../types';
 
+/**
+ * The world has a fixed timeline (v0.3.1). Every career starts in the same season with the
+ * same birth cohort, so "which age group am I in?" has one correct answer rather than being
+ * re-derived from a numeric age.
+ */
+export const BIRTH_COHORT = 2021;
+/** Season 2031 == "2030/31", the season the 2021 cohort arrives at טרום ב׳. */
+export const FIRST_ACADEMY_SEASON = 2031;
+
 export const START_AGE = 9;
-export const START_SEASON_MIN = 2028;
-export const START_SEASON_MAX = 2034;
+
+/** A small, fading, academy-only physical-maturity effect from the birth month. */
+export const RELATIVE_AGE = {
+  /** Added to the effective level of a player born Jan-Mar. */
+  earlyYearBonus: 2.4,
+  /** Subtracted for a player born Oct-Dec. */
+  lateYearBonus: 2.4,
+  /** Fades linearly to nothing across this many rungs of the ladder. */
+  fadeOverStages: 8,
+};
+
+/** How likely a career is to begin already inside Maccabi, spotted by a scout. */
+export const ORIGIN = {
+  scoutedChance: 0.08,
+  /** Trial scoring. Nothing here is shown to the player as a percentage. */
+  trialAbilityWeight: 1.5,
+  trialPotentialWeight: 0.35,
+  trialConfidenceWeight: 0.25,
+  trialNoise: 14,
+  /** Score needed to be taken on at the first trials. */
+  trialThreshold: 52,
+  /** A later trial is judged against what he has actually done since. */
+  retrialAbilityWeight: 1.1,
+  retrialRoleWeight: 0.35,
+  retrialReputationWeight: 0.45,
+  retrialThreshold: 58,
+  /** Never in consecutive seasons. */
+  retrialCooldownSeasons: 2,
+  maxTrials: 3,
+};
 
 /** Retirement can start being offered here; it becomes increasingly likely afterwards. */
 export const RETIREMENT_MIN_AGE = 33;
@@ -325,8 +362,13 @@ export const PROMOTION = {
   normalThreshold: 1,
   /** A player can only be fast-tracked so often. */
   maxEarlyPromotions: 2,
-  /** Repeating a level twice in a row is not allowed - the ladder keeps moving. */
-  maxSeasonsAtStage: 2,
+  /** How far ahead of his own birth cohort a player may ever be registered. */
+  maxCohortLead: 2,
+  /**
+   * Standing gained when the player's own cohort arrives in the group he was already playing
+   * in - he goes from being the youngest in the room to one of the older boys.
+   */
+  cohortCaughtUpRoleGain: 7,
 };
 
 /* ------------------------------------------------------------------ */

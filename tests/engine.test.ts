@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import { MACCABI_ACADEMY_ID, MACCABI_ID, getClub } from '../src/data/clubs';
 import { EVENTS_BY_ID } from '../src/data/events';
+import { RETIREMENT_FORCED_AGE } from '../src/game/balance';
 import {
   advanceYear,
   answerEvent,
@@ -695,9 +696,32 @@ describe('career flow', () => {
   });
 
   it('ages the player and eventually forces retirement', () => {
-    const career = advanceYear({ ...seniorCareer(), age: 40 });
+    /*
+     * v0.3.1: age is derived from the date of birth and the season, never incremented, so an
+     * old player is made by moving the season forward rather than by setting `age`.
+     */
+    const old = seniorCareer();
+    const career = advanceYear({
+      ...old,
+      currentSeason: old.dateOfBirth.year + RETIREMENT_FORCED_AGE,
+    });
+    expect(career.age).toBeGreaterThanOrEqual(RETIREMENT_FORCED_AGE);
     expect(career.retired).toBe(true);
     expect(career.legend).not.toBeNull();
+  });
+
+  it('derives age from the date of birth, not from a counter', () => {
+    /*
+     * The point of the v0.3.1 model: age is a function of (date of birth, season, season
+     * point). Overwriting `age` on a career is meaningless - moving the season is what ages
+     * a player - so this walks the season forward and checks the derived age tracks it.
+     */
+    let career = newCareer();
+    const startAge = career.age;
+    for (let i = 1; i <= 4; i += 1) {
+      career = { ...advanceYear(career), phase: 'preseason' };
+      expect(career.age).toBe(startAge + i);
+    }
   });
 
   it('computes a legend result on retirement', () => {

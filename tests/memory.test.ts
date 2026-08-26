@@ -85,9 +85,10 @@ const season = (overrides: Partial<SeasonRecord> = {}): SeasonRecord => ({
 /* ------------------------------------------------------------------ */
 
 describe('career memory', () => {
-  it('starts empty and records what happened', () => {
+  it('records what happened, on top of the origin memory every career starts with', () => {
     const career = base();
-    expect(career.memories).toEqual([]);
+    // v0.3.1: a career opens with how it began - scouted, or passed/failed the trials.
+    expect(career.memories.length).toBeGreaterThanOrEqual(1);
     expect(hasMemory(career, 'major_injury')).toBe(false);
 
     const withMemory = { ...career, memories: recordMemory(career, 'major_injury') };
@@ -118,8 +119,9 @@ describe('career memory', () => {
 
   it('does not mutate the career it reads', () => {
     const career = base();
+    const before = career.memories.length;
     recordMemory(career, 'major_injury');
-    expect(career.memories).toHaveLength(0);
+    expect(career.memories).toHaveLength(before);
   });
 });
 
@@ -576,11 +578,13 @@ describe('homecoming', () => {
 /* ------------------------------------------------------------------ */
 
 describe('milestones', () => {
-  it('opens every career with joining the academy', () => {
+  it('opens every career with the birth date and how the career began', () => {
     const career = base();
-    expect(career.milestones).toHaveLength(1);
-    expect(career.milestones[0]?.id).toBe('joined_academy');
-    expect(career.milestones[0]?.season).toBe(career.currentSeason);
+    // v0.3.1: born, then the origin beat (scouted / passed trials / failed trials).
+    expect(career.milestones.length).toBeGreaterThanOrEqual(2);
+    expect(career.milestones[0]?.id).toBe('born');
+    expect(career.milestones[0]?.text).toContain(String(career.birthCohort));
+    expect(career.milestones.some((mi) => mi.id.startsWith('origin_'))).toBe(true);
   });
 
   it('records the structural beats automatically', () => {

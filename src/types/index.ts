@@ -218,6 +218,57 @@ export type CareerFlag =
   | 'released_by_maccabi';
 
 /* ------------------------------------------------------------------ */
+/* Birth date and cohort (v0.3.1)                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A real date of birth, stored as plain numbers.
+ *
+ * Deliberately not a Date or a timestamp: football age and cohort maths must be exact and
+ * timezone-independent, and a UTC timestamp for "17 December 2021" can render as the 16th or
+ * the 18th depending on where the browser is.
+ */
+export interface DateOfBirth {
+  day: number;
+  month: number;
+  /** Locked to the cohort year. The player picks only the day and month. */
+  year: number;
+}
+
+/**
+ * Where in the season the world currently is. We do not simulate day by day - three
+ * checkpoints are enough for the displayed age to move naturally through a season.
+ */
+export type SeasonPoint = 'preseason' | 'midseason' | 'season_end';
+
+/* ------------------------------------------------------------------ */
+/* Career origin (v0.3.1)                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * How the career started. Maccabist always begins with Maccabi as the goal, but never
+ * guarantees Maccabi.
+ */
+export type CareerOrigin =
+  /** Spotted by a Maccabi scout and invited straight in. Rare. */
+  | 'scouted'
+  /** Went to the trials and got in. */
+  | 'trial_accepted'
+  /** Went to the trials and did not get in - the career continues elsewhere. */
+  | 'trial_rejected';
+
+export interface TrialResult {
+  accepted: boolean;
+  /** Which attempt this was: 1 for the first trials at nine years old. */
+  attempt: number;
+  season: number;
+  /** Narrative shown to the player. Never a percentage. */
+  title: string;
+  description: string;
+  icon: string;
+}
+
+/* ------------------------------------------------------------------ */
 /* Career memory (v0.3)                                                */
 /* ------------------------------------------------------------------ */
 
@@ -259,7 +310,15 @@ export type MemoryKind =
   | 'refused_transfer'
   | 'forced_transfer'
   | 'struggled_abroad'
-  | 'loan_success';
+  | 'loan_success'
+  // origin (v0.3.1)
+  | 'scouted_by_maccabi'
+  | 'passed_first_maccabi_trial'
+  | 'failed_first_maccabi_trial'
+  | 'returned_for_second_trial'
+  | 'joined_maccabi_late'
+  | 'signed_after_external_breakthrough'
+  | 'youngest_in_cohort_thriving';
 
 export interface CareerMemory {
   kind: MemoryKind;
@@ -347,6 +406,27 @@ export interface Milestone {
   major: boolean;
 }
 
+/**
+ * Which club situation an event belongs to (v0.3.1).
+ *
+ * Playtesting found Maccabi-specific events firing at other clubs. Rather than relying on
+ * every author remembering `atMaccabi: true`, the scope is explicit and the event-audit test
+ * checks that anything mentioning Maccabi in its text declares one.
+ */
+export type ClubScope =
+  /** Only while actually at Maccabi Haifa (academy or senior). */
+  | 'maccabi'
+  /** Generic - reads naturally at whatever club the player is at. Text must not name a club. */
+  | 'currentClub'
+  /** Only while somewhere other than Maccabi. */
+  | 'nonMaccabi'
+  /** Only while outside Israel. */
+  | 'abroad'
+  /** Has Maccabi history but is currently elsewhere - the "they are still watching" events. */
+  | 'formerMaccabi'
+  /** Truly universal. */
+  | 'any';
+
 export interface EventConditions {
   minAge?: number;
   maxAge?: number;
@@ -375,6 +455,11 @@ export interface EventConditions {
   atMaccabiSenior?: boolean;
   abroad?: boolean;
   onLoan?: boolean;
+  /**
+   * Which club context this event belongs to (v0.3.1). The single most useful guard against
+   * immersion-breaking events: a Maccabi song in the stands makes no sense at Hapoel Afula.
+   */
+  clubScope?: ClubScope;
   isCaptain?: boolean;
   hasLeftMaccabi?: boolean;
   /** Appearances so far this season (mid/late slots) or last season (early slot). */
@@ -616,9 +701,14 @@ export type CareerPhase =
 
 /** What the academy promotion roll decided at the end of a season. */
 export type ProgressionKind =
-  | 'normal' // one step up the ladder
-  | 'early' // skipped a level
-  | 'stay' // repeated the level
+  | 'normal' // one step up the ladder with the cohort
+  | 'early' // pushed up ahead of the cohort
+  /**
+   * Same age group as last season because the player's own cohort has arrived in it. Only
+   * reachable after an early promotion, and explicitly NOT repeating a year - see
+   * resolveAcademyProgression.
+   */
+  | 'cohort_caught_up'
   | 'senior' // promoted to the first team
   | 'released' // Maccabi did not keep him
   | 'none'; // senior player, nothing to report
@@ -670,10 +760,25 @@ export interface Career {
   playerName: string;
   position: Position;
 
+  /**
+   * Football age at the current season point, derived from `dateOfBirth`. Kept on the object
+   * because almost everything reads it, but it is never the source of truth for the academy
+   * stage - see `naturalStage()`.
+   */
   age: number;
   startAge: number;
   currentSeason: number;
   startSeason: number;
+
+  /* ---------- v0.3.1 ---------- */
+  dateOfBirth: DateOfBirth;
+  /** Birth year. The whole cohort moves up the ladder together. */
+  birthCohort: number;
+  /** Where in the season we are, so the displayed age moves naturally through the year. */
+  seasonPoint: SeasonPoint;
+  origin: CareerOrigin;
+  /** Every Maccabi trial the player has attended, in order. */
+  trials: TrialResult[];
 
   ability: number;
   hidden: HiddenAttributes;

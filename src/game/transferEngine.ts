@@ -619,7 +619,17 @@ export function verdictToProgression(
   verdict: SeniorVerdict,
 ): ProgressionResult {
   return {
-    kind: verdict.path === 'released' ? 'released' : verdict.path === 'another_year' ? 'stay' : 'senior',
+    /*
+     * "another year in נוער" is a genuine extra year - נוער is the top of the ladder, so there
+     * is no cohort above it to move up to, and the club choosing to keep him another season is
+     * a real decision rather than the invalid academy repeat that v0.3.1 removed.
+     */
+    kind:
+      verdict.path === 'released'
+        ? 'released'
+        : verdict.path === 'another_year'
+          ? 'cohort_caught_up'
+          : 'senior',
     fromStage: career.academyStage,
     toStage: verdict.path === 'another_year' ? 'u19' : 'senior',
     title: verdict.title,

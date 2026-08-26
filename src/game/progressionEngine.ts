@@ -4,7 +4,7 @@
  * All functions are pure - they take a Career and return a new Career.
  */
 
-import { stageAfter, stageBand, stageConfig, stageLabel, stageOrder } from '../data/academy';
+import { STAGE_LADDER, stageBand, stageConfig, stageLabel, stageOrder } from '../data/academy';
 import { ACHIEVEMENT_DEFS } from '../data/achievements';
 import { getClub, MACCABI_ID, isMaccabiSenior } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
@@ -20,6 +20,7 @@ import type {
   TraitId,
 } from '../types';
 import { COACH_TRUST, PROGRESSION, PROMOTION, RECOVERY, SEASON, TRAITS } from './balance';
+import { cohortLead, nextNaturalStage } from './cohort';
 import { advanceArc, hasTrait, recordMemory, startArc } from './memory';
 import { clamp, round, type Rng } from './random';
 import { levelContext, roleFromValue } from './rules';
@@ -612,49 +613,75 @@ export function promotionScore(career: Career, seasonRating: number, rng: Rng): 
  * The u19 -> senior step is handled separately by the transfer engine, which is why this
  * never returns 'senior'.
  */
+/**
+ * What happens to an academy player at the end of a season.
+ *
+ * The v0.3.1 rule: **an academy is organised by birth year.** The cohort moves up every
+ * season regardless of how the season went, so a player registered with his own age group can
+ * never repeat it. The only question the promotion roll answers is whether he goes up *faster*
+ * than his cohort.
+ *
+ * A player already ahead of his cohort has a third possibility: staying in the same named
+ * group while his own cohort catches up. That looks like standing still and is the opposite -
+ * it is where an early promotion lands.
+ */
 export function resolveAcademyProgression(
   career: Career,
   seasonRating: number,
   rng: Rng,
 ): { career: Career; result: ProgressionResult } {
   const from = career.academyStage;
+  const nextNatural = nextNaturalStage(career);
+  const lead = cohortLead(career);
+
   const score = promotionScore(career, seasonRating, rng);
   const canSkip =
     career.maccabi.earlyPromotions < PROMOTION.maxEarlyPromotions &&
-    stageOrder(from) < stageOrder('u19') - 1;
-  const mustMove = career.seasonsAtStage + 1 >= PROMOTION.maxSeasonsAtStage;
+    lead < PROMOTION.maxCohortLead &&
+    stageOrder(from) < stageOrder('u19');
+  const earnedEarly = score >= PROMOTION.earlyThreshold && canSkip;
 
-  let kind: ProgressionResult['kind'];
-  let steps: number;
-  if (score >= PROMOTION.earlyThreshold && canSkip) {
-    kind = 'early';
-    steps = 2;
-  } else if (score >= PROMOTION.normalThreshold || mustMove) {
-    kind = 'normal';
-    steps = 1;
-  } else {
-    kind = 'stay';
-    steps = 0;
-  }
+  /*
+   * The floor is the cohort's stage for next season - never below it. A player who is already
+   * ahead keeps his place; a player with his cohort moves up with them.
+   */
+  const naturalTarget = Math.max(stageOrder(nextNatural), stageOrder(from));
+  const target = earnedEarly ? naturalTarget + 1 : naturalTarget;
+  const to = STAGE_LADDER[Math.min(STAGE_LADDER.length - 1, target)] as AcademyStage;
 
-  const to = stageAfter(from, steps);
+  const movedUp = stageOrder(to) > stageOrder(from);
+  const kind: ProgressionResult['kind'] = earnedEarly
+    ? 'early'
+    : movedUp
+      ? 'normal'
+      : // Same label as last season, because the cohort arrived. Not a repeat.
+        'cohort_caught_up';
+
   const next = cloneCareer(career);
   next.academyStage = to;
-  next.seasonsAtStage = steps === 0 ? career.seasonsAtStage + 1 : 0;
+  next.seasonsAtStage = movedUp ? 0 : career.seasonsAtStage + 1;
   next.maccabi.academySeasons += 1;
-  if (kind === 'early') next.maccabi.earlyPromotions += 1;
+  if (earnedEarly) next.maccabi.earlyPromotions += 1;
 
-  if (steps > 0) {
+  if (movedUp) {
     // A new age group means starting nearer the bottom of the pecking order again.
-    const drop = kind === 'early' ? 16 : 9;
+    const drop = earnedEarly ? 16 : 9;
     next.roleValue = clamp(next.roleValue - drop, 8, 96);
     next.role = roleFromValue(next.roleValue);
-    next.coachTrust = clamp(next.coachTrust - (kind === 'early' ? 7 : 4));
+    next.coachTrust = clamp(next.coachTrust - (earnedEarly ? 7 : 4));
     // Playing up is reset by the promotion - you are the young one again.
     next.olderGroup = 'none';
+  } else {
+    /*
+     * His cohort has arrived in the group he was already playing in. He is now one of the
+     * older boys rather than the youngest, which is worth something.
+     */
+    next.olderGroup = 'none';
+    next.roleValue = clamp(next.roleValue + PROMOTION.cohortCaughtUpRoleGain, 8, 96);
+    next.role = roleFromValue(next.roleValue);
   }
 
-  const result: ProgressionResult = buildProgressionResult(kind, from, to);
+  const result = buildProgressionResult(kind, from, to);
   return { career: next, result };
 }
 
@@ -671,18 +698,23 @@ function buildProgressionResult(
         fromStage: from,
         toStage: to,
         title: 'הוקפצת שנתון!',
-        detail: `דילגת על שלב שלם. בעונה הבאה אתה ב${toLabel}, עם שחקנים שגדולים ממך.`,
+        detail: `דילגת על שלב שלם. בעונה הבאה אתה ב${toLabel}, עם שחקנים שגדולים ממך בשנה.`,
         icon: '⬆️',
         major: true,
       };
-    case 'stay':
+    case 'cohort_caught_up':
+      /*
+       * Critically NOT "you stayed back". He was playing above his age; now the boys born in
+       * his own year have arrived in the same group. Same shirt, completely different meaning,
+       * and the wording has to make that obvious.
+       */
       return {
         kind,
         fromStage: from,
         toStage: to,
-        title: 'נשארת באותו שנתון',
-        detail: `במועדון החליטו שאתה צריך עוד עונה ב${toLabel}. זה לא סוף העולם, אבל זה סימן.`,
-        icon: '⏸️',
+        title: `השנתון שלך הגיע ל${toLabel}`,
+        detail: `שיחקת שם כשהיית צעיר מכולם. עכשיו זה פשוט השנתון שלך - ואתה כבר מהוותיקים בקבוצה.`,
+        icon: '🎯',
         major: false,
       };
     default:
@@ -691,7 +723,7 @@ function buildProgressionResult(
         fromStage: from,
         toStage: to,
         title: `עלית ל${toLabel}`,
-        detail: `עוד שלב בסולם של מכבי חיפה. בעונה הבאה אתה ב${toLabel}.`,
+        detail: `עוד שלב בסולם. בעונה הבאה אתה ב${toLabel}.`,
         icon: '💚',
         major: stageBand(from) !== stageBand(to),
       };

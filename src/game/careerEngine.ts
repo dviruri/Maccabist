@@ -16,18 +16,28 @@ import { FIRST_STAGE, stageConfig } from '../data/academy';
 import { MACCABI_ACADEMY_ID, getClub } from '../data/clubs';
 import { EVENTS_BY_ID } from '../data/events';
 import { TRAIT_DEFS } from '../data/traits';
-import type { AttributeDelta, Career, CareerTrait, Position, SeasonSlot, TraitId } from '../types';
+import type {
+  AttributeDelta,
+  Career,
+  CareerTrait,
+  DateOfBirth,
+  Position,
+  SeasonSlot,
+  TraitId,
+} from '../types';
 import {
+  BIRTH_COHORT,
   CAPTAINCY,
+  FIRST_ACADEMY_SEASON,
   RECOVERY,
   RETIREMENT_FORCED_AGE,
   RETIREMENT_MIN_AGE,
   START,
   START_AGE,
-  START_SEASON_MAX,
-  START_SEASON_MIN,
   TRAITS,
 } from './balance';
+import { ageAt } from './cohort';
+import { resolveOrigin } from './originEngine';
 import { planSeason, resolveEventChoice } from './eventEngine';
 import { computeLegendScore } from './legendEngine';
 import { hasTrait } from './memory';
@@ -73,6 +83,9 @@ function withRng<T extends { rngState: number }>(career: T, fn: (rng: Rng) => T)
 export interface NewCareerInput {
   playerName: string;
   position: Position;
+  /** Day and month of birth. The year is always the cohort year. */
+  birthDay?: number;
+  birthMonth?: number;
   /** Optional fixed seed - the same seed and the same decisions reproduce the career. */
   seed?: number;
 }
@@ -91,6 +104,12 @@ export function createCareer(input: NewCareerInput): Career {
   const hasSelfBelief = traits.some((t) => t.id === 'self_believer');
   const hasInjuryProne = traits.some((t) => t.id === 'injury_prone');
 
+  const dateOfBirth: DateOfBirth = {
+    day: clampDay(input.birthDay ?? rng.int(1, 28)),
+    month: clampMonth(input.birthMonth ?? rng.int(1, 12)),
+    year: BIRTH_COHORT,
+  };
+
   const career: Career = {
     id: `career_${seed.toString(36)}_${Date.now().toString(36)}`,
     schemaVersion: SCHEMA_VERSION,
@@ -100,8 +119,16 @@ export function createCareer(input: NewCareerInput): Career {
 
     age: START_AGE,
     startAge: START_AGE,
-    currentSeason: rng.int(START_SEASON_MIN, START_SEASON_MAX),
-    startSeason: 0,
+    // Fixed world timeline (v0.3.1) - no longer randomised per career.
+    currentSeason: FIRST_ACADEMY_SEASON,
+    startSeason: FIRST_ACADEMY_SEASON,
+
+    dateOfBirth,
+    birthCohort: BIRTH_COHORT,
+    seasonPoint: 'preseason',
+    // Overwritten by resolveOrigin() below; every career passes through Maccabi's door.
+    origin: 'trial_accepted',
+    trials: [],
 
     ability: rng.int(START.abilityMin, START.abilityMax),
     hidden: {
@@ -169,14 +196,18 @@ export function createCareer(input: NewCareerInput): Career {
     arcs: [],
     completedArcs: [],
     traits,
+    /*
+     * The timeline opens at birth, not at joining a club - because whether he joins Maccabi
+     * at all is now the first thing that happens to him, and resolveOrigin writes that beat.
+     */
     milestones: [
       {
-        id: 'joined_academy',
-        season: 0,
-        age: START_AGE,
-        icon: '💚',
-        text: 'הצטרפת למחלקת הנוער של מכבי חיפה',
-        major: true,
+        id: 'born',
+        season: FIRST_ACADEMY_SEASON,
+        age: 0,
+        icon: '🎂',
+        text: `נולדת ב-${dateOfBirth.day}.${dateOfBirth.month}.${BIRTH_COHORT}`,
+        major: false,
       },
     ],
 
@@ -203,12 +234,21 @@ export function createCareer(input: NewCareerInput): Career {
     rngState: rng.getState(),
   };
 
-  career.startSeason = career.currentSeason;
   career.peakAbility = career.ability;
   career.role = roleFromValue(career.roleValue);
-  // The opening milestone is written before the start season is known.
-  career.milestones = career.milestones.map((m) => ({ ...m, season: career.currentSeason }));
-  return career;
+  career.age = ageAt(dateOfBirth, career.currentSeason, 'preseason');
+  career.startAge = career.age;
+
+  // Every career passes through Maccabi's door - it just does not always open.
+  return resolveOrigin(career, rng);
+}
+
+function clampDay(day: number): number {
+  return Math.max(1, Math.min(28, Math.round(day)));
+}
+
+function clampMonth(month: number): number {
+  return Math.max(1, Math.min(12, Math.round(month)));
 }
 
 /**
@@ -306,6 +346,9 @@ function advanceSeasonFlow(career: Career): Career {
 
     if (next.seasonSlot === 'early') {
       next = playFirstHalf(next, rng);
+      // The calendar has reached January - a winter birthday lands here.
+      next.seasonPoint = 'midseason';
+      next.age = ageAt(next.dateOfBirth, next.currentSeason, 'midseason');
       next = loadSlotEvents(next, 'mid');
       if (stageConfig(next.academyStage).showMidSeason) {
         next.phase = 'mid_season';
@@ -327,8 +370,10 @@ function advanceSeasonFlow(career: Career): Career {
       }
     }
 
-    // Season is done.
+    // Season is done - May/June, so a spring birthday lands here.
     next = cloneCareer(next);
+    next.seasonPoint = 'season_end';
+    next.age = ageAt(next.dateOfBirth, next.currentSeason, 'season_end');
     next.lastSeasonDeltas = seasonDeltas(next);
     next.phase = 'season_result';
     return next;
@@ -507,8 +552,11 @@ export function retirementChance(career: Career): number {
 export function advanceYear(career: Career): Career {
   const aged = withRng(career, (rng) => {
     let next = cloneCareer(career);
-    next.age += 1;
     next.currentSeason += 1;
+    next.seasonPoint = 'preseason';
+    // Age is derived from the date of birth, never incremented - that is what lets two players
+    // in the same cohort be a year apart in displayed age while sharing an age group.
+    next.age = ageAt(next.dateOfBirth, next.currentSeason, 'preseason');
     next.seasonSlot = 'early';
     next.pendingEventIds = [];
     next.plannedEvents = [];
