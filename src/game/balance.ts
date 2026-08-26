@@ -397,7 +397,18 @@ export const EVENTS = {
    * This lifts the weight of the good outcomes of a risky choice so the upside is worth
    * reaching for, while the downside stays exactly as painful as it is written.
    */
-  riskyUpsideBoost: 1.75,
+  riskyUpsideBoost: 2,
+  /**
+   * ...and when it does come off, it pays bigger. Scales the developmental upside of a good
+   * outcome on a risky choice.
+   *
+   * Probability alone could not fix this. Pushing riskyUpsideBoost high enough to reach EV
+   * parity renormalises the distribution until the "gamble" mostly succeeds, which removes
+   * the drama the choice exists for. Widening the payoff instead keeps the odds genuinely
+   * uncertain while making risk mean higher variance rather than a worse bet - more
+   * failures, but also the exceptional careers that only bold play reaches.
+   */
+  riskyUpsideGain: 1.6,
   /** Chance the late-season "key moment" slot is used at all. */
   lateSlotChance: 0.45,
   /** Two injury or discipline events back to back feels punishing - block it. */
@@ -455,6 +466,14 @@ export const RECOVERY = {
   /** A run of good form rebuilds trust faster than the normal drift. */
   formRecoveryRating: 68,
   formRecoveryBonus: 3.5,
+
+  /**
+   * Floor on the accumulated one-season minutes penalty. Without it, a few bad outcomes in
+   * the same season multiply into effectively no playing time - and no minutes means no
+   * development and no chance to change the coach's mind, which is the mechanism that turned
+   * one bad run into a dead career.
+   */
+  minutesModifierFloor: 0.4,
 };
 
 /* ------------------------------------------------------------------ */

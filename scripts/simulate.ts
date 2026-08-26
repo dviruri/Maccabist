@@ -19,6 +19,7 @@ import {
   riskTakerPolicy,
   simulateBatch,
   simulateCareer,
+  simulatePaired,
   type BatchResult,
   type CareerPolicy,
 } from '../src/game/simulate';
@@ -85,6 +86,8 @@ function reportBatch(name: string, result: BatchResult): void {
   row('saw a rare event', pct(result.rareBreakthrough));
   row('avg peak ability', num(result.averagePeakAbility));
   row('avg Legend Score', num(result.averageLegendScore));
+  row('median Legend Score', num(result.legendMedian));
+  row('Legend Score std dev', num(result.legendStdDev, 2));
   row('avg Maccabi appearances', num(result.averageMaccabiAppearances));
   row('avg career seasons', num(result.averageCareerSeasons));
   row('avg retirement age', num(result.averageRetirementAge));
@@ -95,6 +98,17 @@ function reportBatch(name: string, result: BatchResult): void {
     const bar = '#'.repeat(Math.round(share * 50));
     console.log(`    ${pad(label, 8)}${padStart(pct(share), 7)}  ${bar}`);
   }
+
+  console.log('\n  Story systems (v0.3)');
+  row('careers carrying a memory', pct(result.withMemories));
+  row('careers running a story arc', pct(result.withStoryArcs));
+  row('avg milestones per career', num(result.averageMilestones));
+  row('avg traits revealed', num(result.averageTraitsRevealed, 2));
+
+  console.log('\n  Recovery');
+  row('careers that hit a slump', pct(result.recovery.careersWithSlump));
+  row('slumps recovered within 3 seasons', pct(result.recovery.recoveryRate));
+  row('avg seasons to recover', num(result.recovery.averageSeasonsToRecover, 2));
 
   console.log('\n  Academy ladder');
   row('normal promotion', pct(result.academy.normalPromotionShare));
@@ -131,6 +145,49 @@ function reportBatch(name: string, result: BatchResult): void {
   for (const [title, count] of topEndings) {
     console.log(`    ${pad(title, 30)}${padStart(pct(count / result.count), 8)}`);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Matched-seed comparison                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The decisions-vs-luck question. Every strategy plays the same seeds, so any difference
+ * between them is decision quality rather than a kinder random universe.
+ */
+function reportPaired(seeds: number): void {
+  heading(`MATCHED-SEED COMPARISON  (${seeds.toLocaleString()} seeds x ${Object.keys(POLICIES).length} strategies)`);
+
+  const result = simulatePaired(seeds, POLICIES, {
+    playerName: 'סימולציה',
+    position: 'CM',
+    rotatePositions: true,
+  });
+
+  console.log(
+    `  ${pad('strategy', 12)}${padStart('mean', 8)}${padStart('median', 8)}${padStart('sd', 7)}` +
+      `${padStart('peak', 7)}${padStart('seniors', 9)}${padStart('beats base', 12)}${padStart('vs base', 9)}`,
+  );
+  console.log('  ' + '-'.repeat(72));
+  for (const name of Object.keys(POLICIES)) {
+    console.log(
+      `  ${pad(name, 12)}` +
+        padStart(num(result.meanByStrategy[name] ?? 0), 8) +
+        padStart(num(result.medianByStrategy[name] ?? 0), 8) +
+        padStart(num(result.stdDevByStrategy[name] ?? 0), 7) +
+        padStart(num(result.peakAbilityByStrategy[name] ?? 0), 7) +
+        padStart(pct(result.reachedSeniorsByStrategy[name] ?? 0), 9) +
+        padStart(pct(result.winRateVsBaseline[name] ?? 0), 12) +
+        padStart((result.meanDeltaVsBaseline[name] ?? 0).toFixed(1), 9),
+    );
+  }
+
+  console.log(`\n  baseline strategy                 ${result.baseline}`);
+  console.log(`  seed-driven spread (sd, one strategy)   ${num(result.baselineSeedStdDev, 2)}`);
+  console.log(`  decision-driven spread (same seed)      ${num(result.meanWithinSeedSpread, 2)}`);
+  console.log(
+    '  "beats base" is measured seed-by-seed, so 50% would mean decisions do not matter.',
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -213,6 +270,7 @@ function main(): void {
     total += careersPerPolicy;
   }
 
+  if (!onlyPolicy) reportPaired(Number(arg('paired') ?? Math.min(careersPerPolicy, 3000)));
   reportLuck();
 
   const seconds = (Date.now() - started) / 1000;

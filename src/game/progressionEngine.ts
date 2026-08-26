@@ -168,7 +168,18 @@ export function applyEffects(career: Career, effects: EventEffects, rng: Rng): E
   if (effects.discipline) next.hidden.discipline = clamp(next.hidden.discipline + effects.discipline);
   if (effects.injuryRisk) next.hidden.injuryRisk = clamp(next.hidden.injuryRisk + effects.injuryRisk);
   if (effects.pressure) next.hidden.pressure = clamp(next.hidden.pressure + effects.pressure);
-  if (effects.minutesModifier) next.hidden.minutesModifier *= effects.minutesModifier;
+  /*
+   * Minutes penalties stack multiplicatively, so two or three bad outcomes in one season used
+   * to be able to drive playing time to almost nothing - and a season with no minutes means no
+   * development and no way to change the coach's mind, which is how a single bad run turned
+   * into a dead career. Floored so a bad season is bad, not terminal.
+   */
+  if (effects.minutesModifier) {
+    next.hidden.minutesModifier = Math.max(
+      RECOVERY.minutesModifierFloor,
+      next.hidden.minutesModifier * effects.minutesModifier,
+    );
+  }
   if (effects.transferChance) next.hidden.transferBoost += effects.transferChance;
   if (effects.promotionBoost) next.hidden.promotionBoost += effects.promotionBoost;
   if (effects.olderGroup) next.olderGroup = effects.olderGroup;

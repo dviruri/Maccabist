@@ -169,6 +169,8 @@ export interface SeasonRecord {
   firstHalf: SeasonStats | null;
   ability: number;
   role: TeamRole;
+  /** Recorded so recovery from a bad spell can actually be measured. */
+  coachTrust: number;
   trophies: Trophy[];
   captain: boolean;
   olderGroup: OlderGroupStatus;

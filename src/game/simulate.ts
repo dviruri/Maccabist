@@ -249,6 +249,25 @@ export interface AcademyMetrics {
   averageAcademySeasons: number;
 }
 
+/**
+ * Can a career come back from a bad spell?
+ *
+ * A "slump" is a season where coach trust fell below the threshold, or the player dropped
+ * out of the starting eleven having been in it. Recovery means reaching starter or better
+ * within the following few seasons. Neither ~0% (a single bad event ends you) nor ~100%
+ * (nothing has consequences) is the game we want.
+ */
+export interface RecoveryMetrics {
+  /** Careers that hit at least one slump. */
+  careersWithSlump: number;
+  /** Of those slumps, the share that recovered to starter or better in time. */
+  recoveryRate: number;
+  /** Average seasons taken to come back, over the slumps that did. */
+  averageSeasonsToRecover: number;
+  /** Slumps observed in total. */
+  slumpCount: number;
+}
+
 export interface RepetitionMetrics {
   /** Average number of events a career saw more than once. */
   averageRepeatedEvents: number;
@@ -300,7 +319,16 @@ export interface BatchResult {
   endings: Record<string, number>;
   byPosition: Record<string, { count: number; peakAbility: number; legend: number; reachedSeniors: number }>;
   academy: AcademyMetrics;
+  recovery: RecoveryMetrics;
   repetition: RepetitionMetrics;
+  /** Legend Score spread - the decisions-vs-luck question needs more than a mean. */
+  legendMedian: number;
+  legendStdDev: number;
+  /** Share carrying at least one career memory / running at least one story arc. */
+  withMemories: number;
+  withStoryArcs: number;
+  averageMilestones: number;
+  averageTraitsRevealed: number;
 }
 
 /** Every event flagged `rare` in the data - no hand-maintained list to drift out of date. */
@@ -309,6 +337,69 @@ const RARE_EVENT_IDS: ReadonlySet<string> = new Set(
     .filter((event) => event.rarity === 'rare')
     .map((event) => event.id),
 );
+
+export function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2
+    : (sorted[mid] ?? 0);
+}
+
+export function stdDev(values: number[]): number {
+  if (values.length === 0) return 0;
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  return Math.sqrt(values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length);
+}
+
+const RECOVERY_ROLES = ['starter', 'key', 'star', 'icon'];
+
+/**
+ * Finds every slump in a career and reports whether it was recovered from within
+ * `window` seasons.
+ */
+export function findRecoveries(
+  career: Career,
+  trustFloor = 35,
+  window = 3,
+): { slumps: number; recovered: number; seasonsToRecover: number[] } {
+  const history = career.seasonHistory;
+  let slumps = 0;
+  let recovered = 0;
+  const seasonsToRecover: number[] = [];
+  let inSlump = false;
+
+  for (let i = 0; i < history.length; i += 1) {
+    const season = history[i];
+    if (!season) continue;
+
+    const wasStarter = RECOVERY_ROLES.includes(season.role);
+    const previous = history[i - 1];
+    const droppedOut = previous !== undefined && RECOVERY_ROLES.includes(previous.role) && !wasStarter;
+    const lowTrust = season.coachTrust < trustFloor;
+
+    if (!inSlump && (lowTrust || droppedOut)) {
+      inSlump = true;
+      slumps += 1;
+      // Did he get back into the side within the window?
+      for (let j = i + 1; j <= i + window && j < history.length; j += 1) {
+        const later = history[j];
+        if (!later) continue;
+        if (RECOVERY_ROLES.includes(later.role) && later.coachTrust >= trustFloor) {
+          recovered += 1;
+          seasonsToRecover.push(j - i);
+          break;
+        }
+      }
+    } else if (inSlump && wasStarter && !lowTrust) {
+      // Out of the hole - a later relapse counts as a new slump.
+      inSlump = false;
+    }
+  }
+
+  return { slumps, recovered, seasonsToRecover };
+}
 
 function longestCategoryRun(career: Career): number {
   let longest = 0;
@@ -330,6 +421,112 @@ function repeatedEventCount(career: Career): number {
   let repeated = 0;
   for (const times of seen.values()) if (times > 1) repeated += 1;
   return repeated;
+}
+
+/* ------------------------------------------------------------------ */
+/* Matched-seed comparison                                             */
+/* ------------------------------------------------------------------ */
+
+export interface PairedResult {
+  /** Mean Legend Score per strategy, over the same set of seeds. */
+  meanByStrategy: Record<string, number>;
+  medianByStrategy: Record<string, number>;
+  stdDevByStrategy: Record<string, number>;
+  reachedSeniorsByStrategy: Record<string, number>;
+  peakAbilityByStrategy: Record<string, number>;
+  /**
+   * How often each strategy beat the baseline on the *same* seed. This is the number that
+   * answers "do decisions matter, or is it just the seed?" - if decisions were irrelevant it
+   * would sit at 50%.
+   */
+  winRateVsBaseline: Record<string, number>;
+  /** Mean within-seed Legend Score difference against the baseline. */
+  meanDeltaVsBaseline: Record<string, number>;
+  /** Spread of outcomes across seeds for one fixed strategy - the luck component. */
+  baselineSeedStdDev: number;
+  /** Spread of strategy means on a fixed seed, averaged - the decision component. */
+  meanWithinSeedSpread: number;
+  seeds: number;
+  baseline: string;
+}
+
+/**
+ * Runs every strategy against the same seeds, so decision quality can be separated from
+ * luck. Same underlying random stream at career creation; the strategies then diverge
+ * precisely because they decide differently.
+ */
+export function simulatePaired(
+  seeds: number,
+  policies: Record<string, CareerPolicy>,
+  options: Omit<SimulateOptions, 'seed' | 'policy'> & { rotatePositions?: boolean },
+  baseline = 'random',
+): PairedResult {
+  const names = Object.keys(policies);
+  const scores: Record<string, number[]> = {};
+  const peaks: Record<string, number[]> = {};
+  const reached: Record<string, number> = {};
+  const wins: Record<string, number> = {};
+  const deltas: Record<string, number[]> = {};
+  for (const name of names) {
+    scores[name] = [];
+    peaks[name] = [];
+    reached[name] = 0;
+    wins[name] = 0;
+    deltas[name] = [];
+  }
+
+  const { rotatePositions, ...careerOptions } = options;
+  const withinSeedSpreads: number[] = [];
+
+  for (let i = 0; i < seeds; i += 1) {
+    const seed = batchSeed(i);
+    const position = rotatePositions
+      ? (POSITION_ROTATION[i % POSITION_ROTATION.length] as Position)
+      : careerOptions.position;
+
+    const seedScores: Record<string, number> = {};
+    for (const name of names) {
+      const policy = policies[name];
+      if (!policy) continue;
+      const career = simulateCareer({ ...careerOptions, position, seed, policy });
+      const score = career.legend?.score ?? 0;
+      seedScores[name] = score;
+      scores[name]?.push(score);
+      peaks[name]?.push(career.peakAbility);
+      if (career.maccabi.appearances > 0) reached[name] = (reached[name] ?? 0) + 1;
+    }
+
+    const base = seedScores[baseline] ?? 0;
+    for (const name of names) {
+      const score = seedScores[name] ?? 0;
+      if (score > base) wins[name] = (wins[name] ?? 0) + 1;
+      deltas[name]?.push(score - base);
+    }
+
+    // How far apart the strategies landed on this one seed.
+    const values = Object.values(seedScores);
+    withinSeedSpreads.push(Math.max(...values) - Math.min(...values));
+  }
+
+  const mean = (xs: number[]): number => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+  const build = (fn: (xs: number[]) => number): Record<string, number> =>
+    Object.fromEntries(names.map((n) => [n, fn(scores[n] ?? [])]));
+
+  return {
+    meanByStrategy: build(mean),
+    medianByStrategy: build(median),
+    stdDevByStrategy: build(stdDev),
+    peakAbilityByStrategy: Object.fromEntries(names.map((n) => [n, mean(peaks[n] ?? [])])),
+    reachedSeniorsByStrategy: Object.fromEntries(
+      names.map((n) => [n, (reached[n] ?? 0) / seeds]),
+    ),
+    winRateVsBaseline: Object.fromEntries(names.map((n) => [n, (wins[n] ?? 0) / seeds])),
+    meanDeltaVsBaseline: Object.fromEntries(names.map((n) => [n, mean(deltas[n] ?? [])])),
+    baselineSeedStdDev: stdDev(scores[baseline] ?? []),
+    meanWithinSeedSpread: mean(withinSeedSpreads),
+    seeds,
+    baseline,
+  };
 }
 
 /** Deterministic seed for career `i` of a batch, so batches are comparable across policies. */
@@ -369,6 +566,16 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
   let appsSum = 0;
   let seasonsSum = 0;
   let ageSum = 0;
+
+  const legendScores: number[] = [];
+  let slumpCareers = 0;
+  let slumpTotal = 0;
+  let recoveredTotal = 0;
+  const recoverySeasons: number[] = [];
+  let memoryCareers = 0;
+  let arcCareers = 0;
+  let milestoneTotal = 0;
+  let revealedTotal = 0;
 
   let ladderNormal = 0;
   let ladderEarly = 0;
@@ -447,6 +654,20 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
     if (career.maccabi.appearances > 0) pos.reachedSeniors += 1;
     byPosition[career.position] = pos;
 
+    legendScores.push(score);
+
+    /* ---------------- recovery, memory, arcs ---------------- */
+    const rec = findRecoveries(career);
+    if (rec.slumps > 0) slumpCareers += 1;
+    slumpTotal += rec.slumps;
+    recoveredTotal += rec.recovered;
+    recoverySeasons.push(...rec.seasonsToRecover);
+
+    if (career.memories.length > 0) memoryCareers += 1;
+    if (career.completedArcs.length > 0 || career.arcs.length > 0) arcCareers += 1;
+    milestoneTotal += career.milestones.length;
+    revealedTotal += career.traits.filter((t) => t.revealed).length;
+
     /* ---------------- academy ladder ---------------- */
     const academySeasons = career.seasonHistory.filter((s) => s.academyStage !== 'senior');
     academySeasonsSum += academySeasons.length;
@@ -511,6 +732,21 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
     legendDistribution,
     endings,
     byPosition,
+    legendMedian: median(legendScores),
+    legendStdDev: stdDev(legendScores),
+    withMemories: memoryCareers / count,
+    withStoryArcs: arcCareers / count,
+    averageMilestones: milestoneTotal / count,
+    averageTraitsRevealed: revealedTotal / count,
+    recovery: {
+      careersWithSlump: slumpCareers / count,
+      recoveryRate: slumpTotal > 0 ? recoveredTotal / slumpTotal : 0,
+      averageSeasonsToRecover:
+        recoverySeasons.length > 0
+          ? recoverySeasons.reduce((a, b) => a + b, 0) / recoverySeasons.length
+          : 0,
+      slumpCount: slumpTotal,
+    },
     academy: {
       normalPromotionShare: ladderTransitions > 0 ? ladderNormal / ladderTransitions : 0,
       earlyPromotionShare: ladderTransitions > 0 ? ladderEarly / ladderTransitions : 0,

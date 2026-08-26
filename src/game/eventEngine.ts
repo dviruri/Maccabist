@@ -13,6 +13,7 @@ import type {
   Career,
   CareerEventResult,
   EventCategory,
+  EventEffects,
   GameEvent,
   SeasonSlot,
 } from '../types';
@@ -20,7 +21,7 @@ import { EVENTS } from './balance';
 import { matchesConditions, type ConditionContext } from './conditions';
 import { selectWeightedOutcome } from './outcomeEngine';
 import { applyEffects, cloneCareer, diffCareer } from './progressionEngine';
-import type { Rng } from './random';
+import { round, type Rng } from './random';
 
 /* ------------------------------------------------------------------ */
 /* Context                                                             */
@@ -216,6 +217,35 @@ export function planSeason(career: Career, rng: Rng): PlannedEvent[] {
 /* Resolution                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Scales up the developmental upside of an outcome. Only the attributes that compound into a
+ * career are touched - deliberately not flags, memories, arcs, transfers or milestones, which
+ * are not quantities and must not be multiplied.
+ */
+function amplifyUpside(effects: EventEffects, gain: number): EventEffects {
+  const scale = (value: number | undefined): number | undefined =>
+    value === undefined ? undefined : round(value * gain, 2);
+
+  const scaled: EventEffects = { ...effects };
+  if (effects.ability !== undefined && effects.ability > 0) scaled.ability = scale(effects.ability);
+  if (effects.coachTrust !== undefined && effects.coachTrust > 0) {
+    scaled.coachTrust = scale(effects.coachTrust);
+  }
+  if (effects.roleValue !== undefined && effects.roleValue > 0) {
+    scaled.roleValue = scale(effects.roleValue);
+  }
+  if (effects.reputation !== undefined && effects.reputation > 0) {
+    scaled.reputation = scale(effects.reputation);
+  }
+  if (effects.confidence !== undefined && effects.confidence > 0) {
+    scaled.confidence = scale(effects.confidence);
+  }
+  if (effects.promotionBoost !== undefined && effects.promotionBoost > 0) {
+    scaled.promotionBoost = scale(effects.promotionBoost);
+  }
+  return scaled;
+}
+
 export interface ResolvedEvent {
   career: Career;
   result: CareerEventResult;
@@ -258,7 +288,11 @@ export function resolveEventChoice(
     outcomeId = outcome.id;
     outcomeText = outcome.text;
     tone = outcome.tone;
-    const applied = applyEffects(next, outcome.effects, rng);
+    const effects =
+      choice.risk === 'risky' && outcome.tone === 'good'
+        ? amplifyUpside(outcome.effects, EVENTS.riskyUpsideGain)
+        : outcome.effects;
+    const applied = applyEffects(next, effects, rng);
     next = applied.career;
     achievements.push(...applied.achievements);
   }

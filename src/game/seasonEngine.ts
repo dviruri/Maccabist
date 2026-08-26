@@ -306,6 +306,7 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
     firstHalf: first,
     ability: Math.round(next.ability),
     role: next.role,
+    coachTrust: Math.round(next.coachTrust),
     trophies,
     captain: career.captain,
     olderGroup: career.olderGroup,
