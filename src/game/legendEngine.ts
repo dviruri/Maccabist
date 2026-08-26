@@ -11,10 +11,11 @@
 
 import { resolveEnding } from '../data/endings';
 import { MACCABI_ID } from '../data/clubs';
-import type { Career, LegendComponent, LegendResult } from '../types';
+import type { Career, CareerEnding, LegendComponent, LegendResult } from '../types';
 import { LEGEND } from './balance';
 import { clamp, round } from './random';
 import { outputScore } from './rules';
+import { careerArchetype, careerStory } from './storyEngine';
 
 /** Diminishing-returns curve: fast early progress, slow at the top. */
 function ratio(value: number, target: number): number {
@@ -123,7 +124,22 @@ export function computeLegendScore(career: Career): LegendResult {
   }
 
   const finalScore = Math.round(clamp(score, 0, 100));
-  const ending = resolveEnding(career, finalScore);
+
+  /*
+   * The archetype comes from the shape of the career, not from the score. Two players can
+   * both finish on 70 having lived completely different lives - one never left, one built a
+   * career in Europe - and the label should say which. resolveEnding stays as the fallback
+   * for careers distinctive enough in score terms but not in story terms.
+   */
+  const archetype = careerArchetype(career);
+  const fallback = resolveEnding(career, finalScore);
+  const ending: CareerEnding = {
+    id: archetype.id,
+    title: archetype.title,
+    subtitle: archetype.subtitle,
+    description: careerStory(career).join(' ') || fallback.description,
+    icon: archetype.icon,
+  };
 
   return { score: finalScore, components, ending };
 }

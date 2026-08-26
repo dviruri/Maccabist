@@ -364,6 +364,131 @@ p {
   color: #e88a8a;
 }
 
+/* One narrative line of the closing story - a touch larger and calmer than body copy. */
+.story-line {
+  margin: 0;
+  line-height: 1.65;
+}
+
+/* =========================================================================
+   Career timeline (ציר הזמן)
+   ========================================================================= */
+
+.timeline-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.timeline-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: start;
+  min-height: 52px;
+}
+
+.timeline-toggle:hover .timeline-toggle-label,
+.timeline-toggle:focus-visible .timeline-toggle-label {
+  color: var(--maccabi-green-light);
+}
+
+.timeline-toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.timeline-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.timeline-chevron {
+  color: var(--text-dim);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.timeline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  position: relative;
+}
+
+/* The spine runs down the icon column, on the start side for RTL. */
+.timeline-row::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 11px;
+  top: 26px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--ink-line);
+}
+
+.timeline-row:last-child::before {
+  display: none;
+}
+
+.timeline-icon {
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.3;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.timeline-season {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.timeline-age {
+  font-weight: 500;
+}
+
+.timeline-text {
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.timeline-row.is-major .timeline-text {
+  font-weight: 700;
+  color: var(--maccabi-green-light);
+}
+
 /* =========================================================================
    Season progress strip
    ========================================================================= */

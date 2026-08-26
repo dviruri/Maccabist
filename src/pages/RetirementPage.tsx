@@ -1,5 +1,8 @@
+import { CareerTimeline } from '../components/CareerTimeline';
 import { Timeline } from '../components/Timeline';
 import { Chip, Logo, Ltr, NumberBox } from '../components/primitives';
+import { TRAITS_BY_ID } from '../data/traits';
+import { careerStory } from '../game/storyEngine';
 import type { Career } from '../types';
 import { careerYears, positionLabel } from '../ui/format';
 
@@ -51,9 +54,29 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
         )}
       </section>
 
-      <p className="card-body" style={{ marginTop: 16 }}>
-        {legend?.ending.description}
-      </p>
+      {/* --- the career, told as a story --- */}
+      <section className="card" style={{ marginTop: 16 }}>
+        <div className="stack-sm">
+          <div className="kicker">סיפור הקריירה</div>
+          {careerStory(career).map((line) => (
+            <p key={line} className="card-body story-line">
+              {line}
+            </p>
+          ))}
+          <div className="row" style={{ flexWrap: 'wrap', marginTop: 6 }}>
+            {career.traits.map((trait) => (
+              <Chip key={trait.id} tone="plain">
+                {TRAITS_BY_ID[trait.id].icon} {TRAITS_BY_ID[trait.id].label}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- every moment that mattered --- */}
+      <div style={{ marginTop: 14 }}>
+        <CareerTimeline career={career} defaultOpen />
+      </div>
 
       {/* --- headline numbers --- */}
       <section className="card" style={{ marginTop: 18 }}>

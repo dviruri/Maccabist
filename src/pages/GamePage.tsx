@@ -1,3 +1,4 @@
+import { CareerTimeline } from '../components/CareerTimeline';
 import { Celebration } from '../components/Celebration';
 import { DebugPanel } from '../components/DebugPanel';
 import { EventCard, OutcomeCard } from '../components/EventCard';
@@ -40,6 +41,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
       <div className="game-layout">
         <aside className="stack">
           <PlayerCard career={career} />
+          <CareerTimeline career={career} />
           {career.seasonHistory.length > 0 && (
             <section className="card-flat">
               <div className="kicker" style={{ marginBottom: 10 }}>

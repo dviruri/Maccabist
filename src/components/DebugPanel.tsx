@@ -4,11 +4,18 @@ import { STAGE_LADDER, stageLabel } from '../data/academy';
 import { EVENTS_BY_ID, EVENT_POOL } from '../data/events';
 import { autoStep, retire } from '../game/careerEngine';
 import { conditionContext } from '../game/eventEngine';
+import { recordMemory, seniorPhase, startArc } from '../game/memory';
 import { outcomeProbabilities } from '../game/outcomeEngine';
-import { cloneCareer } from '../game/progressionEngine';
-import { promotionScore } from '../game/progressionEngine';
+import {
+  cloneCareer,
+  coachTrustBaseline,
+  driftTrustTowardsBaseline,
+  maybeChangeCoach,
+  promotionScore,
+  revealTrait,
+} from '../game/progressionEngine';
 import { createRng } from '../game/random';
-import { roleFromValue } from '../game/rules';
+import { isInAcademy, roleFromValue } from '../game/rules';
 import { simulateBatch } from '../game/simulate';
 import type { AcademyStage, Career } from '../types';
 
@@ -102,9 +109,45 @@ export function DebugPanel({
           <Row label="injuryRisk" value={career.hidden.injuryRisk.toFixed(0)} />
           <Row label="maccabism" value={career.maccabism.toFixed(1)} />
           <Row label="reputation" value={career.reputation.toFixed(1)} />
+          <Row label="leadership" value={career.hidden.leadership.toFixed(0)} />
           <Row label="promotionScore" value={promotionScore(career, 60, rng).toFixed(1)} />
           <Row label="maccabi apps" value={career.maccabi.appearances} />
           <Row label="flags" value={career.flags.join(',') || '—'} />
+
+          {/* ---- v0.3: what the career remembers ---- */}
+          <Row label="seniorPhase" value={isInAcademy(career) ? '—' : seniorPhase(career)} />
+          <Row label="trustBaseline" value={coachTrustBaseline(career).toFixed(1)} />
+          <Row label="newCoach" value={career.newCoachThisSeason ? 'yes' : 'no'} />
+          <Row
+            label="traits"
+            value={
+              career.traits.map((t) => `${t.id}${t.revealed ? '' : '(hidden)'}`).join(',') || '—'
+            }
+          />
+          <Row
+            label="active arcs"
+            value={career.arcs.map((a) => `${a.id}:${a.stage}/${a.branch}`).join(' ') || '—'}
+          />
+          <Row label="done arcs" value={career.completedArcs.join(',') || '—'} />
+          <Row
+            label="memories"
+            value={
+              career.memories.length === 0
+                ? '—'
+                : career.memories
+                    .slice(-6)
+                    .map((m) => `${m.kind}@${m.season}`)
+                    .join(' ')
+            }
+          />
+          <Row
+            label="milestones"
+            value={
+              career.milestones.length === 0
+                ? '—'
+                : `${career.milestones.length} (${career.milestones.slice(-2).map((m) => m.id).join(', ')})`
+            }
+          />
 
           {odds && (
             <div className="debug-odds">
@@ -186,6 +229,76 @@ export function DebugPanel({
             <button type="button" onClick={() => onChange(retire(career))}>
               retire
             </button>
+          </div>
+
+          {/* ---- v0.3: drive the story systems directly ---- */}
+          <div className="debug-actions">
+            <button
+              type="button"
+              title="force a coach change and the trust reset that comes with it"
+              onClick={() => {
+                const changed = maybeChangeCoach(career, createRng(Date.now() >>> 0));
+                onChange({
+                  ...driftTrustTowardsBaseline(changed.career, 0.65),
+                  newCoachThisSeason: true,
+                });
+              }}
+            >
+              new coach
+            </button>
+            <button
+              type="button"
+              title="drop out of the eleven, to test recovery"
+              onClick={() =>
+                onChange({
+                  ...career,
+                  roleValue: 24,
+                  role: 'squad',
+                  coachTrust: 22,
+                  memories: recordMemory(career, 'lost_starting_role'),
+                })
+              }
+            >
+              force role loss
+            </button>
+            <button
+              type="button"
+              title="reveal every trait this career has"
+              onClick={() => {
+                let next = career;
+                for (const trait of career.traits) next = revealTrait(next, trait.id);
+                onChange(next);
+              }}
+            >
+              reveal traits
+            </button>
+            <button type="button" onClick={() => patchHidden({ leadership: 85 })}>
+              leadership 85
+            </button>
+            {(['coach_relationship', 'older_group', 'injury_comeback', 'position_battle'] as const).map(
+              (arc) => (
+                <button
+                  key={arc}
+                  type="button"
+                  title={`start the ${arc} arc`}
+                  onClick={() => onChange({ ...career, arcs: startArc(career, arc, 'default') })}
+                >
+                  arc: {arc.replace(/_/g, ' ')}
+                </button>
+              ),
+            )}
+            {(['major_injury', 'penalty_miss', 'older_group_failure', 'released_by_maccabi'] as const).map(
+              (kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  title={`record the ${kind} memory so callbacks become eligible`}
+                  onClick={() => onChange({ ...career, memories: recordMemory(career, kind) })}
+                >
+                  mem: {kind.replace(/_/g, ' ')}
+                </button>
+              ),
+            )}
           </div>
 
           <div className="debug-actions">
