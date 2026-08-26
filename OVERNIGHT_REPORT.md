@@ -1,8 +1,9 @@
 # Maccabist — overnight sprint report
 
 **Date:** 2026-08-25 → 2026-08-26
-**Branch:** `main` · 8 commits · working tree clean
-**Status:** build passes, 104/104 tests pass, 100,000 careers simulated
+**Branch:** `main` · 10 commits · pushed · working tree clean
+**Status:** build passes, 104/104 tests pass, 100,000 careers simulated, **Pages deployment
+verified live**
 
 ---
 
@@ -128,9 +129,19 @@ npm run typecheck PASSES   both projects
 
 `dist/` is valid and asset paths correctly resolve under `/Maccabist/`.
 
-**Deployment is NOT verified.** I did not push — see §9. The workflow is correct by inspection
-and the build it runs passes locally, but no Pages deployment has been observed this session, so
-I am not claiming the live URL works.
+**Deployment verified live.** Pushed to `main` (fast-forward, no history rewritten), the Pages
+workflow ran, and the deployed `index.html` references the exact asset hashes produced by this
+build (`index-1eWByzs9.js`, `index-B2dYp3hN.css`) — so the new commit is what is serving.
+
+Checked on the live site:
+
+| URL | Result |
+| --- | --- |
+| `/Maccabist/` | 200 |
+| `/Maccabist/mark.png`, `/Maccabist/logo.png` | **200 — the crest bug is fixed** |
+| `/Maccabist/site.webmanifest` (relative icon paths) | 200 |
+| `/Maccabist/icon-192.png` | 200 |
+| `/mark.png`, `/logo.png` (the old paths) | **404 — confirming the bug was real** |
 
 ---
 
@@ -344,17 +355,14 @@ released. Career 4 is the released → develops elsewhere → comes home arc run
 
 ## 8. GitHub Pages URL
 
-`https://dviruri.github.io/Maccabist/` — **unverified this session.** Nothing was pushed.
+**https://dviruri.github.io/Maccabist/ — live and verified** (see §3 for what was checked).
 
 ---
 
 ## 9. Known issues
 
-1. **Nothing has been pushed.** All 8 commits are local on `main`. The brief authorised pushing,
-   but given a second agent had been writing to this same tree an hour earlier, I judged it wrong
-   to publish a merged state to a shared remote without you seeing it. `git push origin main` is
-   all that is needed, and the Pages workflow will then run.
-2. **Confirm `maccabist-70` is closed** before working here (§0).
+1. **Confirm `maccabist-70` is closed** before working here (§0). It was writing to this tree an
+   hour before the push; if it is still open it may produce a third divergent state.
 3. **Unmitigated risk-taking is still punished very hard** (riskTaker: Legend 4.4). Coach trust
    feeds minutes → development → trust, so trust damage self-reinforces into a spiral that is
    hard to escape. `riskyUpsideBoost` softened the symptom, not the mechanism.
@@ -376,9 +384,10 @@ released. Career 4 is the released → develops elsewhere → comes home arc run
 
 In priority order:
 
-1. **Push and verify Pages.** Watch the Action, load the live URL, confirm the crest renders —
-   that is the specific thing that was broken.
-2. **Browser-test mobile** at 360/390/412px, especially the new season strip and RTL.
+1. **Browser-test mobile** at 360/390/412px, especially the new season strip and RTL. This is the
+   one acceptance criterion I could not check for real (no browser automation installed).
+2. **Play a few careers by hand** on the live site. The engine is well covered by 104 tests and
+   100k simulated careers, but no human has clicked through the new season strip or mood chips.
 3. **Break the coach-trust spiral.** Give a player a way back: a recovery floor, a reset on a new
    coach or a new club, or a diminishing penalty on repeated trust loss. This is the single
    biggest remaining threat to "every career tells a different story", because it currently
