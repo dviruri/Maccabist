@@ -27,6 +27,8 @@ import {
   type NewCareerInput,
   type RetirementDecision,
 } from './careerEngine';
+import { naturalStageFor } from './cohort';
+import { hasMemory } from './memory';
 import { createRng, type Rng } from './random';
 
 export interface CareerPolicy {
@@ -245,6 +247,32 @@ export const LEGEND_BUCKETS: ReadonlyArray<{ label: string; min: number; max: nu
   { label: '95+', min: 95, max: 100 },
 ];
 
+/**
+ * v0.3.1: how careers begin, and what happens to the ones Maccabi turned away.
+ *
+ * `invalidNaturalStageRepeats` is the acceptance criterion for the whole version and must be
+ * zero: a player registered with his own birth cohort cannot repeat that age group.
+ */
+export interface OriginMetrics {
+  scoutedDirectly: number;
+  trialAccepted: number;
+  trialRejected: number;
+  /** Of those rejected at nine: what became of them. */
+  rejectedLaterInvited: number;
+  rejectedLaterJoinedMaccabi: number;
+  rejectedNeverJoinedMaccabi: number;
+  rejectedReachedSeniorFootball: number;
+  rejectedPlayedForMaccabiSeniors: number;
+  rejectedPlayedAbroad: number;
+  /** MUST be 0 - see the no-repeat rule in progressionEngine. */
+  invalidNaturalStageRepeats: number;
+  /** Also must be 0: nobody may be registered below his own cohort. */
+  registeredBehindCohort: number;
+  /** The legal case - a player who was ahead, whose year caught up. */
+  cohortCaughtUp: number;
+  fullEarlyPromotions: number;
+}
+
 export interface AcademyMetrics {
   /** Share of ladder transitions that were a normal one-step promotion. */
   normalPromotionShare: number;
@@ -328,6 +356,7 @@ export interface BatchResult {
   endings: Record<string, number>;
   byPosition: Record<string, { count: number; peakAbility: number; legend: number; reachedSeniors: number }>;
   academy: AcademyMetrics;
+  origin: OriginMetrics;
   recovery: RecoveryMetrics;
   repetition: RepetitionMetrics;
   /** Legend Score spread - the decisions-vs-luck question needs more than a mean. */
@@ -595,6 +624,19 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
   let milestoneTotal = 0;
   let revealedTotal = 0;
 
+  let originScouted = 0;
+  let originAccepted = 0;
+  let originRejected = 0;
+  let rejInvited = 0;
+  let rejJoined = 0;
+  let rejSenior = 0;
+  let rejMaccabiSeniors = 0;
+  let rejAbroad = 0;
+  let invalidRepeats = 0;
+  let behindCohort = 0;
+  let cohortCaughtUpCount = 0;
+  let fullEarlyPromotions = 0;
+
   let ladderNormal = 0;
   let ladderEarly = 0;
   let ladderStayed = 0;
@@ -686,6 +728,41 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
     milestoneTotal += career.milestones.length;
     revealedTotal += career.traits.filter((t) => t.revealed).length;
 
+    /* ---------------- origin, and the road back ---------------- */
+    if (career.origin === 'scouted') originScouted += 1;
+    else if (career.origin === 'trial_accepted') originAccepted += 1;
+    else {
+      originRejected += 1;
+      if (career.trials.some((t) => t.attempt > 1)) rejInvited += 1;
+      if (hasMemory(career, 'joined_maccabi_late')) rejJoined += 1;
+      if (career.seasonHistory.some((s) => s.academyStage === 'senior' && s.stats.appearances > 0)) {
+        rejSenior += 1;
+      }
+      if (career.maccabi.appearances > 0) rejMaccabiSeniors += 1;
+      if (career.seasonHistory.some((s) => getClub(s.clubId).country !== 'ישראל' && s.stats.appearances > 5)) {
+        rejAbroad += 1;
+      }
+    }
+
+    /* ---------------- cohort invariants ---------------- */
+    const academySeasonsForCohort = career.seasonHistory.filter((s) => s.academyStage !== 'senior');
+    for (let s = 0; s < academySeasonsForCohort.length - 1; s += 1) {
+      const from = academySeasonsForCohort[s];
+      const to = academySeasonsForCohort[s + 1];
+      if (!from || !to) continue;
+      // נוער is the club's youth-to-senior decision, not the academy ladder.
+      if (stageOrder(from.academyStage) >= stageOrder('u19')) continue;
+
+      const naturalNow = naturalStageFor(career.birthCohort, from.season);
+      const naturalNext = naturalStageFor(career.birthCohort, to.season);
+      if (stageOrder(to.academyStage) < stageOrder(naturalNext)) behindCohort += 1;
+      if (from.academyStage === to.academyStage) {
+        if (stageOrder(from.academyStage) > stageOrder(naturalNow)) cohortCaughtUpCount += 1;
+        else invalidRepeats += 1;
+      }
+      if (stageOrder(to.academyStage) - stageOrder(from.academyStage) >= 2) fullEarlyPromotions += 1;
+    }
+
     /* ---------------- academy ladder ---------------- */
     const academySeasons = career.seasonHistory.filter((s) => s.academyStage !== 'senior');
     academySeasonsSum += academySeasons.length;
@@ -756,6 +833,21 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
     withStoryArcs: arcCareers / count,
     averageMilestones: milestoneTotal / count,
     averageTraitsRevealed: revealedTotal / count,
+    origin: {
+      scoutedDirectly: originScouted / count,
+      trialAccepted: originAccepted / count,
+      trialRejected: originRejected / count,
+      rejectedLaterInvited: originRejected > 0 ? rejInvited / originRejected : 0,
+      rejectedLaterJoinedMaccabi: originRejected > 0 ? rejJoined / originRejected : 0,
+      rejectedNeverJoinedMaccabi: originRejected > 0 ? 1 - rejJoined / originRejected : 0,
+      rejectedReachedSeniorFootball: originRejected > 0 ? rejSenior / originRejected : 0,
+      rejectedPlayedForMaccabiSeniors: originRejected > 0 ? rejMaccabiSeniors / originRejected : 0,
+      rejectedPlayedAbroad: originRejected > 0 ? rejAbroad / originRejected : 0,
+      invalidNaturalStageRepeats: invalidRepeats,
+      registeredBehindCohort: behindCohort,
+      cohortCaughtUp: cohortCaughtUpCount,
+      fullEarlyPromotions,
+    },
     recovery: {
       careersWithSlump: slumpCareers / count,
       recoveryRate: slumpTotal > 0 ? recoveredTotal / slumpTotal : 0,

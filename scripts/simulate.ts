@@ -110,10 +110,29 @@ function reportBatch(name: string, result: BatchResult): void {
   row('slumps recovered within 3 seasons', pct(result.recovery.recoveryRate));
   row('avg seasons to recover', num(result.recovery.averageSeasonsToRecover, 2));
 
+  console.log('\n  Origin (v0.3.1)');
+  row('scouted straight into Maccabi', pct(result.origin.scoutedDirectly));
+  row('passed the Maccabi trials', pct(result.origin.trialAccepted));
+  row('rejected at the trials', pct(result.origin.trialRejected));
+  console.log('    of those rejected at nine:');
+  row('  later invited back', pct(result.origin.rejectedLaterInvited));
+  row('  later joined Maccabi', pct(result.origin.rejectedLaterJoinedMaccabi));
+  row('  never joined Maccabi', pct(result.origin.rejectedNeverJoinedMaccabi));
+  row('  reached senior football', pct(result.origin.rejectedReachedSeniorFootball));
+  row('  played for Maccabi seniors', pct(result.origin.rejectedPlayedForMaccabiSeniors));
+  row('  played abroad', pct(result.origin.rejectedPlayedAbroad));
+
+  console.log('\n  Cohort invariants (must be zero)');
+  row('INVALID natural-stage repeats', String(result.origin.invalidNaturalStageRepeats));
+  row('registered behind own cohort', String(result.origin.registeredBehindCohort));
+  row('legal "cohort caught up"', String(result.origin.cohortCaughtUp));
+  row('full early promotions', String(result.origin.fullEarlyPromotions));
+
   console.log('\n  Academy ladder');
   row('normal promotion', pct(result.academy.normalPromotionShare));
   row('early promotion (skipped a level)', pct(result.academy.earlyPromotionShare));
-  row('repeated the age group', pct(result.academy.repeatedYearShare));
+  // v0.3.1: this can only be a legal case now - the cohort catching up, or a נוער hold.
+  row('same age group again (legal)', pct(result.academy.repeatedYearShare));
   row('avg age leaving the academy', num(result.academy.averageAgeLeavingAcademy));
   row('avg seasons in the academy', num(result.academy.averageAcademySeasons));
 
