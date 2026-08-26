@@ -244,7 +244,9 @@ function returnHomeOffer(career: Career): TransferOffer {
       flags: ['loyalty_moment'],
       remember: 'returned_home',
       milestone: {
-        id: 'homecoming',
+        // Same id as the automatic check in milestones.ts, so the richer copy here wins and
+        // the generic one is deduplicated away rather than both appearing.
+        id: 'returned_home',
         icon: '💚',
         text:
           kind === 'prime_hero'

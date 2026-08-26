@@ -412,6 +412,9 @@ describe('recovery mechanics', () => {
         season({ season: 2041, role: 'squad', coachTrust: 24 }),
         season({ season: 2042, role: 'rotation', coachTrust: 42 }),
         season({ season: 2043, role: 'starter', coachTrust: 64 }),
+        // Padding: the closing two seasons are excluded from slump detection on purpose.
+        season({ season: 2044, role: 'starter', coachTrust: 64 }),
+        season({ season: 2045, role: 'starter', coachTrust: 62 }),
       ],
     };
     const result = findRecoveries(career);
@@ -428,11 +431,27 @@ describe('recovery mechanics', () => {
         season({ season: 2041, role: 'squad', coachTrust: 20 }),
         season({ season: 2042, role: 'squad', coachTrust: 18 }),
         season({ season: 2043, role: 'squad', coachTrust: 15 }),
+        season({ season: 2044, role: 'squad', coachTrust: 16 }),
+        season({ season: 2045, role: 'squad', coachTrust: 14 }),
       ],
     };
     const result = findRecoveries(career);
     expect(result.slumps).toBe(1);
     expect(result.recovered).toBe(0);
+  });
+
+  it('ignores the end-of-career decline, which is not a slump to recover from', () => {
+    const fadingOut: Career = {
+      ...senior(),
+      seasonHistory: [
+        season({ season: 2040, role: 'starter', coachTrust: 64 }),
+        season({ season: 2041, role: 'starter', coachTrust: 62 }),
+        // Retires here - losing his place at the end is the career ending, not a slump.
+        season({ season: 2042, role: 'squad', coachTrust: 22 }),
+        season({ season: 2043, role: 'squad', coachTrust: 18 }),
+      ],
+    };
+    expect(findRecoveries(fadingOut).slumps).toBe(0);
   });
 });
 

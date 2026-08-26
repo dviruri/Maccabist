@@ -364,7 +364,12 @@ export function findRecoveries(
   trustFloor = 35,
   window = 3,
 ): { slumps: number; recovered: number; seasonsToRecover: number[] } {
-  const history = career.seasonHistory;
+  /*
+   * The closing seasons are excluded deliberately. A 35 year old losing his place is the
+   * career ending, not a slump he failed to recover from, and counting it dragged the
+   * recovery rate down with something that is not a recovery problem at all.
+   */
+  const history = career.seasonHistory.slice(0, Math.max(0, career.seasonHistory.length - 2));
   let slumps = 0;
   let recovered = 0;
   const seasonsToRecover: number[] = [];
