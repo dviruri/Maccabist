@@ -16,7 +16,9 @@ import {
   chooseOffer,
   continueAfterEvent,
   continueAfterMidSeason,
+  continueAfterOrigin,
   continueAfterProgression,
+  continueAfterRetrial,
   continueAfterSeason,
   createCareer,
   decideRetirement,
@@ -174,6 +176,13 @@ export function simulateCareer(options: SimulateOptions): Career {
   while (!career.retired && steps < maxSteps) {
     steps += 1;
     switch (career.phase) {
+      // v0.3.1: how the career began, and any later trial, are screens with no decision.
+      case 'origin':
+        career = continueAfterOrigin(career);
+        break;
+      case 'retrial':
+        career = continueAfterRetrial(career);
+        break;
       case 'preseason':
         career = beginSeason(career);
         break;

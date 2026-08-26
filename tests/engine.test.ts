@@ -65,14 +65,20 @@ const halfContext = (overrides: Partial<HalfContext> = {}): HalfContext => ({
 /* ------------------------------------------------------------------ */
 
 describe('career creation', () => {
-  it('starts a 9 year old at טרום ב׳ in the Maccabi Haifa academy', () => {
+  it('starts a 9 year old at טרום ב׳, on the origin screen', () => {
     const career = newCareer();
     expect(career.age).toBe(9);
     expect(career.academyStage).toBe('pre_b');
-    expect(career.currentClubId).toBe(MACCABI_ACADEMY_ID);
     expect(career.retired).toBe(false);
-    expect(career.phase).toBe('preseason');
+    // v0.3.1: a career opens on how it began - scouted, or the Maccabi trials.
+    expect(career.phase).toBe('origin');
     expect(career.maccabi.appearances).toBe(0);
+    // ...and where he starts depends on whether that door opened.
+    if (career.origin === 'trial_rejected') {
+      expect(career.currentClubId).not.toBe(MACCABI_ACADEMY_ID);
+    } else {
+      expect(career.currentClubId).toBe(MACCABI_ACADEMY_ID);
+    }
   });
 
   it('is deterministic for a given seed', () => {

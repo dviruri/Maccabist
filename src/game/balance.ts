@@ -34,16 +34,35 @@ export const ORIGIN = {
   trialPotentialWeight: 0.35,
   trialConfidenceWeight: 0.25,
   trialNoise: 14,
-  /** Score needed to be taken on at the first trials. */
-  trialThreshold: 52,
+  /**
+   * Score needed to be taken on at the first trials.
+   *
+   * Set from the measured score distribution (centre ~69, sd ~8) to reject roughly a quarter
+   * to a third of children. At 52 it rejected 0.8%, which made the whole trials system - and
+   * the road back that hangs off it - unreachable content. It should be a real risk without
+   * making a game called Maccabist mostly not about Maccabi.
+   */
+  trialThreshold: 65,
   /** A later trial is judged against what he has actually done since. */
   retrialAbilityWeight: 1.1,
   retrialRoleWeight: 0.35,
   retrialReputationWeight: 0.45,
-  retrialThreshold: 58,
+  /**
+   * A second look is a real test, not a formality. At 58, 90% of invited players got in.
+   */
+  retrialThreshold: 70,
   /** Never in consecutive seasons. */
   retrialCooldownSeasons: 2,
   maxTrials: 3,
+  /**
+   * Chance per eligible season that Maccabi actually comes looking. Low, so being invited
+   * back is an event rather than an annual formality - and the eligibility gate above already
+   * requires the player to be standing out where he is.
+   */
+  retrialInviteChance: 0.45,
+  /** Must be clearly better than the level he currently plays at. */
+  retrialAbilityEdge: 5,
+  retrialMinRole: 48,
 };
 
 /** Retirement can start being offered here; it becomes increasingly likely afterwards. */
@@ -374,6 +393,11 @@ export const PROMOTION = {
   normalThreshold: 1,
   /** A player can only be fast-tracked so often. */
   maxEarlyPromotions: 2,
+  /** An early promotion really does put you among older boys - standing resets. */
+  earlyPromotionRoleDrop: 16,
+  earlyPromotionTrustDrop: 7,
+  /** The cohort moving up together is a step in standard, not a change of standing. */
+  normalPromotionRoleDrop: 2,
   /** How far ahead of his own birth cohort a player may ever be registered. */
   maxCohortLead: 2,
   /**

@@ -7,6 +7,10 @@ import { stageBand, stageConfig } from '../data/academy';
 import { getClub, isAbroad, isMaccabiSenior, MACCABI_ID } from '../data/clubs';
 import type { Career, LevelContext, StageBand, TeamRole } from '../types';
 import { COACH_TRUST, POSITIONS, ROLE_LABELS, ROLE_TIERS, SEASON } from './balance';
+import { clamp } from './random';
+
+/** Maccabi's academy is the yardstick every other youth setup is measured against. */
+const MACCABI_ACADEMY_QUALITY = 30;
 
 export function roleFromValue(value: number): TeamRole {
   const tier = ROLE_TIERS.find((t) => value >= t.min);
@@ -34,11 +38,24 @@ export function levelContext(career: Career): LevelContext {
   if (isInAcademy(career)) {
     const stage = stageConfig(career.academyStage);
     const bump = SEASON.olderGroupQualityBump[career.olderGroup];
+    const club = getClub(career.currentClubId);
+
+    /*
+     * The stage sets the age group; the club sets the standard (v0.3.1).
+     *
+     * נערים ב׳ at a small northern academy is not the same level as נערים ב׳ at Maccabi, and
+     * previously it was - the club was ignored entirely for academy players. That made it
+     * impossible for a boy Maccabi rejected to stand out where he landed, which is exactly
+     * what has to happen for them to come back for him.
+     */
+    const clubFactor = clamp(club.quality / MACCABI_ACADEMY_QUALITY, 0.6, 1.15);
+    const isMaccabiAcademy = club.isMaccabi === true;
+
     return {
-      teamName: stage.label,
+      teamName: isMaccabiAcademy ? stage.label : `${club.name} - ${stage.label}`,
       league: stage.league,
-      quality: stage.quality + bump,
-      development: stage.development,
+      quality: stage.quality * clubFactor + bump,
+      development: stage.development * (isMaccabiAcademy ? 1 : clubFactor),
       prestige: stage.band === 'u19' ? 16 : 6,
       seasonGames: stage.seasonGames,
       titleChance: stage.band === 'u19' ? 0.24 : 0.2,

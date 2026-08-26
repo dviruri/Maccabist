@@ -391,8 +391,21 @@ export interface HalfContext {
  * Coach trust reacts every half-season: performance and minutes push it up, a bad spell
  * pushes it down, and it always drifts gently back to the middle.
  */
+/**
+ * The rating an average player at a given level would post.
+ *
+ * The season rating is computed from absolute ability, so this converts a level into the
+ * rating that counts as "par" there. At senior level it lands on ~57, which is the value the
+ * pre-v0.3.1 constants were tuned around.
+ */
+export function expectedRatingForLevel(levelQuality: number): number {
+  return SEASON.ratingBase + (levelQuality - 50) * SEASON.ratingAbilityWeight;
+}
+
 export function updateCoachTrust(career: Career, ctx: HalfContext): number {
-  const performance = (ctx.stats.rating - COACH_TRUST.ratingPivot) * COACH_TRUST.ratingWeight;
+  const level = levelContext(career);
+  const performance =
+    (ctx.stats.rating - expectedRatingForLevel(level.quality)) * COACH_TRUST.ratingWeight;
   const minutes = (ctx.minutesShare - 0.45) * COACH_TRUST.minutesWeight;
   const discipline =
     (career.hidden.discipline - COACH_TRUST.disciplinePivot) * COACH_TRUST.disciplineWeight;
@@ -504,7 +517,17 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
   next.maccabism = clamp(next.maccabism + maccabismChange * fraction * 2);
 
   /* ---------- role inside the team ---------- */
-  const performance = (stats.rating - 57) / 40;
+  /*
+   * Performance is measured against what an average player *at this level* rates, not against
+   * a fixed number.
+   *
+   * The season rating is built from absolute ability, so a good nine year old rates ~37 simply
+   * because he is nine. Against a flat pivot of 57 that reads as failure, and every academy
+   * player's standing collapsed to the floor within a few seasons - which in turn made it
+   * impossible for a boy at a smaller academy to stand out. Pivoting on the level reproduces
+   * the old value at senior level (~57) while treating the academy sanely.
+   */
+  const performance = (stats.rating - expectedRatingForLevel(level.quality)) / 40;
   const exposure = 0.35 + minutesShare;
   let roleChange = performance * SEASON.roleMoveMax * exposure + trophyPoints * 2;
   roleChange += clamp((next.ability - level.quality) * 0.35, -6, 6);
@@ -693,13 +716,26 @@ export function resolveAcademyProgression(
   if (earnedEarly) next.maccabi.earlyPromotions += 1;
 
   if (movedUp) {
-    // A new age group means starting nearer the bottom of the pecking order again.
-    const drop = earnedEarly ? 16 : 9;
-    next.roleValue = clamp(next.roleValue - drop, 8, 96);
+    /*
+     * Only an EARLY promotion resets the pecking order.
+     *
+     * When the whole cohort moves up together nobody becomes "the young one" - they are all
+     * still the same relative ages, with the same coach, in a new age bracket. Applying the
+     * knock-down to ordinary promotion was a v0.3.1 regression: promotion now happens every
+     * single season, so a -9 role hit each time drove every player to the floor within three
+     * seasons and no academy player could ever stand out.
+     */
+    if (earnedEarly) {
+      next.roleValue = clamp(next.roleValue - PROMOTION.earlyPromotionRoleDrop, 8, 96);
+      next.coachTrust = clamp(next.coachTrust - PROMOTION.earlyPromotionTrustDrop);
+      // Playing up is reset by the promotion - you really are the young one now.
+      next.olderGroup = 'none';
+    } else {
+      // A small step up in standard, not a change of standing.
+      next.roleValue = clamp(next.roleValue - PROMOTION.normalPromotionRoleDrop, 8, 96);
+      next.olderGroup = 'none';
+    }
     next.role = roleFromValue(next.roleValue);
-    next.coachTrust = clamp(next.coachTrust - (earnedEarly ? 7 : 4));
-    // Playing up is reset by the promotion - you are the young one again.
-    next.olderGroup = 'none';
   } else {
     /*
      * His cohort has arrived in the group he was already playing in. He is now one of the

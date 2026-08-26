@@ -6,7 +6,9 @@ import {
   chooseOffer,
   continueAfterEvent,
   continueAfterMidSeason,
+  continueAfterOrigin,
   continueAfterProgression,
+  continueAfterRetrial,
   continueAfterSeason,
   createCareer,
   decideRetirement,
@@ -42,6 +44,8 @@ export interface GameActions {
   continueMidSeason(): void;
   continueSeason(): void;
   continueProgression(): void;
+  continueOrigin(): void;
+  continueRetrial(): void;
   chooseYouthPath(offerId: string | null): void;
   takeOffer(offerId: string): void;
   refuseOffers(): void;
@@ -119,6 +123,8 @@ export function useGame(): GameState {
       continueMidSeason: () => step(continueAfterMidSeason),
       continueSeason: () => step((c) => rollIntoSeason(continueAfterSeason(c))),
       continueProgression: () => step((c) => rollIntoSeason(continueAfterProgression(c))),
+      continueOrigin: () => step(continueAfterOrigin),
+      continueRetrial: () => step((c) => rollIntoSeason(continueAfterRetrial(c))),
       chooseYouthPath: (offerId) => step((c) => rollIntoSeason(resolveYouthTransition(c, offerId))),
       takeOffer: (offerId) => step((c) => rollIntoSeason(chooseOffer(c, offerId))),
       refuseOffers: () => step((c) => rollIntoSeason(rejectOffers(c))),

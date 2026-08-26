@@ -689,6 +689,10 @@ export interface TransferOffer {
 /* ------------------------------------------------------------------ */
 
 export type CareerPhase =
+  /** v0.3.1: how the career began - scouted, or the Maccabi trials. Shown once. */
+  | 'origin'
+  /** v0.3.1: a later trial for a player Maccabi turned down. */
+  | 'retrial'
   | 'preseason' // season intro
   | 'event' // answering an event (any slot)
   | 'mid_season' // half-way summary

@@ -10,8 +10,9 @@
  */
 
 import { MACCABI_ACADEMY_ID } from '../data/clubs';
+import { stageConfig } from '../data/academy';
 import { EXTERNAL_YOUTH_CLUBS } from '../data/youthClubs';
-import type { Career, TrialResult } from '../types';
+import type { Career, TeamRole, TrialResult } from '../types';
 import { ORIGIN } from './balance';
 import { relativeAgeBonus } from './cohort';
 import { hasTrait, recordMemory } from './memory';
@@ -135,12 +136,35 @@ export function eligibleForRetrial(career: Career): boolean {
   if (career.academyStage === 'senior') return false;
   if (career.trials.length >= ORIGIN.maxTrials) return false;
 
-  const last = career.trials[career.trials.length - 1];
-  if (last && career.currentSeason - last.season < ORIGIN.retrialCooldownSeasons) return false;
+  const previousTrial = career.trials[career.trials.length - 1];
+  if (
+    previousTrial &&
+    career.currentSeason - previousTrial.season < ORIGIN.retrialCooldownSeasons
+  ) {
+    return false;
+  }
 
-  // They only come back for someone who has actually done something since.
-  return career.roleValue >= 55 && career.ability >= 30;
+  /*
+   * They only come back for someone who is standing out where he is - measured against the
+   * level he plays at rather than a flat ability number, because a ten year old's raw ability
+   * is low everywhere. What matters is being clearly better than the boys around him.
+   *
+   * Judged on the season just finished, via lastSeasonRecord. This check runs after the
+   * academy ladder has already moved him up, so reading the *current* stage would compare
+   * last season's ability against next season's tougher level and understate him - which is
+   * why no scout ever came back.
+   */
+  const lastSeason = career.lastSeasonRecord;
+  if (!lastSeason) return false;
+
+  const levelPlayed = stageConfig(lastSeason.academyStage).quality;
+  const standingOut = lastSeason.ability - levelPlayed >= ORIGIN.retrialAbilityEdge;
+  const wasImportant = ROLE_ORDER.indexOf(lastSeason.role) >= ROLE_ORDER.indexOf('starter');
+  return standingOut && wasImportant;
 }
+
+/** Team roles from least to most important, for "was he a regular?" comparisons. */
+const ROLE_ORDER: readonly TeamRole[] = ['squad', 'rotation', 'starter', 'key', 'star', 'icon'];
 
 /**
  * How Maccabi rates the player now - judged on what he has done at his own club rather than

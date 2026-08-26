@@ -29,6 +29,7 @@ import {
   BIRTH_COHORT,
   CAPTAINCY,
   FIRST_ACADEMY_SEASON,
+  ORIGIN,
   RECOVERY,
   RETIREMENT_FORCED_AGE,
   RETIREMENT_MIN_AGE,
@@ -37,7 +38,7 @@ import {
   TRAITS,
 } from './balance';
 import { ageAt } from './cohort';
-import { resolveOrigin } from './originEngine';
+import { eligibleForRetrial, resolveOrigin, resolveRetrial } from './originEngine';
 import { planSeason, resolveEventChoice } from './eventEngine';
 import { computeLegendScore } from './legendEngine';
 import { hasTrait } from './memory';
@@ -66,8 +67,12 @@ import {
   verdictToProgression,
 } from './transferEngine';
 
-/** Bumped for v0.3: career memory, story arcs, traits, leadership and milestones. */
-export const SCHEMA_VERSION = 3;
+/**
+ * Bumped for v0.3.1: date of birth, birth cohort, season point, origin and trials. A v0.3
+ * save has none of these fields, so it cannot be migrated meaningfully - the versioned
+ * storage layer drops it and the welcome screen explains why.
+ */
+export const SCHEMA_VERSION = 4;
 
 /** Runs `fn` with a fresh Rng seeded from the career and stores the advanced state back. */
 function withRng<T extends { rngState: number }>(career: T, fn: (rng: Rng) => T): T {
@@ -211,7 +216,8 @@ export function createCareer(input: NewCareerInput): Career {
       },
     ],
 
-    phase: 'preseason',
+    // The career opens on how it began, not on the first season.
+    phase: 'origin',
     newCoachThisSeason: false,
     seasonSlot: 'early',
     pendingEventIds: [],
@@ -476,9 +482,36 @@ export function continueAfterSeason(career: Career): Career {
   return resolved.phase === 'preseason' ? advanceYear(resolved) : resolved;
 }
 
-/** After the promotion card. */
-export function continueAfterProgression(career: Career): Career {
+/** After the origin reveal - the first season can begin. */
+export function continueAfterOrigin(career: Career): Career {
+  const next = cloneCareer(career);
+  next.phase = 'preseason';
+  return next;
+}
+
+/** After a repeat trial, accepted or not. */
+export function continueAfterRetrial(career: Career): Career {
   return advanceYear(career);
+}
+
+/**
+ * After the promotion card.
+ *
+ * This is where Maccabi may come back for a player they turned down - the road back only
+ * exists if something checks for it, and the end of an academy season is when scouts decide.
+ */
+export function continueAfterProgression(career: Career): Career {
+  const withRetrial = withRng(career, (rng) => {
+    if (!eligibleForRetrial(career)) return career;
+    if (!rng.chance(ORIGIN.retrialInviteChance)) return career;
+    const outcome = resolveRetrial(career, rng);
+    const next = cloneCareer(outcome.career);
+    next.phase = 'retrial';
+    return next;
+  });
+
+  // A trial result is a screen of its own; otherwise roll straight into the next season.
+  return withRetrial.phase === 'retrial' ? withRetrial : advanceYear(withRetrial);
 }
 
 /** The player picks one of the paths offered by the נוער verdict. */
@@ -621,6 +654,10 @@ export function clubOf(career: Career) {
 export function autoStep(career: Career): Career {
   const rng = createRng((career.rngState ^ 0x9e3779b9) >>> 0);
   switch (career.phase) {
+    case 'origin':
+      return continueAfterOrigin(career);
+    case 'retrial':
+      return continueAfterRetrial(career);
     case 'preseason':
       return beginSeason(career);
     case 'event': {

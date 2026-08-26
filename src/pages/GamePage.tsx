@@ -3,6 +3,7 @@ import { Celebration } from '../components/Celebration';
 import { DebugPanel } from '../components/DebugPanel';
 import { EventCard, OutcomeCard } from '../components/EventCard';
 import { OffersCard } from '../components/OffersCard';
+import { OriginReveal, RetrialCard } from '../components/OriginReveal';
 import { PlayerCard } from '../components/PlayerCard';
 import {
   MidSeasonCard,
@@ -89,6 +90,12 @@ function SeasonProgress({ career }: { career: Career }): JSX.Element {
 
 function PhaseView({ career, actions }: { career: Career; actions: GameActions }): JSX.Element {
   switch (career.phase) {
+    case 'origin':
+      return <OriginReveal career={career} onContinue={actions.continueOrigin} />;
+
+    case 'retrial':
+      return <RetrialCard career={career} onContinue={actions.continueRetrial} />;
+
     case 'event': {
       if (career.lastEventResult) {
         return (

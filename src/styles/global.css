@@ -371,6 +371,232 @@ p {
 }
 
 /* =========================================================================
+   Pitch position selector
+   ========================================================================= */
+
+.pitch-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pitch {
+  position: relative;
+  /* Aspect ratio keeps it proportional at any width, so no media queries needed. */
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(41, 217, 106, 0.28);
+  background:
+    linear-gradient(180deg, rgba(15, 166, 74, 0.16) 0%, rgba(7, 40, 20, 0.55) 100%),
+    var(--ink-card);
+  overflow: hidden;
+  /* The markers are positioned physically, so the pitch itself must not flip in RTL. */
+  direction: ltr;
+}
+
+/* Mown-grass banding. */
+.pitch::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.022) 0 12.5%,
+    transparent 12.5% 25%
+  );
+  pointer-events: none;
+}
+
+.pitch-lines span {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+}
+
+.pitch-halfway {
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-width: 1px 0 0 0;
+}
+
+.pitch-circle {
+  width: 34%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  left: 33%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.pitch-box {
+  left: 27%;
+  width: 46%;
+  height: 13%;
+}
+
+.pitch-box-near {
+  bottom: 0;
+  border-bottom: 0;
+}
+
+.pitch-box-far {
+  top: 0;
+  border-top: 0;
+}
+
+.pitch-marker {
+  position: absolute;
+  transform: translate(-50%, 50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 0;
+  padding: 6px;
+  /* Comfortable thumb target even at 360px. */
+  min-width: 56px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font: inherit;
+  z-index: 1;
+}
+
+.pitch-marker-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  background: var(--ink-raised);
+  border: 2px solid var(--ink-line);
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.pitch-marker-label {
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  /* Label text reads RTL even though the pitch is positioned LTR. */
+  direction: rtl;
+}
+
+.pitch-marker:hover .pitch-marker-dot,
+.pitch-marker:focus-visible .pitch-marker-dot {
+  border-color: rgba(41, 217, 106, 0.6);
+}
+
+.pitch-marker.is-selected {
+  color: #fff;
+}
+
+.pitch-marker.is-selected .pitch-marker-dot {
+  background: var(--maccabi-green);
+  border-color: #fff;
+  transform: scale(1.16);
+  box-shadow:
+    0 0 0 5px rgba(41, 217, 106, 0.2),
+    0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.pitch-readout {
+  border: 1px solid var(--ink-line);
+  background: var(--ink-card);
+  border-radius: 14px;
+  padding: 12px 14px;
+  min-height: 84px;
+}
+
+.pitch-readout-name {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--maccabi-green-light);
+  margin-bottom: 4px;
+}
+
+.pitch-readout-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitch-marker-dot {
+    transition: none;
+  }
+}
+
+/* =========================================================================
+   Date of birth selector
+   ========================================================================= */
+
+.dob-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.dob-field {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dob-field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--ink-raised);
+  border: 1px solid var(--ink-line);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+}
+
+.dob-field select:focus-visible {
+  outline: 2px solid var(--maccabi-green-light);
+  outline-offset: 1px;
+}
+
+/* The birth year is fixed by the cohort - shown, but not editable. */
+.dob-locked {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dob-locked-value {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--ink-card);
+  border: 1px dashed var(--ink-line);
+  color: var(--text-dim);
+  font-weight: 800;
+}
+
+.dob-hint {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* =========================================================================
    Career timeline (ציר הזמן)
    ========================================================================= */
 
