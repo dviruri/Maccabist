@@ -227,7 +227,7 @@ function debugOdds(career: Career): DebugOdds | null {
     choices: event.choices.map((choice) => ({
       id: choice.id,
       label: choice.label,
-      outcomes: outcomeProbabilities(choice.outcomes, career, ctx),
+      outcomes: outcomeProbabilities(choice.outcomes, career, ctx, choice.risk),
     })),
   };
 }

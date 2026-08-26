@@ -14,7 +14,7 @@ import { Chip, Logo, Ltr } from '../components/primitives';
 import { EVENTS_BY_ID } from '../data/events';
 import type { GameActions } from '../state/useGame';
 import type { Career } from '../types';
-import { headlineTitle, olderGroupLine, seasonLabel } from '../ui/format';
+import { headlineTitle, olderGroupLine, seasonLabel, seasonPhaseSteps } from '../ui/format';
 
 interface Props {
   career: Career;
@@ -51,12 +51,36 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         </aside>
 
         <main className="stack">
+          {!career.retired && <SeasonProgress career={career} />}
           <PhaseView career={career} actions={actions} />
         </main>
       </div>
 
       <Celebration achievements={career.lastAchievements} progression={career.lastProgression} />
       {import.meta.env.DEV && <DebugPanel career={career} onChange={actions.overrideCareer} />}
+    </div>
+  );
+}
+
+/**
+ * Where in the season we are. Deliberately a strip rather than navigation - it tells the
+ * player the year has a shape without adding anything to click.
+ */
+function SeasonProgress({ career }: { career: Career }): JSX.Element {
+  const steps = seasonPhaseSteps(career);
+  const current = steps.find((step) => step.current);
+
+  return (
+    <div className="season-progress" aria-label={`שלב בעונה: ${current?.label ?? ''}`}>
+      {steps.map((step) => (
+        <div
+          key={step.key}
+          className={`season-step${step.current ? ' is-current' : ''}${step.done ? ' is-done' : ''}`}
+        >
+          <span className="season-step-dot" aria-hidden />
+          <span className="season-step-label">{step.label}</span>
+        </div>
+      ))}
     </div>
   );
 }

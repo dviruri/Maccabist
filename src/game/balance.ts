@@ -383,6 +383,19 @@ export const EVENTS = {
   defaultCooldownSeasons: 3,
   /** Rare events are throttled hard so they stay special. */
   rarityWeight: { common: 1, uncommon: 0.55, rare: 0.14 },
+  /**
+   * A risky choice is meant to be high variance, not a worse bet.
+   *
+   * Measured across the whole event pool, the good outcomes of risky choices were weighted
+   * so low that risky came out at an expected value of -1.4 against +3.7 for safe: taking
+   * the bold option was strictly dominated, and a player who always went for it finished
+   * with an average peak ability of 55 and a Legend Score of 4, versus 78 and 44 for a
+   * balanced player. That is a trap, not a decision.
+   *
+   * This lifts the weight of the good outcomes of a risky choice so the upside is worth
+   * reaching for, while the downside stays exactly as painful as it is written.
+   */
+  riskyUpsideBoost: 1.75,
   /** Chance the late-season "key moment" slot is used at all. */
   lateSlotChance: 0.45,
   /** Two injury or discipline events back to back feels punishing - block it. */

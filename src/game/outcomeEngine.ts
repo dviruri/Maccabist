@@ -12,10 +12,12 @@
 
 import type {
   Career,
+  ChoiceRisk,
   EventOutcome,
   ModifierAttribute,
   OutcomeModifier,
 } from '../types';
+import { EVENTS } from './balance';
 import { matchesConditions, type ConditionContext } from './conditions';
 import type { Rng } from './random';
 import { abilityVsLevel } from './rules';
@@ -75,6 +77,7 @@ export function calculateOutcomeWeights(
   outcomes: readonly EventOutcome[],
   career: Career,
   ctx: ConditionContext,
+  risk?: ChoiceRisk,
 ): WeightedOutcome[] {
   return outcomes.map((outcome) => {
     if (!matchesConditions(career, outcome.conditions, ctx)) {
@@ -90,6 +93,9 @@ export function calculateOutcomeWeights(
       }
     }
 
+    // Risk should buy variance, not a worse bet - see EVENTS.riskyUpsideBoost.
+    if (risk === 'risky' && outcome.tone === 'good') weight *= EVENTS.riskyUpsideBoost;
+
     return { outcome, weight: Math.max(0, weight), appliedModifiers: applied };
   });
 }
@@ -99,8 +105,9 @@ export function outcomeProbabilities(
   outcomes: readonly EventOutcome[],
   career: Career,
   ctx: ConditionContext,
+  risk?: ChoiceRisk,
 ): { id: string; probability: number }[] {
-  const weighted = calculateOutcomeWeights(outcomes, career, ctx);
+  const weighted = calculateOutcomeWeights(outcomes, career, ctx, risk);
   const total = weighted.reduce((sum, w) => sum + w.weight, 0);
   if (total <= 0) return weighted.map((w) => ({ id: w.outcome.id, probability: 0 }));
   return weighted.map((w) => ({ id: w.outcome.id, probability: w.weight / total }));
@@ -115,8 +122,9 @@ export function selectWeightedOutcome(
   career: Career,
   rng: Rng,
   ctx: ConditionContext,
+  risk?: ChoiceRisk,
 ): EventOutcome | null {
-  const weighted = calculateOutcomeWeights(outcomes, career, ctx);
+  const weighted = calculateOutcomeWeights(outcomes, career, ctx, risk);
   const picked = rng.weighted(weighted, (w) => w.weight);
   if (picked) return picked.outcome;
   // Every outcome was gated out - fall back to the first one that is at least possible.

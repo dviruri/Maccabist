@@ -357,6 +357,92 @@ p {
   color: var(--gold);
 }
 
+/* A rough patch - form or confidence gone. Muted, not alarming. */
+.chip-warn {
+  background: rgba(226, 96, 96, 0.1);
+  border-color: rgba(226, 96, 96, 0.28);
+  color: #e88a8a;
+}
+
+/* =========================================================================
+   Season progress strip
+   ========================================================================= */
+
+.season-progress {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--ink-card);
+  border: 1px solid var(--ink-line);
+  border-radius: 14px;
+}
+
+.season-step {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+/* The connecting rule runs right-to-left, matching the document direction. */
+.season-step::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 50%;
+  left: -50%;
+  height: 2px;
+  background: var(--ink-line);
+}
+
+.season-step:first-child::before {
+  display: none;
+}
+
+.season-step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink-line);
+  position: relative;
+  z-index: 1;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.season-step-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.25;
+  /* Long Hebrew labels must wrap rather than push the strip sideways. */
+  overflow-wrap: anywhere;
+}
+
+.season-step.is-done .season-step-dot,
+.season-step.is-done::before {
+  background: rgba(41, 217, 106, 0.5);
+}
+
+.season-step.is-current .season-step-dot {
+  background: var(--maccabi-green-light);
+  box-shadow: 0 0 0 4px rgba(41, 217, 106, 0.18);
+}
+
+.season-step.is-current .season-step-label {
+  color: var(--maccabi-green-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-step-dot {
+    transition: none;
+  }
+}
+
 /* =========================================================================
    Player card
    ========================================================================= */

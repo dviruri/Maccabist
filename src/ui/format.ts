@@ -148,3 +148,91 @@ export const RISK_LABELS: Record<string, string> = {
   risky: 'סיכון גבוה',
   opportunity: 'הזדמנות גדולה',
 };
+
+/* ------------------------------------------------------------------ */
+/* Form and confidence                                                 */
+/* ------------------------------------------------------------------ */
+
+export interface MoodChip {
+  text: string;
+  tone: 'good' | 'bad' | 'neutral';
+}
+
+/**
+ * Form and confidence are hidden numbers and stay hidden: they surface as a short phrase
+ * only when they are far enough from the middle to be worth mentioning. Two more progress
+ * bars would say less and clutter more.
+ */
+export function moodChips(career: Career): MoodChip[] {
+  const chips: MoodChip[] = [];
+  const { form, confidence } = career.hidden;
+
+  if (form >= 78) chips.push({ text: 'כושר מצוין', tone: 'good' });
+  else if (form >= 64) chips.push({ text: 'כושר טוב', tone: 'good' });
+  else if (form <= 30) chips.push({ text: 'תקופה קשה', tone: 'bad' });
+  else if (form <= 42) chips.push({ text: 'לא בכושר', tone: 'bad' });
+
+  if (confidence >= 78) chips.push({ text: 'ביטחון גבוה', tone: 'good' });
+  else if (confidence <= 30) chips.push({ text: 'ביטחון שבור', tone: 'bad' });
+  else if (confidence <= 42) chips.push({ text: 'חסר ביטחון', tone: 'bad' });
+
+  return chips;
+}
+
+/* ------------------------------------------------------------------ */
+/* Season progress                                                     */
+/* ------------------------------------------------------------------ */
+
+export interface SeasonPhaseStep {
+  key: string;
+  label: string;
+  /** The step the player is on right now. */
+  current: boolean;
+  /** Already behind them this season. */
+  done: boolean;
+}
+
+/**
+ * A small five-step season indicator, so it is always obvious where in the year we are
+ * without building a navigation system for it.
+ */
+export function seasonPhaseSteps(career: Career): SeasonPhaseStep[] {
+  const order = ['preseason', 'first_half', 'mid', 'second_half', 'end'] as const;
+  const labels: Record<(typeof order)[number], string> = {
+    preseason: 'פתיחת עונה',
+    first_half: 'מחצית ראשונה',
+    mid: 'מחצית העונה',
+    second_half: 'מחצית שנייה',
+    end: 'סיום עונה',
+  };
+
+  let activeIndex: number;
+  switch (career.phase) {
+    case 'preseason':
+      activeIndex = 0;
+      break;
+    case 'mid_season':
+      activeIndex = 2;
+      break;
+    case 'season_result':
+    case 'progression':
+    case 'youth_to_senior':
+    case 'offseason':
+    case 'retirement_decision':
+    case 'retired':
+      activeIndex = 4;
+      break;
+    case 'event':
+    default:
+      // Which half an event belongs to is exactly what the season slot records.
+      activeIndex = career.seasonSlot === 'early' ? 1 : career.seasonSlot === 'mid' ? 2 : 3;
+      break;
+  }
+
+  return order.map((key, index) => ({
+    key,
+    label: labels[key],
+    current: index === activeIndex,
+    done: index < activeIndex,
+  }));
+}

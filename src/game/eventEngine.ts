@@ -249,7 +249,7 @@ export function resolveEventChoice(
   }
 
   const ctx = conditionContext(career, slot);
-  const outcome = selectWeightedOutcome(choice.outcomes, next, rng, ctx);
+  const outcome = selectWeightedOutcome(choice.outcomes, next, rng, ctx, choice.risk);
 
   let outcomeText = '';
   let outcomeId = 'none';

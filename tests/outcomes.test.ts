@@ -147,6 +147,28 @@ describe('weighted outcomes', () => {
     expect(successOf(strong)).toBeGreaterThan(successOf(weak));
   });
 
+  it('lifts the upside of a risky choice without touching the downside', () => {
+    const c = career();
+    const plain = calculateOutcomeWeights(outcomes, c, ctx);
+    const risky = calculateOutcomeWeights(outcomes, c, ctx, 'risky');
+
+    const goodPlain = plain.find((w) => w.outcome.id === 'good')?.weight ?? 0;
+    const goodRisky = risky.find((w) => w.outcome.id === 'good')?.weight ?? 0;
+    const badPlain = plain.find((w) => w.outcome.id === 'bad')?.weight ?? 0;
+    const badRisky = risky.find((w) => w.outcome.id === 'bad')?.weight ?? 0;
+
+    expect(goodRisky).toBeGreaterThan(goodPlain);
+    expect(badRisky).toBe(badPlain);
+  });
+
+  it('leaves non-risky choices exactly as the data declares them', () => {
+    const c = career();
+    for (const risk of ['safe', 'balanced', 'opportunity'] as const) {
+      const weighted = calculateOutcomeWeights(outcomes, c, ctx, risk);
+      expect(weighted.find((w) => w.outcome.id === 'good')?.weight).toBe(50);
+    }
+  });
+
   it('reads every modifier attribute it advertises', () => {
     const c = career({ ability: 61, coachTrust: 62, roleValue: 63 });
     expect(readAttribute(c, 'ability')).toBe(61);

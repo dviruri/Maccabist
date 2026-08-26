@@ -43,15 +43,21 @@ export function BrandRule(): JSX.Element {
   );
 }
 
+const CHIP_TONES = {
+  green: 'chip',
+  plain: 'chip chip-plain',
+  gold: 'chip chip-gold',
+  warn: 'chip chip-warn',
+} as const;
+
 export function Chip({
   children,
   tone = 'green',
 }: {
   children: ReactNode;
-  tone?: 'green' | 'plain' | 'gold';
+  tone?: keyof typeof CHIP_TONES;
 }): JSX.Element {
-  const className = tone === 'plain' ? 'chip chip-plain' : tone === 'gold' ? 'chip chip-gold' : 'chip';
-  return <span className={className}>{children}</span>;
+  return <span className={CHIP_TONES[tone]}>{children}</span>;
 }
 
 /**

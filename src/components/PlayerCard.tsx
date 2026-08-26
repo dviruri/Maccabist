@@ -2,6 +2,7 @@ import type { Career } from '../types';
 import {
   headlineSubtitle,
   headlineTitle,
+  moodChips,
   olderGroupLine,
   positionIcon,
   positionLabel,
@@ -62,6 +63,12 @@ export function PlayerCard({ career }: { career: Career }): JSX.Element {
           {positionIcon(career.position)} {positionLabel(career.position)}
         </Chip>
         {older && <Chip>{older}</Chip>}
+        {/* Form and confidence stay hidden numbers - they only surface as a phrase. */}
+        {moodChips(career).map((mood) => (
+          <Chip key={mood.text} tone={mood.tone === 'bad' ? 'warn' : 'plain'}>
+            {mood.text}
+          </Chip>
+        ))}
       </div>
 
       <div className="stat-grid">

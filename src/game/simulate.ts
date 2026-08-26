@@ -45,11 +45,24 @@ export const randomPolicy: CareerPolicy = {
   pickRetirement: (_career, rng) => (rng.chance(0.55) ? 'continue' : 'retire'),
 };
 
-/** Always takes the boldest option available - the "go for it" player. */
+/**
+ * The "go for it" player: takes every opportunity, and gambles when he is in shape to carry
+ * the downside. Deliberately not the same as riskTakerPolicy - a player who picks the
+ * riskiest option forty times in a row regardless of his situation is not ambitious, he is
+ * a stress test, and that is what riskTakerPolicy is for.
+ */
 export const ambitiousPolicy: CareerPolicy = {
-  pickChoice: (event, _career, rng) => {
-    const bold = event.choices.filter((c) => c.risk === 'opportunity' || c.risk === 'risky');
-    return bold.length > 0 ? rng.pick(bold).id : rng.pick(event.choices).id;
+  pickChoice: (event, career, rng) => {
+    const chances = event.choices.filter((c) => c.risk === 'opportunity');
+    if (chances.length > 0) return rng.pick(chances).id;
+
+    // Gamble only when form and confidence can absorb a bad outcome.
+    const canAbsorb = career.hidden.confidence >= 50 && career.hidden.form >= 48;
+    const risky = event.choices.filter((c) => c.risk === 'risky');
+    if (risky.length > 0 && canAbsorb) return rng.pick(risky).id;
+
+    const steady = event.choices.filter((c) => c.risk === 'balanced' || c.risk === 'safe');
+    return steady.length > 0 ? rng.pick(steady).id : rng.pick(event.choices).id;
   },
   pickOffer: (offers, _career, rng) => {
     const mandatory = offers.find((o) => o.mandatory);
@@ -108,7 +121,11 @@ export const balancedPolicy: CareerPolicy = {
   },
 };
 
-/** Always reaches for the biggest upside, and eats the downside when it comes. */
+/**
+ * The extreme baseline: always reaches for the biggest upside no matter the situation, and
+ * eats every downside. Not a model of a real player - it exists to show where the tail of
+ * the distribution actually is, and to catch the case where bold play is a trap.
+ */
 export const riskTakerPolicy: CareerPolicy = {
   pickChoice: (event, _career, rng) => {
     const risky = event.choices.filter((c) => c.risk === 'risky');
