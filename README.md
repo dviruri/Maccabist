@@ -1,15 +1,21 @@
 # מכביסט — Maccabist
 
-A browser-based Hebrew football **career simulation**. You start as a nine-year-old in Maccabi
-Haifa's youth academy and play out an entire career — seasons, decisions, transfers, Europe,
-homecomings, trophies and retirement.
+A browser-based Hebrew football **career simulation**. You start as a nine-year-old in
+טרום ב׳ — the bottom rung of Maccabi Haifa's academy — and play out a whole career: climbing the
+age groups, the youth-to-senior verdict, transfers, Europe, a homecoming, trophies and retirement.
 
 The question the game asks is deliberately not *"how good a footballer did you become?"* but
 **"how big a Maccabi Haifa legend did you become?"** — measured at retirement by the
 **מדד אגדה** (Legend Score).
 
-Fully client-side: React + TypeScript + Vite, LocalStorage for saves, no backend, no auth,
-no external services.
+The design goal: *every career should tell a different story, and finishing one should make you
+want to start another immediately.* A decision never maps to a fixed stat change — it opens a
+distribution of outcomes weighted by who your player is right now.
+
+Fully client-side: React + TypeScript + Vite, LocalStorage for saves. No backend, no auth, no
+external services.
+
+**Play:** https://dviruri.github.io/Maccabist/
 
 ---
 
@@ -17,170 +23,305 @@ no external services.
 
 ```bash
 npm install
+npm run dev      # http://localhost:5173
 ```
-
-```bash
-npm run dev
-```
-
-Then open http://localhost:5173.
 
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Vite dev server (debug panel enabled) |
-| `npm run build` | Type-check + production build to `dist/` |
+| `npm run build` | Type-check the app project + production build to `dist/` |
 | `npm run preview` | Serve the production build |
-| `npm test` | Run the engine test suite (Vitest) |
-| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Type-check the test project, then run Vitest |
+| `npm run typecheck` | Type-check both projects |
+| `npm run simulate` | 2,000 headless careers per strategy + balance report |
+| `npm run simulate:large` | 20,000 careers per strategy (~100k careers) |
+
+### TypeScript project layout
+
+Production and test compilation are deliberately separate, so a test that is mid-migration or
+uses a test-only helper can never block a deploy:
+
+| File | Covers | Used by |
+| --- | --- | --- |
+| `tsconfig.json` | `src/`, `vite.config.ts` | `npm run build` |
+| `tsconfig.test.json` | the above **plus** `tests/`, `scripts/` | `npm test` |
+
+Both share the same strict settings — the test project only widens the file set.
+
+---
+
+## Deployment (GitHub Pages)
+
+`.github/workflows/deploy.yml` runs on every push to `main`: checkout → Node 22 → `npm ci` →
+`npm run build` → `upload-pages-artifact` (`./dist`) → `deploy-pages`. It fails loudly if the
+production build fails, and deliberately does **not** run the long simulation suite.
+
+The app is served from a sub-path, so asset resolution is configurable rather than hard-coded:
+
+```bash
+npm run build                    # base = /Maccabist/  (GitHub Pages default)
+MACCABIST_BASE=/ npm run build   # base = /            (root deploy, custom domain)
+```
+
+`"/Maccabist/"` appears in exactly one place — `vite.config.ts`. Everything else derives from it:
+
+- Components build asset URLs from `import.meta.env.BASE_URL` (see the `Logo` component). A bare
+  `"/mark.png"` is **not** rewritten by Vite and will 404 on Pages.
+- Files inside `public/` are copied verbatim and are never transformed, so `site.webmanifest`
+  uses paths relative to itself (`icon-192.png`, `start_url: "."`).
+- Paths written in `index.html` *are* rewritten by Vite, so plain `/favicon.ico` is fine there.
+
+There is no router — the app is a single page driven by state — so a reload on Pages cannot hit a
+404 and no SPA fallback is needed.
 
 ---
 
 ## Architecture
 
-The single most important rule in this codebase: **React displays the game, React is not the
-game.** Every rule lives in `src/game/` as pure functions over a plain-data `Career` object, so a
-career can be simulated thousands of times with no DOM involved.
+The single most important rule: **React displays the game, React is not the game.** Every rule
+lives in `src/game/` as pure functions over a plain-data `Career`, so a career can be simulated
+tens of thousands of times with no DOM involved.
 
 ```text
 src/
   types/index.ts          Domain model. Career, events, offers, clubs, legend result.
 
   game/                   THE ENGINE — pure, no React, no DOM
-    balance.ts            Every tunable number in the game. Start here to rebalance.
-    random.ts             Seeded RNG (mulberry32) + clamp/round. The only randomness source.
-    rules.ts              Small shared helpers (stage, status tier, minutes age curve).
+    balance.ts            Every tunable number. Start here to rebalance.
+    random.ts             Seeded RNG (mulberry32). The only source of randomness.
+    rules.ts              Shared helpers: level context, role tier, minutes age curve.
+    conditions.ts         Generic condition matching for events and outcomes.
     careerEngine.ts       Public API + the phase state machine. React only calls this file.
-    eventEngine.ts        Event eligibility, weighted selection, choice resolution.
-    seasonEngine.ts       Season simulator: appearances, goals, assists, clean sheets, trophies.
-    progressionEngine.ts  Effects, growth, status/reputation/maccabism movement, club moves.
-    transferEngine.ts     Offers, loans, promotions, releases, the homecoming mechanic.
+    eventEngine.ts        Eligibility, anti-repetition weighting, choice resolution.
+    outcomeEngine.ts      Weighted outcomes: base weights x modifiers = the real odds.
+    seasonEngine.ts       Half-season simulator: appearances, goals, ratings, trophies.
+    progressionEngine.ts  Effects, development, coach trust, role, academy promotion.
+    transferEngine.ts     Offers, loans, the youth-to-senior verdict, homecoming.
     legendEngine.ts       מדד אגדה calculation.
-    simulate.ts           Headless simulateCareer() / simulateBatch() for balancing.
+    simulate.ts           Headless simulateCareer()/simulateBatch() + decision policies.
 
   data/                   CONTENT — plain data, no logic
-    clubs.ts              23 clubs: Maccabi pathway, Israeli league, European destinations.
-    events.ts             38 story events with conditions, weights and choices.
+    academy.ts            The 10-stage academy ladder. First-class domain data.
+    clubs.ts              23 clubs: the Maccabi pathway, Israeli league, Europe.
+    events/               74 events across four files (see "Adding an event").
     achievements.ts       Milestone definitions.
     trophies.ts           Trophy definitions and their Legend Score weights.
     endings.ts            Career archetypes shown on the retirement card.
 
-  services/storage.ts     Persistence abstraction (swap LocalStorage for a backend here).
+  services/storage.ts     Persistence (swap LocalStorage for a backend here).
   state/useGame.ts        The single React hook wiring the engine to the UI.
-  components/             Reusable presentation pieces.
+  components/             Presentation pieces, including the dev-only DebugPanel.
   pages/                  Welcome / New career / Game / Retirement.
-  ui/format.ts            Hebrew formatting, timeline grouping. UI only.
-  styles/global.css       Design system: colours, cards, RTL-aware layout, animations.
+  ui/format.ts            Hebrew formatting, mood chips, season phase. UI only.
+  styles/global.css       Design system: colours, cards, RTL-aware layout.
+
+scripts/simulate.ts       The balancing CLI. Developer-only, never imported by the app.
 ```
+
+### The academy ladder
+
+The stage — not the age — is the player's identity for the whole youth career. It is real domain
+data in `src/data/academy.ts`, never reduced to a generic "academy / youth / senior":
+
+```text
+טרום ב׳ → טרום א׳ → ילדים ג׳ → ילדים ב׳ → ילדים א׳
+        → נערים ג׳ → נערים ב׳ → נערים א׳ → נוער → בוגרים
+```
+
+Age and stage are **separate fields**. Progression normally maps 9→טרום ב׳, 10→טרום א׳ … 17+→נוער,
+but the stage is never inferred from age, which is what makes accelerated development, repeated
+years and unusual career shapes possible.
+
+Three different kinds of advancement are kept distinct:
+
+| | What it means |
+| --- | --- |
+| **Normal promotion** | One step up the ladder, e.g. ילדים ב׳ → ילדים א׳ |
+| **Playing/training up** | Officially still נערים ב׳, but `olderGroup` is `training`/`playing`. Faster development, fewer minutes, harder level. **Not** a promotion. |
+| **Early promotion** | Skips a level entirely. Rare (~6–8% of careers) and deliberately exciting. |
 
 ### The season loop
 
 ```text
-preseason → event(s) → decision → outcome → simulate season → season card
-          → transfer/loan/contract decision (only when there is one)
-          → age +1 → next season … → retirement decision → retirement card
+preseason → early event → first half → mid-season summary → mid event
+          → second half → optional key moment → season summary
+          → academy promotion / youth-to-senior verdict / transfer window
+          → age +1 → next season … → retirement → Legend Score
 ```
 
-The `Career` object carries its own `phase`, `pendingEventIds`, `pendingOffers` **and its RNG
-state** (`seed` + `rngState`). That means a save file resumes the exact same random stream, and a
-given seed plus a given set of decisions always reproduces the same career.
+Young stages skip the mid-season card to keep the pace up; how many decision points a season gets
+comes from the stage config (`minEvents`/`maxEvents`), roughly 1 per season in טרום, 1–2 in
+ילדים, 2 in נערים, 2–3 in נוער.
+
+The `Career` object carries its own `phase`, `seasonSlot`, pending events/offers **and its RNG
+state** (`seed` + `rngState`). A save resumes the exact same random stream, and a given seed plus
+a given set of decisions always reproduces the same career.
 
 ---
 
-## Where things live
+## Probabilistic outcomes
 
-### Adding an event
+This is the core of the game. The model is:
 
-Append an object to the array in `src/data/events.ts`. Nothing else changes — the engine reads
-conditions and weights generically.
+```text
+player decision + player state + career context + weighted randomness = outcome
+```
+
+Every choice declares several possible outcomes. Each has a `baseWeight`, optionally narrowed by
+`conditions` (impossible unless they hold) and tuned by `modifiers` that multiply the weight when
+an attribute crosses a threshold. `outcomeEngine.ts` turns that into the real distribution and
+draws one — no probability logic ever lives inside an individual event.
+
+Modifiers can read: `ability`, `potential`, `form`, `confidence`, `coachTrust`, `maccabism`,
+`reputation`, `discipline`, `roleValue`, `age`, `injuryRisk`, and `abilityVsLevel` (how far ahead
+of your age group you are). Events declare only what actually matters to them.
+
+**The player never sees a percentage.** Choices carry a qualitative hint at most
+(`בחירה בטוחה`, `סיכון גבוה`, `הזדמנות גדולה`). Exact weights are debug-mode only.
+
+**Story first, numbers second.** The outcome screen leads with what happened, then shows the
+stat movement underneath.
+
+One engine-level rule worth knowing: a choice marked `risky` gets its *good* outcomes weighted up
+by `EVENTS.riskyUpsideBoost`, leaving the downside as written. Measured across the whole pool,
+risky choices were otherwise negative expected value — strictly dominated by playing safe, which
+made bold play a trap rather than a gamble.
+
+### Anti-repetition
+
+Repetition is handled in selection, not by adding more cards:
+
+- Events support `oncePerCareer`, `oncePerStage` and `cooldownSeasons`.
+- A just-seen event is suppressed hard (`repeatPenalty`) and recovers gradually over
+  `repeatRecoverySeasons` — a story from ten seasons ago should not be as suppressed as last
+  season's.
+- A category already used **this season** is penalised heavily; one used in the **last couple of
+  seasons** is penalised mildly, so careers do not run coach → coach → coach.
+- `injury` and `discipline` are blocked from landing in consecutive seasons.
+- Rare events are throttled hard by `rarityWeight` so they stay rare.
+
+---
+
+## Adding an event
+
+Append an object to one of the arrays in `src/data/events/`:
+
+| File | Contents |
+| --- | --- |
+| `academyEvents.ts` | The youth journey, טרום through נוער |
+| `positionEvents.ts` | Position-specific storylines (gated by `conditions.positions`) |
+| `spontaneousEvents.ts` | Things that happen *to* you, plus the rare breakthroughs/setbacks |
+| `seniorEvents.ts` | The professional career |
+
+Nothing in the engine changes — it reads conditions and weights generically.
 
 ```ts
 {
   id: 'unique_id',
-  kicker: 'חדר הלבשה, ינואר',          // optional flavour line above the title
+  kicker: 'מגרשי האימונים, יום שלישי',   // optional flavour line above the title
   title: 'כותרת האירוע',
   description: 'הסיפור עצמו, בעברית של כדורגל.',
-  conditions: {                          // when may this appear?
-    stages: ['prime'],                   // kids | youth | breakthrough_youth | breakthrough | prime | veteran
-    atMaccabiSenior: true,
-    minStatusValue: 55,
-    once: true,                          // never twice in one career
+  category: 'opportunity',               // drives anti-repetition variety
+  rarity: 'uncommon',                    // common (default) | uncommon | rare
+  conditions: {                          // when may this appear at all?
+    bands: ['teens'],                    // children | teens | u19 | senior
+    stages: ['youth_b'],                 // or exact academy stages
+    positions: ['ST'],                   // position gating lives here, not in the engine
+    olderGroup: ['none'],
+    minCoachTrust: 40,
+    atMaccabi: true,
   },
-  weight: 8,                             // relative frequency inside the eligible pool
+  weight: 9,                             // relative frequency inside the eligible pool
+  slots: ['early', 'mid'],               // which part of the season (default: any)
+  oncePerStage: true,
+  cooldownSeasons: 2,
   choices: [
     {
-      id: 'choice_a',
+      id: 'go_for_it',
       label: 'מה שכתוב על הכפתור',
       hint: 'רמז קצר על ה-trade-off',
-      effects: { maccabism: 4 },         // applied for every outcome of this choice
-      outcomes: [                        // exactly one is drawn, weighted
-        { weight: 60, tone: 'good', text: 'מה שקרה', effects: { ability: 2, statusValue: 5 } },
-        { weight: 40, tone: 'bad',  text: 'מה שקרה', effects: { confidence: -6 } },
-      ],
+      risk: 'opportunity',               // safe | balanced | risky | opportunity
+      effects: { confidence: 1 },        // applied on every outcome of this choice
+      outcomes: [ /* see below */ ],
     },
-    { id: 'choice_b', label: '...', outcomes: [ /* ... */ ] },
+    { id: 'stay_put', label: '...', risk: 'safe', outcomes: [ /* ... */ ] },
   ],
 }
 ```
 
-Available effect keys: `ability`, `potential`, `maccabism`, `reputation`, `statusValue`,
-`confidence`, `form`, `discipline`, `injuryRisk`, `pressure`, `injuryChance`, `transferChance`,
-`minutesModifier`, `captain`, `transferTo`, `achievement`, `flags`.
+### Adding an outcome
 
-**Design rule:** every choice must have a real trade-off. If one button is always correct,
-the event is not finished.
-
-### Adding a club
-
-Append to the array in `src/data/clubs.ts`:
+Outcomes belong to a choice. Exactly one is drawn, weighted:
 
 ```ts
 {
-  id: 'club_id',
-  name: 'שם המועדון',
-  country: 'ספרד',
-  league: 'לה ליגה',
-  quality: 74,        // squad strength — how hard it is to get minutes
-  prestige: 70,       // how much international recognition playing here brings
-  development: 68,    // how well the club develops players
-  tier: 'euro_mid',   // israeli_top | israeli_mid | israeli_low | euro_dev | euro_mid | euro_top
-  titleChance: 0.01,
-  cupChance: 0.06,
-  europeChance: 0.08,
-  isSenior: true,
-  seasonGames: 42,
+  id: 'impressed',
+  baseWeight: 30,                        // relative to the other outcomes of this choice
+  tone: 'good',                          // good | bad | neutral
+  conditions: { minAbility: 55 },        // optional: impossible unless these hold
+  modifiers: [                           // optional: multiply the weight in context
+    { attribute: 'coachTrust', above: 65, multiplier: 1.4 },
+    { attribute: 'confidence', below: 40, multiplier: 0.6 },
+  ],
+  text: 'נכנסת לאימון קצת לחוץ, אבל אחרי כמה דקות השתחררת...',
+  effects: { ability: 2.5, coachTrust: 7, olderGroup: 'training' },
 }
 ```
 
-The transfer engine picks destinations by weighted eligibility (`interestWeight`), so new clubs
-are automatically part of the market with no engine change.
+Effect keys: `ability`, `potential`, `maccabism`, `reputation`, `coachTrust`, `roleValue`,
+`confidence`, `form`, `discipline`, `injuryRisk`, `pressure`, `injuryChance`, `transferChance`,
+`minutesModifier`, `olderGroup`, `promotionBoost`, `flags`, `clearFlags`, `achievement`,
+`transferTo`, `captain`.
 
-### Rebalancing
+**Design rules.** Every choice needs a real trade-off — if one button is always correct, the
+event is not finished. Every outcome must tell a story, not report a number. And the same choice
+must not produce the same result in every career.
+
+---
+
+## Rebalancing
 
 Almost everything numeric is in **`src/game/balance.ts`**:
 
 | Constant | Controls |
 | --- | --- |
 | `START` | Starting ability, potential range, wonderkid chance, starting maccabism |
-| `PROGRESSION` | Growth per age band, potential pull, how much minutes/club/rating matter |
-| `SEASON` | Minutes model, injuries, ratings, reputation gain, maccabism drift, status movement |
-| `TRANSFERS` | Offer frequency, loan rules, homecoming odds, release thresholds |
+| `PROGRESSION` | Growth per age band, potential pull, and the overshoot rule |
+| `COACH_TRUST` | How trust moves, and how strongly it buys minutes and role |
+| `SEASON` | Minutes model, injuries, ratings, reputation, maccabism drift, playing up |
+| `PROMOTION` | Academy promotion score weights and the normal/early thresholds |
+| `YOUTH_TO_SENIOR` | Readiness weights and the four path thresholds |
+| `EVENTS` | Repetition penalties, rarity throttle, risky upside boost |
+| `TRANSFERS` | Offer frequency, loans, homecoming odds |
 | `LEGEND` | Legend Score weights, targets and penalties |
-| `POSITIONS` | Per-position goal/assist/clean-sheet rates and Legend Score output factors |
-| `STATUS_TIERS` | Where each status label starts |
-| `RETIREMENT_MIN_AGE` / `RETIREMENT_FORCED_AGE` | When retirement becomes possible / certain |
+| `POSITIONS` | Per-position output rates and Legend Score factors |
+| `ROLE_TIERS` | Where each team-role label starts |
 
 Endings live in `src/data/endings.ts`, trophy weights in `src/data/trophies.ts`.
 
-To check the effect of a change:
+**Potential is a soft ceiling, not a wall.** A player having an exceptional season with high
+confidence can grow past it, up to `PROGRESSION.overshoot.maxAbove`. High-potential players
+regularly fail; medium-potential players sometimes have excellent careers.
 
-```ts
-import { simulateBatch } from './src/game/simulate';
-simulateBatch(500, { playerName: 'sim', position: 'CM' });
-// → { averageLegendScore, averageMaccabiAppearances, averagePeakAbility, endings }
+### Checking a change
+
+```bash
+npm run simulate                              # all five strategies, 2,000 careers each
+npm run simulate -- --careers=5000 --policy=balanced
+npm run simulate:large                        # 20,000 each
 ```
 
-In the dev build the same thing is available from the browser console via
-`window.maccabist.simulate(500)`.
+The report covers: reaching (or not reaching) the Maccabi senior team, academy graduation,
+release, early promotion, playing up, starter/key-player/captain, Europe, homecoming, peak
+ability, Legend Score distribution by bucket, the academy ladder, repetition metrics, results by
+position, the most common endings, and a luck-validation check.
+
+Five decision policies model different players — `balanced`, `loyalist`, `ambitious`,
+`riskTaker` and `random` — because measuring the game by always pressing the first button tells
+you very little. `riskTaker` is an intentional extreme baseline, not a model of a real player.
+
+**Luck validation** is part of every run and asserts the two properties the design rests on:
+the same seed reproduces a career exactly, and the same decisions on different seeds diverge.
 
 ---
 
@@ -201,55 +342,39 @@ In the dev build the same thing is available from the browser console via
 | החזרה הביתה | 6 | returned + 5 seasons after |
 | קריירה באירופה | 6 | a big continental career |
 
-Then: `+2` per loyalty moment (capped at `+6`), `−3.5` per forced-move moment (capped at `−14`),
-and a hard cap of 34 for a player who never made a senior Maccabi appearance. Result is clamped
-to 0–100 and mapped to one of ten career archetypes.
+Then `+2` per loyalty moment (capped `+6`), `−3.5` per forced-move moment (capped `−14`), and a
+hard cap of 34 for a player who never made a senior Maccabi appearance. Clamped to 0–100 and
+mapped to one of ten career archetypes.
 
 The key property — enforced by a test — is that **a long-serving Maccabi captain outscores a
-world-class player who only passed through**. European success contributes but can never dominate.
+world-class player who only passed through**. Europe contributes but can never dominate.
+
+**Leaving is not automatically betrayal.** The penalty is contextual: leaving very young for
+money hurts, leaving as an established first-teamer for a real European opportunity barely does,
+and moving to a direct domestic rival hurts a lot. Coming home is worth real points — more so
+while still good enough to play. The ideal Maccabist career genuinely can be
+*academy → star → Europe → return → captain → legend*, so staying forever is not the
+mathematically optimal answer.
 
 ---
 
-## Design notes
+## Debug mode
 
-- **Hebrew + RTL from the ground up.** Logical CSS properties (`inset-inline`, `padding-inline`,
-  `border-inline-start`) everywhere; progress bars fill right-to-left; the desktop sidebar sits on
-  the right; deltas render as `68 ← 72` so they read correctly right-to-left; years and scorelines
-  are wrapped in a bidi-isolated `.ltr` span.
-- **Mobile first.** Single column up to 960px, two columns above it. Chunky 54px touch targets.
-- **Palette.** Vivid Maccabi green on near-black, white for the big numbers, gold reserved for
-  trophies and the captain's armband.
-- **Celebrations are rationed.** Only achievements flagged `major` interrupt with a full-screen
-  moment; everything else just lands in the list.
+In `npm run dev` a `⚙ debug` button appears bottom-left: seed, phase and season slot, academy
+stage and seasons at stage, older-group status, ability, **potential**, coach trust, role value,
+form, confidence, discipline, injury risk, plus the current event's choices with their **raw
+outcome probabilities**. Actions include stepping the loop, advancing a season, ageing, forcing
+retirement and overriding attributes.
 
-## Brand assets
+A console API is exposed on `window.maccabist` in dev.
 
-The crest in `public/` is the supplied artwork, processed once into the sizes the app needs:
+Both are stripped from production builds (`import.meta.env.DEV`), and no simulation ever runs in
+a player's browser during normal play.
 
-| File | Used for |
-| --- | --- |
-| `logo.png` | Welcome hero and the retirement share card (720px, transparent) |
-| `mark.png` | The monogram in the in-game top bar |
-| `favicon.ico`, `favicon-16/32/48.png` | Browser tab — a tight crop on the M monogram, which stays legible at 16px |
-| `icon-192.png`, `icon-512.png` | PWA / manifest icons (full crest) |
-| `apple-touch-icon.png` | iOS home screen — dark tile baked in, since iOS drops alpha |
-| `site.webmanifest` | Name, RTL, theme colours for add-to-home-screen |
+Careers can be started from a fixed seed, which makes bug reports reproducible — "it happens on
+seed 17384920" is enough to recreate the exact career.
 
-The light backdrop was removed with a connected flood fill seeded from the image border, so the
-white outlines *inside* the crest survive while the backdrop and its drop shadow do not. Files are
-palette-quantised, which is visually lossless here and cuts the logo from 625 KB to 209 KB.
-
-To swap the artwork, replace the files in `public/` — nothing in the code references the image
-beyond the `Logo` component in `src/components/primitives.tsx`.
-
-## Development tools
-
-In `npm run dev` a `⚙ debug` button appears bottom-left with live attribute inspection
-(including hidden attributes), plus actions: step, advance a season, age +1, bump
-ability/status/maccabism/reputation, force retirement.
-
-The console API `window.maccabist` exposes `career`, `set()`, `autoStep()`, `run(seasons)`,
-`retire()`, `simulate(count)` and `events`. Both are stripped from production builds.
+---
 
 ## Tests
 
@@ -257,13 +382,52 @@ The console API `window.maccabist` exposes `career`, `set()`, `autoStep()`, `run
 npm test
 ```
 
-38 tests over the pure game logic: career creation and determinism, effect application and
-clamping, club-move bookkeeping, event eligibility, season statistics by position, transfer and
-promotion eligibility, Legend Score properties, and full headless careers run to retirement
-(including a check that a loyal strategy scores higher on average than a random one).
+104 tests over the pure engine, in four files:
 
-## Not in this MVP
+| File | Covers |
+| --- | --- |
+| `academy.test.ts` | The ladder order and labels, normal/early/repeated promotion, the fast-track cap, the pecking-order reset, coach trust driving promotion |
+| `outcomes.test.ts` | Weighted outcomes, modifiers, seed reproducibility and divergence, the risky-upside rule, event data integrity, eligibility, cooldowns, `oncePerCareer`, category anti-repetition, rarity throttling |
+| `engine.test.ts` | Effects, club moves, half-season simulation, development and the potential ceiling, the four youth-to-senior paths, the released-player route end to end, transfers and homecoming, Legend Score, the season state machine, retirement |
+| `simulation.test.ts` | Full headless careers to retirement, determinism, and batch-level sanity bounds |
+
+---
+
+## Design notes
+
+- **Hebrew + RTL from the ground up.** Logical CSS properties everywhere; bars fill
+  right-to-left; deltas render as `68 ← 72`; years and scorelines sit in a bidi-isolated span.
+- **Mobile first.** Single column up to 960px, two columns above. Chunky touch targets.
+- **Form and confidence stay hidden numbers** and surface only as a phrase
+  (`כושר מצוין`, `תקופה קשה`, `ביטחון שבור`) — two more progress bars would say less.
+- **Celebrations are rationed.** Only major milestones interrupt with a full-screen moment.
+
+## Brand assets
+
+The crest in `public/` is the supplied artwork, processed into the sizes the app needs:
+`logo.png` (welcome hero), `mark.png` (top bar monogram), `favicon.*` (tight monogram crop, still
+legible at 16px), `icon-192/512.png` (manifest), `apple-touch-icon.png` (dark tile baked in,
+since iOS drops alpha). To swap the artwork, replace the files — only the `Logo` component
+references them.
+
+---
+
+## Known limitations
+
+- **Repeated events over a long career.** A career sees ~44 events across ~28 seasons while the
+  pool is 74, so roughly 10 events recur. Selection improvements have taken this about as far as
+  they can; the fix is more senior-phase content, which is the tightest pool.
+- **Unmitigated risk-taking is punished hard.** Coach trust feeds minutes, which feed
+  development, which feed trust, so repeated trust damage compounds into a spiral that is
+  difficult to recover from. The `riskTaker` policy shows the tail clearly.
+- **Careers run long.** ~28 seasons, leaving the academy at ~19.6 on average — a little later
+  than the intended 18–19.
+- **Mobile layout is CSS-audited, not browser-verified** at 360/390/412px.
+- The lower-league world outside Maccabi is deliberately thin: real clubs and a working
+  released-player route, but no simulated league structure.
+
+## Not in this version
 
 No auth, no backend, no Base44 integration, no leaderboards, no monetisation, no match-level
-simulation. The persistence layer (`src/services/storage.ts`) is a small interface specifically so
-it can be swapped for a repository backed by a real service later.
+simulation, no share card. `src/services/storage.ts` is a small interface specifically so it can
+be swapped for a real service later.
