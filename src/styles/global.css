@@ -513,18 +513,22 @@ p {
   position: relative;
 }
 
-/* The connecting rule runs right-to-left, matching the document direction. */
+/*
+ * Connector from each step to the next. Logical properties so it follows the document
+ * direction rather than assuming left-to-right, and hidden on the last step which has
+ * nothing to connect to.
+ */
 .season-step::before {
   content: '';
   position: absolute;
   top: 4px;
-  right: 50%;
-  left: -50%;
+  inset-inline-start: 50%;
+  inset-inline-end: -50%;
   height: 2px;
   background: var(--ink-line);
 }
 
-.season-step:first-child::before {
+.season-step:last-child::before {
   display: none;
 }
 

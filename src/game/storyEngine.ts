@@ -11,7 +11,7 @@
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
 import type { Career, TraitId } from '../types';
-import { hasMemory } from './memory';
+import { hasMemory, hasTrait } from './memory';
 
 /* ------------------------------------------------------------------ */
 /* Archetypes                                                          */
@@ -131,8 +131,33 @@ const ARCHETYPES: readonly ArchetypeRule[] = [
     title: 'המקצוען',
     subtitle: 'חמש עשרה שנה בלי לפספס אימון',
     icon: '🧊',
-    priority: 64,
-    matches: (c) => c.seasonHistory.length >= 16 && c.hidden.discipline >= 68,
+    priority: 58,
+    /*
+     * Keyed off the trait, not a discipline threshold. Discipline drifts upward across a long
+     * career, so any threshold matched almost everyone and this became the label on 46-48% of
+     * careers - a catch-all is worse than a neutral label. A personality archetype should come
+     * from personality.
+     */
+    matches: (c) =>
+      c.seasonHistory.length >= 14 && c.stats.appearances >= 150 && hasTrait(c, 'professional'),
+  },
+  {
+    // A full professional career with some Maccabi football in it, but never the main man.
+    id: 'solid_pro',
+    title: 'שחקן של הליגה',
+    subtitle: 'קריירה מלאה, בלי אורות גדולים',
+    icon: '🎽',
+    priority: 34,
+    matches: (c) => c.stats.appearances >= 180 && m(c).appearances >= 25 && m(c).appearances < 100,
+  },
+  {
+    // A full professional career that simply happened somewhere else.
+    id: 'other_path',
+    title: 'הדרך האחרת',
+    subtitle: 'קריירה שלמה - רק לא בחיפה',
+    icon: '🚏',
+    priority: 32,
+    matches: (c) => c.stats.appearances >= 150 && m(c).appearances < 25,
   },
   {
     id: 'journeyman',

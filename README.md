@@ -159,6 +159,97 @@ a given set of decisions always reproduces the same career.
 
 ---
 
+## Career memory and story arcs (v0.3)
+
+The point of v0.3 is that the game remembers. An event should feel like a chapter, not a card.
+
+### Memory
+
+Meaningful moments are recorded as `CareerMemory { kind, season, age, stage }` from a curated
+`MemoryKind` vocabulary — `older_group_failure`, `penalty_miss`, `major_injury`,
+`released_by_maccabi`, `derby_hero`, `refused_transfer` and so on. An outcome writes one with
+`effects.remember`, and later events read it:
+
+```ts
+conditions: {
+  requiresMemory: ['penalty_miss'],
+  memoryMinSeasonsAgo: 1,   // a callback needs distance to land
+  memoryMaxSeasonsAgo: 8,   // ...and stops being interesting eventually
+}
+```
+
+Outcome weights can also key off memory and traits, not just numbers:
+
+```ts
+memoryModifiers: [{ memory: 'older_group_failure', multiplier: 0.7 }],
+traitModifiers: [{ trait: 'big_game', multiplier: 1.6 }],
+```
+
+No gameplay code knows which event wrote a memory. That is the whole point.
+
+### Story arcs
+
+An arc is an id, a stage counter and a branch label. Events declare where they sit:
+
+```ts
+// the event that opens it
+effects: { startArc: 'coach_relationship', arcBranch: 'conflict' }
+
+// a later event in the same storyline
+conditions: { requiresArc: { id: 'coach_relationship', minStage: 1, branches: ['conflict'] } }
+effects:    { advanceArc: 'coach_relationship', arcBranch: 'frozen_out' }
+
+// the resolution
+effects: { completeArc: 'coach_relationship' }
+```
+
+There is **no event-id branching anywhere in the engine**. The five arcs:
+
+| Arc | Shape |
+| --- | --- |
+| `older_group` | invited up → thrived / held own / struggled → follow-up → permanent promotion or back down |
+| `coach_relationship` | criticism → how you answered → dropped → work back or ask out → a last chance → redemption |
+| `injury_comeback` | rush the rehab or do it properly → the first duel back |
+| `position_battle` | a rival arrives → raise your game, befriend him, or change position → who gets the shirt |
+| `europe_move` | settling abroad → struggling → fight, loan, or go home |
+
+### Traits
+
+One or two hidden traits per career from a weighted pool of eight (`src/data/traits.ts`), with
+conflicting pairs excluded. They bend real curves rather than sitting on a character sheet — a
+late bloomer's growth curve shifts either side of 20, a hot head loses discipline, a big-game
+player gains rating on the big stage.
+
+Traits are **discovered, not shown**. `src/game/traitReveal.ts` reveals one when the career
+demonstrates it, and anything still hidden is named at retirement:
+
+> «המאמנים מתחילים להבין שאתה שחקן של משחקים גדולים.»
+
+### Recovery
+
+Coach trust used to be a one-way street: a bad spell cut minutes, which cut development, which
+cut trust again. Four routes back, all in `RECOVERY`:
+
+- trust drifts toward a baseline set by ability-for-level, partially each preseason and inside
+  each half-season update — history still matters, but a good player is pulled back up;
+- a strong run of form rebuilds it directly;
+- the club changes coach ~16% of seasons, the main route back for a player buried behind one
+  bad relationship;
+- the accumulated one-season minutes penalty is floored, so a bad season is bad, not terminal.
+
+Measured: 45% of senior careers hit a slump, and 49% of those are back to starter or better
+within three seasons.
+
+### Timeline and the closing story
+
+`career.milestones` records only real story beats — automatic ones in `src/game/milestones.ts`
+(first appearance, Maccabi debut, first title, moving abroad, coming home, 100/300 games) plus
+any an event writes. `ציר הזמן` renders them. At retirement `src/game/storyEngine.ts` builds a
+short narrative from what actually happened (structured templates, deterministic, no LLM) and
+picks an archetype from the *shape* of the career rather than the Legend Score.
+
+---
+
 ## Probabilistic outcomes
 
 This is the core of the game. The model is:
@@ -319,6 +410,22 @@ position, the most common endings, and a luck-validation check.
 Five decision policies model different players — `balanced`, `loyalist`, `ambitious`,
 `riskTaker` and `random` — because measuring the game by always pressing the first button tells
 you very little. `riskTaker` is an intentional extreme baseline, not a model of a real player.
+
+**Matched-seed comparison** (v0.3) answers the question the balance work exists for: do
+decisions matter, or is it just the seed? Every strategy plays the *same* seeds, so any
+difference between them is decision quality:
+
+```
+strategy        mean  median     sd   peak  seniors  beats base  vs base
+balanced        41.4    30.0   25.5   78.5    58.7%       85.4%     21.2
+loyalist        43.5    28.0   28.3   78.3    56.7%       84.3%     23.1
+ambitious       34.2    25.0   22.0   78.1    54.3%       78.0%     13.8
+riskTaker       10.2     6.0   12.9   68.1    23.7%       19.9%    -10.2
+```
+
+`beats base` is measured seed-by-seed against the `random` baseline, so 50% would mean
+decisions are irrelevant. Decision-driven spread on a fixed seed (~46) is more than twice the
+seed-driven spread for a fixed strategy (~20).
 
 **Luck validation** is part of every run and asserts the two properties the design rests on:
 the same seed reproduces a career exactly, and the same decisions on different seeds diverge.
