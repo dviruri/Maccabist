@@ -365,11 +365,15 @@ export function findRecoveries(
   window = 3,
 ): { slumps: number; recovered: number; seasonsToRecover: number[] } {
   /*
-   * The closing seasons are excluded deliberately. A 35 year old losing his place is the
-   * career ending, not a slump he failed to recover from, and counting it dragged the
-   * recovery rate down with something that is not a recovery problem at all.
+   * Senior seasons only, and not the closing two.
+   *
+   * Academy seasons are the wrong place to look: being a squad player at eleven is normal,
+   * and the ladder knocks role value down at every promotion by design, so scanning them
+   * reported that 99% of careers "slumped" and made the metric meaningless. A 35 year old
+   * losing his place is likewise the career ending rather than a slump to recover from.
    */
-  const history = career.seasonHistory.slice(0, Math.max(0, career.seasonHistory.length - 2));
+  const senior = career.seasonHistory.filter((s) => s.academyStage === 'senior');
+  const history = senior.slice(0, Math.max(0, senior.length - 2));
   let slumps = 0;
   let recovered = 0;
   const seasonsToRecover: number[] = [];

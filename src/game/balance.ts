@@ -568,10 +568,16 @@ export const TRANSFERS = {
    * than half of all careers used to end up back at Maccabi. Kept low so a homecoming is a
    * story beat rather than the default path.
    */
-  returnBaseChance: 0.006,
-  returnAgeBonusFrom: 28,
-  returnAgeBonusPerYear: 0.012,
-  returnMaccabismWeight: 0.0004,
+  /*
+   * These stay small because the offer is rolled every off-season a player spends away, so
+   * whatever looks like a modest per-season chance compounds hard across a senior career.
+   * At 0.006/0.0004/0.012 the per-season chance was only ~5%, and 39% of all careers still
+   * ended up coming home - which makes a homecoming routine rather than a story.
+   */
+  returnBaseChance: 0.004,
+  returnAgeBonusFrom: 29,
+  returnAgeBonusPerYear: 0.006,
+  returnMaccabismWeight: 0.0002,
   /** Maccabi only comes calling for a player who could actually hold a place in the side. */
   returnAbilityMargin: 8,
 };

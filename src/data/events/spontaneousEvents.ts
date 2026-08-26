@@ -623,11 +623,11 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
     description:
       'נחיתה לא נכונה. הרופא מדבר לאט מדי בשביל שזה יהיה משהו קטן. המילה "ניתוח" נאמרה בחדר.',
     category: 'injury',
-    // Genuinely rare: a career-shaping injury should not happen to nine careers in ten.
+    // Genuinely rare: a career-shaping injury should not happen to most careers.
     rarity: 'rare',
     conditions: { bands: ['teens', 'u19', 'senior'], minAge: 14 },
-    weight: 9,
-    cooldownSeasons: 9,
+    weight: 5,
+    cooldownSeasons: 12,
     choices: [
       {
         id: 'rush',
