@@ -9,7 +9,9 @@
 import { getClub } from '../data/clubs';
 import { TROPHY_DEFS } from '../data/trophies';
 import type { Career, SeasonRecord, SeasonStats, Trophy } from '../types';
-import { POSITIONS, SEASON } from './balance';
+import { POSITIONS, SEASON, TRAITS } from './balance';
+import { hasTrait } from './memory';
+import { checkMilestones } from './milestones';
 import {
   applyHalfProgression,
   checkAchievements,
@@ -61,7 +63,12 @@ export function simulateHalfStats(career: Career, rng: Rng, games: number): Simu
   const level = levelContext(career);
   const config = POSITIONS[career.position];
 
-  const injuryChance = clamp(career.hidden.injuryRisk / SEASON.injuryDivisor, 0.02, 0.6) as number;
+  const injuryProne = hasTrait(career, 'injury_prone') ? TRAITS.injuryProneRisk : 1;
+  const injuryChance = clamp(
+    (career.hidden.injuryRisk / SEASON.injuryDivisor) * injuryProne,
+    0.02,
+    0.6,
+  ) as number;
   const injuredGames = rng.chance(injuryChance * 0.6)
     ? Math.min(games, rng.int(SEASON.injuryGamesMin, SEASON.injuryGamesMax))
     : 0;
@@ -118,6 +125,9 @@ export function simulateHalfStats(career: Career, rng: Rng, games: number): Simu
   } else {
     rating -= 6; // barely played - nobody rates you highly
   }
+
+  // The bigger the stage, the better some players get.
+  if (hasTrait(career, 'big_game') && level.prestige >= 55) rating += TRAITS.bigGameRating;
 
   rating += rng.gaussian(0, SEASON.ratingNoise);
   rating = clamp(rating, 20, 99) as number;
@@ -308,6 +318,8 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   const checked = checkAchievements(next);
   next = checked.career;
   next.lastAchievements = checked.unlocked;
+  // The structural story beats fall out of the season, not out of events.
+  next = checkMilestones(next).career;
 
   return { career: next, record };
 }

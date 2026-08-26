@@ -19,6 +19,7 @@ import type {
 } from '../types';
 import { EVENTS } from './balance';
 import { matchesConditions, type ConditionContext } from './conditions';
+import { hasMemory, hasTrait } from './memory';
 import type { Rng } from './random';
 import { abilityVsLevel } from './rules';
 
@@ -91,6 +92,15 @@ export function calculateOutcomeWeights(
         weight *= modifier.multiplier;
         applied.push(modifier);
       }
+    }
+
+    // Who the player is, and what already happened to him, tilt the odds too.
+    for (const modifier of outcome.traitModifiers ?? []) {
+      if (hasTrait(career, modifier.trait)) weight *= modifier.multiplier;
+    }
+    for (const modifier of outcome.memoryModifiers ?? []) {
+      const present = hasMemory(career, modifier.memory);
+      if (present !== (modifier.absent === true)) weight *= modifier.multiplier;
     }
 
     // Risk should buy variance, not a worse bet - see EVENTS.riskyUpsideBoost.

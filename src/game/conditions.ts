@@ -5,6 +5,15 @@
 
 import { stageBand } from '../data/academy';
 import type { Career, EventConditions } from '../types';
+import {
+  activeArc,
+  hasCompletedArc,
+  hasMemory,
+  hasTrait,
+  matchesArc,
+  seasonsSinceMemory,
+  seniorPhase,
+} from './memory';
 import { isAtMaccabi, isAtMaccabiSenior, isOnLoan, isPlayingAbroad } from './rules';
 
 export interface ConditionContext {
@@ -53,6 +62,27 @@ export function matchesConditions(
 
   if (c.requiresFlags && !c.requiresFlags.every((f) => career.flags.includes(f))) return false;
   if (c.forbidsFlags && c.forbidsFlags.some((f) => career.flags.includes(f))) return false;
+
+  /* ---------- v0.3: what the career remembers ---------- */
+  if (c.requiresMemory) {
+    for (const kind of c.requiresMemory) {
+      const ago = seasonsSinceMemory(career, kind);
+      if (ago === null) return false;
+      // A callback needs distance to land, and staleness to stop being interesting.
+      if (c.memoryMinSeasonsAgo !== undefined && ago < c.memoryMinSeasonsAgo) return false;
+      if (c.memoryMaxSeasonsAgo !== undefined && ago > c.memoryMaxSeasonsAgo) return false;
+    }
+  }
+  if (c.forbidsMemory && c.forbidsMemory.some((kind) => hasMemory(career, kind))) return false;
+
+  if (c.requiresArc && !matchesArc(career, c.requiresArc)) return false;
+  if (c.forbidsActiveArc && activeArc(career, c.forbidsActiveArc) !== null) return false;
+  if (c.requiresCompletedArc && !hasCompletedArc(career, c.requiresCompletedArc)) return false;
+
+  if (c.requiresTrait && !c.requiresTrait.every((t) => hasTrait(career, t))) return false;
+  if (c.minLeadership !== undefined && career.hidden.leadership < c.minLeadership) return false;
+
+  if (c.seniorPhases && !c.seniorPhases.includes(seniorPhase(career))) return false;
 
   return true;
 }

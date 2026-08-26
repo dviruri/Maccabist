@@ -7,6 +7,7 @@
 import { stageAfter, stageBand, stageConfig, stageLabel, stageOrder } from '../data/academy';
 import { ACHIEVEMENT_DEFS } from '../data/achievements';
 import { getClub, MACCABI_ID, isMaccabiSenior } from '../data/clubs';
+import { TRAITS_BY_ID } from '../data/traits';
 import type {
   AcademyStage,
   Achievement,
@@ -16,8 +17,10 @@ import type {
   EventEffects,
   ProgressionResult,
   SeasonStats,
+  TraitId,
 } from '../types';
-import { COACH_TRUST, PROGRESSION, PROMOTION, SEASON } from './balance';
+import { COACH_TRUST, PROGRESSION, PROMOTION, RECOVERY, SEASON, TRAITS } from './balance';
+import { advanceArc, hasTrait, recordMemory, startArc } from './memory';
 import { clamp, round, type Rng } from './random';
 import { levelContext, roleFromValue } from './rules';
 
@@ -36,6 +39,11 @@ export function cloneCareer(career: Career): Career {
     achievements: [...career.achievements],
     eventsHistory: [...career.eventsHistory],
     flags: [...career.flags],
+    memories: [...career.memories],
+    arcs: career.arcs.map((arc) => ({ ...arc })),
+    completedArcs: [...career.completedArcs],
+    traits: career.traits.map((trait) => ({ ...trait })),
+    milestones: [...career.milestones],
     pendingEventIds: [...career.pendingEventIds],
     plannedEvents: career.plannedEvents.map((p) => ({ ...p })),
     pendingOffers: [...career.pendingOffers],
@@ -179,6 +187,33 @@ export function applyEffects(career: Career, effects: EventEffects, rng: Rng): E
   }
 
   if (effects.captain !== undefined) next.captain = effects.captain;
+  if (effects.leadership) next.hidden.leadership = clamp(next.hidden.leadership + effects.leadership);
+
+  /* ---------- v0.3: memory, arcs, traits, timeline ---------- */
+  if (effects.remember) next.memories = recordMemory(next, effects.remember);
+
+  if (effects.startArc) {
+    next.arcs = startArc(next, effects.startArc, effects.arcBranch ?? 'default');
+  } else if (effects.advanceArc) {
+    next.arcs = advanceArc(next, effects.advanceArc, effects.arcBranch);
+  }
+
+  if (effects.completeArc) {
+    const id = effects.completeArc;
+    next.arcs = next.arcs.filter((arc) => arc.id !== id);
+    if (!next.completedArcs.includes(id)) next.completedArcs = [...next.completedArcs, id];
+  }
+
+  if (effects.revealTrait) next = revealTrait(next, effects.revealTrait);
+
+  if (effects.milestone) {
+    next = addMilestone(next, {
+      id: effects.milestone.id,
+      icon: effects.milestone.icon,
+      text: effects.milestone.text,
+      major: effects.milestone.major ?? false,
+    });
+  }
 
   if (effects.transferTo && effects.transferTo !== next.currentClubId) {
     next = moveToClub(next, effects.transferTo);
@@ -197,6 +232,53 @@ export function applyEffects(career: Career, effects: EventEffects, rng: Rng): E
   }
 
   return { career: next, deltas: diffCareer(before, next), achievements };
+}
+
+/* ------------------------------------------------------------------ */
+/* Traits and milestones                                               */
+/* ------------------------------------------------------------------ */
+
+/** Reveals a trait the player actually has. Revealing one he lacks is a no-op. */
+export function revealTrait(career: Career, id: TraitId): Career {
+  if (!hasTrait(career, id)) return career;
+  const existing = career.traits.find((t) => t.id === id);
+  if (existing?.revealed) return career;
+
+  const next = cloneCareer(career);
+  next.traits = next.traits.map((t) =>
+    t.id === id ? { ...t, revealed: true, revealedSeason: career.currentSeason } : t,
+  );
+  const def = TRAITS_BY_ID[id];
+  return addMilestone(next, {
+    id: `trait_${id}`,
+    icon: def.icon,
+    text: def.reveal,
+    major: false,
+  });
+}
+
+/**
+ * Adds a story beat to the timeline. Milestones are deduplicated by id, so a "first senior
+ * appearance" can be checked every season without piling up.
+ */
+export function addMilestone(
+  career: Career,
+  milestone: { id: string; icon: string; text: string; major: boolean },
+): Career {
+  if (career.milestones.some((m) => m.id === milestone.id)) return career;
+  const next = cloneCareer(career);
+  next.milestones = [
+    ...next.milestones,
+    {
+      id: milestone.id,
+      season: career.currentSeason,
+      age: career.age,
+      icon: milestone.icon,
+      text: milestone.text,
+      major: milestone.major,
+    },
+  ];
+  return next;
 }
 
 export function addFlag(career: Career, flag: CareerFlag): Career {
@@ -273,10 +355,18 @@ export function updateCoachTrust(career: Career, ctx: HalfContext): number {
   const minutes = (ctx.minutesShare - 0.45) * COACH_TRUST.minutesWeight;
   const discipline =
     (career.hidden.discipline - COACH_TRUST.disciplinePivot) * COACH_TRUST.disciplineWeight;
-  const drift = (COACH_TRUST.driftTarget - career.coachTrust) * COACH_TRUST.drift;
+  // Drift towards where this player's ability says he belongs, not a flat mid-table number,
+  // so a good player who lost favour has a way back.
+  const drift = (coachTrustBaseline(career) - career.coachTrust) * COACH_TRUST.drift;
+
+  // Playing genuinely well is the fastest route back into a coach's plans.
+  const earnedItBack =
+    ctx.stats.rating >= RECOVERY.formRecoveryRating && ctx.stats.appearances >= 5
+      ? RECOVERY.formRecoveryBonus
+      : 0;
 
   const move = clamp(
-    performance + minutes + discipline + drift,
+    performance + minutes + discipline + drift + earnedItBack,
     -COACH_TRUST.maxMovePerHalf,
     COACH_TRUST.maxMovePerHalf,
   );
@@ -304,6 +394,15 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
     const disciplineFactor = 0.85 + (next.hidden.discipline / 100) * 0.3;
     const olderGroupFactor = SEASON.olderGroupDevelopment[next.olderGroup];
 
+    // Traits bend the curve rather than replacing it.
+    const traitFactor =
+      (hasTrait(career, 'hard_worker') ? TRAITS.hardWorkerGrowth : 1) *
+      (hasTrait(career, 'late_bloomer')
+        ? career.age < TRAITS.lateBloomerTurnAge
+          ? TRAITS.lateBloomerEarlyGrowth
+          : TRAITS.lateBloomerLateGrowth
+        : 1);
+
     const common =
       Math.max(0.35, clubFactor) *
       Math.max(0.3, minutesFactor) *
@@ -311,6 +410,7 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
       Math.max(0.6, trustFactor) *
       disciplineFactor *
       olderGroupFactor *
+      traitFactor *
       rng.range(0.82, 1.2);
 
     if (gap > 0) {
@@ -390,6 +490,26 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
   );
   next.hidden.pressure = clamp(next.hidden.pressure * 0.95 + (next.roleValue - 50) * 0.04);
 
+  // A hot head keeps finding the referee.
+  if (hasTrait(career, 'hot_headed')) {
+    next.hidden.discipline = clamp(next.hidden.discipline + TRAITS.hotHeadedDiscipline * fraction * 2);
+  }
+  // A professional does not spiral - his form has a floor.
+  if (hasTrait(career, 'professional')) {
+    next.hidden.form = Math.max(next.hidden.form, TRAITS.professionalFormFloor + 30);
+  }
+  /*
+   * Standing in the dressing room grows with age, status and time served, and is what the
+   * armband actually keys off. Slow by design: it should take most of a career to become
+   * the man everyone looks at.
+   */
+  const leadershipGain =
+    (career.age >= 22 ? 0.9 : 0.35) +
+    (next.roleValue - 55) * 0.035 +
+    (stats.appearances >= 10 ? 0.5 : 0) +
+    (hasTrait(career, 'leader') ? 0.7 : 0);
+  next.hidden.leadership = clamp(next.hidden.leadership + leadershipGain * fraction * 2);
+
   next.ability = round(next.ability, 2);
   next.coachTrust = round(next.coachTrust, 2);
   next.maccabism = round(next.maccabism, 2);
@@ -397,6 +517,55 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
   next.roleValue = round(next.roleValue, 2);
 
   return next;
+}
+
+/* ------------------------------------------------------------------ */
+/* Recovery (v0.3)                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The trust level a coach would land on for this player if he had no history with him:
+ * driven by how good he actually is for the level, plus a little credit for years served.
+ *
+ * This is what stops the trust spiral. Previously a bad spell cut minutes, which cut
+ * development, which cut trust again, with no floor - a single bad run could quietly end a
+ * career. Now a genuinely good player pulls back towards where he belongs.
+ */
+export function coachTrustBaseline(career: Career): number {
+  const level = levelContext(career);
+  const edge = career.ability - level.quality;
+  const seasons = Math.min(career.maccabi.seasons, RECOVERY.baselineSeasonsCap);
+  return clamp(
+    RECOVERY.baselineAnchor +
+      edge * RECOVERY.baselineAbilityWeight +
+      seasons * RECOVERY.baselineSeasonsWeight,
+  );
+}
+
+/**
+ * Applied at the start of every season. Deliberately partial - a player who lost the
+ * dressing room does not arrive in August with a clean slate, he arrives closer to where his
+ * ability says he should be.
+ */
+export function driftTrustTowardsBaseline(career: Career, strength: number): Career {
+  const baseline = coachTrustBaseline(career);
+  const next = cloneCareer(career);
+  next.coachTrust = round(clamp(career.coachTrust + (baseline - career.coachTrust) * strength), 2);
+  return next;
+}
+
+/**
+ * The club changes coach. The single most useful thing that can happen to a player stuck
+ * behind one bad relationship - and a real risk to a player who was the last coach's favourite.
+ */
+export function maybeChangeCoach(career: Career, rng: Rng): { career: Career; changed: boolean } {
+  if (!rng.chance(RECOVERY.coachChangeChance)) return { career, changed: false };
+
+  let next = driftTrustTowardsBaseline(career, RECOVERY.coachChangeDrift);
+  next = cloneCareer(next);
+  // A new man in charge does not inherit the old man's favourites.
+  next.flags = next.flags.filter((f) => f !== 'coach_favourite');
+  return { career: next, changed: true };
 }
 
 /** Clears the one-season modifiers once the season is fully over. */

@@ -15,22 +15,30 @@
 import { FIRST_STAGE, stageConfig } from '../data/academy';
 import { MACCABI_ACADEMY_ID, getClub } from '../data/clubs';
 import { EVENTS_BY_ID } from '../data/events';
-import type { AttributeDelta, Career, Position, SeasonSlot } from '../types';
+import { TRAIT_DEFS } from '../data/traits';
+import type { AttributeDelta, Career, CareerTrait, Position, SeasonSlot, TraitId } from '../types';
 import {
+  CAPTAINCY,
+  RECOVERY,
   RETIREMENT_FORCED_AGE,
   RETIREMENT_MIN_AGE,
   START,
   START_AGE,
   START_SEASON_MAX,
   START_SEASON_MIN,
+  TRAITS,
 } from './balance';
 import { planSeason, resolveEventChoice } from './eventEngine';
 import { computeLegendScore } from './legendEngine';
+import { hasTrait } from './memory';
 import {
+  addMilestone,
   applyEffects,
   checkAchievements,
   cloneCareer,
+  driftTrustTowardsBaseline,
   endOfSeasonReset,
+  maybeChangeCoach,
   resolveAcademyProgression,
 } from './progressionEngine';
 import { clamp, createRng, randomSeed, round, type Rng } from './random';
@@ -47,7 +55,8 @@ import {
   verdictToProgression,
 } from './transferEngine';
 
-export const SCHEMA_VERSION = 2;
+/** Bumped for v0.3: career memory, story arcs, traits, leadership and milestones. */
+export const SCHEMA_VERSION = 3;
 
 /** Runs `fn` with a fresh Rng seeded from the career and stores the advanced state back. */
 function withRng<T extends { rngState: number }>(career: T, fn: (rng: Rng) => T): T {
@@ -76,6 +85,11 @@ export function createCareer(input: NewCareerInput): Career {
     ? rng.int(START.wonderkidPotentialMin, START.wonderkidPotentialMax)
     : rng.int(START.potentialMin, START.potentialMax);
 
+  const traits = rollTraits(rng);
+  const hasLeaderTrait = traits.some((t) => t.id === 'leader');
+  const hasSelfBelief = traits.some((t) => t.id === 'self_believer');
+  const hasInjuryProne = traits.some((t) => t.id === 'injury_prone');
+
   const career: Career = {
     id: `career_${seed.toString(36)}_${Date.now().toString(36)}`,
     schemaVersion: SCHEMA_VERSION,
@@ -92,10 +106,12 @@ export function createCareer(input: NewCareerInput): Career {
     hidden: {
       potential,
       form: START.form + rng.int(-6, 6),
-      confidence: START.confidence + rng.int(-6, 6),
-      injuryRisk: START.injuryRisk + rng.int(-6, 8),
+      confidence:
+        START.confidence + rng.int(-6, 6) + (hasSelfBelief ? TRAITS.selfBelieverConfidence : 0),
+      injuryRisk: START.injuryRisk + rng.int(-6, 8) + (hasInjuryProne ? 10 : 0),
       discipline: START.discipline + rng.int(-10, 12),
       pressure: START.pressure + rng.int(-8, 8),
+      leadership: START.leadership + rng.int(-12, 12) + (hasLeaderTrait ? TRAITS.leaderLeadership : 0),
       minutesModifier: 1,
       transferBoost: 0,
       promotionBoost: 0,
@@ -148,7 +164,23 @@ export function createCareer(input: NewCareerInput): Career {
     eventsHistory: [],
     flags: [],
 
+    memories: [],
+    arcs: [],
+    completedArcs: [],
+    traits,
+    milestones: [
+      {
+        id: 'joined_academy',
+        season: 0,
+        age: START_AGE,
+        icon: '💚',
+        text: 'הצטרפת למחלקת הנוער של מכבי חיפה',
+        major: true,
+      },
+    ],
+
     phase: 'preseason',
+    newCoachThisSeason: false,
     seasonSlot: 'early',
     pendingEventIds: [],
     plannedEvents: [],
@@ -173,7 +205,37 @@ export function createCareer(input: NewCareerInput): Career {
   career.startSeason = career.currentSeason;
   career.peakAbility = career.ability;
   career.role = roleFromValue(career.roleValue);
+  // The opening milestone is written before the start season is known.
+  career.milestones = career.milestones.map((m) => ({ ...m, season: career.currentSeason }));
   return career;
+}
+
+/**
+ * One or two hidden traits. They stay unrevealed until the career shows them, which is far
+ * more satisfying than handing the player a character sheet at age nine.
+ */
+function rollTraits(rng: Rng): CareerTrait[] {
+  const first = rng.weighted(TRAIT_DEFS, (t) => t.weight);
+  if (!first) return [];
+
+  const traits: CareerTrait[] = [{ id: first.id, revealed: false, revealedSeason: null }];
+  if (rng.chance(TRAITS.secondTraitChance)) {
+    const second = rng.weighted(
+      TRAIT_DEFS.filter((t) => t.id !== first.id && !conflictsWith(first.id, t.id)),
+      (t) => t.weight,
+    );
+    if (second) traits.push({ id: second.id, revealed: false, revealedSeason: null });
+  }
+  return traits;
+}
+
+/** Some pairs would read as nonsense together. */
+function conflictsWith(a: TraitId, b: TraitId): boolean {
+  const pairs: ReadonlyArray<readonly [TraitId, TraitId]> = [
+    ['professional', 'hot_headed'],
+    ['self_believer', 'late_bloomer'],
+  ];
+  return pairs.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
 }
 
 /* ------------------------------------------------------------------ */
@@ -272,10 +334,21 @@ function advanceSeasonFlow(career: Career): Career {
   });
 }
 
-/** Preseason -> plan the season's decision points and start it. */
+/** Preseason -> partial recovery, then plan the season's decision points and start it. */
 export function beginSeason(career: Career): Career {
   const prepared = withRng(career, (rng) => {
-    let next = snapshotOpening(career);
+    /*
+     * Recovery happens before the snapshot, so the season summary shows movement from where
+     * the player actually starts the year. Trust drifts part of the way back towards what his
+     * ability deserves, and the club occasionally changes coach - which is the main way a
+     * player buried by one bad relationship gets a fresh look.
+     */
+    let next = driftTrustTowardsBaseline(career, RECOVERY.seasonDriftToBaseline);
+    const coach = maybeChangeCoach(next, rng);
+    next = coach.career;
+
+    next = snapshotOpening(next);
+    next.newCoachThisSeason = coach.changed;
     next.plannedEvents = planSeason(next, rng);
     next.lastEventResult = null;
     next.lastAchievements = [];
@@ -385,14 +458,37 @@ export function rejectOffers(career: Career): Career {
 /* Year rollover + retirement                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The armband.
+ *
+ * Used to fall out of role value alone, which meant it happened to roughly every successful
+ * Maccabi player. It now needs standing in the dressing room (hidden leadership) as well as
+ * quality on the pitch, plus years served and a coach who rates you - and even then someone
+ * else makes the call.
+ */
 function maybeAwardCaptaincy(career: Career, rng: Rng): Career {
   if (career.captain) return career;
   if (!isAtMaccabiSenior(career)) return career;
   if (career.flags.includes('refused_captaincy')) return career;
-  if (career.roleValue < 82 || career.maccabi.seasons < 4) return career;
-  if (!rng.chance(0.45)) return career;
-  const next = cloneCareer(career);
+
+  const c = CAPTAINCY;
+  if (career.roleValue < c.minRoleValue) return career;
+  if (career.hidden.leadership < c.minLeadership) return career;
+  if (career.maccabi.seasons < c.minMaccabiSeasons) return career;
+  if (career.age < c.minAge) return career;
+  if (career.coachTrust < c.minCoachTrust) return career;
+
+  const chance = c.chance + (hasTrait(career, 'leader') ? c.leaderTraitBonus : 0);
+  if (!rng.chance(chance)) return career;
+
+  let next = cloneCareer(career);
   next.captain = true;
+  next = addMilestone(next, {
+    id: 'became_captain',
+    icon: '👑',
+    text: 'מונית לקפטן של מכבי חיפה',
+    major: true,
+  });
   return next;
 }
 

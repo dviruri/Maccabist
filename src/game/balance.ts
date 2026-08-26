@@ -182,6 +182,8 @@ export const START = {
   discipline: 60,
   injuryRisk: 16,
   pressure: 38,
+  /** Dressing-room standing at nine years old - barely formed, and it grows with the career. */
+  leadership: 34,
 };
 
 /* ------------------------------------------------------------------ */
@@ -348,9 +350,9 @@ export const YOUTH_TO_SENIOR = {
    * to a real academy's attrition than to a game anyone wants to replay - the fantasy has to
    * be reachable while still being the minority outcome.
    */
-  contractThreshold: 50,
-  loanThreshold: 40,
-  anotherYearThreshold: 33,
+  contractThreshold: 62,
+  loanThreshold: 52,
+  anotherYearThreshold: 44,
   /** Chance a contract offer comes bundled with a loan recommendation. */
   loanRecommendationChance: 0.42,
 };
@@ -400,6 +402,106 @@ export const EVENTS = {
   lateSlotChance: 0.45,
   /** Two injury or discipline events back to back feels punishing - block it. */
   blockedRepeatCategories: ['injury', 'discipline'] as const,
+};
+
+/* ------------------------------------------------------------------ */
+/* Senior career phases (v0.3)                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Thresholds for the derived senior phase, which decides which slice of the senior event
+ * pool a player sees. Derived from what he has actually done, not just his age.
+ */
+export const SENIOR_PHASES = {
+  /** Still a breakthrough story below this many career appearances... */
+  breakthroughAppearances: 45,
+  /** ...as long as he is not already too old for it to read as a breakthrough. */
+  breakthroughMaxAge: 24,
+  primeMinAge: 24,
+  primeRole: 62,
+  veteranAge: 32,
+  /** A fading 30-31 year old is already living the veteran story. */
+  veteranRole: 52,
+};
+
+/* ------------------------------------------------------------------ */
+/* Recovery (v0.3)                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Coach trust used to be a one-way street: a bad spell cut minutes, which cut development,
+ * which cut trust again, and the career never came back. These give a player real routes out
+ * without erasing what happened.
+ */
+export const RECOVERY = {
+  /**
+   * At the start of each season trust drifts towards a baseline set by how good the player
+   * actually is for the level. Deliberately partial - history still matters.
+   */
+  seasonDriftToBaseline: 0.3,
+  /** The baseline itself, before the ability-for-level adjustment. */
+  baselineAnchor: 48,
+  /** How much being better (or worse) than the level moves the baseline. */
+  baselineAbilityWeight: 0.55,
+  /** A trusted veteran keeps some credit in the bank. */
+  baselineSeasonsWeight: 0.8,
+  baselineSeasonsCap: 6,
+
+  /** Chance per season that the club changes coach, giving a stuck player a clean-ish slate. */
+  coachChangeChance: 0.16,
+  /** How far a new coach pulls trust back towards the baseline. */
+  coachChangeDrift: 0.65,
+
+  /** A run of good form rebuilds trust faster than the normal drift. */
+  formRecoveryRating: 68,
+  formRecoveryBonus: 3.5,
+};
+
+/* ------------------------------------------------------------------ */
+/* Captaincy (v0.3)                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Captaincy came out of role value alone, so it happened to roughly every successful Maccabi
+ * player. It now needs standing in the dressing room as well as quality on the pitch.
+ */
+export const CAPTAINCY = {
+  minRoleValue: 76,
+  minLeadership: 70,
+  minMaccabiSeasons: 5,
+  minAge: 25,
+  minCoachTrust: 60,
+  /** Even when everything lines up, the armband is a decision someone else makes. */
+  chance: 0.26,
+  /** Being the obvious leader in the room makes it likelier. */
+  leaderTraitBonus: 0.22,
+};
+
+/* ------------------------------------------------------------------ */
+/* Traits (v0.3)                                                       */
+/* ------------------------------------------------------------------ */
+
+export const TRAITS = {
+  /** Chance a career gets a second trait on top of its first. */
+  secondTraitChance: 0.38,
+  /** Growth multiplier for a late bloomer before/after the turn. */
+  lateBloomerEarlyGrowth: 0.82,
+  lateBloomerLateGrowth: 1.3,
+  lateBloomerTurnAge: 20,
+  /** Multiplier on injury rolls. */
+  injuryProneRisk: 1.5,
+  /** Discipline drift for a hot head, per half season. */
+  hotHeadedDiscipline: -1.6,
+  /** Extra development for a hard worker. */
+  hardWorkerGrowth: 1.12,
+  /** A professional loses less form and recovers confidence faster. */
+  professionalFormFloor: 6,
+  /** Confidence baseline shift for a self-believer. */
+  selfBelieverConfidence: 8,
+  /** Leadership head start. */
+  leaderLeadership: 18,
+  /** Rating bonus in the big moments. */
+  bigGameRating: 4,
 };
 
 /* ------------------------------------------------------------------ */

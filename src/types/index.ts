@@ -215,6 +215,136 @@ export type CareerFlag =
   | 'tournament_star'
   | 'released_by_maccabi';
 
+/* ------------------------------------------------------------------ */
+/* Career memory (v0.3)                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A meaningful thing that happened, which later events are allowed to reference.
+ *
+ * Deliberately a small curated vocabulary rather than a bag of booleans on the Career: an
+ * event declares the memory it needs, the engine looks it up, and no gameplay code has to
+ * know which specific event wrote it.
+ */
+export type MemoryKind =
+  // academy
+  | 'early_promotion'
+  | 'repeated_a_year'
+  | 'academy_captain'
+  | 'older_group_success'
+  | 'older_group_failure'
+  | 'first_team_noticed'
+  | 'tournament_star'
+  // setbacks
+  | 'lost_starting_role'
+  | 'major_injury'
+  | 'coach_conflict'
+  | 'penalty_miss'
+  | 'big_mistake'
+  | 'confidence_crisis'
+  // highs
+  | 'derby_hero'
+  | 'cup_final_hero'
+  | 'european_night'
+  | 'title_winner'
+  | 'goal_streak'
+  // career direction
+  | 'left_young'
+  | 'left_established'
+  | 'released_by_maccabi'
+  | 'returned_home'
+  | 'rejected_maccabi'
+  | 'refused_transfer'
+  | 'forced_transfer'
+  | 'struggled_abroad'
+  | 'loan_success';
+
+export interface CareerMemory {
+  kind: MemoryKind;
+  season: number;
+  age: number;
+  stage: AcademyStage;
+  /** Optional detail for templating, e.g. a club name. */
+  detail?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Story arcs (v0.3)                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Multi-event storylines. An arc is just an id, a stage counter and a branch label; the
+ * events themselves declare where they sit in the arc, so adding an arc is data work.
+ */
+export type ArcId =
+  | 'coach_relationship'
+  | 'older_group'
+  | 'injury_comeback'
+  | 'position_battle'
+  | 'europe_move'
+  | 'contract_standoff'
+  | 'homecoming';
+
+export interface ActiveArc {
+  id: ArcId;
+  /** How far along the arc is. Events gate on this. */
+  stage: number;
+  startedSeason: number;
+  /** Which way the story went, so follow-ups can differ. */
+  branch: string;
+}
+
+/** What an event needs from an arc in order to appear. */
+export interface ArcRequirement {
+  id: ArcId;
+  minStage?: number;
+  maxStage?: number;
+  /** Only for these branches. */
+  branches?: string[];
+  /** Minimum seasons since the arc started - lets a callback land later, not next week. */
+  minSeasonsSinceStart?: number;
+}
+
+/* ------------------------------------------------------------------ */
+/* Traits (v0.3)                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A small personality layer - one or two per career, not a Football Manager attribute sheet.
+ * Traits start hidden and are revealed through narrative, which is far more satisfying than
+ * showing a character sheet to a nine year old.
+ */
+export type TraitId =
+  | 'professional'
+  | 'leader'
+  | 'big_game'
+  | 'late_bloomer'
+  | 'injury_prone'
+  | 'hot_headed'
+  | 'hard_worker'
+  | 'self_believer';
+
+export interface CareerTrait {
+  id: TraitId;
+  revealed: boolean;
+  revealedSeason: number | null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Milestones (v0.3)                                                   */
+/* ------------------------------------------------------------------ */
+
+/** A story beat worth putting on the career timeline. Not every event qualifies. */
+export interface Milestone {
+  id: string;
+  season: number;
+  age: number;
+  icon: string;
+  text: string;
+  /** Worth highlighting in the timeline and the retirement story. */
+  major: boolean;
+}
+
 export interface EventConditions {
   minAge?: number;
   maxAge?: number;
@@ -250,7 +380,34 @@ export interface EventConditions {
   maxLastAppearances?: number;
   requiresFlags?: CareerFlag[];
   forbidsFlags?: CareerFlag[];
+
+  /* ---------- v0.3: memory, arcs, traits ---------- */
+  /** Every one of these must have happened at some point. */
+  requiresMemory?: MemoryKind[];
+  /** None of these may have happened. */
+  forbidsMemory?: MemoryKind[];
+  /** The required memory must be at least this many seasons old - callbacks need distance. */
+  memoryMinSeasonsAgo?: number;
+  /** ...and no older than this, so a callback stays relevant. */
+  memoryMaxSeasonsAgo?: number;
+  /** The player must be inside this arc, at the given stage/branch. */
+  requiresArc?: ArcRequirement;
+  /** Not while this arc is still running. */
+  forbidsActiveArc?: ArcId;
+  /** Only after this arc finished. */
+  requiresCompletedArc?: ArcId;
+  /** The player must have this trait (revealed or not). */
+  requiresTrait?: TraitId[];
+  minLeadership?: number;
+  /** Senior career phase, so the senior pool can evolve with the player. */
+  seniorPhases?: SeniorPhase[];
 }
+
+/**
+ * Where a senior player is in his professional life. Derived from age, role and appearances -
+ * never stored - so the senior event pool changes shape as the career moves on.
+ */
+export type SeniorPhase = 'breakthrough' | 'established' | 'prime' | 'veteran';
 
 /** Attributes an outcome weight modifier can read. */
 export type ModifierAttribute =
@@ -278,6 +435,20 @@ export interface OutcomeModifier {
   above?: number;
   /** Applies when the attribute is strictly below this value. */
   below?: number;
+  multiplier: number;
+}
+
+/** Weight tuning that keys off a trait rather than a number. */
+export interface TraitModifier {
+  trait: TraitId;
+  multiplier: number;
+}
+
+/** Weight tuning that keys off something that happened earlier in the career. */
+export interface MemoryModifier {
+  memory: MemoryKind;
+  /** Applies when the memory is absent instead of present. */
+  absent?: boolean;
   multiplier: number;
 }
 
@@ -310,6 +481,23 @@ export interface EventEffects {
   achievement?: string;
   transferTo?: string;
   captain?: boolean;
+
+  /* ---------- v0.3 ---------- */
+  /** Record something the rest of the career is allowed to remember. */
+  remember?: MemoryKind;
+  /** Open a storyline. */
+  startArc?: ArcId;
+  /** Which way the story went - read by later events in the same arc. */
+  arcBranch?: string;
+  /** Push the current arc one step forward. */
+  advanceArc?: ArcId;
+  /** Close the storyline out. */
+  completeArc?: ArcId;
+  /** Reveal a trait the player has, if he has it. */
+  revealTrait?: TraitId;
+  leadership?: number;
+  /** Put a beat on the career timeline. */
+  milestone?: { id: string; icon: string; text: string; major?: boolean };
 }
 
 export interface EventOutcome {
@@ -319,6 +507,9 @@ export interface EventOutcome {
   /** Outcome is impossible unless these hold. */
   conditions?: EventConditions;
   modifiers?: OutcomeModifier[];
+  /** Weight tuning from traits and from what happened earlier in the career. */
+  traitModifiers?: TraitModifier[];
+  memoryModifiers?: MemoryModifier[];
   tone: Tone;
   /** Short Hebrew narrative - the story comes first, numbers second. */
   text: string;
@@ -458,6 +649,11 @@ export interface HiddenAttributes {
   injuryRisk: number;
   discipline: number;
   pressure: number;
+  /**
+   * Dressing-room standing. Drives captaincy, which used to fall out of role value alone and
+   * so happened to almost every successful player. Never shown as a bar.
+   */
+  leadership: number;
   /** One-season multiplier on playing time (from events). */
   minutesModifier: number;
   transferBoost: number;
@@ -510,7 +706,17 @@ export interface Career {
   eventsHistory: CareerEventResult[];
   flags: CareerFlag[];
 
+  /* ---------- v0.3: the career remembers itself ---------- */
+  memories: CareerMemory[];
+  arcs: ActiveArc[];
+  completedArcs: ArcId[];
+  traits: CareerTrait[];
+  /** Meaningful story beats, for the timeline and the retirement narrative. */
+  milestones: Milestone[];
+
   phase: CareerPhase;
+  /** A new coach arrived this preseason - events can react, and the UI can mention it. */
+  newCoachThisSeason: boolean;
   /** Which part of the season the loop is in. */
   seasonSlot: SeasonSlot;
   pendingEventIds: string[];
