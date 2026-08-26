@@ -3,6 +3,7 @@ import { ACADEMY_EVENTS } from './academyEvents';
 import { ARC_EVENTS } from './arcEvents';
 import { POSITION_EVENTS } from './positionEvents';
 import { SENIOR_EVENTS } from './seniorEvents';
+import { SENIOR_PHASE_EVENTS } from './seniorPhaseEvents';
 import { SPONTANEOUS_EVENTS } from './spontaneousEvents';
 
 /**
@@ -18,6 +19,7 @@ export const EVENT_POOL: GameEvent[] = [
   ...POSITION_EVENTS,
   ...SPONTANEOUS_EVENTS,
   ...SENIOR_EVENTS,
+  ...SENIOR_PHASE_EVENTS,
 ];
 
 export const EVENTS_BY_ID: Record<string, GameEvent> = Object.fromEntries(
@@ -30,4 +32,11 @@ export function getEvent(id: string): GameEvent {
   return event;
 }
 
-export { ACADEMY_EVENTS, ARC_EVENTS, POSITION_EVENTS, SENIOR_EVENTS, SPONTANEOUS_EVENTS };
+export {
+  ACADEMY_EVENTS,
+  ARC_EVENTS,
+  POSITION_EVENTS,
+  SENIOR_EVENTS,
+  SENIOR_PHASE_EVENTS,
+  SPONTANEOUS_EVENTS,
+};
