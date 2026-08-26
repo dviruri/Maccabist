@@ -488,6 +488,20 @@ export interface EventConditions {
   minLeadership?: number;
   /** Senior career phase, so the senior pool can evolve with the player. */
   seniorPhases?: SeniorPhase[];
+
+  /* ---------- v0.4: professional-football eligibility ---------- */
+  /**
+   * This event belongs to professional football - senior training, a bench call, a contract,
+   * a debut. Requires נוער or above. Implied automatically by `seniorPhases`, because a
+   * senior *phase* is meaningless for a child and used to let breakthrough events reach
+   * nine year olds.
+   */
+  requiresProfessionalFootball?: boolean;
+  /**
+   * ...but this particular event may also reach an extraordinary נערים א׳ player. Use only for
+   * things like "the first-team coach came to watch", never for contracts.
+   */
+  allowsExceptionalYouth?: boolean;
 }
 
 /**

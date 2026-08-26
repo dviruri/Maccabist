@@ -120,7 +120,8 @@ export function resolveOrigin(career: Career, rng: Rng): Career {
   next = addMilestone(next, {
     id: 'origin_trial_failed',
     icon: '🚪',
-    text: `לא התקבלת למבחנים של מכבי חיפה. הצטרפת ל${club.name}`,
+    // He attended the trials - he did not pass them. "לא התקבלת למבחנים" says he never got in the door.
+    text: `לא עברת את המבחנים של מכבי חיפה. הצטרפת ל${club.name}`,
     major: true,
   });
   return next;
@@ -228,7 +229,8 @@ export function resolveRetrial(career: Career, rng: Rng): RetrialOutcome {
   next = addMilestone(next, {
     id: 'joined_maccabi_late',
     icon: '💚',
-    text: `הצטרפת למחלקת הנוער של מכבי חיפה בגיל ${next.age}`,
+    // He may still be a child - "מחלקת הנוער" would be wrong wording for a ten year old.
+    text: `הצטרפת למכבי חיפה בגיל ${next.age}`,
     major: true,
   });
   // A new academy, a new coach: the relationship starts fresh.

@@ -65,6 +65,22 @@ export const ORIGIN = {
   retrialMinRole: 48,
 };
 
+/**
+ * What it takes for a נערים א׳ player to get a look from the first team (v0.4 Phase 0).
+ *
+ * Deliberately demanding on several axes at once so it cannot be reached by being merely good
+ * at one thing. A sixteen year old training with the professionals should be a story, not a
+ * stage of development.
+ */
+export const SENIOR_ELIGIBILITY = {
+  /** How far clear of his own age group he has to be. */
+  exceptionalAbilityEdge: 12,
+  exceptionalPotential: 86,
+  exceptionalCoachTrust: 72,
+  exceptionalRoleValue: 72,
+  exceptionalForm: 62,
+};
+
 /** Retirement can start being offered here; it becomes increasingly likely afterwards. */
 export const RETIREMENT_MIN_AGE = 33;
 export const RETIREMENT_FORCED_AGE = 41;
@@ -387,7 +403,12 @@ export const PROMOTION = {
    * old threshold of 40 was suddenly being crossed on 21% of transitions and 49% of careers
    * were getting a fast-track. Set near p98 so an early promotion stays uncommon.
    */
-  earlyThreshold: 78,
+  /**
+   * Re-tuned for v0.4 Phase 0.5. Playing up should be exciting, not routine: at 78 it was
+   * reaching ~21% of careers. Set near the top of the measured score distribution so roughly
+   * one career in seven sees a genuine fast-track.
+   */
+  earlyThreshold: 88,
   /**
    * Score needed for the normal one-step promotion.
    *

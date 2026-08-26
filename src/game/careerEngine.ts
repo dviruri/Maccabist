@@ -37,6 +37,7 @@ import {
   START_AGE,
   TRAITS,
 } from './balance';
+import { daysInMonth, resolveDateOfBirth } from './calendar';
 import { ageAt } from './cohort';
 import { eligibleForRetrial, resolveOrigin, resolveRetrial } from './originEngine';
 import { planSeason, resolveEventChoice } from './eventEngine';
@@ -109,11 +110,13 @@ export function createCareer(input: NewCareerInput): Career {
   const hasSelfBelief = traits.some((t) => t.id === 'self_believer');
   const hasInjuryProne = traits.some((t) => t.id === 'injury_prone');
 
-  const dateOfBirth: DateOfBirth = {
-    day: clampDay(input.birthDay ?? rng.int(1, 28)),
-    month: clampMonth(input.birthMonth ?? rng.int(1, 12)),
-    year: BIRTH_COHORT,
-  };
+  /*
+   * A chosen date is stored exactly as chosen. A random one picks a real month first and
+   * then a day that exists in it, so no career is ever born on 31 February.
+   */
+  const birthMonth = input.birthMonth ?? rng.int(1, 12);
+  const birthDay = input.birthDay ?? rng.int(1, daysInMonth(birthMonth, BIRTH_COHORT));
+  const dateOfBirth: DateOfBirth = resolveDateOfBirth(birthDay, birthMonth, BIRTH_COHORT);
 
   const career: Career = {
     id: `career_${seed.toString(36)}_${Date.now().toString(36)}`,
@@ -247,14 +250,6 @@ export function createCareer(input: NewCareerInput): Career {
 
   // Every career passes through Maccabi's door - it just does not always open.
   return resolveOrigin(career, rng);
-}
-
-function clampDay(day: number): number {
-  return Math.max(1, Math.min(28, Math.round(day)));
-}
-
-function clampMonth(month: number): number {
-  return Math.max(1, Math.min(12, Math.round(month)));
 }
 
 /**

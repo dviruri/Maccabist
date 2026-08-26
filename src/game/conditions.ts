@@ -6,6 +6,11 @@
 import { stageBand } from '../data/academy';
 import type { Career, ClubScope, EventConditions } from '../types';
 import {
+  allowsExceptionalSeniorContact,
+  allowsSeniorContact,
+  isSenior,
+} from './eligibility';
+import {
   activeArc,
   hasCompletedArc,
   hasMemory,
@@ -114,6 +119,23 @@ export function matchesConditions(
 
   if (c.requiresTrait && !c.requiresTrait.every((t) => hasTrait(career, t))) return false;
   if (c.minLeadership !== undefined && career.hidden.leadership < c.minLeadership) return false;
+
+  /*
+   * Professional-football gate (v0.4).
+   *
+   * Implied by seniorPhases, because a senior *phase* is derived from appearances and age and
+   * is therefore defined for a nine year old too - which is how "your first senior training"
+   * and "your first professional contract" were reaching children in טרום ב׳.
+   */
+  const needsProfessionalFootball =
+    c.requiresProfessionalFootball === true || c.seniorPhases !== undefined;
+  if (needsProfessionalFootball) {
+    const eligible =
+      isSenior(career) ||
+      allowsSeniorContact(career) ||
+      (c.allowsExceptionalYouth === true && allowsExceptionalSeniorContact(career));
+    if (!eligible) return false;
+  }
 
   if (c.seniorPhases && !c.seniorPhases.includes(seniorPhase(career))) return false;
 

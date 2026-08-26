@@ -19,6 +19,7 @@ import {
   PROMOTION,
   RELATIVE_AGE,
 } from '../src/game/balance';
+import { daysInMonth, isLeapYear, isValidDate, isValidDateOfBirth } from '../src/game/calendar';
 import { createCareer } from '../src/game/careerEngine';
 import {
   ageAt,
@@ -69,18 +70,60 @@ describe('the world timeline', () => {
     expect(career.dateOfBirth.year).toBe(BIRTH_COHORT);
   });
 
-  it('rejects impossible days and months', () => {
-    const career = createCareer({
-      playerName: 'א',
-      position: 'CM',
-      seed: 3,
-      birthDay: 99,
-      birthMonth: 44,
-    });
-    expect(career.dateOfBirth.day).toBeLessThanOrEqual(28);
-    expect(career.dateOfBirth.month).toBeLessThanOrEqual(12);
-    expect(career.dateOfBirth.day).toBeGreaterThanOrEqual(1);
-    expect(career.dateOfBirth.month).toBeGreaterThanOrEqual(1);
+  /*
+   * v0.4 Phase 0.1: dates are real. The previous implementation clamped every day to 28, which
+   * silently turned a chosen 31 December into 28 December - so this test used to assert the
+   * bug. A valid date must now survive exactly as chosen.
+   */
+  it('keeps a real date exactly as chosen', () => {
+    const cases: Array<[number, number]> = [
+      [31, 1], // 31 January
+      [30, 4], // 30 April
+      [31, 12], // 31 December
+      [28, 2], // 28 February - the last real day of a non-leap February
+    ];
+    for (const [day, month] of cases) {
+      const career = createCareer({
+        playerName: 'א',
+        position: 'CM',
+        seed: 3,
+        birthDay: day,
+        birthMonth: month,
+      });
+      expect(career.dateOfBirth.day, `${day}/${month}`).toBe(day);
+      expect(career.dateOfBirth.month, `${day}/${month}`).toBe(month);
+      expect(isValidDateOfBirth(career.dateOfBirth)).toBe(true);
+    }
+  });
+
+  it('corrects an impossible date to the last real day of that month', () => {
+    // 31 April does not exist, and 2021 is not a leap year, so 29 February does not either.
+    const april = createCareer({ playerName: 'א', position: 'CM', seed: 3, birthDay: 31, birthMonth: 4 });
+    expect(april.dateOfBirth).toEqual({ day: 30, month: 4, year: BIRTH_COHORT });
+
+    const february = createCareer({ playerName: 'א', position: 'CM', seed: 3, birthDay: 29, birthMonth: 2 });
+    expect(february.dateOfBirth).toEqual({ day: 28, month: 2, year: BIRTH_COHORT });
+
+    const nonsense = createCareer({ playerName: 'א', position: 'CM', seed: 3, birthDay: 99, birthMonth: 44 });
+    expect(isValidDateOfBirth(nonsense.dateOfBirth)).toBe(true);
+  });
+
+  it('never generates an impossible date of birth at random', () => {
+    for (let seed = 1; seed <= 400; seed += 1) {
+      const career = createCareer({ playerName: 'א', position: 'CM', seed });
+      expect(isValidDateOfBirth(career.dateOfBirth), `seed ${seed}`).toBe(true);
+    }
+  });
+
+  it('knows what a real calendar looks like', () => {
+    expect(isLeapYear(BIRTH_COHORT)).toBe(false);
+    expect(daysInMonth(2, BIRTH_COHORT)).toBe(28);
+    expect(daysInMonth(4, BIRTH_COHORT)).toBe(30);
+    expect(daysInMonth(12, BIRTH_COHORT)).toBe(31);
+    expect(isValidDate(29, 2, BIRTH_COHORT)).toBe(false);
+    expect(isValidDate(29, 2, 2024)).toBe(true);
+    expect(isValidDate(31, 4, BIRTH_COHORT)).toBe(false);
+    expect(isValidDate(31, 12, BIRTH_COHORT)).toBe(true);
   });
 });
 

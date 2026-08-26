@@ -6,9 +6,11 @@
  * chances without ever guaranteeing a specific club.
  */
 
+import { stageOrder } from '../data/academy';
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import type { Career, Club, ProgressionResult, TransferOffer } from '../types';
 import { HOMECOMING, LEAVING, TRANSFERS, YOUTH_TO_SENIOR } from './balance';
+import { nextNaturalStage } from './cohort';
 import { applyEffects, cloneCareer, moveToClub } from './progressionEngine';
 import { clamp, type Rng } from './random';
 import { isAtMaccabiSenior, isInAcademy, isOnLoan } from './rules';
@@ -327,8 +329,19 @@ export function seniorReadinessScore(career: Career, rng: Rng): number {
  */
 export function evaluateSeniorTransition(career: Career, rng: Rng): SeniorVerdict {
   const score = seniorReadinessScore(career, rng);
+  /*
+   * Once the player's own birth cohort has reached senior football, there is no youth team
+   * left for him to spend another year in (v0.4 Phase 0.3). Keeping him in נוער past that
+   * point was the engine quietly violating its own cohort model to delay a hard decision.
+   *
+   * A player pushed up early can still legitimately get another נוער season - his cohort has
+   * not arrived yet - which is why this asks the cohort rather than his age.
+   */
+  const cohortStillYouth = stageOrder(nextNaturalStage(career)) <= stageOrder('u19');
   const mustDecide =
-    career.age >= YOUTH_TO_SENIOR.decisionAge || career.seasonsAtStage >= 2;
+    !cohortStillYouth ||
+    career.age >= YOUTH_TO_SENIOR.decisionAge ||
+    career.seasonsAtStage >= 2;
 
   if (score >= YOUTH_TO_SENIOR.contractThreshold) {
     const withLoan = rng.chance(YOUTH_TO_SENIOR.loanRecommendationChance);

@@ -93,7 +93,17 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
     description:
       'באמצע החימום מישהו לוחש לך שמאמן הקבוצה הבוגרת יושב ביציע. הוא לא בא בשבילך - אבל הוא כאן.',
     category: 'opportunity',
-    conditions: { bands: ['teens', 'u19'], minAbility: 50 },
+    /*
+     * The first-team coach coming to watch is professional contact, so it needs נוער - or a
+     * genuinely extraordinary נערים א׳ player, which is exactly what allowsExceptionalYouth is
+     * for. It used to reach נערים ג׳ children.
+     */
+    conditions: {
+      bands: ['teens', 'u19'],
+      minAbility: 50,
+      requiresProfessionalFootball: true,
+      allowsExceptionalYouth: true,
+    },
     weight: 8,
     slots: ['mid', 'late'],
     cooldownSeasons: 3,

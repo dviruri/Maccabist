@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { PitchSelector } from '../components/PitchSelector';
 import { BrandRule, Ltr } from '../components/primitives';
 import { BIRTH_COHORT, FIRST_ACADEMY_SEASON } from '../game/balance';
+import { daysInMonth } from '../game/calendar';
 import type { NewCareerInput } from '../game/careerEngine';
 import type { Position } from '../types';
 import { seasonLabel } from '../ui/format';
@@ -27,11 +28,10 @@ const MONTHS = [
   'דצמבר',
 ];
 
-/** Days available for a month, so 31 February cannot be chosen. */
-function daysInMonth(month: number): number {
-  if (month === 2) return 29;
-  return [4, 6, 9, 11].includes(month) ? 30 : 31;
-}
+/*
+ * Day count comes from the shared calendar module, so the picker and the engine agree on what
+ * a real date is. 2021 is not a leap year, so February offers 28 days - not 29.
+ */
 
 /**
  * Name, date of birth, position. Deliberately nothing else - traits and potential are the
@@ -43,7 +43,7 @@ export function NewCareerPage({ onCreate, onBack }: Props): JSX.Element {
   const [month, setMonth] = useState(6);
   const [day, setDay] = useState(15);
 
-  const maxDay = daysInMonth(month);
+  const maxDay = daysInMonth(month, BIRTH_COHORT);
   const safeDay = Math.min(day, maxDay);
 
   return (
