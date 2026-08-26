@@ -481,7 +481,8 @@ export const SENIOR_EVENTS: GameEvent[] = [
     description:
       'על המגרש אתה מסתדר, אבל בבית אין לך עם מי לדבר. ביום שישי אתה פותח שידור של מכבי חיפה בטלפון.',
     category: 'random',
-    conditions: { abroad: true, minAge: 22 },
+    // Homesick for Maccabi specifically, so it needs a Maccabi past and a foreign present.
+    conditions: { abroad: true, minAge: 22, clubScope: 'formerMaccabi' },
     weight: 8,
     cooldownSeasons: 3,
     choices: [

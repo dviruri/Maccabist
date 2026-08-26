@@ -135,8 +135,28 @@ export function moveToClub(career: Career, clubId: string, options: MoveOptions 
   const loyaltyKeep = target.id === MACCABI_ID ? career.maccabism * 0.18 : 0;
   next.roleValue = clamp(arrivalRole + loyaltyKeep, 5, 92);
   next.role = roleFromValue(next.roleValue);
-  // A new coach starts you from scratch.
-  next.coachTrust = clamp(46 + (career.ability - target.quality) * 0.8 + (career.coachTrust - 50) * 0.3);
+  /*
+   * Coach trust belongs to a coaching relationship, not to the player, so a move starts a new
+   * one (v0.3.1). It is rebuilt from what the new staff can actually see - how good he is for
+   * this level, what he is worth on the market, and whether he arrived as a signing or as a
+   * homecoming - with only a trace of the old relationship carried over as reputation.
+   *
+   * Career memory keeps "there was a conflict with a coach"; the new coach does not inherit it.
+   */
+  const arrivingReputation = (career.reputation - 40) * COACH_TRUST.transferReputationWeight;
+  const levelFit = (career.ability - target.quality) * COACH_TRUST.transferLevelWeight;
+  // Coming home carries some goodwill that an ordinary signing does not.
+  const homecomingGoodwill =
+    target.id === MACCABI_ID && wasAwayFromMaccabiFor(career)
+      ? COACH_TRUST.homecomingGoodwill
+      : 0;
+  next.coachTrust = clamp(
+    COACH_TRUST.transferBaseline +
+      levelFit +
+      arrivingReputation +
+      homecomingGoodwill +
+      (career.coachTrust - 50) * COACH_TRUST.transferCarryover,
+  );
   next.olderGroup = 'none';
   if (target.id !== MACCABI_ID) next.captain = false;
 
@@ -291,6 +311,15 @@ export function addMilestone(
     },
   ];
   return next;
+}
+
+/** Has this player got a Maccabi past to come back to? */
+function wasAwayFromMaccabiFor(career: Career): boolean {
+  return (
+    career.maccabi.everLeft ||
+    career.maccabi.academyGraduate ||
+    career.flags.includes('released_by_maccabi')
+  );
 }
 
 export function addFlag(career: Career, flag: CareerFlag): Career {

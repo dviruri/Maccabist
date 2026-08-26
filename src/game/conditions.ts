@@ -4,7 +4,7 @@
  */
 
 import { stageBand } from '../data/academy';
-import type { Career, EventConditions } from '../types';
+import type { Career, ClubScope, EventConditions } from '../types';
 import {
   activeArc,
   hasCompletedArc,
@@ -25,6 +25,38 @@ function between(value: number, min?: number, max?: number): boolean {
   if (min !== undefined && value < min) return false;
   if (max !== undefined && value > max) return false;
   return true;
+}
+
+/**
+ * Whether the player's club situation matches an event's declared scope (v0.3.1).
+ *
+ * Playtesting found Maccabi-specific events firing at other clubs - the green stand singing
+ * your name while you play for Hapoel Afula. Declaring the scope explicitly is what stops it,
+ * and the event-audit test enforces that anything naming Maccabi declares one.
+ */
+export function matchesClubScope(career: Career, scope: ClubScope): boolean {
+  switch (scope) {
+    case 'maccabi':
+      return isAtMaccabi(career);
+    case 'nonMaccabi':
+      return !isAtMaccabi(career);
+    case 'abroad':
+      return isPlayingAbroad(career);
+    case 'formerMaccabi':
+      // Has a Maccabi past, but is somewhere else now.
+      return (
+        !isAtMaccabi(career) &&
+        (career.maccabi.everLeft ||
+          career.maccabi.academyGraduate ||
+          career.maccabi.appearances > 0 ||
+          career.flags.includes('released_by_maccabi'))
+      );
+    case 'currentClub':
+    case 'any':
+      return true;
+    default:
+      return true;
+  }
 }
 
 export function matchesConditions(
@@ -55,6 +87,7 @@ export function matchesConditions(
   if (c.atMaccabiSenior !== undefined && isAtMaccabiSenior(career) !== c.atMaccabiSenior) return false;
   if (c.abroad !== undefined && isPlayingAbroad(career) !== c.abroad) return false;
   if (c.onLoan !== undefined && isOnLoan(career) !== c.onLoan) return false;
+  if (c.clubScope && !matchesClubScope(career, c.clubScope)) return false;
   if (c.isCaptain !== undefined && career.captain !== c.isCaptain) return false;
   if (c.hasLeftMaccabi !== undefined && career.maccabi.everLeft !== c.hasLeftMaccabi) return false;
 

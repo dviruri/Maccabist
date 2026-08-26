@@ -16,8 +16,13 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
     id: 'spon_striker_injured',
     kicker: 'שעה לפני המשחק',
     title: 'ההרכב השתנה ברגע האחרון',
+    /*
+     * Deliberately does not name a position. This used to say "the starting striker was
+     * injured", which a goalkeeper could receive - the exact bug playtesting found. Written
+     * generically it works for all six roles without six copies of the same event.
+     */
     description:
-      'החלוץ הפותח נפצע בחימום. המאמן סורק את חדר ההלבשה, עוצר עליך ואומר: "אתה מתחיל."',
+      'מי שפותח בעמדה שלך נפצע בחימום. המאמן סורק את חדר ההלבשה, עוצר עליך ואומר: "אתה מתחיל."',
     category: 'match_moment',
     conditions: { bands: ['teens', 'u19', 'senior'], maxRoleValue: 70 },
     weight: 9,

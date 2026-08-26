@@ -78,7 +78,7 @@ export const SENIOR_PHASE_EVENTS: GameEvent[] = [
     description:
       'השם שלך מופיע ברשימה. לא בהרכב - בסגל. אתה מצלם את זה בטלפון לפני שמישהו יראה.',
     category: 'promotion',
-    conditions: { seniorPhases: ['breakthrough'] },
+    conditions: { seniorPhases: ['breakthrough'], clubScope: 'maccabi' },
     weight: 11,
     oncePerCareer: true,
     choices: [

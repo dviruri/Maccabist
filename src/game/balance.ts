@@ -286,6 +286,18 @@ export const COACH_TRUST = {
   minutesInfluence: 0.32,
   /** How strongly trust drives the in-team role. */
   roleInfluence: 0.35,
+
+  /*
+   * Arriving at a new club (v0.3.1). Trust belongs to a coaching relationship, so a move
+   * starts a new one rather than carrying the old number across.
+   */
+  transferBaseline: 46,
+  transferLevelWeight: 0.8,
+  transferReputationWeight: 0.12,
+  /** Only a trace of the old relationship survives, as reputation rather than trust. */
+  transferCarryover: 0.15,
+  /** A homecoming arrives with goodwill an ordinary signing does not get. */
+  homecomingGoodwill: 6,
 };
 
 /* ------------------------------------------------------------------ */

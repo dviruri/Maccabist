@@ -934,7 +934,8 @@ export const ACADEMY_EVENTS: GameEvent[] = [
     description:
       'דרבי מול מכבי תל אביב. הצופים של הבוגרים מגיעים לראות, וההורים מצלמים הכול.',
     category: 'match_moment',
-    conditions: { bands: ['teens', 'u19'], minRoleValue: 42 },
+    // A youth derby against the other Haifa club - only means anything in green.
+    conditions: { bands: ['teens', 'u19'], minRoleValue: 42, clubScope: 'maccabi' },
     weight: 8,
     cooldownSeasons: 2,
     choices: [
