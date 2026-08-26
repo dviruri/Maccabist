@@ -381,7 +381,13 @@ export const PROMOTION = {
    * Score needed to skip a level entirely - up near p99, so it stays a genuine surprise.
    * At 92 it was unreachable and early promotion was dead content, firing in 0.00% of careers.
    */
-  earlyThreshold: 40,
+  /*
+   * Re-measured for v0.3.1. Fixing the roleValue collapse (see resolveAcademyProgression)
+   * lifted the whole promotion-score distribution - median 14 -> 29, p95 30 -> 67 - so the
+   * old threshold of 40 was suddenly being crossed on 21% of transitions and 49% of careers
+   * were getting a fast-track. Set near p98 so an early promotion stays uncommon.
+   */
+  earlyThreshold: 78,
   /**
    * Score needed for the normal one-step promotion.
    *

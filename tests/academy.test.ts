@@ -191,11 +191,17 @@ describe('coach trust drives promotion', () => {
      * v0.3.1: ordinary promotion is no longer a roll - the cohort moves up regardless. What
      * trust buys is being pushed up *ahead* of the cohort, so that is what this measures.
      */
+    /*
+     * The fixture has to be an outstanding player, because an early promotion now sits near
+     * the top of the score distribution - for an ordinary player the roll fails whatever the
+     * coach thinks, so the comparison would measure nothing.
+     */
     const base = {
       academyStage: 'youth_a' as const,
       currentSeason: naturalSeasonFor('youth_a'),
-      roleValue: 70,
-      ability: 60,
+      roleValue: 85,
+      ability: 75,
+      olderGroup: 'playing' as const,
     };
     const countEarly = (coachTrust: number): number => {
       let early = 0;
