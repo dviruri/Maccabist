@@ -118,6 +118,78 @@ src/
 scripts/simulate.ts       The balancing CLI. Developer-only, never imported by the app.
 ```
 
+### The world timeline and birth cohorts (v0.3.1)
+
+The world has a **fixed** timeline. Every career starts in season **2030/31** with the **2021
+birth cohort**; the player picks only a day and month of birth, and the year is locked.
+
+```ts
+dateOfBirth: { day: 17, month: 12, year: 2021 }   // plain numbers, never a timestamp
+```
+
+Stored as plain numbers on purpose: football-age maths has to be exact and
+timezone-independent, and a UTC timestamp for 17 December can render as the 16th or the 18th
+depending on the browser.
+
+**Age is derived, never incremented** — from `(dateOfBirth, currentSeason, seasonPoint)`, with
+three checkpoints a season (mid-August, mid-January, June). That is what lets a January-born
+and a December-born player in the same cohort show different ages while belonging to exactly
+the same age group.
+
+> **The rule everything rests on: age never determines the academy stage.** An academy is
+> organised by birth year.
+
+```ts
+naturalStage(career)   // the age group this player's cohort plays this season
+career.academyStage    // the team he is actually registered with
+```
+
+| Season | Natural stage for the 2021 cohort |
+| --- | --- |
+| 2030/31 | טרום ב׳ |
+| 2031/32 | טרום א׳ |
+| 2032/33 | ילדים ג׳ |
+| 2033/34 | ילדים ב׳ |
+| 2034/35 | ילדים א׳ |
+| 2035/36 | נערים ג׳ |
+| 2036/37 | נערים ב׳ |
+| 2037/38 | נערים א׳ |
+| 2038/39 | נוער |
+
+**A player cannot repeat his own age group.** `resolveAcademyProgression` floors next season's
+stage at the cohort's next stage, so a player registered with his own year moves up every
+season no matter how badly it went. The promotion roll only decides whether he goes up
+*faster*. Verified over 20,000 simulated careers: **0 invalid repeats, 0 players registered
+behind their cohort.**
+
+The one case that *looks* like standing still is `cohort_caught_up`: a player pushed up early
+keeps the same shirt while his own year arrives in that group. That is the opposite of being
+held back, and the copy says so («השנתון שלך הגיע ל...», never «נשארת»).
+
+A small, fading, **academy-only** relative-age effect gives players born January–March a
+physical-maturity edge. It never touches potential — it is maturity, not talent — and is gone
+by senior football.
+
+### Origin: does Maccabi's door open? (v0.3.1)
+
+Maccabist always begins with Maccabi, and never guarantees Maccabi.
+
+| Origin | Share | What happens |
+| --- | --- | --- |
+| `scouted` | ~10% | A scout saw you and invited you straight in. Never reveals a number. |
+| `trial_accepted` | ~68% | You went to the trials and got in. |
+| `trial_rejected` | ~22% | You did not. You join another youth academy and the career continues. |
+
+Being rejected is not game over — it is the question the version is built around:
+*«אם הדלת של מכבי לא נפתחה — איך תגרום להם להתחרט?»* A rejected player who stands out where he
+landed can be invited back (`eligibleForRetrial`), judged on what he has actually done rather
+than one afternoon. Measured over 20,000 careers, of those rejected at nine: ~18% are invited
+back, ~15% join Maccabi later, **~99% still reach senior football**, and ~14% play abroad.
+
+The stage sets the age group but **the club sets the standard** — נערים ב׳ at a small northern
+academy is not the same level as נערים ב׳ at Maccabi. Without that, a rejected boy could never
+stand out where he landed, which is the whole premise of the road back.
+
 ### The academy ladder
 
 The stage — not the age — is the player's identity for the whole youth career. It is real domain
@@ -277,6 +349,32 @@ One engine-level rule worth knowing: a choice marked `risky` gets its *good* out
 by `EVENTS.riskyUpsideBoost`, leaving the downside as written. Measured across the whole pool,
 risky choices were otherwise negative expected value — strictly dominated by playing safe, which
 made bold play a trap rather than a gamble.
+
+### Club and position context (v0.3.1)
+
+Two classes of immersion bug that careful authoring does not prevent at scale, so they are
+enforced by `tests/eventAudit.test.ts`:
+
+**Club context.** `conditions.clubScope` declares which club situation an event belongs to:
+
+| Scope | Fires when |
+| --- | --- |
+| `maccabi` | Only at Maccabi Haifa |
+| `nonMaccabi` | Only somewhere else |
+| `abroad` | Only outside Israel |
+| `formerMaccabi` | Has a Maccabi past, currently elsewhere ("they are still watching you") |
+| `currentClub` | Generic — the text must not name a club |
+| `any` | Truly universal |
+
+The audit fails the build if an event's text names Maccabi without a Maccabi-aware scope. It
+deliberately does *not* demand a scope on all 108 events: an event with no club-specific text
+reads correctly anywhere, so blanket annotation would be churn that cannot catch a bug.
+
+**Position context.** An event must not describe *the player's own slot* by a position it is
+not scoped to — `"החלוץ הפותח נפצע... אתה מתחיל"` must never reach a goalkeeper. The check is
+phrase-based, not word-based: `קשר` also means "contact" and `מגן` also means "shield", and
+naming the *opponent's* position (the striker you mark, the keeper you beat) is perfectly
+correct.
 
 ### Anti-repetition
 
