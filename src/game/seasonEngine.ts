@@ -12,6 +12,7 @@ import type { Career, SeasonRecord, SeasonStats, Trophy } from '../types';
 import { POSITIONS, SEASON, TRAITS } from './balance';
 import { hasTrait } from './memory';
 import { checkMilestones } from './milestones';
+import { checkTraitReveals } from './traitReveal';
 import {
   applyHalfProgression,
   checkAchievements,
@@ -320,6 +321,8 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   next.lastAchievements = checked.unlocked;
   // The structural story beats fall out of the season, not out of events.
   next = checkMilestones(next).career;
+  // ...and so does noticing what kind of player he turned out to be.
+  next = checkTraitReveals(next);
 
   return { career: next, record };
 }

@@ -623,10 +623,11 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
     description:
       'נחיתה לא נכונה. הרופא מדבר לאט מדי בשביל שזה יהיה משהו קטן. המילה "ניתוח" נאמרה בחדר.',
     category: 'injury',
-    rarity: 'uncommon',
+    // Genuinely rare: a career-shaping injury should not happen to nine careers in ten.
+    rarity: 'rare',
     conditions: { bands: ['teens', 'u19', 'senior'], minAge: 14 },
-    weight: 7,
-    cooldownSeasons: 5,
+    weight: 9,
+    cooldownSeasons: 9,
     choices: [
       {
         id: 'rush',
@@ -638,7 +639,13 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
             baseWeight: 38,
             tone: 'good',
             text: 'חזרת שלושה שבועות לפני הזמן והמאמן העריך את זה מאוד.',
-            effects: { coachTrust: 6, injuryRisk: 10, confidence: 4, minutesModifier: 0.85 },
+            effects: {
+              coachTrust: 6,
+              injuryRisk: 10,
+              confidence: 4,
+              minutesModifier: 0.85,
+              remember: 'major_injury',
+            },
             modifiers: [{ attribute: 'injuryRisk', below: 20, multiplier: 1.5 }],
           },
           {
@@ -653,6 +660,13 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
               roleValue: -6,
               minutesModifier: 0.4,
               flags: ['injury_prone'],
+              remember: 'major_injury',
+              milestone: {
+                id: 'major_injury',
+                icon: '🩼',
+                text: 'פציעה קשה עצרה אותך לחודשים ארוכים',
+                major: true,
+              },
             },
           },
         ],
@@ -673,6 +687,7 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
               discipline: 7,
               roleValue: -4,
               minutesModifier: 0.55,
+              remember: 'major_injury',
             },
           },
           {
@@ -680,7 +695,13 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
             baseWeight: 28,
             tone: 'bad',
             text: 'הגוף חזר, הראש לקח יותר זמן. עדיין יש רגעים שאתה חושש להיכנס בכדור.',
-            effects: { confidence: -8, injuryRisk: -4, minutesModifier: 0.5, coachTrust: -3 },
+            effects: {
+              confidence: -8,
+              injuryRisk: -4,
+              minutesModifier: 0.5,
+              coachTrust: -3,
+              remember: 'major_injury',
+            },
           },
         ],
       },

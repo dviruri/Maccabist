@@ -8,7 +8,7 @@
 
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import type { Career, Club, ProgressionResult, TransferOffer } from '../types';
-import { TRANSFERS, YOUTH_TO_SENIOR } from './balance';
+import { HOMECOMING, LEAVING, TRANSFERS, YOUTH_TO_SENIOR } from './balance';
 import { applyEffects, cloneCareer, moveToClub } from './progressionEngine';
 import { clamp, type Rng } from './random';
 import { isAtMaccabiSenior, isInAcademy, isOnLoan } from './rules';
@@ -63,8 +63,78 @@ function offerChance(career: Career): number {
 /* Offer builders                                                      */
 /* ------------------------------------------------------------------ */
 
+/**
+ * How much leaving costs, in context.
+ *
+ * Leaving is not automatically betrayal. Walking out at 18 having barely played is a very
+ * different act from joining a big European club at 24 with 150 games and championships
+ * behind you - and going straight to a domestic rival is worse than either. The ideal
+ * Maccabist career genuinely can include Europe, so staying forever must not be the
+ * mathematically optimal answer.
+ */
+export function leavingContext(career: Career, club: Club): {
+  maccabism: number;
+  betrayal: boolean;
+  memory: 'left_young' | 'left_established' | null;
+  note: string;
+} {
+  if (!isAtMaccabiSenior(career)) {
+    // Leaving the academy or a loan spell is not a betrayal of anything.
+    const abroad = club.country !== 'ישראל';
+    return {
+      maccabism: abroad ? -4 : -2,
+      betrayal: false,
+      memory: 'left_young',
+      note: '',
+    };
+  }
+
+  const m = LEAVING;
+  const rival = m.rivalClubIds.includes(club.id);
+  const abroad = club.country !== 'ישראל';
+  const established =
+    career.maccabi.appearances >= m.establishedAppearances ||
+    career.maccabi.seasons >= m.establishedSeasons;
+
+  if (rival) {
+    return {
+      maccabism: m.rivalPenalty,
+      betrayal: true,
+      memory: 'left_established',
+      note: 'ליריבה ישירה. את זה לא שוכחים.',
+    };
+  }
+
+  if (abroad && established) {
+    // The move everyone in the stand understands, and most of them wanted for you.
+    return {
+      maccabism: m.earnedEuropePenalty,
+      betrayal: false,
+      memory: 'left_established',
+      note: 'אחרי כל מה שנתת כאן, אף אחד לא יקרא לך בוגד.',
+    };
+  }
+  if (abroad) {
+    return {
+      maccabism: m.earlyEuropePenalty,
+      betrayal: false,
+      memory: 'left_young',
+      note: 'צעיר, ובאמצע הדרך. חלק יבינו, חלק פחות.',
+    };
+  }
+  return {
+    maccabism: established ? m.domesticEstablishedPenalty : m.domesticEarlyPenalty,
+    betrayal: !established,
+    memory: established ? 'left_established' : 'left_young',
+    note: '',
+  };
+}
+
 function transferOffer(club: Club, career: Career): TransferOffer {
   const abroad = club.country !== 'ישראל';
+  const leaving = leavingContext(career, club);
+  const atMaccabi = isAtMaccabiSenior(career);
+
   return {
     id: `transfer_${club.id}`,
     kind: 'transfer',
@@ -73,19 +143,24 @@ function transferOffer(club: Club, career: Career): TransferOffer {
     league: club.league,
     country: club.country,
     title: abroad ? `הצעה מ${club.name}` : `${club.name} רוצה אותך`,
-    description: abroad
-      ? `${club.name} מ${club.country} הגישה הצעה רשמית. ${club.league}, אצטדיון אחר, שפה אחרת.`
-      : `${club.name} מציעה לך חוזה ומקום מרכזי בקבוצה.`,
+    description:
+      (abroad
+        ? `${club.name} מ${club.country} הגישה הצעה רשמית. ${club.league}, אצטדיון אחר, שפה אחרת.`
+        : `${club.name} מציעה לך חוזה ומקום מרכזי בקבוצה.`) +
+      (leaving.note ? ` ${leaving.note}` : ''),
     acceptEffects: {
       reputation: abroad ? 6 : 1,
-      maccabism: isAtMaccabiSenior(career) ? -10 : abroad ? -4 : -2,
+      maccabism: leaving.maccabism,
       confidence: 4,
-      flags: isAtMaccabiSenior(career) ? ['betrayal_moment'] : [],
+      ...(leaving.betrayal ? { flags: ['betrayal_moment' as const] } : {}),
+      ...(leaving.memory ? { remember: leaving.memory } : {}),
     },
     declineEffects: {
-      maccabism: isAtMaccabiSenior(career) ? 7 : 0,
-      roleValue: isAtMaccabiSenior(career) ? 2 : 0,
-      flags: isAtMaccabiSenior(career) ? ['loyalty_moment'] : [],
+      maccabism: atMaccabi ? 7 : 0,
+      roleValue: atMaccabi ? 2 : 0,
+      ...(atMaccabi
+        ? { flags: ['loyalty_moment' as const], remember: 'refused_transfer' as const }
+        : {}),
     },
     acceptLabel: 'לחתום',
     declineLabel: 'לסרב',
@@ -109,9 +184,50 @@ function loanOffer(club: Club): TransferOffer {
   };
 }
 
+/** Which kind of homecoming story this is. They are not the same event. */
+export type HomecomingKind = 'prime_hero' | 'successful_return' | 'veteran_farewell' | 'redemption';
+
+export function homecomingKind(career: Career): HomecomingKind {
+  if (career.flags.includes('released_by_maccabi') && !career.maccabi.everLeft) return 'redemption';
+  if (career.age >= HOMECOMING.veteranAge) return 'veteran_farewell';
+  if (career.age <= HOMECOMING.primeMaxAge && career.ability >= HOMECOMING.primeAbility) {
+    return 'prime_hero';
+  }
+  return 'successful_return';
+}
+
+const HOMECOMING_COPY: Record<HomecomingKind, { title: string; description: string; maccabism: number }> = {
+  prime_hero: {
+    title: 'מכבי חיפה רוצה אותך בחזרה - עכשיו',
+    description:
+      'אתה בשיא, ויש לך חוזה שאומר את זה. במכבי יודעים כמה זה יעלה, ובכל זאת הרימו טלפון. יציע שלם מחכה לתשובה.',
+    maccabism: 24,
+  },
+  successful_return: {
+    title: 'מכבי חיפה רוצה אותך בחזרה',
+    description:
+      'המועדון שגידל אותך רוצה שתחזור הביתה. פחות כסף, פחות זוהר, ואצטדיון שיודע את השם שלך.',
+    maccabism: 18,
+  },
+  veteran_farewell: {
+    title: 'לסגור מעגל בירוק',
+    description:
+      'לא בשביל הכדורגל - בשביל הסיפור. לסיים במקום שבו התחלת, מול הקהל שראה אותך בן תשע.',
+    maccabism: 14,
+  },
+  redemption: {
+    title: 'המועדון שוויתר עליך רוצה אותך בחזרה',
+    description:
+      'שחררו אותך בגיל 18 ואמרו שאתה לא מספיק. עכשיו הם מתקשרים. יש בזה משהו מתוק ומר בו-זמנית.',
+    maccabism: 20,
+  },
+};
+
 function returnHomeOffer(career: Career): TransferOffer {
   const club = getClub(MACCABI_ID);
-  const isComingBack = career.maccabi.everLeft || career.flags.includes('released_by_maccabi');
+  const kind = homecomingKind(career);
+  const copy = HOMECOMING_COPY[kind];
+
   return {
     id: 'return_maccabi',
     kind: 'return_home',
@@ -119,12 +235,27 @@ function returnHomeOffer(career: Career): TransferOffer {
     clubName: club.name,
     league: club.league,
     country: club.country,
-    title: isComingBack ? 'מכבי חיפה רוצה אותך בחזרה' : 'מכבי חיפה מציעה לך חוזה',
-    description: isComingBack
-      ? 'המועדון שגידל אותך רוצה שתחזור הביתה. פחות כסף, פחות זוהר, ואצטדיון שיודע את השם שלך.'
-      : 'מכבי חיפה מציעה לך לחזור למקום שממנו התחלת הכול.',
-    acceptEffects: { maccabism: 16, confidence: 5, reputation: -2, flags: ['loyalty_moment'] },
-    declineEffects: { maccabism: -9 },
+    title: copy.title,
+    description: copy.description,
+    acceptEffects: {
+      maccabism: copy.maccabism,
+      confidence: 5,
+      reputation: kind === 'prime_hero' ? 2 : -2,
+      flags: ['loyalty_moment'],
+      remember: 'returned_home',
+      milestone: {
+        id: 'homecoming',
+        icon: '💚',
+        text:
+          kind === 'prime_hero'
+            ? 'חזרת הביתה בשיא הקריירה'
+            : kind === 'redemption'
+              ? 'חזרת למועדון שוויתר עליך'
+              : 'חזרת הביתה למכבי חיפה',
+        major: true,
+      },
+    },
+    declineEffects: { maccabism: -9, remember: 'rejected_maccabi' },
     acceptLabel: 'לחזור הביתה',
     declineLabel: 'עוד לא',
   };
@@ -140,7 +271,18 @@ function releaseOffer(club: Club): TransferOffer {
     country: club.country,
     title: `${club.name} מציעה לך חוזה`,
     description: `במכבי חיפה החליטו לא להמשיך איתך. ${club.name} מ${club.league} מוכנה לתת לך במה. לא ככה דמיינת את זה, אבל זה כדורגל.`,
-    acceptEffects: { maccabism: -8, confidence: -6, flags: ['released_by_maccabi'] },
+    acceptEffects: {
+      maccabism: -8,
+      confidence: -6,
+      flags: ['released_by_maccabi'],
+      remember: 'released_by_maccabi',
+      milestone: {
+        id: 'released_by_maccabi',
+        icon: '🚪',
+        text: `מכבי חיפה לא המשיכה איתך. חתמת ב${club.name}`,
+        major: true,
+      },
+    },
     declineEffects: {},
     acceptLabel: 'לחתום',
     declineLabel: '',
@@ -381,12 +523,22 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
     if (career.age >= TRANSFERS.returnAgeBonusFrom) {
       chance += (career.age - TRANSFERS.returnAgeBonusFrom) * TRANSFERS.returnAgeBonusPerYear;
     }
-    // Measured against Maccabi's own squad strength rather than a flat number, so a
-    // mid-table journeyman does not get a call from the club that let him go.
+    /*
+     * A homecoming has to feel like an event, not an annual reminder. Maccabi has to
+     * actually want the player: good enough for the level, not priced out, and either a
+     * genuine former Maccabist or someone who has made a name worth bringing home.
+     */
     const maccabi = getClub(MACCABI_ID);
     const goodEnough = career.ability >= maccabi.quality - TRANSFERS.returnAbilityMargin;
     const notTooExpensive = career.reputation < 88 || career.age > 29;
-    if (goodEnough && notTooExpensive && rng.chance(clamp(chance, 0, 0.85))) {
+    const ourOwn =
+      career.maccabi.everLeft ||
+      career.flags.includes('released_by_maccabi') ||
+      career.maccabi.academyGraduate;
+    // Coming home twice is not a story, it is a commute.
+    const notAlreadyBack = !career.maccabi.returned;
+
+    if (goodEnough && notTooExpensive && ourOwn && notAlreadyBack && rng.chance(clamp(chance, 0, 0.5))) {
       offers.push(returnHomeOffer(career));
     }
   }

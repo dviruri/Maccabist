@@ -43,6 +43,7 @@ import {
 } from './progressionEngine';
 import { clamp, createRng, randomSeed, round, type Rng } from './random';
 import { isAtMaccabiSenior, isInAcademy, roleFromValue } from './rules';
+import { revealRemainingTraits } from './traitReveal';
 import { playFirstHalf, playSecondHalf } from './seasonEngine';
 import {
   acceptOffer as acceptTransferOffer,
@@ -544,7 +545,8 @@ export function decideRetirement(career: Career, decision: RetirementDecision): 
 }
 
 export function retire(career: Career): Career {
-  const next = cloneCareer(career);
+  // Anything the career never got round to showing is named now, as part of the closing story.
+  const next = cloneCareer(revealRemainingTraits(career));
   next.retired = true;
   next.retirementAge = next.age;
   next.phase = 'retired';

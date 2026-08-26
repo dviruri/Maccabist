@@ -505,6 +505,31 @@ export const TRAITS = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Leaving Maccabi (v0.3) - contextual, not automatic betrayal         */
+/* ------------------------------------------------------------------ */
+
+/** Which homecoming story a return reads as. */
+export const HOMECOMING = {
+  primeMaxAge: 28,
+  primeAbility: 76,
+  veteranAge: 33,
+};
+
+export const LEAVING = {
+  /** Going straight to one of these is the one move the stand never forgives. */
+  rivalClubIds: ['maccabi_tel_aviv', 'hapoel_tel_aviv', 'beitar_jerusalem', 'hapoel_beer_sheva'],
+  rivalPenalty: -26,
+  /** Earned the right to go: a real European move after real service. */
+  earnedEuropePenalty: -2,
+  establishedAppearances: 120,
+  establishedSeasons: 5,
+  /** Young and off to Europe for the money - understandable, but it costs. */
+  earlyEuropePenalty: -11,
+  domesticEarlyPenalty: -14,
+  domesticEstablishedPenalty: -6,
+};
+
+/* ------------------------------------------------------------------ */
 /* Transfers                                                           */
 /* ------------------------------------------------------------------ */
 
