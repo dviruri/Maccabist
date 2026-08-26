@@ -258,11 +258,21 @@ npm run typecheck PASSES   both projects
 npm test          PASSES   159/159
 ```
 
-Debug tooling verified **absent** from the production bundle. Asset paths still resolve under
-`/Maccabist/` — the base-path mechanism is untouched, and `"/Maccabist/"` still appears only in
-`vite.config.ts`.
+**Deployed and verified live** at https://dviruri.github.io/Maccabist/. Pushed to `main`
+(fast-forward, no history rewritten), the Pages workflow ran, and the live site serves the exact
+asset hashes this build produced (`index-C-JMJifJ.js`, `index-Biot1NTL.css`).
 
-**Not yet pushed** at time of writing — see §14.
+Checked on the live site:
+
+| Check | Result |
+| --- | --- |
+| `/Maccabist/` and both bundles | 200 |
+| `/Maccabist/mark.png`, `logo.png`, `site.webmanifest` | 200 |
+| Debug tooling present in the shipped JS | **no** — correctly stripped |
+| ציר הזמן present in the shipped JS | yes |
+
+Asset paths still resolve under `/Maccabist/` — the base-path mechanism is untouched, and
+`"/Maccabist/"` still appears only in `vite.config.ts`.
 
 ---
 
@@ -290,24 +300,22 @@ the recovery metric counting end-of-career decline as an unrecovered slump.
 
 ## 14. Known weaknesses
 
-1. **Not pushed yet.** All v0.3 commits are local on `main`. `git push origin main` will
-   trigger the Pages workflow.
-2. **`riskTaker` is still weak and low-variance** (mean 8.4, SD 10.9 vs balanced 24.3) — a floor
+1. **`riskTaker` is still weak and low-variance** (mean 8.4, SD 10.9 vs balanced 24.3) — a floor
    rather than genuine variance. Three levers were tried and measured; the diagnosis is that
    this is the *policy*, not the game (≈60 maximum-gamble picks across 28 seasons compound).
    Full detail and the measured EV table in `V03_BALANCE_REPORT.md` §12. **This is the top v0.4
    task.**
-3. **Repeats per career (7.65 of 44)** remain arithmetic — a 28-season career outruns a
+2. **Repeats per career (7.65 of 44)** remain arithmetic — a 28-season career outruns a
    108-event pool. More senior content, not more tuning.
-4. **Playing up fell to 9.8%** (from 17.7%) because the `older_group` arc consumes follow-up
+3. **Playing up fell to 9.8%** (from 17.7%) because the `older_group` arc consumes follow-up
    slots the base event used to re-fill. Worth a look if it should feel more common.
-5. **Mobile is CSS-audited, not browser-verified.** No browser automation is installed. The new
+4. **Mobile is CSS-audited, not browser-verified.** No browser automation is installed. The new
    timeline and season strip use logical properties, `min-width: 0` and `overflow-wrap:
    anywhere`; the layout is mobile-first with `overflow-x: hidden` and global `border-box`, and
    no fixed width can overflow at 360px. But 360/390/412px has not been checked for real.
-6. **Median Legend 25 vs mean 37.9** — intentionally bottom-heavy, but the "average" understates
+5. **Median Legend 25 vs mean 37.9** — intentionally bottom-heavy, but the "average" understates
    what a good run looks like.
-7. **The modal archetype is 44%** (`הדרך האחרת`). Honest, since only half of careers reach the
+6. **The modal archetype is 44%** (`הדרך האחרת`). Honest, since only half of careers reach the
    first team, but a flatter distribution would serve replayability better.
 
 ---
@@ -316,7 +324,7 @@ the recovery metric counting end-of-career decline as an unrecovered slump.
 
 In priority order:
 
-1. **Rebalance the risky-choice payloads** (§14.2). A content pass over the ~60 risky choices so
+1. **Rebalance the risky-choice payloads** (§14.1). A content pass over the ~60 risky choices so
    bold play is high-variance rather than a floor. The measured EV table gives the target.
 2. **Browser-test mobile** at 360/390/412px, then play a few careers by hand on the live site.
 3. **More senior content** toward ~140 events, which is the direct fix for repetition and would
