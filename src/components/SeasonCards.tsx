@@ -1,16 +1,34 @@
 import { trophyIcon } from '../data/trophies';
 import type { Career, SeasonStats } from '../types';
+import { levelContext } from '../game/rules';
 import { headlineTitle, roleTextOf, seasonLabel } from '../ui/format';
 import { Chip, DeltaList, Ltr, NumberBox } from './primitives';
 
 /** Which numbers matter depends on where you play. */
-function StatBoxes({ career, stats }: { career: Career; stats: SeasonStats }): JSX.Element {
+function StatBoxes({
+  career,
+  stats,
+  teamGames,
+}: {
+  career: Career;
+  stats: SeasonStats;
+  /** How many matches the team played, so appearances have a denominator. */
+  teamGames?: number;
+}): JSX.Element {
   const isKeeper = career.position === 'GK';
   const isDefender = career.position === 'CB' || career.position === 'FB';
 
   return (
     <div className="numbers">
-      <NumberBox value={stats.appearances} label="משחקים" />
+      {/*
+        "משחקים: 5" reads as though the whole season was five matches. Showing the team's
+        fixture count alongside makes it clear that five appearances out of twenty-two is a
+        squad player's season, not a short season.
+      */}
+      <NumberBox
+        value={stats.appearances}
+        label={teamGames ? `הופעות מתוך ${teamGames}` : 'הופעות'}
+      />
       <NumberBox value={stats.starts} label="בהרכב" />
       {isKeeper ? (
         <>
@@ -54,7 +72,7 @@ export function MidSeasonCard({ career, onContinue }: MidProps): JSX.Element | n
           {headlineTitle(career)} · <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
         </h2>
 
-        <StatBoxes career={career} stats={stats} />
+        <StatBoxes career={career} stats={stats} teamGames={Math.round(levelContext(career).seasonGames / 2)} />
 
         <p className="card-body" style={{ marginTop: 2 }}>
           {coachVerdict(career, stats)}.
@@ -91,13 +109,15 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
           <div className="season-year">
             עונת <Ltr>{seasonLabel(record.season)}</Ltr> הסתיימה
           </div>
+          {/* The club comes from the record, never hard-coded - the player may not be at Maccabi. */}
           <div className="faint">
-            מכבי חיפה — {record.teamName}
+            {record.clubName}
+            {record.teamName !== record.clubName ? ` — ${record.teamName}` : ''}
             {record.onLoan ? ' · בהשאלה' : ''}
           </div>
         </div>
 
-        <StatBoxes career={career} stats={record.stats} />
+        <StatBoxes career={career} stats={record.stats} teamGames={levelContext(career).seasonGames} />
 
         {record.stats.injuredGames > 0 && (
           <p className="faint">

@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 
-import { STAGE_LADDER, stageLabel } from '../data/academy';
+import { STAGE_LADDER, stageAfter, stageLabel } from '../data/academy';
+import { getClub, MACCABI_ACADEMY_ID } from '../data/clubs';
 import { EVENTS_BY_ID, EVENT_POOL } from '../data/events';
 import { autoStep, retire } from '../game/careerEngine';
+import { cohortLead, isPlayingUpACohort, naturalStage, relativeAgeBonus } from '../game/cohort';
+import { matchesClubScope } from '../game/conditions';
 import { conditionContext } from '../game/eventEngine';
+import { eligibleForRetrial, resolveRetrial } from '../game/originEngine';
 import { recordMemory, seniorPhase, startArc } from '../game/memory';
 import { outcomeProbabilities } from '../game/outcomeEngine';
 import {
   cloneCareer,
   coachTrustBaseline,
+  moveToClub,
   driftTrustTowardsBaseline,
   maybeChangeCoach,
   promotionScore,
@@ -113,6 +118,39 @@ export function DebugPanel({
           <Row label="promotionScore" value={promotionScore(career, 60, rng).toFixed(1)} />
           <Row label="maccabi apps" value={career.maccabi.appearances} />
           <Row label="flags" value={career.flags.join(',') || '—'} />
+
+          {/* ---- v0.3.1: cohort, origin, club context ---- */}
+          <Row
+            label="dateOfBirth"
+            value={`${career.dateOfBirth.day}.${career.dateOfBirth.month}.${career.dateOfBirth.year}`}
+          />
+          <Row label="birthCohort" value={career.birthCohort} />
+          <Row label="seasonPoint" value={career.seasonPoint} />
+          <Row
+            label="naturalStage"
+            value={`${naturalStage(career)} (${stageLabel(naturalStage(career))})`}
+          />
+          <Row label="currentStage" value={`${career.academyStage} (${stageLabel(career.academyStage)})`} />
+          <Row label="cohortLead" value={cohortLead(career)} />
+          <Row label="playingUp" value={isPlayingUpACohort(career) ? 'yes' : 'no'} />
+          <Row label="relativeAge" value={relativeAgeBonus(career).toFixed(2)} />
+          <Row label="origin" value={career.origin} />
+          <Row
+            label="trials"
+            value={
+              career.trials.length === 0
+                ? '—'
+                : career.trials.map((t) => `#${t.attempt}@${t.season}:${t.accepted ? 'in' : 'out'}`).join(' ')
+            }
+          />
+          <Row label="retrialEligible" value={eligibleForRetrial(career) ? 'yes' : 'no'} />
+          <Row label="club" value={`${career.currentClubId} (${getClub(career.currentClubId).name})`} />
+          <Row
+            label="clubScope"
+            value={(['maccabi', 'nonMaccabi', 'abroad', 'formerMaccabi'] as const)
+              .filter((s) => matchesClubScope(career, s))
+              .join(',')}
+          />
 
           {/* ---- v0.3: what the career remembers ---- */}
           <Row label="seniorPhase" value={isInAcademy(career) ? '—' : seniorPhase(career)} />
@@ -287,6 +325,55 @@ export function DebugPanel({
                 </button>
               ),
             )}
+            {/* ---- v0.3.1: origin and club context ---- */}
+            <button
+              type="button"
+              title="force the next repeat trial to be accepted"
+              onClick={() => {
+                const outcome = resolveRetrial(career, createRng(1));
+                onChange({
+                  ...outcome.career,
+                  currentClubId: MACCABI_ACADEMY_ID,
+                  trials: [
+                    ...career.trials,
+                    { ...outcome.trial, accepted: true, title: 'מכבי חיפה רוצה אותך' },
+                  ],
+                  phase: 'retrial',
+                });
+              }}
+            >
+              trial: accept
+            </button>
+            <button
+              type="button"
+              title="force the next repeat trial to be rejected"
+              onClick={() => {
+                const outcome = resolveRetrial(career, createRng(2));
+                onChange({
+                  ...career,
+                  trials: [...career.trials, { ...outcome.trial, accepted: false, title: 'שוב לא' }],
+                  phase: 'retrial',
+                });
+              }}
+            >
+              trial: reject
+            </button>
+            <button
+              type="button"
+              title="move to another Israeli club, to check club-context filtering"
+              onClick={() => onChange(moveToClub(career, 'hapoel_hadera'))}
+            >
+              leave Maccabi
+            </button>
+            <button
+              type="button"
+              title="push up a cohort"
+              onClick={() =>
+                patch({ academyStage: stageAfter(career.academyStage, 1), olderGroup: 'playing' })
+              }
+            >
+              force playing up
+            </button>
             {(['major_injury', 'penalty_miss', 'older_group_failure', 'released_by_maccabi'] as const).map(
               (kind) => (
                 <button

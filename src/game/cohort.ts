@@ -71,13 +71,17 @@ export function cohortHasGraduated(career: Career): boolean {
 /* ------------------------------------------------------------------ */
 
 /**
- * The calendar month each season checkpoint falls in. A season labelled 2031 runs
+ * The calendar date each season checkpoint falls on. A season labelled 2031 runs
  * August 2030 → June 2031, so preseason is in the previous calendar year.
+ *
+ * Mid-month rather than the 1st, so a checkpoint sits sensibly either side of a birthday in
+ * the same month: on 15 January a boy born on the 5th has had his birthday and one born on
+ * the 20th has not.
  */
-const SEASON_POINT_DATE: Record<SeasonPoint, { month: number; yearOffset: number }> = {
-  preseason: { month: 8, yearOffset: -1 },
-  midseason: { month: 1, yearOffset: 0 },
-  season_end: { month: 6, yearOffset: 0 },
+const SEASON_POINT_DATE: Record<SeasonPoint, { month: number; day: number; yearOffset: number }> = {
+  preseason: { month: 8, day: 15, yearOffset: -1 },
+  midseason: { month: 1, day: 15, yearOffset: 0 },
+  season_end: { month: 6, day: 1, yearOffset: 0 },
 };
 
 /**
@@ -87,9 +91,9 @@ const SEASON_POINT_DATE: Record<SeasonPoint, { month: number; yearOffset: number
  * apart in displayed age at the same moment, while belonging to exactly the same age group.
  */
 export function ageAt(dob: DateOfBirth, season: number, point: SeasonPoint): number {
-  const { month, yearOffset } = SEASON_POINT_DATE[point];
+  const { month, day, yearOffset } = SEASON_POINT_DATE[point];
   const calendarYear = season + yearOffset;
-  const hadBirthday = month > dob.month || (month === dob.month && 1 >= dob.day);
+  const hadBirthday = month > dob.month || (month === dob.month && day >= dob.day);
   return calendarYear - dob.year - (hadBirthday ? 0 : 1);
 }
 

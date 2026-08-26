@@ -36,11 +36,12 @@ export function stageLabel(stage: AcademyStage): string {
   return academyStageLabel(stage);
 }
 
-/** "מכבי חיפה" for academy stages, the actual club once the player is a senior. */
+/**
+ * The club the player is actually at. Never hard-coded to Maccabi (v0.3.1) - a player can be
+ * at another academy from the age of nine if the trials said no.
+ */
 export function teamLine(career: Career): string {
-  const club = getClub(career.currentClubId);
-  if (career.academyStage !== 'senior') return 'מכבי חיפה';
-  return club.name;
+  return getClub(career.currentClubId).name;
 }
 
 /** The headline the career screen leads with: the academy stage, or the club. */
@@ -50,8 +51,11 @@ export function headlineTitle(career: Career): string {
     : stageLabel(career.academyStage);
 }
 
+/** Under the headline: the league for a senior, the actual club for an academy player. */
 export function headlineSubtitle(career: Career): string {
-  return career.academyStage === 'senior' ? stageConfig('senior').league : 'מכבי חיפה';
+  return career.academyStage === 'senior'
+    ? stageConfig('senior').league
+    : getClub(career.currentClubId).name;
 }
 
 export const OLDER_GROUP_LABELS: Record<OlderGroupStatus, string> = {
