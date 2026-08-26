@@ -754,6 +754,17 @@ export type OfferKind =
   | 'release'
   | 'promotion';
 
+/**
+ * What a club is signing the player to be (v0.4).
+ *
+ * Joining a bigger club as a backup is not automatically better than staying where you are as
+ * a star, and the expected role is what makes that a real dilemma rather than a formality.
+ */
+export type ExpectedRole = 'star' | 'key' | 'starter' | 'rotation' | 'backup' | 'project';
+
+/** Where a move sits relative to where the player currently is. */
+export type MoveDirection = 'up' | 'lateral' | 'down';
+
 export interface TransferOffer {
   id: string;
   kind: OfferKind;
@@ -768,6 +779,15 @@ export interface TransferOffer {
   acceptLabel: string;
   declineLabel: string;
   mandatory?: boolean;
+
+  /* ---------- v0.4: what the UI needs to make this a real decision ---------- */
+  leagueId?: string;
+  /** How strong the destination league is, 0-100. */
+  leagueLevel?: number;
+  expectedRole?: ExpectedRole;
+  direction?: MoveDirection;
+  /** Qualitative hints only - never a probability. */
+  hints?: string[];
 }
 
 /* ------------------------------------------------------------------ */

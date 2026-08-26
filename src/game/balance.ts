@@ -122,6 +122,69 @@ export const WORLD = {
   smallClubPrestige: 32,
 };
 
+/* ------------------------------------------------------------------ */
+/* The career market (v0.4)                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The career ladder. Everything here is a weight, not a threshold - a good season improves the
+ * odds of a better club without ever guaranteeing one, and a bad run genuinely opens doors
+ * downward.
+ */
+export const MARKET = {
+  /* ---- what the player is worth on the market ---- */
+  abilityWeight: 0.5,
+  reputationWeight: 0.22,
+  leagueWeight: 0.16,
+  roleWeight: 0.1,
+  ratingWeight: 0.35,
+  minutesWeight: 8,
+  /** Clubs buy a projection while he is young, and a record after that. */
+  projectionAge: 23,
+  potentialLeak: 0.16,
+  peakAge: 28,
+  ageDecline: 1.6,
+
+  /* ---- position need ---- */
+  /** Every club has at least this much interest in every position. */
+  needFloor: 0.25,
+  /** How much a strong need shifts the expected role, in ability points. */
+  needToEdge: 14,
+  strongNeed: 0.78,
+
+  /* ---- expected role, by how far clear of the club's level he is ---- */
+  projectEdge: -12,
+  backupEdge: -6,
+  rotationEdge: 0,
+  starterEdge: 7,
+  keyEdge: 14,
+  /** Where a player starts in the pecking order, given what he was signed to be. */
+  arrivalRoleValue: {
+    star: 82,
+    key: 70,
+    starter: 58,
+    rotation: 40,
+    backup: 26,
+    project: 22,
+  } as Record<string, number>,
+
+  /* ---- who is interested ---- */
+  /** Clubs will stretch this far above the player's level. */
+  stretch: 3,
+  fitWidth: 24,
+  /** League-level gap that counts as a genuine step up or down. */
+  directionThreshold: 6,
+
+  /* ---- hints ---- */
+  goodDevelopment: 74,
+  highVisibility: 70,
+
+  /* ---- trajectory ---- */
+  trajectoryUp: 4,
+  /** Share of his club's games below which a player is not really playing. */
+  stagnationShare: 0.35,
+};
+
 /** Retirement can start being offered here; it becomes increasingly likely afterwards. */
 export const RETIREMENT_MIN_AGE = 33;
 export const RETIREMENT_FORCED_AGE = 41;
@@ -726,6 +789,11 @@ export const TRANSFERS = {
   returnMaccabismWeight: 0.0002,
   /** Maccabi only comes calling for a player who could actually hold a place in the side. */
   returnAbilityMargin: 8,
+  /**
+   * Chance a fading player gets an offer from further down (v0.4). This is what stops a
+   * career quietly dying on a bench it cannot leave.
+   */
+  stepDownChance: 0.55,
 };
 
 /* ------------------------------------------------------------------ */

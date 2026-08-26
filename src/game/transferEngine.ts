@@ -11,6 +11,18 @@ import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import type { Career, Club, ProgressionResult, TransferOffer } from '../types';
 import { HOMECOMING, LEAVING, TRANSFERS, YOUTH_TO_SENIOR } from './balance';
 import { nextNaturalStage } from './cohort';
+import {
+  careerTrajectory,
+  drawDestination,
+  expectedRoleAt,
+  EXPECTED_ROLE_LABELS,
+  EXPECTED_ROLE_MINUTES,
+  isStagnating,
+  moveDirection,
+  offerHints,
+} from './marketEngine';
+import { leagueOf } from './worldEngine';
+import { leagueLevel } from '../data/leagues';
 import { applyEffects, cloneCareer, moveToClub } from './progressionEngine';
 import { clamp, type Rng } from './random';
 import { isAtMaccabiSenior, isInAcademy, isOnLoan } from './rules';
@@ -42,12 +54,6 @@ export function interestWeight(career: Career, club: Club): number {
           : 1;
   const ageMultiplier = career.age <= 27 ? 1 : Math.max(0.25, 1 - (career.age - 27) * 0.12);
   return base * tierMultiplier * ageMultiplier;
-}
-
-function transferableClubs(career: Career): Club[] {
-  return ALL_CLUBS.filter(
-    (club) => club.isSenior === true && club.id !== career.currentClubId && club.id !== MACCABI_ID,
-  );
 }
 
 function offerChance(career: Career): number {
@@ -137,18 +143,40 @@ function transferOffer(club: Club, career: Career): TransferOffer {
   const leaving = leavingContext(career, club);
   const atMaccabi = isAtMaccabiSenior(career);
 
+  const league = leagueOf(career.world, club.id);
+  const role = expectedRoleAt(career, club, career.currentSeason);
+  const direction = moveDirection(career, club);
+  const roleLabel = EXPECTED_ROLE_LABELS[role];
+
+  /*
+   * The description says what he is being signed to be, because that is the actual decision.
+   * "A bigger club wants you" is not information; "a bigger club wants you as a backup" is.
+   */
+  const roleLine =
+    role === 'star' || role === 'key'
+      ? `הם רוצים אותך בתור ${roleLabel}.`
+      : role === 'project'
+        ? 'הם רוצים לפתח אותך לטווח הארוך.'
+        : `התפקיד המוצע: ${roleLabel}.`;
+
   return {
     id: `transfer_${club.id}`,
     kind: 'transfer',
     clubId: club.id,
     clubName: club.name,
-    league: club.league,
+    league: league.name,
     country: club.country,
+    leagueId: league.id,
+    leagueLevel: Math.round(leagueLevel(league)),
+    expectedRole: role,
+    direction,
+    hints: offerHints(career, club, role, career.currentSeason),
     title: abroad ? `הצעה מ${club.name}` : `${club.name} רוצה אותך`,
     description:
       (abroad
-        ? `${club.name} מ${club.country} הגישה הצעה רשמית. ${club.league}, אצטדיון אחר, שפה אחרת.`
-        : `${club.name} מציעה לך חוזה ומקום מרכזי בקבוצה.`) +
+        ? `${club.name} מ${club.country} הגישה הצעה רשמית. ${league.name}, אצטדיון אחר, שפה אחרת. `
+        : `${club.name} מציעה לך חוזה. `) +
+      roleLine +
       (leaving.note ? ` ${leaving.note}` : ''),
     acceptEffects: {
       reputation: abroad ? 6 : 1,
@@ -169,18 +197,30 @@ function transferOffer(club: Club, career: Career): TransferOffer {
   };
 }
 
-function loanOffer(club: Club): TransferOffer {
+function loanOffer(club: Club, career: Career): TransferOffer {
+  const league = leagueOf(career.world, club.id);
+  const role = expectedRoleAt(career, club, career.currentSeason);
+  const regular = EXPECTED_ROLE_MINUTES[role] >= 0.7;
+
   return {
     id: `loan_${club.id}`,
     kind: 'loan',
     clubId: club.id,
     clubName: club.name,
-    league: club.league,
+    league: league.name,
     country: club.country,
+    leagueId: league.id,
+    leagueLevel: Math.round(leagueLevel(league)),
+    expectedRole: role,
+    direction: moveDirection(career, club),
+    hints: offerHints(career, club, role, career.currentSeason),
     title: `השאלה ל${club.name}`,
-    description: `${club.name} רוצה אותך בהשאלה לעונה. שם תשחק כל שבוע - ותחזור לחיפה עם משחקים ברגליים.`,
+    // Never names Maccabi: a loan is not always from Maccabi any more.
+    description: regular
+      ? `${club.name} רוצה אותך בהשאלה לעונה, ושם תשחק כל שבוע. משחקים ברגליים שווים יותר מאימונים.`
+      : `${club.name} רוצה אותך בהשאלה לעונה - ליגה חזקה יותר, אבל תצטרך להיאבק על הדקות.`,
     acceptEffects: { confidence: 3 },
-    declineEffects: { maccabism: 3, minutesModifier: 0.85 },
+    declineEffects: { minutesModifier: 0.85 },
     acceptLabel: 'לצאת להשאלה',
     declineLabel: 'להישאר',
   };
@@ -513,20 +553,15 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
     }
   }
 
-  /* ---------- loan ---------- */
+  /* ---------- loan (v0.4: any club, not just Maccabi, and a real choice) ---------- */
   const lastApps = career.lastSeasonRecord?.stats.appearances ?? 0;
   const loanEligible =
-    isAtMaccabiSenior(career) &&
     !isOnLoan(career) &&
     career.age >= TRANSFERS.loanMinAge &&
     career.age <= TRANSFERS.loanMaxAge &&
     lastApps <= TRANSFERS.loanMaxAppearances;
   if (loanEligible && rng.chance(TRANSFERS.loanChance + career.hidden.transferBoost * 0.5)) {
-    const destinations = ALL_CLUBS.filter(
-      (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_top',
-    ).filter((c) => c.id !== MACCABI_ID);
-    const chosen = rng.weighted(destinations, (c) => interestWeight(career, c) + 0.2);
-    if (chosen) offers.push(loanOffer(chosen));
+    offers.push(...buildLoanOffers(career, rng));
   }
 
   /* ---------- homecoming ---------- */
@@ -558,14 +593,67 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
     }
   }
 
-  /* ---------- regular transfer ---------- */
-  if (!isOnLoan(career) && rng.chance(offerChance(career))) {
-    const candidates = transferableClubs(career);
-    const chosen = rng.weighted(candidates, (c) => interestWeight(career, c));
-    if (chosen) offers.push(transferOffer(chosen, career));
+  /*
+   * ---------- the career ladder (v0.4) ----------
+   *
+   * Two independent draws, so a career can move in either direction and sometimes gets a
+   * genuine choice between them. Upward interest comes from having done well; downward
+   * interest comes from not playing, and is what stops a career from silently dying on a
+   * bench it cannot leave.
+   */
+  if (!isOnLoan(career)) {
+    if (rng.chance(offerChance(career))) {
+      const up = drawDestination(career, rng, (c) => moveDirection(career, c) !== 'down');
+      if (up) offers.push(transferOffer(up, career));
+    }
+
+    // Not playing, or going backwards: clubs lower down come calling.
+    const fading = isStagnating(career) || careerTrajectory(career) === 'down';
+    if (fading && rng.chance(TRANSFERS.stepDownChance)) {
+      const down = drawDestination(career, rng, (c) => moveDirection(career, c) === 'down');
+      if (down && !offers.some((o) => o.clubId === down.id)) {
+        offers.push(transferOffer(down, career));
+      }
+    }
   }
 
   return offers.slice(0, 3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Loans (v0.4 Phase 3)                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A loan should be a decision, not a formality.
+ *
+ * Offers up to two destinations at different levels, so the obvious choice is never simply
+ * "the bigger club": a rotation role at a top-flight side against near-guaranteed football a
+ * division below is exactly the dilemma young players actually face.
+ */
+export function buildLoanOffers(career: Career, rng: Rng): TransferOffer[] {
+  const offers: TransferOffer[] = [];
+
+  // Somewhere he would be a regular - usually a level down.
+  const regular = drawDestination(
+    career,
+    rng,
+    (club) => EXPECTED_ROLE_MINUTES[expectedRoleAt(career, club, career.currentSeason)] >= 0.7,
+  );
+  if (regular) offers.push(loanOffer(regular, career));
+
+  // Somewhere better, where he would have to fight for it.
+  const tougher = drawDestination(
+    career,
+    rng,
+    (club) =>
+      club.id !== regular?.id &&
+      moveDirection(career, club) !== 'down' &&
+      EXPECTED_ROLE_MINUTES[expectedRoleAt(career, club, career.currentSeason)] < 0.7,
+  );
+  if (tougher) offers.push(loanOffer(tougher, career));
+
+  return offers;
 }
 
 /* ------------------------------------------------------------------ */
@@ -588,7 +676,7 @@ export function acceptOffer(career: Career, offerId: string, rng: Rng): Career {
       next = moveToClub(next, offer.clubId, { loan: true, loanSeasons: 1 });
     }
   } else {
-    next = moveToClub(next, offer.clubId);
+    next = moveToClub(next, offer.clubId, offer.expectedRole ? { expectedRole: offer.expectedRole } : {});
   }
 
   if (cameFromAcademy && (offer.kind === 'promotion' || offer.kind === 'loan')) {
@@ -612,11 +700,18 @@ export function declineAllOffers(career: Career, rng: Rng): Career {
   return next;
 }
 
-/** Loan expiry happens without a decision. */
+/**
+ * Loan expiry happens without a decision.
+ *
+ * This runs at the top of the new season, before a ball is kicked, so it must only count down a
+ * loan the player has actually *played*. A loan agreed in the summer has `lastSeasonRecord` still
+ * pointing at the parent club; without that guard a one-season loan expired the instant it was
+ * signed and the player was back home having never appeared for the loan club.
+ */
 export function applyAutomaticMoves(career: Career): Career {
   let next = career;
   const parentClubId = next.parentClubId;
-  if (parentClubId !== null) {
+  if (parentClubId !== null && next.lastSeasonRecord?.clubId === next.currentClubId) {
     next = cloneCareer(next);
     next.loanSeasonsLeft -= 1;
     if (next.loanSeasonsLeft <= 0) {

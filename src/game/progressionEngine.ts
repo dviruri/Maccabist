@@ -15,11 +15,12 @@ import type {
   Career,
   CareerFlag,
   EventEffects,
+  ExpectedRole,
   ProgressionResult,
   SeasonStats,
   TraitId,
 } from '../types';
-import { COACH_TRUST, PROGRESSION, PROMOTION, RECOVERY, SEASON, TRAITS } from './balance';
+import { COACH_TRUST, MARKET, PROGRESSION, PROMOTION, RECOVERY, SEASON, TRAITS } from './balance';
 import { cohortLead, nextNaturalStage } from './cohort';
 import { advanceArc, hasTrait, recordMemory, startArc } from './memory';
 import { clamp, round, type Rng } from './random';
@@ -88,6 +89,8 @@ export interface MoveOptions {
   loan?: boolean;
   loanSeasons?: number;
   returningFromLoan?: boolean;
+  /** What the club signed him to be (v0.4). Drives where he starts in the pecking order. */
+  expectedRole?: ExpectedRole;
 }
 
 /** Moves the player to a new club and keeps the Maccabi legacy bookkeeping straight. */
@@ -134,10 +137,19 @@ export function moveToClub(career: Career, clubId: string, options: MoveOptions 
     }
   }
 
-  // Re-seat the player in the new dressing room.
-  const arrivalRole = clamp(48 + (career.ability - target.quality) * 1.5, 6, 88);
+  /*
+   * Re-seat the player in the new dressing room.
+   *
+   * v0.4: when the move came with an expected role, that is what he arrives as - signing for a
+   * big club as a backup has to actually mean sitting on their bench, or the expected role is
+   * decoration rather than a decision.
+   */
+  const arrivalRole =
+    options.expectedRole !== undefined
+      ? MARKET.arrivalRoleValue[options.expectedRole]
+      : clamp(48 + (career.ability - target.quality) * 1.5, 6, 88);
   const loyaltyKeep = target.id === MACCABI_ID ? career.maccabism * 0.18 : 0;
-  next.roleValue = clamp(arrivalRole + loyaltyKeep, 5, 92);
+  next.roleValue = clamp((arrivalRole ?? 48) + loyaltyKeep, 5, 92);
   next.role = roleFromValue(next.roleValue);
   /*
    * Coach trust belongs to a coaching relationship, not to the player, so a move starts a new
