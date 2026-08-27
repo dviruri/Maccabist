@@ -113,6 +113,19 @@ export interface CareerStats {
   cleanSheets: number;
 }
 
+/**
+ * Which return story a homecoming is (v0.4). Lives here rather than in the engine because the
+ * career data model records it, and it is fixed at the moment of the return.
+ */
+export type HomecomingKind =
+  | 'prime_hero'
+  | 'successful_return'
+  | 'veteran_farewell'
+  | 'redemption'
+  | 'rejected_child_star'
+  | 'returning_leader'
+  | 'european_returnee';
+
 /** Everything the Legend Score cares about regarding the player's bond with the club. */
 export interface MaccabiRecord {
   appearances: number;
@@ -128,6 +141,11 @@ export interface MaccabiRecord {
   everLeft: boolean;
   returned: boolean;
   returnAge: number | null;
+  /**
+   * Which homecoming story it was, fixed at the moment of the return. Optional because saves
+   * written before v0.4 have a return but no record of what kind it was.
+   */
+  returnKind?: HomecomingKind;
   seasonsAfterReturn: number;
   loyaltyMoments: number;
   betrayalMoments: number;
@@ -684,8 +702,12 @@ export interface EventEffects {
   captain?: boolean;
 
   /* ---------- v0.3 ---------- */
-  /** Record something the rest of the career is allowed to remember. */
-  remember?: MemoryKind;
+  /**
+   * Record something the rest of the career is allowed to remember. A list when one outcome
+   * establishes several facts at once - scoring against Maccabi is also *facing* them, and an
+   * event that only wrote the headline memory left the plainer one unrecorded.
+   */
+  remember?: MemoryKind | MemoryKind[];
   /** Open a storyline. */
   startArc?: ArcId;
   /** Which way the story went - read by later events in the same arc. */

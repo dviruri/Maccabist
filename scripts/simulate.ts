@@ -136,6 +136,44 @@ function reportBatch(name: string, result: BatchResult): void {
   row('avg age leaving the academy', num(result.academy.averageAgeLeavingAcademy));
   row('avg seasons in the academy', num(result.academy.averageAcademySeasons));
 
+  console.log('\n  Football World (v0.4)');
+  row('saw a club-season event', pct(result.world.sawAWorldEvent));
+  row('won promotion', pct(result.world.wonPromotion));
+  row('suffered relegation', pct(result.world.sufferedRelegation));
+  row('won a title away from Maccabi', pct(result.world.wonTitleOutsideMaccabi));
+  row('carried a small club', pct(result.world.breakoutAtSmallClub));
+  row('played abroad', pct(result.world.playedAbroad));
+  row('  ...came back to Israel', pct(result.world.cameBackToIsrael));
+  row('  ...and it did not work out', pct(result.world.failedAbroad));
+  row('had a loan spell', pct(result.world.hadALoanSpell));
+  row('moved up a level', pct(result.world.movedUp));
+  row('moved down a level', pct(result.world.movedDown));
+  row('rebuilt after dropping down', pct(result.world.rebuiltCareer));
+  row('senior clubs (avg)', num(result.world.averageSeniorClubs, 2));
+  row('seasons below the top flight', num(result.world.averageSecondDivisionSeasons, 2));
+
+  console.log('\n  Maccabi story (v0.4)');
+  row('met Maccabi again after leaving', pct(result.maccabiStory.metMaccabiGivenLeft));
+  row('faced them in a match', pct(result.maccabiStory.facedThemInAMatch));
+  row('scored against them', pct(result.maccabiStory.scoredAgainstThem));
+  row('  ...and refused to celebrate', pct(result.maccabiStory.refusedToCelebrate));
+  row('came home', pct(result.maccabiStory.cameHome));
+  console.log('    standing at the end of the career:');
+  for (const [band, count] of Object.entries(result.maccabiStory.relationships).sort(
+    (a, b) => b[1] - a[1],
+  )) {
+    console.log(`      ${pad(band, 22)}${padStart(pct(count / result.count), 8)}`);
+  }
+  if (Object.keys(result.maccabiStory.homecomingKinds).length > 0) {
+    console.log('    homecoming archetypes (of those who came home):');
+    const homeTotal = Object.values(result.maccabiStory.homecomingKinds).reduce((a, b) => a + b, 0);
+    for (const [kind, count] of Object.entries(result.maccabiStory.homecomingKinds).sort(
+      (a, b) => b[1] - a[1],
+    )) {
+      console.log(`      ${pad(kind, 22)}${padStart(pct(count / homeTotal), 8)}`);
+    }
+  }
+
   console.log('\n  Repetition');
   row('avg events per career', num(result.repetition.averageEventsPerCareer));
   row('avg repeated events', num(result.repetition.averageRepeatedEvents, 2));

@@ -298,7 +298,11 @@ export function applyEffects(career: Career, effects: EventEffects, rng: Rng): E
   if (effects.leadership) next.hidden.leadership = clamp(next.hidden.leadership + effects.leadership);
 
   /* ---------- v0.3: memory, arcs, traits, timeline ---------- */
-  if (effects.remember) next.memories = recordMemory(next, effects.remember);
+  if (effects.remember) {
+    for (const kind of Array.isArray(effects.remember) ? effects.remember : [effects.remember]) {
+      next.memories = recordMemory(next, kind);
+    }
+  }
 
   if (effects.startArc) {
     next.arcs = startArc(next, effects.startArc, effects.arcBranch ?? 'default');

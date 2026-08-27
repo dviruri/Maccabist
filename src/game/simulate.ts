@@ -28,7 +28,30 @@ import {
   type RetirementDecision,
 } from './careerEngine';
 import { naturalStageFor } from './cohort';
+import { maccabiRelationship } from './maccabiEngine';
 import { hasMemory } from './memory';
+import { leagueOf } from './worldEngine';
+import { MACCABI_EVENTS } from '../data/events/maccabiEvents';
+import { WORLD_EVENTS } from '../data/events/worldEvents';
+import type { MemoryKind } from '../types';
+
+/** Event ids for the two v0.4 families, so the metrics never drift from the data. */
+const MACCABI_EVENT_IDS: ReadonlySet<string> = new Set(MACCABI_EVENTS.map((e) => e.id));
+const WORLD_EVENT_IDS: ReadonlySet<string> = new Set(WORLD_EVENTS.map((e) => e.id));
+
+/** The v0.4 memories that say what shape a career had. */
+const WORLD_MEMORY_KINDS: readonly MemoryKind[] = [
+  'won_promotion',
+  'suffered_relegation',
+  'won_title_outside_maccabi',
+  'first_move_abroad',
+  'returned_to_israel',
+  'failed_abroad',
+  'moved_up_a_level',
+  'moved_down_a_level',
+  'rebuilt_career',
+  'breakout_at_small_club',
+];
 import { createRng, type Rng } from './random';
 
 export interface CareerPolicy {
@@ -367,6 +390,48 @@ export interface BatchResult {
   withStoryArcs: number;
   averageMilestones: number;
   averageTraitsRevealed: number;
+
+  /** v0.4: does the football world actually happen to the player? */
+  world: WorldMetrics;
+  /** v0.4: does Maccabi stay in the story of a player who left? */
+  maccabiStory: MaccabiStoryMetrics;
+}
+
+/** How much of the season-level world a career actually meets. */
+export interface WorldMetrics {
+  wonPromotion: number;
+  sufferedRelegation: number;
+  wonTitleOutsideMaccabi: number;
+  playedAbroad: number;
+  cameBackToIsrael: number;
+  failedAbroad: number;
+  hadALoanSpell: number;
+  movedUp: number;
+  movedDown: number;
+  rebuiltCareer: number;
+  breakoutAtSmallClub: number;
+  /** Distinct senior clubs, and seasons spent outside a top flight. */
+  averageSeniorClubs: number;
+  averageSecondDivisionSeasons: number;
+  /** Share seeing at least one club-season event. */
+  sawAWorldEvent: number;
+}
+
+/** Whether the product invariant holds: the player may leave, Maccabi never leaves the story. */
+export interface MaccabiStoryMetrics {
+  /** Distribution of the derived relationship at the end of the career. */
+  relationships: Record<string, number>;
+  /** Share who left and still met Maccabi in an event afterwards. */
+  metMaccabiAfterLeaving: number;
+  /** ...as a share of those who left at all - the number the invariant is really about. */
+  metMaccabiGivenLeft: number;
+  facedThemInAMatch: number;
+  scoredAgainstThem: number;
+  refusedToCelebrate: number;
+  offeredAHomecoming: number;
+  cameHome: number;
+  /** Homecoming archetype mix, as a share of careers that came home. */
+  homecomingKinds: Record<string, number>;
 }
 
 /** Every event flagged `rare` in the data - no hand-maintained list to drift out of date. */
@@ -651,6 +716,16 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
   const distinctEvents = new Set<string>();
   const sequenceCounts = new Map<string, number>();
 
+  /* ---- v0.4: world and Maccabi story ---- */
+  const worldCount: Record<string, number> = {};
+  const bump = (key: string): void => { worldCount[key] = (worldCount[key] ?? 0) + 1; };
+  let seniorClubsSum = 0;
+  let secondDivisionSeasonsSum = 0;
+  const relationships: Record<string, number> = {};
+  const homecomingKinds: Record<string, number> = {};
+  let leftMaccabi = 0;
+  let metMaccabiAfterLeaving = 0;
+
   const { rotatePositions, ...careerOptions } = options;
 
   for (let i = 0; i < count; i += 1) {
@@ -695,6 +770,48 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
     appsSum += career.maccabi.appearances;
     seasonsSum += career.seasonHistory.length;
     ageSum += career.retirementAge ?? career.age;
+
+    /* ---- v0.4: did the world happen to him, and did Maccabi stay in the story? ---- */
+    for (const kind of WORLD_MEMORY_KINDS) if (hasMemory(career, kind)) bump(kind);
+    if (career.seasonHistory.some((s2) => s2.onLoan)) bump('loan');
+
+    const seniorSeasons = career.seasonHistory.filter((s2) => s2.academyStage === 'senior');
+    seniorClubsSum += new Set(seniorSeasons.map((s2) => s2.clubId)).size;
+    secondDivisionSeasonsSum += seniorSeasons.filter(
+      (s2) => leagueOf(career.world, s2.clubId).tier >= 2,
+    ).length;
+    if (career.eventsHistory.some((e) => WORLD_EVENT_IDS.has(e.eventId))) bump('worldEvent');
+
+    const relationship = maccabiRelationship(career);
+    relationships[relationship] = (relationships[relationship] ?? 0) + 1;
+
+    /*
+     * The product invariant, measured: of the players who left, how many still met Maccabi in
+     * their story afterwards? Counted from the ex-Maccabi event family plus the memories those
+     * events write, so it reflects what the player actually saw rather than what was possible.
+     */
+    const everAway =
+      career.maccabi.everLeft ||
+      career.flags.includes('released_by_maccabi') ||
+      (career.maccabi.academyGraduate && career.currentClubId !== MACCABI_ID);
+    if (everAway) {
+      leftMaccabi += 1;
+      if (career.eventsHistory.some((e) => MACCABI_EVENT_IDS.has(e.eventId))) {
+        metMaccabiAfterLeaving += 1;
+      }
+    }
+    if (hasMemory(career, 'played_against_maccabi')) bump('facedThem');
+    if (hasMemory(career, 'scored_against_maccabi')) bump('scoredAgainst');
+    if (hasMemory(career, 'refused_to_celebrate')) bump('refusedToCelebrate');
+    if (hasMemory(career, 'booed_at_sami_ofer') || hasMemory(career, 'applauded_at_sami_ofer')) {
+      bump('facedThem');
+    }
+    if (career.maccabi.returned) {
+      bump('cameHome');
+      // Read the kind stored at the time of the return, not recomputed from the retired player.
+      const kind = career.maccabi.returnKind;
+      if (kind) homecomingKinds[kind] = (homecomingKinds[kind] ?? 0) + 1;
+    }
 
     const bucket = LEGEND_BUCKETS.find((b) => score >= b.min && score <= b.max);
     if (bucket) legendDistribution[bucket.label] = (legendDistribution[bucket.label] ?? 0) + 1;
@@ -804,6 +921,8 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
   for (const times of sequenceCounts.values()) if (times > 1) duplicated += times;
   const ladderTransitions = ladderNormal + ladderEarly + ladderStayed;
 
+  const share = (key: string): number => (worldCount[key] ?? 0) / count;
+
   return {
     count,
     reachedMaccabiSeniors: reachedSeniors / count,
@@ -871,6 +990,33 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
       duplicateSequenceShare: duplicated / count,
       averageEventsPerCareer: eventsSum / count,
       distinctEventsUsed: distinctEvents.size,
+    },
+    world: {
+      wonPromotion: share('won_promotion'),
+      sufferedRelegation: share('suffered_relegation'),
+      wonTitleOutsideMaccabi: share('won_title_outside_maccabi'),
+      playedAbroad: share('first_move_abroad'),
+      cameBackToIsrael: share('returned_to_israel'),
+      failedAbroad: share('failed_abroad'),
+      hadALoanSpell: share('loan'),
+      movedUp: share('moved_up_a_level'),
+      movedDown: share('moved_down_a_level'),
+      rebuiltCareer: share('rebuilt_career'),
+      breakoutAtSmallClub: share('breakout_at_small_club'),
+      averageSeniorClubs: seniorClubsSum / count,
+      averageSecondDivisionSeasons: secondDivisionSeasonsSum / count,
+      sawAWorldEvent: share('worldEvent'),
+    },
+    maccabiStory: {
+      relationships,
+      metMaccabiAfterLeaving: metMaccabiAfterLeaving / count,
+      metMaccabiGivenLeft: leftMaccabi > 0 ? metMaccabiAfterLeaving / leftMaccabi : 0,
+      facedThemInAMatch: share('facedThem'),
+      scoredAgainstThem: share('scoredAgainst'),
+      refusedToCelebrate: share('refusedToCelebrate'),
+      offeredAHomecoming: share('cameHome'),
+      cameHome: share('cameHome'),
+      homecomingKinds,
     },
   };
 }

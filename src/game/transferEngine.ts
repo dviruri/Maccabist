@@ -8,7 +8,7 @@
 
 import { stageOrder } from '../data/academy';
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
-import type { Career, Club, ProgressionResult, TransferOffer } from '../types';
+import type { Career, Club, HomecomingKind, ProgressionResult, TransferOffer } from '../types';
 import { HOMECOMING, LEAVING, TRANSFERS, YOUTH_TO_SENIOR } from './balance';
 import { nextNaturalStage } from './cohort';
 import {
@@ -229,14 +229,7 @@ function loanOffer(club: Club, career: Career): TransferOffer {
 }
 
 /** Which kind of homecoming story this is. They are not the same event. */
-export type HomecomingKind =
-  | 'prime_hero'
-  | 'successful_return'
-  | 'veteran_farewell'
-  | 'redemption'
-  | 'rejected_child_star'
-  | 'returning_leader'
-  | 'european_returnee';
+export type { HomecomingKind };
 
 /**
  * Which return story this is (v0.4).
@@ -754,6 +747,18 @@ export function acceptOffer(career: Career, offerId: string, rng: Rng): Career {
   if (cameFromAcademy && (offer.kind === 'promotion' || offer.kind === 'loan')) {
     next = cloneCareer(next);
     next.maccabi.academyGraduate = true;
+  }
+
+  /*
+   * Which return story this was, recorded at the moment it happened (v0.4).
+   *
+   * It has to be stored rather than recomputed: homecomingKind reads age, ability and standing,
+   * all of which have moved on by the time anyone looks at a finished career - so recomputing it
+   * at retirement made every homecoming look like a veteran's farewell.
+   */
+  if (offer.kind === 'return_home') {
+    next = cloneCareer(next);
+    next.maccabi.returnKind = homecomingKind(career);
   }
 
   next = cloneCareer(next);

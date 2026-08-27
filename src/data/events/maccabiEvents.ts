@@ -54,7 +54,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             effects: {
               maccabism: 6,
               confidence: 5,
-              remember: 'applauded_at_sami_ofer',
+              remember: ['played_against_maccabi', 'applauded_at_sami_ofer'],
               milestone: {
                 id: 'welcomed_back',
                 icon: '👏',
@@ -74,7 +74,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 62,
             tone: 'neutral',
             text: 'אתה ממשיך לרוץ. זה משחק, ואתה משוחק בו בשביל מישהו אחר עכשיו.',
-            effects: { form: 3, remember: 'applauded_at_sami_ofer' },
+            effects: { form: 3, remember: ['played_against_maccabi', 'applauded_at_sami_ofer'] },
             traitModifiers: [{ trait: 'professional', multiplier: 1.5 }],
           },
           {
@@ -121,7 +121,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
               confidence: 8,
               reputation: 6,
               roleValue: 5,
-              remember: 'booed_at_sami_ofer',
+              remember: ['played_against_maccabi', 'booed_at_sami_ofer'],
             },
             traitModifiers: [
               { trait: 'big_game', multiplier: 1.7 },
@@ -139,7 +139,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
               confidence: -8,
               coachTrust: -4,
               pressure: 7,
-              remember: 'booed_at_sami_ofer',
+              remember: ['played_against_maccabi', 'booed_at_sami_ofer'],
             },
           },
         ],
@@ -154,7 +154,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'neutral',
             text: 'תשעים דקות, אפס דרמה. יצאת מהמגרש בלי שאף אחד ידבר עליך. זה מספיק.',
-            effects: { form: 2, pressure: 3, remember: 'booed_at_sami_ofer' },
+            effects: { form: 2, pressure: 3, remember: ['played_against_maccabi', 'booed_at_sami_ofer'] },
           },
         ],
       },
@@ -194,7 +194,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
               maccabism: 8,
               reputation: 4,
               flags: ['loyalty_moment'],
-              remember: 'refused_to_celebrate',
+              remember: ['played_against_maccabi', 'scored_against_maccabi', 'refused_to_celebrate'],
               milestone: {
                 id: 'no_celebration',
                 icon: '🤝',
@@ -220,7 +220,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
               confidence: 8,
               reputation: 6,
               maccabism: -6,
-              remember: 'celebrated_against_maccabi',
+              remember: ['played_against_maccabi', 'scored_against_maccabi', 'celebrated_against_maccabi'],
             },
           },
           {
@@ -233,7 +233,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
               maccabism: -12,
               pressure: 6,
               flags: ['betrayal_moment'],
-              remember: 'celebrated_against_maccabi',
+              remember: ['played_against_maccabi', 'scored_against_maccabi', 'celebrated_against_maccabi'],
             },
           },
         ],
