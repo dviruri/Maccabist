@@ -90,7 +90,12 @@ src/
     balance.ts            Every tunable number. Start here to rebalance.
     random.ts             Seeded RNG (mulberry32). The only source of randomness.
     rules.ts              Shared helpers: level context, role tier, minutes age curve.
+    calendar.ts           Real dates: leap years, month lengths, date of birth.
+    eligibility.ts        Who is old enough for professional football. One predicate.
     conditions.ts         Generic condition matching for events and outcomes.
+    worldEngine.ts        Season-level football world: club seasons, promotion, relegation.
+    marketEngine.ts       The career ladder: what a player is worth, who wants him, as what.
+    maccabiEngine.ts      Standing with Maccabi. Derived, never stored.
     careerEngine.ts       Public API + the phase state machine. React only calls this file.
     eventEngine.ts        Eligibility, anti-repetition weighting, choice resolution.
     outcomeEngine.ts      Weighted outcomes: base weights x modifiers = the real odds.
@@ -103,7 +108,8 @@ src/
   data/                   CONTENT — plain data, no logic
     academy.ts            The 10-stage academy ladder. First-class domain data.
     clubs.ts              23 clubs: the Maccabi pathway, Israeli league, Europe.
-    events/               74 events across four files (see "Adding an event").
+    leagues.ts            11 leagues, with promotion/relegation links between divisions.
+    events/               events across eight files (see "Adding an event").
     achievements.ts       Milestone definitions.
     trophies.ts           Trophy definitions and their Legend Score weights.
     endings.ts            Career archetypes shown on the retirement card.
@@ -376,6 +382,56 @@ phrase-based, not word-based: `קשר` also means "contact" and `מגן` also me
 naming the *opponent's* position (the striker you mark, the keeper you beat) is perfectly
 correct.
 
+### The football world (v0.4)
+
+The world is simulated at **season** level: no fixtures, no tables, no squads. A club's season
+costs a handful of RNG calls, and the shape it produces is right.
+
+`clubStrengthVsLeague` is the idea everything hangs off — a club's quality relative to *its own
+division*, not in the abstract. It is what makes promotion and relegation matter, because the
+same club is a title contender in the second division and a relegation candidate in the first.
+It is also what in-season events read: the final table is only resolved at season end, but
+everyone at a club knows in August whether they are expected to go up, stay up, or fight.
+
+```ts
+conditions: { clubLeagueTier: [2], minClubStrength: 0.15 }   // a promotion favourite
+conditions: { maxClubStrength: -0.5 }                        // a club out of its depth
+```
+
+A division's `quality` must be the level its clubs actually play at. הליגה הלאומית shipped at 42
+while both its clubs rate 40 and 36, which meant nobody in it was ever a promotion contender and
+the promotion-race events were unreachable. `tests/world.test.ts` now asserts that every world
+event's strength window matches at least one real club.
+
+### Standing with Maccabi (v0.4)
+
+`maccabiEngine.ts` answers a different question from מכביסטיות, and keeping them apart is the
+whole point:
+
+- **מכביסטיות** is what the player *feels* about the club. It is his, and he spends it.
+- **Standing** is what the club and the stand *remember*. He can only earn it.
+
+They come apart constantly, and that gap is most of the drama. A boy released at fifteen can stay
+a Maccabist his whole life and still be a stranger at Sami Ofer; a captain who walks out for a
+rival keeps every appearance he ever made and is booed anyway.
+
+Standing is **derived, never stored** — computed from the Maccabi record and the season trail —
+so it cannot drift out of sync with what happened, and saves written before it existed get a
+correct value for free. Seven bands from `stranger` to `son_of_the_club`, plus `traitor`, which
+overrides service entirely: joining a domestic rival straight from Maccabi is not something a
+crowd nets off against 200 appearances.
+
+Events key off it directly, which is how one fixture serves a returning hero and a booed
+defector without either reading wrong:
+
+```ts
+conditions: { clubScope: 'formerMaccabi', canFaceMaccabi: true, crowdResponse: ['hostile'] }
+```
+
+This is also the mechanism behind the product invariant — **the player may leave Maccabi, Maccabi
+never leaves the player's story**. It is honoured through *context*, never by handing a Hapoel
+Afula player Maccabi dressing-room events.
+
 ### Anti-repetition
 
 Repetition is handled in selection, not by adding more cards:
@@ -587,13 +643,19 @@ seed 17384920" is enough to recreate the exact career.
 npm test
 ```
 
-104 tests over the pure engine, in four files:
+273 tests over the pure engine, in ten files:
 
 | File | Covers |
 | --- | --- |
 | `academy.test.ts` | The ladder order and labels, normal/early/repeated promotion, the fast-track cap, the pecking-order reset, coach trust driving promotion |
+| `cohort.test.ts` | Birth cohorts, real dates of birth, natural vs current stage, the road back to Maccabi, whole-career cohort invariants |
+| `eligibility.test.ts` | Professional-football gating (no contracts for children), the exceptional-youth exception, the youth exit leaving nobody stranded |
 | `outcomes.test.ts` | Weighted outcomes, modifiers, seed reproducibility and divergence, the risky-upside rule, event data integrity, eligibility, cooldowns, `oncePerCareer`, category anti-repetition, rarity throttling |
 | `engine.test.ts` | Effects, club moves, half-season simulation, development and the potential ceiling, the four youth-to-senior paths, the released-player route end to end, transfers and homecoming, Legend Score, the season state machine, retirement |
+| `memory.test.ts` | Career memory, story arcs, traits, senior phases |
+| `eventAudit.test.ts` | Every event naming Maccabi declares a `clubScope`; position phrasing matches the player's position |
+| `world.test.ts` | Promotion/relegation, loan parent club and expiry, expected roles, position need, draw determinism, and that every world event's club-strength window matches a real club |
+| `maccabi.test.ts` | Service and grievance, the relationship bands, the rival override, the ex-Maccabi event family, homecoming archetypes and the traitor gate |
 | `simulation.test.ts` | Full headless careers to retirement, determinism, and batch-level sanity bounds |
 
 ---
@@ -628,11 +690,15 @@ references them.
 - **Careers run long.** ~28 seasons, leaving the academy at ~19.6 on average — a little later
   than the intended 18–19.
 - **Mobile layout is CSS-audited, not browser-verified** at 360/390/412px.
-- The lower-league world outside Maccabi is deliberately thin: real clubs and a working
-  released-player route, but no simulated league structure.
+- **The second division has only two clubs**, so promotion races there are reachable but thin.
+  A data gap rather than a logic one.
+- **Careers accumulate a lot of football.** Maccabi appearances reach ~760 at the 99th
+  percentile, which is more than a real career contains. Career length was out of scope for
+  v0.4 and is the obvious next balance target.
 
 ## Not in this version
 
 No auth, no backend, no Base44 integration, no leaderboards, no monetisation, no match-level
-simulation, no share card. `src/services/storage.ts` is a small interface specifically so it can
+simulation, no share card. The football world is simulated at **season** level only: clubs have
+seasons, divisions and promotion/relegation, but there are no fixtures, tables or squads. `src/services/storage.ts` is a small interface specifically so it can
 be swapped for a real service later.
