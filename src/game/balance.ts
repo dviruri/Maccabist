@@ -94,8 +94,15 @@ export const WORLD = {
   strengthSpread: 16,
   /** How far a club's strength shifts its expected finish, in ladder positions. */
   strengthToPositions: 2.6,
-  /** How far a season's luck can move it. */
-  seasonVariance: 1.5,
+  /**
+   * How far a season's luck can move a club, in ladder positions (standard deviation).
+   *
+   * Applied through `rng.normal`, which has real tails - `rng.gaussian` is hard-bounded to +/-
+   * its spread, so before v0.4.1 a club whose expected finish was five rungs up could not be
+   * relegated at all. Adding tails initially pushed relegation to 53.8% of careers, so this was
+   * tightened: the point was to make the outlier *possible*, not common.
+   */
+  seasonVariance: 1.15,
 
   /** A player below this share of the club's games does not move the needle at all. */
   impactMinShare: 0.25,
