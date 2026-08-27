@@ -14,6 +14,7 @@ import { POSITION_LIST } from '../src/game/balance';
 import {
   ambitiousPolicy,
   balancedPolicy,
+  boldPolicy,
   loyalPolicy,
   randomPolicy,
   riskTakerPolicy,
@@ -25,10 +26,17 @@ import {
 } from '../src/game/simulate';
 import type { Position } from '../src/types';
 
+/*
+ * v0.4.1 adds `bold`. `riskTaker` is a deliberate worst case - it prefers `risky` choices over
+ * `opportunity` ones despite those carrying double the expected value - so it answers "is bold
+ * play a trap?" rather than "how does a bold player do?". Both are reported, because the answers
+ * are different and only one of them is a strategy anyone would play.
+ */
 const POLICIES: Record<string, CareerPolicy> = {
   balanced: balancedPolicy,
   loyalist: loyalPolicy,
   ambitious: ambitiousPolicy,
+  bold: boldPolicy,
   riskTaker: riskTakerPolicy,
   random: randomPolicy,
 };
@@ -182,16 +190,41 @@ function reportBatch(name: string, result: BatchResult): void {
   row('identical event sequences', pct(result.repetition.duplicateSequenceShare));
   row('distinct events used', String(result.repetition.distinctEventsUsed));
 
+  console.log('\n  Career length (v0.4.1)');
+  row('senior careers measured', String(result.careerLength.seniorCareers));
+  row('mean retirement age', num(result.careerLength.meanAge, 1));
+  row('median retirement age', num(result.careerLength.medianAge, 1));
+  row('ended at 38 or later', pct(result.careerLength.veryLate));
+  for (const [label, group] of [
+    ['outfield', result.careerLength.outfield],
+    ['goalkeeper', result.careerLength.goalkeeper],
+  ] as const) {
+    console.log(
+      `    ${pad(label, 12)} n=${group.count}  mean ${num(group.mean, 1)}  median ${num(group.median, 1)}`,
+    );
+    const shares = Object.entries(group.buckets)
+      .filter(([, share]) => share > 0)
+      .map(([bucket, share]) => `${bucket} ${pct(share)}`)
+      .join('  ');
+    console.log(`      ${shares}`);
+  }
+
   console.log('\n  By position');
-  console.log(`    ${pad('pos', 8)}${padStart('peak', 8)}${padStart('legend', 8)}${padStart('seniors', 9)}`);
+  console.log(
+    `    ${pad('pos', 8)}${padStart('peak', 7)}${padStart('legend', 8)}${padStart('maccabiSr', 11)}${padStart('europe', 8)}${padStart('major', 7)}${padStart('retAge', 8)}`,
+  );
   for (const position of POSITION_LIST) {
     const stats = result.byPosition[position.id];
     if (!stats) continue;
+    const retAge = stats.seniorCareers > 0 ? stats.retirementAge / stats.seniorCareers : 0;
     console.log(
-      `    ${pad(position.label, 8)}${padStart(num(stats.peakAbility), 8)}${padStart(
+      `    ${pad(position.label, 8)}${padStart(num(stats.peakAbility), 7)}${padStart(
         num(stats.legend),
         8,
-      )}${padStart(pct(stats.reachedSeniors), 9)}`,
+      )}${padStart(pct(stats.reachedSeniors), 11)}${padStart(
+        pct(stats.europe / stats.count),
+        8,
+      )}${padStart(pct(stats.majorSuccess / stats.count), 7)}${padStart(num(retAge, 1), 8)}`,
     );
   }
 

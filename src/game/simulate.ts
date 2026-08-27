@@ -439,7 +439,22 @@ export interface BatchResult {
   /** Count of careers per Legend Score bucket. */
   legendDistribution: Record<string, number>;
   endings: Record<string, number>;
-  byPosition: Record<string, { count: number; peakAbility: number; legend: number; reachedSeniors: number }>;
+  byPosition: Record<
+    string,
+    {
+      count: number;
+      peakAbility: number;
+      legend: number;
+      reachedSeniors: number;
+      /** v0.4.1: career length and Europe, per position. */
+      retirementAge: number;
+      seniorCareers: number;
+      europe: number;
+      majorSuccess: number;
+    }
+  >;
+  /** v0.4.1: how long careers last, for careers that reached senior football. */
+  careerLength: CareerLengthMetrics;
   academy: AcademyMetrics;
   origin: OriginMetrics;
   recovery: RecoveryMetrics;
@@ -457,6 +472,18 @@ export interface BatchResult {
   world: WorldMetrics;
   /** v0.4: does Maccabi stay in the story of a player who left? */
   maccabiStory: MaccabiStoryMetrics;
+}
+
+/** Retirement ages, split the way the brief asks: outfield and goalkeepers differ by design. */
+export interface CareerLengthMetrics {
+  /** Careers that reached senior football at all - an academy release is not a retirement age. */
+  seniorCareers: number;
+  meanAge: number;
+  medianAge: number;
+  outfield: { mean: number; median: number; buckets: Record<string, number>; count: number };
+  goalkeeper: { mean: number; median: number; buckets: Record<string, number>; count: number };
+  /** Share of senior careers ending at 38 or later. */
+  veryLate: number;
 }
 
 /** How much of the season-level world a career actually meets. */
@@ -717,6 +744,41 @@ export interface BatchOptions extends Omit<SimulateOptions, 'seed'> {
 }
 
 /** Runs many careers and reports aggregates - the starting point for balancing. */
+const AGE_BUCKETS: ReadonlyArray<{ label: string; max: number }> = [
+  { label: '<=28', max: 28 },
+  { label: '29-31', max: 31 },
+  { label: '32-33', max: 33 },
+  { label: '34-35', max: 35 },
+  { label: '36-37', max: 37 },
+  { label: '38-39', max: 39 },
+  { label: '40+', max: 999 },
+];
+
+function average(values: number[]): number {
+  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+}
+
+function ageProfile(ages: number[]): {
+  mean: number;
+  median: number;
+  buckets: Record<string, number>;
+  count: number;
+} {
+  const buckets: Record<string, number> = {};
+  for (const bucket of AGE_BUCKETS) buckets[bucket.label] = 0;
+  for (const age of ages) {
+    const bucket = AGE_BUCKETS.find((b) => age <= b.max);
+    if (bucket) buckets[bucket.label] = (buckets[bucket.label] ?? 0) + 1;
+  }
+  // Shares rather than counts, so the report reads the same at any sample size.
+  if (ages.length > 0) {
+    for (const key of Object.keys(buckets)) {
+      buckets[key] = (buckets[key] ?? 0) / ages.length;
+    }
+  }
+  return { mean: average(ages), median: median(ages), buckets, count: ages.length };
+}
+
 export function simulateBatch(count: number, options: BatchOptions): BatchResult {
   const endings: Record<string, number> = {};
   const byPosition: BatchResult['byPosition'] = {};
@@ -782,6 +844,9 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
   const worldCount: Record<string, number> = {};
   const bump = (key: string): void => { worldCount[key] = (worldCount[key] ?? 0) + 1; };
   let seniorClubsSum = 0;
+  const retirementAges: number[] = [];
+  const outfieldAges: number[] = [];
+  const keeperAges: number[] = [];
   let secondDivisionSeasonsSum = 0;
   const relationships: Record<string, number> = {};
   const homecomingKinds: Record<string, number> = {};
@@ -886,11 +951,30 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
       peakAbility: 0,
       legend: 0,
       reachedSeniors: 0,
+      retirementAge: 0,
+      seniorCareers: 0,
+      europe: 0,
+      majorSuccess: 0,
     };
     pos.count += 1;
     pos.peakAbility += career.peakAbility;
     pos.legend += score;
     if (career.maccabi.appearances > 0) pos.reachedSeniors += 1;
+    if (hasMemory(career, 'first_move_abroad')) pos.europe += 1;
+    if (score >= 75) pos.majorSuccess += 1;
+
+    /*
+     * Retirement age only counts for careers that actually reached senior football. Averaging in
+     * a boy released at eighteen would report the academy failure rate as a career length.
+     */
+    const reachedSenior = career.seasonHistory.some((s2) => s2.academyStage === 'senior');
+    if (reachedSenior) {
+      const age = career.retirementAge ?? career.age;
+      pos.retirementAge += age;
+      pos.seniorCareers += 1;
+      retirementAges.push(age);
+      (career.position === 'GK' ? keeperAges : outfieldAges).push(age);
+    }
     byPosition[career.position] = pos;
 
     legendScores.push(score);
@@ -1052,6 +1136,16 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
       duplicateSequenceShare: duplicated / count,
       averageEventsPerCareer: eventsSum / count,
       distinctEventsUsed: distinctEvents.size,
+    },
+    careerLength: {
+      seniorCareers: retirementAges.length,
+      meanAge: average(retirementAges),
+      medianAge: median(retirementAges),
+      outfield: ageProfile(outfieldAges),
+      goalkeeper: ageProfile(keeperAges),
+      veryLate: retirementAges.length
+        ? retirementAges.filter((a) => a >= 38).length / retirementAges.length
+        : 0,
     },
     world: {
       wonPromotion: share('won_promotion'),
