@@ -30,6 +30,7 @@ import {
 } from './careerEngine';
 import { naturalStageFor } from './cohort';
 import { RETIREMENT } from './balance';
+import { calculateOutcomeDistribution } from './decisionEngine';
 import { maccabiRelationship } from './maccabiEngine';
 import { hasMemory } from './memory';
 import { leagueOf } from './worldEngine';
@@ -175,9 +176,61 @@ export const riskTakerPolicy: CareerPolicy = {
     // Chase the move: abroad first, then anything at all.
     const abroad = offers.find((o) => o.kind === 'transfer' && o.country !== 'ישראל');
     if (abroad) return abroad.id;
-    return offers.length > 0 ? rng.pick(offers).id : null;
+    /*
+     * Anything except a release (v0.4.1). Picking uniformly used to include the "your contract is
+     * terminated" offer, so this baseline was accepting the end of its own career at random -
+     * which is recklessness about *offers*, not about risk appetite, and it was a large part of
+     * why bold play looked like a trap.
+     */
+    const real = offers.filter((o) => o.kind !== 'release');
+    return real.length > 0 ? rng.pick(real).id : (offers[0]?.id ?? null);
   },
   pickRetirement: (career) => callsItADay(career, RETIREMENT.policyThreshold.riskTaker),
+};
+
+/**
+ * A genuinely bold player, as opposed to a reckless one (v0.4.1).
+ *
+ * `riskTakerPolicy` is a deliberate worst case: it prefers `risky` over `opportunity` even though
+ * opportunity choices carry more than double the expected value, and it exists to answer "is bold
+ * play a trap?". It is not a model of anyone.
+ *
+ * This is the strategy a bold human actually plays: reach for the big upside when it is on offer,
+ * accept a real step up, and do not take a gamble when the safe option is plainly better. It is
+ * what the risk/reward comparison should be measured against.
+ */
+export const boldPolicy: CareerPolicy = {
+  pickChoice: (event, career, rng) => {
+    // The best upside available, weighing how likely it actually is.
+    const scored = event.choices.map((choice) => {
+      const dist = calculateOutcomeDistribution(career, event, choice, career.seasonSlot);
+      const major = dist.outcomes
+        .filter((o) => o.valence === 'majorPositive')
+        .reduce((sum, o) => sum + o.probability, 0);
+      return { choice, score: major * 2 + dist.upside - dist.downside * 0.5 };
+    });
+    const best = scored.reduce((a, b) => (b.score > a.score ? b : a));
+    // Ties are common on deterministic choices; break them at random rather than by order.
+    const tied = scored.filter((s) => Math.abs(s.score - best.score) < 1e-9);
+    return rng.pick(tied).choice.id;
+  },
+  pickOffer: (offers, career, rng) => {
+    const mandatory = offers.find((o) => o.mandatory);
+    if (mandatory) return mandatory.id;
+    const promotion = offers.find((o) => o.kind === 'promotion');
+    if (promotion) return promotion.id;
+    // A real step up, taken willingly.
+    const up = offers.find((o) => o.direction === 'major_up' || o.direction === 'up');
+    if (up) return up.id;
+    // Not playing? Anything that means football.
+    const starved = (career.lastSeasonRecord?.stats.appearances ?? 99) < 10;
+    if (starved) {
+      const playing = offers.filter((o) => o.kind === 'loan' || o.kind === 'transfer');
+      if (playing.length > 0) return rng.pick(playing).id;
+    }
+    return null;
+  },
+  pickRetirement: (career) => callsItADay(career, RETIREMENT.policyThreshold.ambitious),
 };
 
 /** A one-club man: takes the safe road and never leaves willingly. */

@@ -728,7 +728,7 @@ export const EVENTS = {
    * This lifts the weight of the good outcomes of a risky choice so the upside is worth
    * reaching for, while the downside stays exactly as painful as it is written.
    */
-  riskyUpsideBoost: 2,
+  riskyUpsideBoost: 2.6,
   /**
    * ...and when it does come off, it pays bigger. Scales the developmental upside of a good
    * outcome on a risky choice.
@@ -739,7 +739,7 @@ export const EVENTS = {
    * uncertain while making risk mean higher variance rather than a worse bet - more
    * failures, but also the exceptional careers that only bold play reaches.
    */
-  riskyUpsideGain: 1.6,
+  riskyUpsideGain: 2.1,
   /** Chance the late-season "key moment" slot is used at all. */
   lateSlotChance: 0.45,
   /** Two injury or discipline events back to back feels punishing - block it. */
@@ -804,7 +804,7 @@ export const RECOVERY = {
    * development and no chance to change the coach's mind, which is the mechanism that turned
    * one bad run into a dead career.
    */
-  minutesModifierFloor: 0.4,
+  minutesModifierFloor: 0.5,
 };
 
 /* ------------------------------------------------------------------ */
