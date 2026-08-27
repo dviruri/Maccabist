@@ -29,7 +29,7 @@ import type {
   SeasonStats,
   TraitId,
 } from '../types';
-import { moveDirection } from './marketEngine';
+import { isDownwardMove, isUpwardMove, moveDirection } from './marketEngine';
 import { COACH_TRUST, MARKET, PROGRESSION, PROMOTION, RECOVERY, SEASON, TRAITS } from './balance';
 import { cohortLead, nextNaturalStage } from './cohort';
 import { advanceArc, hasMemory, hasTrait, recordMemory, startArc } from './memory';
@@ -234,11 +234,11 @@ function rememberTheMove(
 
   if (before.academyStage === 'senior' && target.isSenior) {
     const direction = moveDirection(before, target);
-    if (direction === 'up') {
+    if (isUpwardMove(direction)) {
       remember('moved_up_a_level');
       // Climbing again after having dropped down is the story worth its own name.
       if (hasMemory(before, 'moved_down_a_level')) remember('rebuilt_career');
-    } else if (direction === 'down') {
+    } else if (isDownwardMove(direction)) {
       remember('moved_down_a_level');
     }
   }

@@ -892,7 +892,14 @@ export type OfferKind =
 export type ExpectedRole = 'star' | 'key' | 'starter' | 'rotation' | 'backup' | 'project';
 
 /** Where a move sits relative to where the player currently is. */
-export type MoveDirection = 'up' | 'lateral' | 'down';
+/**
+ * Five bands rather than three (v0.4.1).
+ *
+ * League level alone could not tell Hapoel Hadera -> Maccabi Haifa from Maccabi Haifa -> Hapoel
+ * Hadera: same division, so both read "lateral". A move's direction is about the club's career
+ * level, not just which competition it plays in.
+ */
+export type MoveDirection = 'major_up' | 'up' | 'lateral' | 'down' | 'major_down';
 
 /**
  * How Maccabi sees the player (v0.4).

@@ -175,6 +175,34 @@ export const MARKET = {
   /** League-level gap that counts as a genuine step up or down. */
   directionThreshold: 6,
 
+  /* ---- club career level (v0.4.1) ---- */
+  /**
+   * What makes a club a step up in a *career*, not just in a league table.
+   *
+   * League level alone could not distinguish Hapoel Hadera -> Maccabi Haifa from the reverse:
+   * same division, so both read "lateral". Squad strength and prestige are what actually differ
+   * between two clubs in one league, so they carry most of the weight; the league sets the floor.
+   */
+  careerLevel: {
+    league: 0.34,
+    quality: 0.3,
+    prestige: 0.24,
+    /** Being seen. A shop-window league matters to a career even at a mid club. */
+    visibility: 0.07,
+    europe: 0.05,
+  },
+  /**
+   * Career-level gap that counts as a step, and as a leap.
+   *
+   * Set from the measured spread of club career levels, which runs 23.5 (Hapoel Afula) to 85.9
+   * (Atletico) - a 62-point range. At 5/15 every move in the game came out "major", including two
+   * mid-table clubs swapping. These put Hadera -> Maccabi at a genuine step up (18.6) while
+   * reserving "major" for Maccabi -> Napoli (25.9) and Afula -> Maccabi (34.3), and leave two
+   * comparable top-flight clubs lateral.
+   */
+  stepThreshold: 7,
+  majorStepThreshold: 22,
+
   /* ---- hints ---- */
   goodDevelopment: 74,
   highVisibility: 70,

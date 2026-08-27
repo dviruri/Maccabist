@@ -17,6 +17,7 @@ import {
   expectedRoleAt,
   EXPECTED_ROLE_LABELS,
   EXPECTED_ROLE_MINUTES,
+  isDownwardMove,
   isStagnating,
   moveDirection,
   offerHints,
@@ -668,14 +669,14 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
    */
   if (!isOnLoan(career)) {
     if (rng.chance(offerChance(career))) {
-      const up = drawDestination(career, rng, (c) => moveDirection(career, c) !== 'down');
+      const up = drawDestination(career, rng, (c) => !isDownwardMove(moveDirection(career, c)));
       if (up) offers.push(transferOffer(up, career));
     }
 
     // Not playing, or going backwards: clubs lower down come calling.
     const fading = isStagnating(career) || careerTrajectory(career) === 'down';
     if (fading && rng.chance(TRANSFERS.stepDownChance)) {
-      const down = drawDestination(career, rng, (c) => moveDirection(career, c) === 'down');
+      const down = drawDestination(career, rng, (c) => isDownwardMove(moveDirection(career, c)));
       if (down && !offers.some((o) => o.clubId === down.id)) {
         offers.push(transferOffer(down, career));
       }
@@ -713,7 +714,7 @@ export function buildLoanOffers(career: Career, rng: Rng): TransferOffer[] {
     rng,
     (club) =>
       club.id !== regular?.id &&
-      moveDirection(career, club) !== 'down' &&
+      !isDownwardMove(moveDirection(career, club)) &&
       EXPECTED_ROLE_MINUTES[expectedRoleAt(career, club, career.currentSeason)] < 0.7,
   );
   if (tougher) offers.push(loanOffer(tougher, career));

@@ -21,8 +21,11 @@ import {
 import { conditionContext } from '../src/game/eventEngine';
 import {
   careerLevel,
+  clubCareerLevel,
   drawDestination,
   expectedRoleAt,
+  isDownwardMove,
+  isUpwardMove,
   moveDirection,
   positionNeed,
 } from '../src/game/marketEngine';
@@ -292,10 +295,68 @@ describe('saves written before the world existed', () => {
 
 describe('the career ladder', () => {
   it('reads a move to a stronger league as upward and the reverse as downward', () => {
-    expect(moveDirection(seniorAt(SECOND), getClub(TOP))).toBe('up');
-    expect(moveDirection(seniorAt(TOP), getClub(SECOND))).toBe('down');
-    // Two top-flight clubs are a sideways move however different their quality.
-    expect(moveDirection(seniorAt(TOP), getClub('bnei_sakhnin'))).toBe('lateral');
+    expect(isUpwardMove(moveDirection(seniorAt(SECOND), getClub(TOP)))).toBe(true);
+    expect(isDownwardMove(moveDirection(seniorAt(TOP), getClub(SECOND)))).toBe(true);
+    // Two top-flight clubs at comparable career level are a sideways move.
+    expect(moveDirection(seniorAt(TOP), getClub('maccabi_tel_aviv'))).toBe('lateral');
+  });
+
+  it('understands club level, not only which league it is', () => {
+    /*
+     * The v0.4 defect this replaced: direction read league level alone, so Hapoel Hadera ->
+     * Maccabi Haifa and Maccabi Haifa -> Hapoel Hadera both came out "lateral" because they share
+     * a division. A move's direction is about the club's career level.
+     */
+    expect(moveDirection(seniorAt('hapoel_hadera'), getClub(TOP))).toBe('up');
+    expect(moveDirection(seniorAt(TOP), getClub('hapoel_hadera'))).toBe('down');
+  });
+
+  it('reserves the major bands for genuine leaps', () => {
+    expect(moveDirection(seniorAt(SECOND), getClub(TOP))).toBe('major_up');
+    expect(moveDirection(seniorAt(TOP), getClub(SECOND))).toBe('major_down');
+    expect(moveDirection(seniorAt('napoli'), getClub('sturm_graz'))).toBe('major_down');
+    // ...and not for a step between neighbours in the same division.
+    expect(moveDirection(seniorAt('hapoel_hadera'), getClub(TOP))).not.toBe('major_up');
+  });
+
+  it('ranks clubs by league, squad and prestige together', () => {
+    const career = seniorAt(TOP);
+    const level = (id: string): number => clubCareerLevel(career, id);
+    expect(level('napoli')).toBeGreaterThan(level('benfica'));
+    expect(level('benfica')).toBeGreaterThan(level(TOP));
+    expect(level(TOP)).toBeGreaterThan(level('hapoel_hadera'));
+    expect(level('hapoel_hadera')).toBeGreaterThan(level(SECOND));
+  });
+
+  it('lowers a club career level when it is relegated', () => {
+    const career = seniorAt('hapoel_hadera');
+    const top = clubCareerLevel(career, TOP);
+    const dropped: Career = {
+      ...career,
+      world: applyPromotionRelegation(career.world, {
+        season: 2042,
+        clubId: TOP,
+        leagueId: 'il_premier',
+        outcome: 'relegated',
+        label: 'ירדה ליגה',
+        playerImpact: 0.1,
+      }),
+    };
+    expect(clubCareerLevel(dropped, TOP)).toBeLessThan(top);
+    // Still the bigger club, though - a fallen giant is not Hapoel Hadera.
+    expect(clubCareerLevel(dropped, TOP)).toBeGreaterThan(clubCareerLevel(dropped, 'hapoel_hadera'));
+  });
+
+  it('treats direction as symmetric', () => {
+    const pairs: Array<[string, string]> = [
+      ['hapoel_hadera', TOP],
+      [SECOND, 'napoli'],
+      ['sturm_graz', 'benfica'],
+    ];
+    for (const [a, b] of pairs) {
+      expect(isUpwardMove(moveDirection(seniorAt(a), getClub(b)))).toBe(true);
+      expect(isDownwardMove(moveDirection(seniorAt(b), getClub(a)))).toBe(true);
+    }
   });
 
   it('rates the same player higher in a stronger league', () => {

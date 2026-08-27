@@ -136,12 +136,58 @@ export function arrivalRoleValue(role: ExpectedRole): number {
 /* Direction                                                           */
 /* ------------------------------------------------------------------ */
 
+/**
+ * How high a club sits in a *career*, 0-100 (v0.4.1).
+ *
+ * Not the league, and not the squad, but both — plus what playing there does for a reputation.
+ * This is the number transfer direction, career trajectory and offer wording all read, so that
+ * "is this a step up?" has one answer everywhere.
+ *
+ * Reads the live world state, so a relegated Maccabi is genuinely a lower career level than it
+ * was last season, and rises again when it comes back up.
+ */
+export function clubCareerLevel(career: Career, clubId: string): number {
+  const club = getClub(clubId);
+  const league = leagueOf(career.world, clubId);
+  const w = MARKET.careerLevel;
+
+  return clamp(
+    leagueLevel(league) * w.league +
+      club.quality * w.quality +
+      club.prestige * w.prestige +
+      league.visibility * w.visibility +
+      club.europeChance * 100 * w.europe,
+  );
+}
+
+/**
+ * Which way a move goes.
+ *
+ * Five bands, because "up" covers both a better club in the same league and a jump from the
+ * Israeli second division to Serie A, and a career should not treat those as the same event.
+ *
+ * A `down` move is not automatically a bad decision — dropping a level to start every week is a
+ * legitimate and often correct football choice. Direction describes the move, not its wisdom.
+ */
 export function moveDirection(career: Career, club: Club): MoveDirection {
-  const from = leagueLevel(leagueOf(career.world, career.currentClubId));
-  const to = leagueLevel(leagueOf(career.world, club.id));
-  if (to - from >= MARKET.directionThreshold) return 'up';
-  if (from - to >= MARKET.directionThreshold) return 'down';
+  const from = clubCareerLevel(career, career.currentClubId);
+  const to = clubCareerLevel(career, club.id);
+  const delta = to - from;
+
+  if (delta >= MARKET.majorStepThreshold) return 'major_up';
+  if (delta >= MARKET.stepThreshold) return 'up';
+  if (delta <= -MARKET.majorStepThreshold) return 'major_down';
+  if (delta <= -MARKET.stepThreshold) return 'down';
   return 'lateral';
+}
+
+/** True for any upward move, so callers do not have to enumerate the bands. */
+export function isUpwardMove(direction: MoveDirection): boolean {
+  return direction === 'up' || direction === 'major_up';
+}
+
+export function isDownwardMove(direction: MoveDirection): boolean {
+  return direction === 'down' || direction === 'major_down';
 }
 
 /* ------------------------------------------------------------------ */
