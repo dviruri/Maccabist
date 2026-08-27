@@ -765,6 +765,25 @@ export type ExpectedRole = 'star' | 'key' | 'starter' | 'rotation' | 'backup' | 
 /** Where a move sits relative to where the player currently is. */
 export type MoveDirection = 'up' | 'lateral' | 'down';
 
+/**
+ * How Maccabi sees the player (v0.4).
+ *
+ * The mirror of Maccabism, and deliberately not the same thing: Maccabism is what the player
+ * feels and spends, this is what the club remembers and he can only earn. Always derived from
+ * the record, never stored.
+ */
+export type MaccabiRelationship =
+  | 'son_of_the_club'
+  | 'icon'
+  | 'beloved'
+  | 'respected'
+  | 'known'
+  | 'stranger'
+  | 'traitor';
+
+/** What the Sami Ofer crowd does when he touches the ball in someone else's shirt. */
+export type MaccabiStanding = 'warm' | 'indifferent' | 'hostile';
+
 export interface TransferOffer {
   id: string;
   kind: OfferKind;

@@ -758,6 +758,58 @@ export const LEAVING = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Standing with Maccabi (v0.4)                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * What the club remembers. Service is scaled so that a full senior career at Maccabi reaches the
+ * top band on its own, while a whole youth career without a senior appearance does not - the
+ * academy is a bond, not a claim.
+ */
+export const MACCABI_BOND = {
+  /* Service */
+  /**
+   * Measured, not guessed: among players who make Maccabi's senior side the median career there
+   * is ~217 appearances over 7 seasons, and the top 1% reach ~760. An earlier pass used 0.28 per
+   * appearance capped at 220, which put more than half of them at a saturated 100 and made "son
+   * of the club" a 40% outcome. These weights keep the median around the middle band and leave
+   * the top two bands for careers that really were exceptional.
+   */
+  perAppearance: 0.1,
+  appearanceCap: 400,
+  perSeason: 1.6,
+  perTrophy: 3,
+  perEuropeanRun: 2,
+  perCaptainSeason: 3,
+  perAcademySeason: 1.2,
+  /** A decade of youth football, alone, tops out well below "respected". */
+  academyCap: 10,
+  graduateBonus: 5,
+
+  /* Grievance */
+  perBetrayal: 14,
+  rivalDefection: 55,
+  rejectedReturn: 18,
+  celebrated: 12,
+  perLoyalty: 8,
+  refusedToCelebrate: 14,
+  cameBack: 20,
+
+  /**
+   * Bands.
+   *
+   * Set against the measured score distribution so the top two are genuinely rare and the middle
+   * is not a hole. A career spent entirely in the youth teams scores ~15 and should land exactly
+   * on "known" - the academy makes you familiar, not beloved.
+   */
+  traitorGrievance: 50,
+  iconScore: 85,
+  belovedScore: 62,
+  respectedScore: 38,
+  knownScore: 14,
+};
+
+/* ------------------------------------------------------------------ */
 /* Transfers                                                           */
 /* ------------------------------------------------------------------ */
 
