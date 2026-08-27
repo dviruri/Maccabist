@@ -220,8 +220,56 @@ export const MARKET = {
 };
 
 /** Retirement can start being offered here; it becomes increasingly likely afterwards. */
-export const RETIREMENT_MIN_AGE = 33;
-export const RETIREMENT_FORCED_AGE = 41;
+/**
+ * When a career ends (v0.4.1).
+ *
+ * v0.4 used a single window for everyone and every position retired at 36/37/38 with no spread at
+ * all. Retirement is now read from context: how far past his position's curve he is, how much
+ * ability he has lost from his peak, whether he is still playing, and whether he is still wanted.
+ *
+ * Goalkeepers get a genuinely later window because goalkeeping ages differently - but the same
+ * context terms apply, so a keeper who stops playing at 34 still retires at 34.
+ */
+export const RETIREMENT = {
+  outfield: { pressureFrom: 31, forced: 39 },
+  /** Later on both ends. Not "every keeper plays to 40" - the context terms still bite. */
+  goalkeeper: { pressureFrom: 34, forced: 43 },
+
+  /** How fast the pressure builds once he is past the window. */
+  perYear: 0.17,
+  /** Ability lost from peak. A player who can still do it usually wants to keep doing it. */
+  declineWeight: 0.016,
+  /** Not playing is the single biggest reason careers end. */
+  lowMinutesThreshold: 12,
+  lowMinutesPressure: 0.22,
+  /** ...and being out of the pecking order entirely. */
+  benchRoleValue: 32,
+  benchPressure: 0.12,
+  consideredPressure: 0.08,
+
+  /**
+   * A career that is over before the position's window opens. Losing this much of your peak while
+   * not playing is finished at any age - otherwise a keeper who collapsed at 31 had no exit at all
+   * and limped on to 34 before the model would even consider it.
+   */
+  collapseDrop: 9,
+  earlyExitFrom: 28,
+
+  /**
+   * A player still performing at a high level has every reason to carry on, which is what makes
+   * the rare 37-38 year old outfielder happen without letting everyone reach it.
+   */
+  eliteAbility: 78,
+  eliteAppearances: 24,
+  eliteRelief: 0.42,
+
+  /** How readily each simulated persona calls it a day. Human players decide for themselves. */
+  policyThreshold: { balanced: 0.5, loyal: 0.42, ambitious: 0.58, riskTaker: 0.62 },
+};
+
+/** Kept for the phase machine and old call sites; the real cap is position-aware. */
+export const RETIREMENT_MIN_AGE = RETIREMENT.outfield.pressureFrom;
+export const RETIREMENT_FORCED_AGE = RETIREMENT.goalkeeper.forced;
 
 /* ------------------------------------------------------------------ */
 /* Team role ladder                                                    */
@@ -274,6 +322,13 @@ export interface PositionConfig {
   outputWeight: number;
   /** Multiplies goals+assists in the Legend Score so a keeper is not punished. */
   legendOutputFactor: number;
+  /** What a clean sheet is worth on the Legend Score's contribution component (v0.4.1). */
+  legendCleanSheetFactor: number;
+  /**
+   * How hard late-career decline hits this position (v0.4.1). Goalkeeping depends less on the
+   * physical qualities that fade first, so a keeper holds his level longer.
+   */
+  declineFactor: number;
   /** Goals conceded per appearance at a league-average level (keepers only). */
   concededRate: number;
 }
@@ -287,9 +342,20 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     description: 'האחרון שנשאר. שער נקי שווה יותר מכל שער.',
     goalRate: 0.002,
     assistRate: 0.006,
-    cleanSheetRate: 0.34,
-    outputWeight: 0.15,
+    /*
+     * Benchmarks set from measurement (v0.4.1), not intuition.
+     *
+     * The concede model actually produces a 0.317 clean-sheet rate for keepers, 0.283 for centre
+     * backs and 0.246 for full backs - all *below* the benchmarks they were scored against, so
+     * the term meant to reward a good defensive season was a permanent penalty for an average
+     * one. Centred slightly under the measured rate so a genuinely good season pays.
+     */
+    cleanSheetRate: 0.3,
+    /** Zero, so the goal-output term is skipped entirely rather than always maximally negative. */
+    outputWeight: 0,
     legendOutputFactor: 6,
+    legendCleanSheetFactor: 1.4,
+    declineFactor: 0.55,
     concededRate: 1.15,
   },
   CB: {
@@ -300,9 +366,11 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     description: 'הקיר. הקהל אוהב הצלה על הקו כמו שער.',
     goalRate: 0.055,
     assistRate: 0.03,
-    cleanSheetRate: 0.3,
+    cleanSheetRate: 0.27,
     outputWeight: 0.3,
     legendOutputFactor: 3.2,
+    legendCleanSheetFactor: 0.35,
+    declineFactor: 0.85,
     concededRate: 0,
   },
   FB: {
@@ -313,9 +381,11 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     description: 'עולה ויורד את כל הקו. ריצות בלי סוף.',
     goalRate: 0.05,
     assistRate: 0.13,
-    cleanSheetRate: 0.26,
+    cleanSheetRate: 0.235,
     outputWeight: 0.45,
     legendOutputFactor: 2.4,
+    legendCleanSheetFactor: 0.25,
+    declineFactor: 0.95,
     concededRate: 0,
   },
   CM: {
@@ -329,6 +399,8 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     cleanSheetRate: 0,
     outputWeight: 0.7,
     legendOutputFactor: 1.5,
+    legendCleanSheetFactor: 0,
+    declineFactor: 1,
     concededRate: 0,
   },
   WG: {
@@ -342,6 +414,8 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     cleanSheetRate: 0,
     outputWeight: 0.95,
     legendOutputFactor: 1,
+    legendCleanSheetFactor: 0,
+    declineFactor: 1,
     concededRate: 0,
   },
   ST: {
@@ -355,6 +429,8 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     cleanSheetRate: 0,
     outputWeight: 1.1,
     legendOutputFactor: 0.85,
+    legendCleanSheetFactor: 0,
+    declineFactor: 1,
     concededRate: 0,
   },
 };

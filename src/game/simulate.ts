@@ -26,8 +26,10 @@ import {
   resolveYouthTransition,
   type NewCareerInput,
   type RetirementDecision,
+  retirementChance,
 } from './careerEngine';
 import { naturalStageFor } from './cohort';
+import { RETIREMENT } from './balance';
 import { maccabiRelationship } from './maccabiEngine';
 import { hasMemory } from './memory';
 import { leagueOf } from './worldEngine';
@@ -61,6 +63,18 @@ export interface CareerPolicy {
 }
 
 /** Decides at random. The baseline for "what does an average career look like". */
+/**
+ * When a simulated persona decides it is over (v0.4.1).
+ *
+ * Reads the engine's own retirement pressure rather than a hard-coded age. The old policies said
+ * things like "retire at 36", which meant every position in every simulation retired at 36-38 with
+ * no spread at all - the longevity model was there and never got to speak. A human player decides
+ * for himself; these thresholds just make the personas differ in how stubborn they are.
+ */
+function callsItADay(career: Career, threshold: number): RetirementDecision {
+  return retirementChance(career) >= threshold ? 'retire' : 'continue';
+}
+
 export const randomPolicy: CareerPolicy = {
   pickChoice: (event, _career, rng) => rng.pick(event.choices).id,
   pickOffer: (offers, _career, rng) => {
@@ -96,7 +110,7 @@ export const ambitiousPolicy: CareerPolicy = {
     if (mandatory) return mandatory.id;
     return offers.length > 0 ? rng.pick(offers).id : null;
   },
-  pickRetirement: (career) => (career.age >= 35 ? 'retire' : 'continue'),
+  pickRetirement: (career) => callsItADay(career, RETIREMENT.policyThreshold.ambitious),
 };
 
 /**
@@ -140,12 +154,7 @@ export const balancedPolicy: CareerPolicy = {
     }
     return null;
   },
-  pickRetirement: (career, rng) => {
-    const apps = career.lastSeasonRecord?.stats.appearances ?? 0;
-    if (career.age >= 36) return 'retire';
-    if (apps < 8 && rng.chance(0.6)) return 'retire';
-    return 'continue';
-  },
+  pickRetirement: (career) => callsItADay(career, RETIREMENT.policyThreshold.balanced),
 };
 
 /**
@@ -168,7 +177,7 @@ export const riskTakerPolicy: CareerPolicy = {
     if (abroad) return abroad.id;
     return offers.length > 0 ? rng.pick(offers).id : null;
   },
-  pickRetirement: (career) => (career.age >= 37 ? 'retire' : 'continue'),
+  pickRetirement: (career) => callsItADay(career, RETIREMENT.policyThreshold.riskTaker),
 };
 
 /** A one-club man: takes the safe road and never leaves willingly. */
@@ -183,7 +192,7 @@ export const loyalPolicy: CareerPolicy = {
     const home = offers.find((o) => o.kind === 'return_home' || o.kind === 'promotion');
     return home?.id ?? null;
   },
-  pickRetirement: (career) => (career.age >= 36 ? 'retire' : 'continue'),
+  pickRetirement: (career) => callsItADay(career, RETIREMENT.policyThreshold.loyal),
 };
 
 export interface SimulateOptions extends NewCareerInput {

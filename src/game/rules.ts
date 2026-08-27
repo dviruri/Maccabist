@@ -112,10 +112,26 @@ export function isOnLoan(career: Career): boolean {
   return career.parentClubId !== null;
 }
 
-/** Position-adjusted goal contributions, used by the season rating and the Legend Score. */
-export function outputScore(goals: number, assists: number, position: Career['position']): number {
+/**
+ * Position-adjusted contribution, used by the Legend Score.
+ *
+ * v0.4.1: clean sheets count. `legendOutputFactor` (6 for a keeper, 0.85 for a striker) was meant
+ * to compensate a goalkeeper for scoring rarely - but a keeper records zero goals and zero
+ * assists over a whole career, and no multiplier scales zero. The result was that goalkeepers
+ * scored *nothing at all* on the contribution component of the Legend Score, which is most of why
+ * their careers read as less legendary than anyone else's.
+ *
+ * A keeper's contribution is the goals he prevents. That is what `cleanSheets` is for, and it was
+ * being tracked and thrown away.
+ */
+export function outputScore(
+  goals: number,
+  assists: number,
+  position: Career['position'],
+  cleanSheets = 0,
+): number {
   const config = POSITIONS[position];
-  return (goals + assists * 0.7) * config.legendOutputFactor;
+  return (goals + assists * 0.7) * config.legendOutputFactor + cleanSheets * config.legendCleanSheetFactor;
 }
 
 /** Age curve for playing time: teenagers and veterans lose minutes among grown men. */

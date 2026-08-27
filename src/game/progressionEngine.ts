@@ -30,7 +30,16 @@ import type {
   TraitId,
 } from '../types';
 import { isDownwardMove, isUpwardMove, moveDirection } from './marketEngine';
-import { COACH_TRUST, MARKET, PROGRESSION, PROMOTION, RECOVERY, SEASON, TRAITS } from './balance';
+import {
+  COACH_TRUST,
+  MARKET,
+  POSITIONS,
+  PROGRESSION,
+  PROMOTION,
+  RECOVERY,
+  SEASON,
+  TRAITS,
+} from './balance';
 import { cohortLead, nextNaturalStage } from './cohort';
 import { advanceArc, hasMemory, hasTrait, recordMemory, startArc } from './memory';
 import { clamp, round, type Rng } from './random';
@@ -567,9 +576,17 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
       growth = eligible ? base * o.rate * common : 0;
     }
   } else {
+    /*
+     * Decline. Position matters here (v0.4.1): goalkeeping depends less on the physical qualities
+     * that fade first, so a keeper holds his level while an outfielder is already dropping. That
+     * is what makes a longer goalkeeping career a consequence of the model rather than a
+     * hard-coded exception to it.
+     */
     const wearFactor = 1 + (next.hidden.injuryRisk - 20) / 160;
     const minutesRelief = minutesShare > 0.4 ? 0.82 : 1.1;
-    growth = base * Math.max(0.5, wearFactor) * minutesRelief * rng.range(0.8, 1.2);
+    const positionFactor = POSITIONS[career.position].declineFactor;
+    growth =
+      base * Math.max(0.5, wearFactor) * minutesRelief * positionFactor * rng.range(0.8, 1.2);
   }
   next.ability = clamp(next.ability + growth);
   next.peakAbility = Math.max(next.peakAbility, next.ability);

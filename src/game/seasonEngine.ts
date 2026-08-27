@@ -110,14 +110,25 @@ export function simulateHalfStats(career: Career, rng: Rng, games: number): Simu
     (career.hidden.confidence - 55) * SEASON.ratingConfidenceWeight;
 
   if (appearances >= 4) {
-    const actualPerApp = (goals + assists * 0.7) / appearances;
-    const expectedPerApp = expectedOutputPerApp(career, level.quality);
-    const outputDelta = clamp(
-      expectedPerApp > 0 ? (actualPerApp - expectedPerApp) / expectedPerApp : 0,
-      -1,
-      1.2,
-    ) as number;
-    rating += outputDelta * SEASON.ratingOutputWeight * config.outputWeight;
+    /*
+     * Goal contribution is not how a goalkeeper is judged (v0.4.1).
+     *
+     * `outputWeight: 0.15` was meant to make output matter *less* for a keeper. In practice a
+     * keeper records zero goals and assists while `expectedOutputPerApp` is non-zero, so
+     * outputDelta clamped to -1 every single season and the "reduced weight" became a fixed
+     * -2.4 rating tax for failing to do something the model never expected him to do. A keeper
+     * is measured by the clean-sheet and conceded terms below instead.
+     */
+    if (config.outputWeight > 0) {
+      const actualPerApp = (goals + assists * 0.7) / appearances;
+      const expectedPerApp = expectedOutputPerApp(career, level.quality);
+      const outputDelta = clamp(
+        expectedPerApp > 0 ? (actualPerApp - expectedPerApp) / expectedPerApp : 0,
+        -1,
+        1.2,
+      ) as number;
+      rating += outputDelta * SEASON.ratingOutputWeight * config.outputWeight;
+    }
 
     if (career.position === 'GK' || career.position === 'CB' || career.position === 'FB') {
       const csRate = starts > 0 ? cleanSheets / starts : 0;

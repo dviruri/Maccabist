@@ -28,7 +28,7 @@ export function computeLegendComponents(career: Career): LegendComponent[] {
   const w = LEGEND.weights;
   const t = LEGEND.targets;
 
-  const output = outputScore(m.goals, m.assists, career.position);
+  const output = outputScore(m.goals, m.assists, career.position, m.cleanSheets);
 
   const titlePoints = career.trophies
     .filter((trophy) => trophy.clubId === MACCABI_ID)
@@ -52,10 +52,15 @@ export function computeLegendComponents(career: Career): LegendComponent[] {
     },
     {
       key: 'output',
-      label: 'תרומה התקפית',
+      // Not "attacking contribution" - for a keeper or a centre back the contribution is
+      // clean sheets, and the label has to be able to mean both.
+      label: 'תרומה למשחק',
       points: ratio(output, t.output) * w.output,
       max: w.output,
-      detail: `${m.goals} שערים, ${m.assists} בישולים`,
+      detail:
+        career.position === 'GK'
+          ? `${m.cleanSheets} שערים נקיים`
+          : `${m.goals} שערים, ${m.assists} בישולים`,
     },
     {
       key: 'seasons',

@@ -35,8 +35,7 @@ import {
   ORIGIN,
   RECOVERY,
   WORLD,
-  RETIREMENT_FORCED_AGE,
-  RETIREMENT_MIN_AGE,
+  RETIREMENT,
   START,
   START_AGE,
   TRAITS,
@@ -691,13 +690,53 @@ function maybeAwardCaptaincy(career: Career, rng: Rng): Career {
   return next;
 }
 
+/** The window a position's careers run in. Goalkeepers get a later one on both ends. */
+export function retirementWindow(career: Career): { pressureFrom: number; forced: number } {
+  return career.position === 'GK' ? RETIREMENT.goalkeeper : RETIREMENT.outfield;
+}
+
+export function forcedRetirementAge(career: Career): number {
+  return retirementWindow(career).forced;
+}
+
+/**
+ * How much the career is pulling towards the end, 0-1 (v0.4.1).
+ *
+ * Read from context rather than from age alone. Age opens the window; what closes the career is
+ * losing ability, losing minutes, or losing your place - which is why a keeper who stops playing
+ * at 34 retires at 34 while one who is still first choice can go on.
+ */
 export function retirementChance(career: Career): number {
-  if (career.age < RETIREMENT_MIN_AGE) return 0;
-  let chance = (career.age - RETIREMENT_MIN_AGE + 1) * 0.09;
-  chance += Math.max(0, career.peakAbility - career.ability) * 0.01;
+  const window = retirementWindow(career);
+  const r = RETIREMENT;
+
+  /*
+   * A career can end before its position's window opens (v0.4.1).
+   *
+   * Without this a goalkeeper whose level had collapsed at 31 simply had no exit - the window
+   * does not open until 34, so the model offered him nothing and the career limped on. A player
+   * who has lost a lot of what he had and is no longer playing is finished whatever his age.
+   */
+  const finishedEarly =
+    career.peakAbility - career.ability >= r.collapseDrop &&
+    (career.lastSeasonRecord?.stats.appearances ?? 0) < r.lowMinutesThreshold;
+
+  const opensAt = finishedEarly ? Math.min(window.pressureFrom, r.earlyExitFrom) : window.pressureFrom;
+  if (career.age < opensAt) return 0;
+
+  let chance = (career.age - opensAt + 1) * r.perYear;
+  chance += Math.max(0, career.peakAbility - career.ability) * r.declineWeight;
+
   const lastApps = career.lastSeasonRecord?.stats.appearances ?? 0;
-  if (lastApps < 12) chance += 0.18;
-  if (career.flags.includes('retirement_considered')) chance += 0.08;
+  if (lastApps < r.lowMinutesThreshold) chance += r.lowMinutesPressure;
+  if (career.roleValue < r.benchRoleValue) chance += r.benchPressure;
+  if (career.flags.includes('retirement_considered')) chance += r.consideredPressure;
+
+  // Still doing it at a high level, still playing every week: there is no reason to stop.
+  if (career.ability >= r.eliteAbility && lastApps >= r.eliteAppearances) {
+    chance *= 1 - r.eliteRelief;
+  }
+
   return clamp(chance, 0, 0.97) as number;
 }
 
@@ -721,7 +760,7 @@ export function advanceYear(career: Career): Career {
     next = checked.career;
     next.lastAchievements = checked.unlocked;
 
-    if (next.age >= RETIREMENT_FORCED_AGE) {
+    if (next.age >= forcedRetirementAge(next)) {
       next.phase = 'retirement_decision';
       return next;
     }
@@ -729,7 +768,7 @@ export function advanceYear(career: Career): Career {
     return next;
   });
 
-  return aged.age >= RETIREMENT_FORCED_AGE ? retire(aged) : aged;
+  return aged.age >= forcedRetirementAge(aged) ? retire(aged) : aged;
 }
 
 export type RetirementDecision = 'continue' | 'retire';
