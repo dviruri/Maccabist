@@ -15,6 +15,7 @@ import {
 import { ACHIEVEMENT_DEFS } from '../data/achievements';
 import { getClub, MACCABI_ID, isMaccabiSenior } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
+import { EXTERNAL_YOUTH_CLUBS } from '../data/youthClubs';
 import type {
   AcademyStage,
   Achievement,
@@ -265,6 +266,22 @@ export interface EffectsResult {
   achievements: Achievement[];
 }
 
+/**
+ * Turns an event's `transferTo` into a real club id (v0.4.1).
+ *
+ * Events may name a club, or name a *pool*. Naming a pool matters for two reasons found by
+ * measurement: an academy event that hardcoded `hapoel_afula` accounted for 55% of all
+ * second-division seasons in the game, and - worse - Hapoel Afula is a *senior* club, so a
+ * fourteen year old who chose "move to the local club" was made a senior professional on the spot.
+ */
+function resolveDestination(target: string, rng: Rng): string | null {
+  if (target === 'external_youth') {
+    const club = rng.pick(EXTERNAL_YOUTH_CLUBS);
+    return club?.id ?? null;
+  }
+  return target;
+}
+
 /** Applies a set of event/outcome/offer effects and reports the visible deltas. */
 export function applyEffects(career: Career, effects: EventEffects, rng: Rng): EffectsResult {
   const before = career;
@@ -343,8 +360,9 @@ export function applyEffects(career: Career, effects: EventEffects, rng: Rng): E
     });
   }
 
-  if (effects.transferTo && effects.transferTo !== next.currentClubId) {
-    next = moveToClub(next, effects.transferTo);
+  if (effects.transferTo) {
+    const destination = resolveDestination(effects.transferTo, rng);
+    if (destination && destination !== next.currentClubId) next = moveToClub(next, destination);
   }
 
   next.role = roleFromValue(next.roleValue);

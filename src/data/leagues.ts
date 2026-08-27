@@ -125,6 +125,56 @@ export const LEAGUES: readonly League[] = [
     development: 78,
   },
 
+  /* ---------------- The big five ---------------- */
+  /*
+   * v0.4.1: real leagues for the countries the club data already declares.
+   *
+   * Germany, Spain, Italy and England had clubs but no league, so Werder Bremen and Tottenham
+   * were both filed under "ליגה אירופית חזקה" / "ליגה אירופית מובילה" - a *career quality* bucket
+   * standing in for a league *identity*. Those are different things, and a game that knows
+   * Benfica plays in Portugal should say so.
+   */
+  {
+    id: 'de_bundesliga',
+    name: 'הבונדסליגה',
+    country: 'גרמניה',
+    tier: 1,
+    quality: 82,
+    prestige: 86,
+    visibility: 92,
+    development: 76,
+  },
+  {
+    id: 'es_laliga',
+    name: 'לה ליגה',
+    country: 'ספרד',
+    tier: 1,
+    quality: 83,
+    prestige: 88,
+    visibility: 93,
+    development: 72,
+  },
+  {
+    id: 'it_seriea',
+    name: 'הסרייה א׳',
+    country: 'איטליה',
+    tier: 1,
+    quality: 82,
+    prestige: 85,
+    visibility: 90,
+    development: 70,
+  },
+  {
+    id: 'en_premier',
+    name: 'הפרמייר ליג',
+    country: 'אנגליה',
+    tier: 1,
+    quality: 86,
+    prestige: 92,
+    visibility: 98,
+    development: 68,
+  },
+
   /* ---------------- The top of the game ---------------- */
   {
     id: 'euro_elite',
@@ -171,40 +221,43 @@ export function getLeague(id: string): League {
 }
 
 /**
- * Where a club sits by default, before any promotion or relegation.
+ * Which league a club plays in. Runtime promotion and relegation live in the career's world state.
  *
- * Derived from the club tier and country the club data already carries, so leagues did not
- * require re-describing 24 clubs. Runtime movement lives in the career's world state.
+ * Country first (v0.4.1). A club's tier says how good a career move it is; the country says which
+ * competition it actually plays in, and those are separate facts. Reading the tier first meant
+ * Benfica - with pt_primeira modelled and sitting right there - was displayed as playing in
+ * "ליגה אירופית חזקה", a quality bucket masquerading as a league name.
+ *
+ * The generic buckets remain as a fallback for a club in a country with no modelled league, so
+ * adding a club never breaks and adding its league is a pure data change.
  */
 export function defaultLeagueFor(tier: ClubTier, country: string): string {
-  switch (tier) {
-    case 'academy':
-    case 'youth':
-      return 'il_youth';
-    case 'israeli_top':
-    case 'israeli_mid':
-      return 'il_premier';
-    case 'israeli_low':
-      return 'il_leumit';
-    case 'euro_top':
-      return 'euro_elite';
-    case 'euro_mid':
-      return 'euro_strong';
-    case 'euro_dev':
-      return EURO_DEV_LEAGUES[country] ?? 'be_pro';
-    default:
-      return 'il_premier';
-  }
+  if (tier === 'academy' || tier === 'youth') return 'il_youth';
+  if (tier === 'israeli_low') return 'il_leumit';
+  if (tier === 'israeli_top' || tier === 'israeli_mid') return 'il_premier';
+
+  const byCountry = LEAGUE_BY_COUNTRY[country];
+  if (byCountry) return byCountry;
+
+  // No modelled league for this country: fall back to the career-quality bucket.
+  if (tier === 'euro_top') return 'euro_elite';
+  if (tier === 'euro_mid') return 'euro_strong';
+  return 'be_pro';
 }
 
-/** The stepping-stone leagues, by the country the club data already declares. */
-const EURO_DEV_LEAGUES: Record<string, string> = {
+/** Every country the club data declares, mapped to its real modelled league. */
+const LEAGUE_BY_COUNTRY: Record<string, string> = {
+  ישראל: 'il_premier',
   בלגיה: 'be_pro',
   הולנד: 'nl_eredivisie',
   אוסטריה: 'at_bundesliga',
   יוון: 'gr_superleague',
   קפריסין: 'cy_first',
   פורטוגל: 'pt_primeira',
+  גרמניה: 'de_bundesliga',
+  ספרד: 'es_laliga',
+  איטליה: 'it_seriea',
+  אנגליה: 'en_premier',
 };
 
 /** Leagues ordered by how far up the game they sit - used for "is this a step up?". */

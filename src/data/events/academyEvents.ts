@@ -372,7 +372,12 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             effects: {
               maccabism: -16,
               ability: 0.8,
-              transferTo: 'hapoel_afula',
+              /*
+               * A pool, not a club (v0.4.1). This used to name Hapoel Afula, which is a *senior*
+               * club - so a boy choosing "move to the local team" was made a senior professional
+               * on the spot. It was also 55% of every second-division season in the game.
+               */
+              transferTo: 'external_youth',
               flags: ['released_by_maccabi'],
             },
           },

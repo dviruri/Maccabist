@@ -720,6 +720,10 @@ export interface EventEffects {
   flags?: CareerFlag[];
   clearFlags?: CareerFlag[];
   achievement?: string;
+  /**
+   * A club id, or the pool sentinel `'external_youth'` to draw a youth club. Naming a pool
+   * keeps a destination age-appropriate and stops one club dominating a career path.
+   */
   transferTo?: string;
   captain?: boolean;
 

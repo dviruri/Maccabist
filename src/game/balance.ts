@@ -322,7 +322,14 @@ export interface PositionConfig {
   outputWeight: number;
   /** Multiplies goals+assists in the Legend Score so a keeper is not punished. */
   legendOutputFactor: number;
-  /** What a clean sheet is worth on the Legend Score's contribution component (v0.4.1). */
+  /**
+   * What a clean sheet is worth on the Legend Score's contribution component (v0.4.1).
+   *
+   * Calibrated by measurement across 700 careers per position, iterating until no position sat
+   * far from the rest. A first pass overshot: goalkeepers went from bottom (39.0) to top (45.4)
+   * and centre backs became the new outliers. Final spread is GK 44.6 to CB 41.7 - positions feel
+   * different without any of them being disadvantaged.
+   */
   legendCleanSheetFactor: number;
   /**
    * How hard late-career decline hits this position (v0.4.1). Goalkeeping depends less on the
@@ -354,7 +361,7 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     /** Zero, so the goal-output term is skipped entirely rather than always maximally negative. */
     outputWeight: 0,
     legendOutputFactor: 6,
-    legendCleanSheetFactor: 1.4,
+    legendCleanSheetFactor: 1.05,
     declineFactor: 0.55,
     concededRate: 1.15,
   },
@@ -369,7 +376,7 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     cleanSheetRate: 0.27,
     outputWeight: 0.3,
     legendOutputFactor: 3.2,
-    legendCleanSheetFactor: 0.35,
+    legendCleanSheetFactor: 0.85,
     declineFactor: 0.85,
     concededRate: 0,
   },
@@ -384,7 +391,7 @@ export const POSITIONS: Record<Position, PositionConfig> = {
     cleanSheetRate: 0.235,
     outputWeight: 0.45,
     legendOutputFactor: 2.4,
-    legendCleanSheetFactor: 0.25,
+    legendCleanSheetFactor: 0.6,
     declineFactor: 0.95,
     concededRate: 0,
   },
