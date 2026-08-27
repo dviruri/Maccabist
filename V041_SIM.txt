@@ -1,0 +1,150 @@
+
+> maccabist@0.1.0 simulate
+> vite-node scripts/simulate.ts -- --careers=10000
+
+MACCABIST - career simulation
+10,000 careers per strategy, 6 strategies
+
+STRATEGY: balanced  (10,000 careers)
+----------------------------------------------
+  reached Maccabi senior team            64.8%
+  failed to reach senior team            35.2%
+  academy graduate (נוער → בוגרים)       61.8%
+  not kept at end of נוער                38.2%
+  squeezed out of the first team         16.2%
+  early academy promotion                15.7%
+  played/trained with older group        23.2%
+  became regular starter                 56.8%
+  became key player                      48.9%
+  became captain                         18.0%
+  played abroad                          39.4%
+  returned to Maccabi                    21.8%
+  saw a rare event                       32.9%
+  avg peak ability                        81.2
+  avg Legend Score                        43.3
+  median Legend Score                     37.0
+  Legend Score std dev                   26.27
+  avg Maccabi appearances                152.8
+  avg career seasons                      26.3
+  avg retirement age                      34.9
+
+  Legend Score distribution
+    0-39      51.9%  ##########################
+    40-59     17.7%  #########
+    60-74     12.8%  ######
+    75-84      8.6%  ####
+    85-89      4.2%  ##
+    90-94      3.1%  ##
+    95+        1.7%  #
+
+  Story systems (v0.3)
+  careers carrying a memory             100.0%
+  careers running a story arc            99.1%
+  avg milestones per career               13.2
+  avg traits revealed                     1.38
+
+  Recovery
+  careers that hit a slump               40.1%
+  slumps recovered within 3 seasons      80.0%
+  avg seasons to recover                  1.61
+
+  Origin (v0.3.1)
+  scouted straight into Maccabi          10.0%
+  passed the Maccabi trials              68.3%
+  rejected at the trials                 21.7%
+    of those rejected at nine:
+    later invited back                   35.6%
+    later joined Maccabi                 30.7%
+    never joined Maccabi                 69.3%
+    reached senior football             100.0%
+    played for Maccabi seniors           51.0%
+    played abroad                        22.9%
+
+  Cohort invariants (must be zero)
+  INVALID natural-stage repeats              0
+  registered behind own cohort               0
+  legal "cohort caught up"                 948
+  full early promotions                   1509
+
+  Academy ladder
+  normal promotion                       96.5%
+  early promotion (skipped a level)       1.9%
+  same age group again (legal)            1.6%
+  avg age leaving the academy             18.0
+  avg seasons in the academy               9.0
+
+  Football World (v0.4)
+  saw a club-season event                74.7%
+  won promotion                          53.8%
+  suffered relegation                    56.6%
+  won a title away from Maccabi          21.4%
+  carried a small club                    2.4%
+  played abroad                          38.2%
+    ...came back to Israel               14.7%
+    ...and it did not work out            4.0%
+  had a loan spell                       30.8%
+  moved up a level                       66.6%
+  moved down a level                     37.4%
+  rebuilt after dropping down            14.8%
+  senior clubs (avg)                      3.04
+  seasons below the top flight            2.70
+
+  Maccabi story (v0.4)
+  met Maccabi again after leaving        44.4%
+  faced them in a match                  15.9%
+  scored against them                     8.5%
+    ...and refused to celebrate           8.5%
+  came home                              21.8%
+    standing at the end of the career:
+      stranger                 31.7%
+      known                    18.7%
+      son_of_the_club          17.0%
+      respected                14.2%
+      beloved                  10.8%
+      traitor                   6.9%
+      icon                      0.7%
+    homecoming archetypes (of those who came home):
+      rejected_child_star      25.4%
+      veteran_farewell         24.6%
+      redemption               17.7%
+      successful_return        13.6%
+      european_returnee         8.7%
+      prime_hero                5.7%
+      returning_leader          4.3%
+
+  Repetition
+  avg events per career                   41.1
+  avg repeated events                     6.51
+  avg longest same-category run           2.03
+  worst same-category run                    5
+  identical event sequences               0.0%
+  distinct events used                     126
+
+  Career length (v0.4.1)
+  senior careers measured                10000
+  mean retirement age                     34.9
+  median retirement age                   35.0
+  ended at 38 or later                    8.2%
+    outfield     n=8333  mean 34.4  median 35.0
+      29-31 2.3%  32-33 27.7%  34-35 50.8%  36-37 18.2%  38-39 1.0%
+    goalkeeper   n=1667  mean 37.2  median 37.0
+      34-35 4.1%  36-37 51.6%  38-39 40.1%  40+ 4.1%
+
+  By position
+    pos        peak  legend  maccabiSr  europe  major  retAge
+    שוער       81.0    44.2      66.8%   36.1%  19.9%    37.2
+    בלם        80.6    41.8      59.3%   35.4%  17.1%    34.4
+    מגן        80.2    41.0      60.0%   34.2%  15.1%    34.4
+    קשר        82.0    43.7      67.6%   38.8%  16.8%    34.4
+    כנף        81.5    44.8      67.3%   42.4%  18.7%    34.4
+    חלוץ       81.7    44.5      67.7%   42.4%  18.1%    34.4
+
+  Most common endings
+    הדרך האחרת                       30.2%
+    הכוכב האירופי                    24.6%
+    הנווד                            10.7%
+    אגדה ירוקה                        8.0%
+    יקיר הקהל                         4.9%
+    הסמל                              4.7%
+    מי שלא רצו                        4.6%
+    המקצוען                           4.1%
