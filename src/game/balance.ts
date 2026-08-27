@@ -102,6 +102,11 @@ export const WORLD = {
   impactEdgeSpread: 14,
   impactScale: 0.62,
   impactMax: 1,
+  /**
+   * How far a bad season can drag a club down (v0.4.1). Much smaller than the ceiling: a player
+   * can help win a league, but nobody relegates a club by himself.
+   */
+  impactMinimum: 0.35,
   /** How far maximum player impact shifts the finish, in ladder positions. */
   impactToPositions: 1.4,
 

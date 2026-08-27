@@ -1,5 +1,6 @@
 import type { GameEvent } from '../../types';
 import { ACADEMY_EVENTS } from './academyEvents';
+import { AMBIENT_MACCABI_EVENTS } from './ambientMaccabiEvents';
 import { ARC_EVENTS } from './arcEvents';
 import { FALL_AND_RISE_EVENTS } from './fallAndRiseEvents';
 import { MACCABI_EVENTS } from './maccabiEvents';
@@ -18,6 +19,7 @@ import { WORLD_EVENTS } from './worldEvents';
  */
 export const EVENT_POOL: GameEvent[] = [
   ...ACADEMY_EVENTS,
+  ...AMBIENT_MACCABI_EVENTS,
   ...ARC_EVENTS,
   ...FALL_AND_RISE_EVENTS,
   ...MACCABI_EVENTS,
@@ -40,6 +42,7 @@ export function getEvent(id: string): GameEvent {
 
 export {
   ACADEMY_EVENTS,
+  AMBIENT_MACCABI_EVENTS,
   ARC_EVENTS,
   FALL_AND_RISE_EVENTS,
   MACCABI_EVENTS,

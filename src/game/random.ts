@@ -19,8 +19,19 @@ export interface Rng {
   pick<T>(items: readonly T[]): T;
   /** Weighted pick. Items with weight <= 0 are ignored. Returns null if nothing is eligible. */
   weighted<T>(items: readonly T[], weightOf: (item: T) => number): T | null;
-  /** Roughly normal distribution around `mean` (sum of 3 uniforms), clamped to +/- 1 spread. */
+  /**
+   * Bounded jitter around `mean` (sum of 3 uniforms). Hard-limited to +/- spread, with no tails.
+   * Right for nudging a rating; wrong wherever a rare extreme has to be *possible*.
+   */
   gaussian(mean: number, spread: number): number;
+  /**
+   * A real normal distribution with real tails (Box-Muller).
+   *
+   * Added in v0.4.1 because `gaussian` cannot produce an outlier at all: a club whose expected
+   * finish was five rungs up literally could not be relegated, so "strong clubs occasionally
+   * implode" was a comment describing something the maths forbade.
+   */
+  normal(mean: number, sd: number): number;
   /** Current internal state - persist this to resume the exact same stream. */
   getState(): number;
 }
@@ -65,6 +76,12 @@ export function createRng(state: number): Rng {
     gaussian: (mean, spread) => {
       const sum = (next() + next() + next()) / 3; // 0..1, centred on 0.5
       return mean + (sum - 0.5) * 2 * spread;
+    },
+    normal: (mean, sd) => {
+      // Box-Muller. `next()` can return 0, which would give -Infinity through the log.
+      const u = Math.max(Number.EPSILON, next());
+      const v = next();
+      return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
     },
     getState: () => s,
   };

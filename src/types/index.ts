@@ -351,6 +351,13 @@ export interface ClubSeasonResult {
  * player's own club seasons are kept. There is no attempt to run every league.
  */
 export interface WorldState {
+  /**
+   * Maccabi's own seasons while the player was elsewhere (v0.4.1).
+   *
+   * Kept apart from `clubSeasons` so the season summary still shows the player's own club and
+   * nothing confuses whose campaign a result belonged to. Optional because v0.4 saves have none.
+   */
+  maccabiSeasons?: ClubSeasonResult[];
   /** clubId -> leagueId, for clubs that have been promoted or relegated. */
   clubLeagues: Record<string, string>;
   /** The player's club's season results, most recent last. */
@@ -428,7 +435,11 @@ export type MemoryKind =
   | 'refused_to_celebrate'
   | 'celebrated_against_maccabi'
   | 'booed_at_sami_ofer'
-  | 'applauded_at_sami_ofer';
+  | 'applauded_at_sami_ofer'
+  // The ambient Maccabi world (v0.4.1) - things the club did while he was elsewhere
+  | 'maccabi_title_without_me'
+  | 'maccabi_relegated_while_away'
+  | 'maccabi_asked_about_me';
 
 export interface CareerMemory {
   kind: MemoryKind;
@@ -628,6 +639,17 @@ export interface EventConditions {
   playedForMaccabi?: boolean;
   /** He must be somewhere he could actually meet them - same division, not their own player. */
   canFaceMaccabi?: boolean;
+
+  /* ---------- v0.4.1: the ambient Maccabi world ---------- */
+  /**
+   * Maccabi's own last season, while the player was elsewhere. This is what lets a story exist
+   * about the club rather than only about the player.
+   */
+  maccabiSeasonOutcome?: ClubSeasonOutcome[];
+  /** Maccabi won the league in a season he was not there for. */
+  maccabiWonWithoutHim?: boolean;
+  /** Maccabi is having a bad time: a poor season, or in the second division. */
+  maccabiInCrisis?: boolean;
 
   /* ---------- v0.4: the club's own season ---------- */
   /** Which division the club is in. 1 is a top flight, 2 a second division. */

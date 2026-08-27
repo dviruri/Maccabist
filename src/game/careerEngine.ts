@@ -46,6 +46,7 @@ import {
   isGoodSeason,
   leagueOf,
   recordClubSeason,
+  recordMaccabiSeason,
   simulateClubSeason,
 } from './worldEngine';
 import { ageAt } from './cohort';
@@ -497,6 +498,16 @@ function advanceSeasonFlow(career: Career): Career {
       const clubResult = simulateClubSeason(next, next.lastSeasonRecord, rng);
       next.world = recordClubSeason(next, clubResult);
       next = recordWorldMemories(next, clubResult);
+
+      /*
+       * Maccabi has a season whether he is there or not (v0.4.1).
+       *
+       * Without this the club stopped existing the moment he left, which undercuts the whole
+       * premise - Maccabi is meant to be the fixed star he navigates by, not a place he happens
+       * to be standing in. No-ops when he is actually there, since his own club season already
+       * covered it.
+       */
+      next.world = recordMaccabiSeason(next, rng);
     }
 
     next.lastSeasonDeltas = seasonDeltas(next);

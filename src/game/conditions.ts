@@ -26,7 +26,13 @@ import {
   seniorPhase,
 } from './memory';
 import { isAtMaccabi, isAtMaccabiSenior, isOnLoan, isPlayingAbroad } from './rules';
-import { clubStrengthVsLeague, leagueOf } from './worldEngine';
+import {
+  clubStrengthVsLeague,
+  lastAmbientMaccabiSeason,
+  leagueOf,
+  maccabiInCrisis,
+  maccabiWonTitleWithoutHim,
+} from './worldEngine';
 
 export interface ConditionContext {
   /** Appearances the condition should read: this season so far, or last season. */
@@ -130,6 +136,22 @@ export function matchesConditions(
     return false;
   }
   if (c.canFaceMaccabi !== undefined && canFaceMaccabi(career) !== c.canFaceMaccabi) return false;
+
+  /* ---------- v0.4.1: the ambient Maccabi world ---------- */
+  if (c.maccabiSeasonOutcome) {
+    // The ambient list only: these conditions are about what the club did without him.
+    const last = lastAmbientMaccabiSeason(career);
+    if (!last || !c.maccabiSeasonOutcome.includes(last.outcome)) return false;
+  }
+  if (
+    c.maccabiWonWithoutHim !== undefined &&
+    maccabiWonTitleWithoutHim(career) !== c.maccabiWonWithoutHim
+  ) {
+    return false;
+  }
+  if (c.maccabiInCrisis !== undefined && maccabiInCrisis(career) !== c.maccabiInCrisis) {
+    return false;
+  }
 
   /* ---------- v0.4: the club's own season ---------- */
   if (c.clubLeagueTier && !c.clubLeagueTier.includes(leagueOf(career.world, career.currentClubId).tier)) {

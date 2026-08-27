@@ -62,9 +62,21 @@ export function cloneCareer(career: Career): Career {
     eventsHistory: [...career.eventsHistory],
     flags: [...career.flags],
     memories: [...career.memories],
+    /*
+     * Spread first, then override the mutable collections (v0.4.1).
+     *
+     * Listing the fields explicitly silently dropped `maccabiSeasons` the moment it was added -
+     * every clone wiped the ambient Maccabi world, so it read as permanently empty. Any future
+     * world field is now carried by default and only needs a line here if it must be copied
+     * rather than shared.
+     */
     world: {
+      ...career.world,
       clubLeagues: { ...career.world.clubLeagues },
       clubSeasons: [...career.world.clubSeasons],
+      ...(career.world.maccabiSeasons
+        ? { maccabiSeasons: [...career.world.maccabiSeasons] }
+        : {}),
     },
     arcs: career.arcs.map((arc) => ({ ...arc })),
     completedArcs: [...career.completedArcs],

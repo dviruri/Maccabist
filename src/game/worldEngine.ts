@@ -10,7 +10,7 @@
  * Cheap by design: a handful of RNG calls per season, so 100,000 careers stay practical.
  */
 
-import { getClub } from '../data/clubs';
+import { getClub, MACCABI_ID } from '../data/clubs';
 import { defaultLeagueFor, getLeague, type League } from '../data/leagues';
 import type { Career, ClubSeasonOutcome, ClubSeasonResult, SeasonRecord, WorldState } from '../types';
 import { WORLD } from './balance';
@@ -73,7 +73,17 @@ export function playerImpact(career: Career, record: SeasonRecord | null): numbe
   const standing = clamp((record.coachTrust - 45) / 60, -0.3, 0.6);
 
   const raw = share * (edge * 0.55 + performance * 0.3 + standing * 0.15);
-  return clamp(raw * WORLD.impactScale, 0, WORLD.impactMax);
+  /*
+   * Impact can now be negative (v0.4.1), but only a little.
+   *
+   * A key player having a genuinely bad season should nudge his club's outcome down - otherwise
+   * the player's performance is a one-way ratchet and the world only ever rewards him. The floor
+   * is deliberately a fraction of the ceiling: a footballer can help win a league, but no single
+   * player relegates a club on his own, and the game should not imply he did.
+   *
+   * A backup barely registers either way, because `share` scales the whole term.
+   */
+  return clamp(raw * WORLD.impactScale, -WORLD.impactMinimum, WORLD.impactMax);
 }
 
 /* ------------------------------------------------------------------ */
@@ -153,7 +163,8 @@ export function simulateClubSeason(
     strength * WORLD.strengthToPositions +
     impact * WORLD.impactToPositions;
 
-  const noisy = centre + rng.gaussian(0, WORLD.seasonVariance);
+  // A real normal, so a dominant club can still have the season nobody saw coming.
+  const noisy = centre + rng.normal(0, WORLD.seasonVariance);
   const index = Math.round(clamp(noisy, 0, ladder.length - 1));
   const outcome = ladder[index] as ClubSeasonOutcome;
 
@@ -214,4 +225,101 @@ export function lastClubSeason(career: Career): ClubSeasonResult | null {
  */
 export function clubSeasonFor(career: Career, season: number): ClubSeasonResult | null {
   return career.world.clubSeasons.find((s) => s.season === season) ?? null;
+}
+
+/* ------------------------------------------------------------------ */
+/* The ambient Maccabi world (v0.4.1)                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Maccabi has a season whether the player is there or not.
+ *
+ * v0.4 only simulated the player's own club, which meant that the moment he left, Maccabi
+ * effectively stopped existing until he came back. That quietly undercuts the whole point of the
+ * game: the club is supposed to be a fixed star he navigates by, not a location he is standing in.
+ *
+ * Deliberately the same model as any other club season, minus the player's impact - he is not
+ * there. Cheap: one gaussian per season. No other club in the world is simulated, because no
+ * other club is load-bearing for the story.
+ */
+export function simulateMaccabiSeason(career: Career, rng: Rng): ClubSeasonResult {
+  const league = leagueOf(career.world, MACCABI_ID);
+  const ladder = league.tier >= 2 ? SECOND_OUTCOMES : TOP_OUTCOMES;
+  const strength = clubStrengthVsLeague(career.world, MACCABI_ID);
+
+  const centre = (ladder.length - 1) / 2 + strength * WORLD.strengthToPositions;
+  const index = Math.round(clamp(centre + rng.normal(0, WORLD.seasonVariance), 0, ladder.length - 1));
+  const outcome = ladder[index] as ClubSeasonOutcome;
+
+  return {
+    season: career.currentSeason,
+    clubId: MACCABI_ID,
+    leagueId: league.id,
+    outcome,
+    label: OUTCOME_LABELS[outcome],
+    // Zero by definition: he was somewhere else.
+    playerImpact: 0,
+  };
+}
+
+/**
+ * Advances Maccabi's own season and files it, for a player who is elsewhere.
+ *
+ * Kept in `maccabiSeasons` rather than `clubSeasons` so the season summary still shows the
+ * player's own club and nothing gets confused about whose campaign it was.
+ */
+export function recordMaccabiSeason(career: Career, rng: Rng): WorldState {
+  if (career.currentClubId === MACCABI_ID) return career.world;
+
+  const result = simulateMaccabiSeason(career, rng);
+  const withSeason: WorldState = {
+    ...career.world,
+    maccabiSeasons: [...(career.world.maccabiSeasons ?? []), result].slice(-WORLD.keepClubSeasons),
+  };
+  return applyPromotionRelegation(withSeason, result);
+}
+
+/**
+ * Maccabi's most recent season *that the player was not part of*.
+ *
+ * This is what the ambient events mean by "what did Maccabi just do" - the whole point is that it
+ * happened without him. Reading his own Maccabi seasons here would have "they won it without you"
+ * firing for a player who lifted the trophy himself.
+ */
+export function lastAmbientMaccabiSeason(career: Career): ClubSeasonResult | null {
+  const ambient = career.world.maccabiSeasons ?? [];
+  return ambient[ambient.length - 1] ?? null;
+}
+
+/** Maccabi's most recent season, wherever the player was. */
+export function lastMaccabiSeason(career: Career): ClubSeasonResult | null {
+  const own = career.world.clubSeasons.filter((s) => s.clubId === MACCABI_ID);
+  const ambient = career.world.maccabiSeasons ?? [];
+  const all = [...own, ...ambient].sort((a, b) => a.season - b.season);
+  return all[all.length - 1] ?? null;
+}
+
+/** Every Maccabi season on record, whether the player was there or not. */
+export function maccabiSeasons(career: Career): ClubSeasonResult[] {
+  const own = career.world.clubSeasons.filter((s) => s.clubId === MACCABI_ID);
+  return [...own, ...(career.world.maccabiSeasons ?? [])].sort((a, b) => a.season - b.season);
+}
+
+/** Did Maccabi win the league in a season the player was not there? */
+export function maccabiWonTitleWithoutHim(career: Career): boolean {
+  return (career.world.maccabiSeasons ?? []).some((s) => s.outcome === 'champion');
+}
+
+/** Seasons since Maccabi last had a good one, or null if they never have on record. */
+export function seasonsSinceMaccabiSuccess(career: Career): number | null {
+  const good = maccabiSeasons(career).filter((s) => isGoodSeason(s.outcome));
+  const latest = good[good.length - 1];
+  return latest ? career.currentSeason - latest.season : null;
+}
+
+/** True when Maccabi is having a genuinely bad time of it. */
+export function maccabiInCrisis(career: Career): boolean {
+  const last = lastMaccabiSeason(career);
+  if (!last) return false;
+  return isBadSeason(last.outcome) || leagueOf(career.world, MACCABI_ID).tier >= 2;
 }

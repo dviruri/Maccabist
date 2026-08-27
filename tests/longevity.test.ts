@@ -223,10 +223,12 @@ describe('why goalkeepers were behind', () => {
 
   it('leaves no position far behind on the Legend Score', () => {
     const scores = (['GK', 'CB', 'FB', 'CM', 'WG', 'ST'] as Position[]).map((position) => {
-      const total = Array.from({ length: 260 }, (_, i) =>
+      // 500 rather than 260: at the smaller sample the between-position noise was comparable to
+      // the effect being asserted, which made this fail on changes that did not move the balance.
+      const total = Array.from({ length: 500 }, (_, i) =>
         simulateCareer({ playerName: 'ל', position, seed: i + 1, policy: balancedPolicy }),
       ).reduce((sum, c) => sum + (c.legend?.score ?? 0), 0);
-      return { position, mean: total / 260 };
+      return { position, mean: total / 500 };
     });
     const best = Math.max(...scores.map((s) => s.mean));
     const worst = Math.min(...scores.map((s) => s.mean));

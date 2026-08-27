@@ -29,14 +29,22 @@ import {
   moveDirection,
   positionNeed,
 } from '../src/game/marketEngine';
-import { moveToClub } from '../src/game/progressionEngine';
+import { cloneCareer, moveToClub } from '../src/game/progressionEngine';
 import { createRng } from '../src/game/random';
-import { applyAutomaticMoves, buildLoanOffers } from '../src/game/transferEngine';
+import {
+  applyAutomaticMoves,
+  buildLoanOffers,
+  buildReturnHomeOffer,
+} from '../src/game/transferEngine';
 import {
   applyPromotionRelegation,
   clubStrengthVsLeague,
   emptyWorld,
+  lastAmbientMaccabiSeason,
   leagueOf,
+  playerImpact,
+  recordMaccabiSeason,
+  simulateMaccabiSeason,
 } from '../src/game/worldEngine';
 import type { Career, ClubSeasonResult, SeasonRecord } from '../src/types';
 
@@ -403,5 +411,124 @@ describe('the career ladder', () => {
     for (let seed = 1; seed <= 60; seed += 1) {
       expect(drawDestination(career, createRng(seed))?.id).not.toBe(MACCABI_ID);
     }
+  });
+});
+
+describe('the ambient Maccabi world (v0.4.1)', () => {
+  /*
+   * v0.4 only simulated the club the player was standing in, so the moment he left, Maccabi
+   * stopped existing until he came back — which undercuts the premise that Maccabi is the fixed
+   * star he navigates by.
+   */
+  const away = (): Career => seniorAt('hapoel_afula');
+
+  it('gives Maccabi a season while the player is elsewhere', () => {
+    const career = away();
+    const world = recordMaccabiSeason(career, createRng(3));
+    expect((world.maccabiSeasons ?? []).length).toBe(1);
+    expect((world.maccabiSeasons ?? [])[0]?.clubId).toBe(MACCABI_ID);
+  });
+
+  it('does not double-count when the player is actually there', () => {
+    const home = seniorAt(TOP);
+    expect(recordMaccabiSeason(home, createRng(3)).maccabiSeasons ?? []).toEqual([]);
+  });
+
+  it('credits the player with no impact on a season he was not part of', () => {
+    const result = simulateMaccabiSeason(away(), createRng(9));
+    expect(result.playerImpact).toBe(0);
+  });
+
+  it('survives cloning', () => {
+    /*
+     * cloneCareer rebuilt `world` field by field, which silently dropped maccabiSeasons the moment
+     * it was added — every clone wiped the ambient world, so it read as permanently empty.
+     */
+    const career: Career = { ...away(), world: recordMaccabiSeason(away(), createRng(3)) };
+    expect(cloneCareer(career).world.maccabiSeasons).toHaveLength(1);
+  });
+
+  it('can produce a bad Maccabi season, not only good ones', () => {
+    /*
+     * rng.gaussian is hard-bounded to +/- spread, so a club whose expected finish was five rungs
+     * up could not be relegated at all — "strong clubs occasionally implode" was a comment
+     * describing something the maths forbade. simulateMaccabiSeason uses a real normal now.
+     */
+    const outcomes = new Set<string>();
+    for (let seed = 1; seed <= 4000; seed += 1) {
+      outcomes.add(simulateMaccabiSeason(away(), createRng(seed)).outcome);
+    }
+    expect(outcomes).toContain('champion');
+    expect(outcomes.size).toBeGreaterThan(4);
+    // A dominant club should reach the bottom half sometimes, however rarely.
+    expect(
+      [...outcomes].some((o) => ['mid_table', 'lower_table', 'relegation_battle', 'relegated'].includes(o)),
+    ).toBe(true);
+  });
+
+  it('reads only the seasons he missed when asking what Maccabi just did', () => {
+    // Otherwise "they won it without you" fires for a player who lifted the trophy himself.
+    const career = away();
+    expect(lastAmbientMaccabiSeason(career)).toBeNull();
+    const withSeason: Career = { ...career, world: recordMaccabiSeason(career, createRng(3)) };
+    expect(lastAmbientMaccabiSeason(withSeason)).not.toBeNull();
+  });
+});
+
+describe('a homecoming reads the current world (v0.4.1)', () => {
+  it('advertises the division Maccabi is actually in', () => {
+    const career: Career = {
+      ...seniorAt('benfica'),
+      maccabi: { ...seniorAt('benfica').maccabi, appearances: 150, seasons: 5, everLeft: true },
+    };
+    const relegated: Career = {
+      ...career,
+      world: applyPromotionRelegation(career.world, {
+        season: 2042,
+        clubId: MACCABI_ID,
+        leagueId: 'il_premier',
+        outcome: 'relegated',
+        label: 'ירדה ליגה',
+        playerImpact: 0,
+      }),
+    };
+    // The static club record still says ליגת העל; the offer must not.
+    expect(getClub(MACCABI_ID).league).toBe('ליגת העל');
+    const offer = buildReturnHomeOffer(relegated);
+    expect(offer.league).toBe(getLeague('il_leumit').name);
+    expect(offer.leagueId).toBe('il_leumit');
+  });
+
+  it('advertises the top flight again once they are back', () => {
+    const career: Career = {
+      ...seniorAt('benfica'),
+      maccabi: { ...seniorAt('benfica').maccabi, appearances: 150, seasons: 5, everLeft: true },
+    };
+    expect(buildReturnHomeOffer(career).leagueId).toBe('il_premier');
+  });
+});
+
+describe('player impact on the club season (v0.4.1)', () => {
+  const record = (over: Partial<SeasonRecord['stats']> = {}, ability = 70, trust = 60): SeasonRecord => ({
+    ...seasonAt(TOP),
+    ability,
+    coachTrust: trust,
+    stats: { ...seasonAt(TOP).stats, appearances: 40, starts: 38, rating: 70, ...over },
+  });
+
+  it('lets a key player help', () => {
+    expect(playerImpact(seniorAt(TOP), record())).toBeGreaterThan(0);
+  });
+
+  it('lets a bad season from a key player hurt, a little', () => {
+    const bad = playerImpact(seniorAt(TOP), record({ rating: 34 }, 44, 20));
+    expect(bad).toBeLessThan(0);
+    // But nobody relegates a club by himself: the floor is a fraction of the ceiling.
+    expect(Math.abs(bad)).toBeLessThan(playerImpact(seniorAt(TOP), record({ rating: 82 }, 88, 90)));
+  });
+
+  it('barely registers either way for a backup', () => {
+    const backup = playerImpact(seniorAt(TOP), record({ appearances: 4, starts: 1, rating: 34 }, 44, 20));
+    expect(Math.abs(backup)).toBeLessThan(0.05);
   });
 });

@@ -324,20 +324,41 @@ const HOMECOMING_COPY: Record<HomecomingKind, { title: string; description: stri
   },
 };
 
-function returnHomeOffer(career: Career): TransferOffer {
+export function buildReturnHomeOffer(career: Career): TransferOffer {
   const club = getClub(MACCABI_ID);
   const kind = homecomingKind(career);
   const copy = HOMECOMING_COPY[kind];
+
+  /*
+   * The league comes from the live world state (v0.4.1), not from the club record.
+   *
+   * `club.league` is the static "ליגת העל" written in the data. If Maccabi have been relegated,
+   * the homecoming offer was still advertising the top flight - and if they had climbed back, it
+   * would have been right again by accident. A player deciding whether to go home has to be told
+   * which division he would actually be playing in.
+   */
+  const league = leagueOf(career.world, MACCABI_ID);
+  const role = expectedRoleAt(career, club, career.currentSeason);
+  const inSecondDivision = league.tier >= 2;
 
   return {
     id: 'return_maccabi',
     kind: 'return_home',
     clubId: club.id,
     clubName: club.name,
-    league: club.league,
+    league: league.name,
     country: club.country,
+    leagueId: league.id,
+    leagueLevel: Math.round(leagueLevel(league)),
+    expectedRole: role,
+    direction: moveDirection(career, club),
+    hints: offerHints(career, club, role, career.currentSeason),
     title: copy.title,
-    description: copy.description,
+    description:
+      copy.description +
+      (inSecondDivision
+        ? ' הם בליגה הלאומית עכשיו. זה חלק מהעסקה.'
+        : ''),
     acceptEffects: {
       maccabism: copy.maccabism,
       confidence: 5,
@@ -655,7 +676,7 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
       homecomingPossible(career) &&
       rng.chance(clamp(chance, 0, 0.5))
     ) {
-      offers.push(returnHomeOffer(career));
+      offers.push(buildReturnHomeOffer(career));
     }
   }
 
