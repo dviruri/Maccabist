@@ -1,7 +1,10 @@
+import { useState } from 'react';
+
 import { CareerTimeline } from '../components/CareerTimeline';
 import { Celebration } from '../components/Celebration';
 import { DebugPanel } from '../components/DebugPanel';
-import { EventCard, OutcomeCard } from '../components/EventCard';
+import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
+import { OutcomeCard } from '../components/EventCard';
 import { OffersCard } from '../components/OffersCard';
 import { OriginReveal, RetrialCard } from '../components/OriginReveal';
 import { PlayerCard } from '../components/PlayerCard';
@@ -88,7 +91,19 @@ function SeasonProgress({ career }: { career: Career }): JSX.Element {
   );
 }
 
+/**
+ * Identifies one resolved event, so the reveal plays once per outcome rather than replaying on
+ * every re-render. Keyed on the event and the season it happened in - an event can legitimately
+ * recur in a later season and should animate again then.
+ */
+function revealKey(career: Career): string {
+  const result = career.lastEventResult;
+  return result ? `${result.season}:${result.eventId}:${result.outcomeId}` : '';
+}
+
 function PhaseView({ career, actions }: { career: Career; actions: GameActions }): JSX.Element {
+  const [revealed, setRevealed] = useState<string[]>([]);
+
   switch (career.phase) {
     case 'origin':
       return <OriginReveal career={career} onContinue={actions.continueOrigin} />;
@@ -98,6 +113,20 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
 
     case 'event': {
       if (career.lastEventResult) {
+        const odds = career.lastEventResult.odds ?? [];
+        /*
+         * The engine has already resolved this outcome from the seeded stream. The reveal only
+         * delays showing it, so it cannot affect the result - and a save made mid-reveal resumes
+         * on the outcome card, not on the animation.
+         */
+        if (odds.length >= 2 && !revealed.includes(revealKey(career))) {
+          return (
+            <OutcomeReveal
+              outcomes={odds}
+              onDone={() => setRevealed((seen) => [...seen, revealKey(career)])}
+            />
+          );
+        }
         return (
           <OutcomeCard
             result={career.lastEventResult}
@@ -111,7 +140,13 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
       if (!event || !eventId) {
         return <ContinueCard title="העונה ממשיכה" onContinue={actions.continueEvent} label="קדימה" />;
       }
-      return <EventCard event={event} onChoose={(choiceId) => actions.answer(eventId, choiceId)} />;
+      return (
+        <DecisionCard
+          career={career}
+          event={event}
+          onChoose={(choiceId) => actions.answer(eventId, choiceId)}
+        />
+      );
     }
 
     case 'mid_season':

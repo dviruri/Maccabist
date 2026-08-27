@@ -1847,3 +1847,157 @@ p {
   margin-top: 4px;
   line-height: 1.6;
 }
+
+/* =========================================================================
+   Decisions with visible odds (v0.4.1)
+   ========================================================================= */
+
+.choice-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/*
+  A quiet link rather than a second button, so it never competes with the choice itself for the
+  thumb. Full-width target because this is a phone.
+*/
+.odds-toggle {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 6px 4px 2px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--maccabi-green-light);
+  cursor: pointer;
+}
+
+.odds-toggle:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.odds {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  background: var(--ink);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.odds-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.odds-label {
+  flex: 1;
+  color: var(--text-dim);
+}
+
+/* Digits stay LTR inside Hebrew, and align so the column scans vertically. */
+.odds-percent {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: left;
+}
+
+.odds-row.valence-majorPositive .odds-percent,
+.odds-row.valence-positive .odds-percent {
+  color: var(--maccabi-green-light);
+}
+
+.odds-row.valence-negative .odds-percent,
+.odds-row.valence-majorNegative .odds-percent {
+  color: var(--danger);
+}
+
+.odds-hints {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.odds-hints li {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  border: 1px solid var(--ink-line);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+/* ---- the reveal ---- */
+
+.reveal-card {
+  min-height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reveal-slot {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  padding: 10px 4px;
+  /* No transition: the label swaps discretely, which reads as cycling rather than blurring. */
+}
+
+.reveal-slot.valence-majorPositive,
+.reveal-slot.valence-positive {
+  color: var(--maccabi-green-light);
+}
+
+.reveal-slot.valence-negative,
+.reveal-slot.valence-majorNegative {
+  color: var(--danger);
+}
+
+.reveal-bar {
+  width: min(220px, 70%);
+  height: 4px;
+  border-radius: 99px;
+  background: var(--ink-line);
+  overflow: hidden;
+}
+
+.reveal-bar span {
+  display: block;
+  height: 100%;
+  background: var(--maccabi-green);
+  animation: reveal-fill 1200ms linear forwards;
+}
+
+@keyframes reveal-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/*
+  Reduced motion skips the reveal entirely in JS, so there is nothing to animate. This only
+  covers the case where the bar is already mounted.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .reveal-bar span {
+    animation: none;
+    width: 100%;
+  }
+}

@@ -151,8 +151,12 @@ export function countLabel(count: number, singular: string, plural: string): str
   return count === 1 ? singular : `${count} ${plural}`;
 }
 
-/** Qualitative risk hint shown on a choice button - never a percentage. */
-export const RISK_LABELS: Record<string, string> = {
+/**
+ * The author's own read on a choice, used when a choice has only one outcome and therefore no
+ * distribution to derive a risk level from. Named distinctly from decisionEngine's RISK_LABELS,
+ * which is keyed by the *measured* risk of a distribution rather than by the authored intent.
+ */
+export const CHOICE_RISK_LABELS: Record<string, string> = {
   safe: 'בחירה בטוחה',
   balanced: 'מאוזן',
   risky: 'סיכון גבוה',

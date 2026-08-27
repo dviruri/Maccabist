@@ -18,8 +18,12 @@ import type {
   SeasonSlot,
 } from '../types';
 import { EVENTS } from './balance';
-import { matchesConditions, type ConditionContext } from './conditions';
-import { selectWeightedOutcome } from './outcomeEngine';
+// conditionContext moved to conditions.ts (v0.4.1) so decisionEngine can use it without a
+// cycle through this file. Re-exported because callers and tests already import it from here.
+import { conditionContext, matchesConditions } from './conditions';
+import { calculateOutcomeDistribution, resolveFromDistribution } from './decisionEngine';
+
+export { conditionContext };
 import { applyEffects, cloneCareer, diffCareer } from './progressionEngine';
 import { round, type Rng } from './random';
 
@@ -31,22 +35,6 @@ import { round, type Rng } from './random';
  * Early-slot events read last season's appearances; once the season is under way they read
  * what has actually happened so far this season.
  */
-export function conditionContext(career: Career, slot: SeasonSlot): ConditionContext {
-  if (slot === 'early') {
-    return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0 };
-  }
-  /*
-   * Mid and late slots normally read this season's first half. But the whole season is *planned*
-   * at preseason, when `firstHalfStats` is still null - so read as written, every mid/late event
-   * with a `minLastAppearances` floor was evaluated against zero appearances and could never be
-   * planned at all. Falling back to last season is the honest answer at planning time: the
-   * question these conditions ask is "is this player playing regularly?", and in August last
-   * season is the only evidence there is.
-   */
-  const firstHalf = career.firstHalfStats?.appearances;
-  if (firstHalf !== undefined) return { appearances: firstHalf };
-  return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0 };
-}
 
 /* ------------------------------------------------------------------ */
 /* Repetition control                                                  */
@@ -282,14 +270,30 @@ export function resolveEventChoice(
   let next = career;
   const achievements: Achievement[] = [];
 
+  /*
+   * The distribution is computed FIRST, on the untouched career (v0.4.1).
+   *
+   * This is what makes the displayed odds honest. The UI preview calls
+   * calculateOutcomeDistribution on exactly this state, so resolving from the same function with
+   * the same input guarantees the numbers the player saw are the numbers that decided his career.
+   *
+   * It also fixes a real inconsistency: `choice.effects` used to be applied before the weights
+   * were calculated, so a choice that cost coach trust silently moved the very odds it was shown
+   * alongside - and a preview could never have matched.
+   */
+  const distribution = calculateOutcomeDistribution(career, event, choice, slot);
+
   if (choice.effects) {
     const applied = applyEffects(next, choice.effects, rng);
     next = applied.career;
     achievements.push(...applied.achievements);
   }
 
-  const ctx = conditionContext(career, slot);
-  const outcome = selectWeightedOutcome(choice.outcomes, next, rng, ctx, choice.risk);
+  const resolvedId = resolveFromDistribution(distribution, rng);
+  const outcome = resolvedId
+    ? (choice.outcomes.find((o) => o.id === resolvedId) ?? null)
+    : // Every outcome was gated out for this player. Fall back rather than throw.
+      (choice.outcomes[0] ?? null);
 
   let outcomeText = '';
   let outcomeId = 'none';
@@ -323,6 +327,8 @@ export function resolveEventChoice(
     outcomeText,
     tone,
     deltas: diffCareer(before, next),
+    // The odds the player was shown, kept with the result they produced.
+    odds: distribution.outcomes,
   };
 
   next.eventsHistory.push(result);

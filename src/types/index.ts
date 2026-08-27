@@ -764,6 +764,55 @@ export interface EventOutcome {
 /** Qualitative hint shown on a choice button instead of raw percentages. */
 export type ChoiceRisk = 'safe' | 'balanced' | 'risky' | 'opportunity';
 
+/* ---------- Decisions with visible odds (v0.4.1) ---------- */
+
+/**
+ * How good or bad an outcome is, for presentation only.
+ *
+ * The engine owns this classification; the UI renders it. A colour must never be what decides
+ * whether something counts as a disaster.
+ */
+export type OutcomeValence =
+  | 'majorPositive'
+  | 'positive'
+  | 'neutral'
+  | 'negative'
+  | 'majorNegative';
+
+export type RiskLevel = 'low' | 'medium' | 'high';
+
+/** One possible outcome, as shown to the player before he chooses. */
+export interface DecisionOutcomeView {
+  id: string;
+  /** Short label. The full narrative text is only revealed after the choice. */
+  label: string;
+  valence: OutcomeValence;
+  /** Exact normalised probability, 0-1. */
+  probability: number;
+  /** Integer percentage. Across a distribution these sum to exactly 100. */
+  percent: number;
+  /** Effective weight, kept so the resolver can draw from this same object. */
+  weight: number;
+}
+
+/**
+ * Everything about one choice's uncertainty.
+ *
+ * Produced by `calculateOutcomeDistribution` and consumed by BOTH the UI preview and the
+ * resolver, which is what guarantees the displayed odds are the odds that were used.
+ */
+export interface DecisionDistribution {
+  eventId: string;
+  choiceId: string;
+  /** Only outcomes that are actually possible for this player. */
+  outcomes: DecisionOutcomeView[];
+  totalWeight: number;
+  risk: RiskLevel;
+  /** Combined probability of a positive / negative result, 0-1. */
+  upside: number;
+  downside: number;
+}
+
 export interface EventChoice {
   id: string;
   label: string;
@@ -812,6 +861,14 @@ export interface CareerEventResult {
   outcomeText: string;
   tone: Tone;
   deltas: AttributeDelta[];
+  /**
+   * The odds this result was drawn from (v0.4.1).
+   *
+   * Recorded so the reveal animation can cycle through exactly what was possible, and so a bug
+   * report can show the probabilities the player was actually looking at. Optional because
+   * results written before v0.4.1 do not have it.
+   */
+  odds?: DecisionOutcomeView[];
 }
 
 /* ------------------------------------------------------------------ */

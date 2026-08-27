@@ -4,7 +4,7 @@
  */
 
 import { stageBand } from '../data/academy';
-import type { Career, ClubScope, EventConditions } from '../types';
+import type { Career, ClubScope, EventConditions, SeasonSlot } from '../types';
 import {
   allowsExceptionalSeniorContact,
   allowsSeniorContact,
@@ -31,6 +31,23 @@ import { clubStrengthVsLeague, leagueOf } from './worldEngine';
 export interface ConditionContext {
   /** Appearances the condition should read: this season so far, or last season. */
   appearances: number;
+}
+
+export function conditionContext(career: Career, slot: SeasonSlot): ConditionContext {
+  if (slot === 'early') {
+    return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0 };
+  }
+  /*
+   * Mid and late slots normally read this season's first half. But the whole season is *planned*
+   * at preseason, when `firstHalfStats` is still null - so read as written, every mid/late event
+   * with a `minLastAppearances` floor was evaluated against zero appearances and could never be
+   * planned at all. Falling back to last season is the honest answer at planning time: the
+   * question these conditions ask is "is this player playing regularly?", and in August last
+   * season is the only evidence there is.
+   */
+  const firstHalf = career.firstHalfStats?.appearances;
+  if (firstHalf !== undefined) return { appearances: firstHalf };
+  return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0 };
 }
 
 function between(value: number, min?: number, max?: number): boolean {

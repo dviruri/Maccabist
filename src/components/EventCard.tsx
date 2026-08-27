@@ -1,43 +1,9 @@
-import type { CareerEventResult, GameEvent } from '../types';
-import { RISK_LABELS } from '../ui/format';
-import { DeltaList } from './primitives';
-
-interface EventCardProps {
-  event: GameEvent;
-  onChoose: (choiceId: string) => void;
-}
-
 /**
- * The decision. Choices carry a qualitative hint at most - never a percentage, because the
- * player should be weighing a judgement call, not solving an equation.
+ * The outcome screen. The decision screen moved to DecisionCard in v0.4.1, which shows the real
+ * odds before the player commits; this file is now only the result.
  */
-export function EventCard({ event, onChoose }: EventCardProps): JSX.Element {
-  return (
-    <article className="card event-card">
-      <div className="stack">
-        {event.kicker && <div className="kicker">{event.kicker}</div>}
-        <h2 className="card-title">{event.title}</h2>
-        <p className="card-body">{event.description}</p>
-
-        <div className="stack-sm" style={{ marginTop: 4 }}>
-          {event.choices.map((choice) => (
-            <button
-              key={choice.id}
-              type="button"
-              className={`btn btn-choice risk-${choice.risk ?? 'balanced'}`}
-              onClick={() => onChoose(choice.id)}
-            >
-              <span>{choice.label}</span>
-              <span className="hint">
-                {choice.hint ?? (choice.risk ? RISK_LABELS[choice.risk] : '')}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </article>
-  );
-}
+import type { CareerEventResult } from '../types';
+import { DeltaList } from './primitives';
 
 interface OutcomeCardProps {
   result: CareerEventResult;
