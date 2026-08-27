@@ -1226,6 +1226,25 @@ p {
   font-weight: 700;
 }
 
+/* What the club would be signing him to be, and which way the move goes (v0.4). */
+.offer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/*
+  Qualitative notes only - never a probability. The player should have to weigh the move
+  rather than read the odds off the card.
+*/
+.offer-hints {
+  margin: 0;
+  padding-inline-start: 18px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
 /* =========================================================================
    Timeline
    ========================================================================= */
@@ -1808,4 +1827,18 @@ p {
   cursor: pointer;
   padding: 0 4px;
   flex-shrink: 0;
+}
+
+/*
+  Standing with Maccabi (v0.4). Sits under the stat grid so it reads as a consequence of the
+  career rather than another attribute the player can train.
+*/
+.maccabi-standing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ink-line);
 }

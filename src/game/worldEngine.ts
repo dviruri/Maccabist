@@ -206,3 +206,12 @@ export function recordClubSeason(career: Career, result: ClubSeasonResult): Worl
 export function lastClubSeason(career: Career): ClubSeasonResult | null {
   return career.world.clubSeasons[career.world.clubSeasons.length - 1] ?? null;
 }
+
+/**
+ * The club season for a particular year. The season summary must look up by season rather than
+ * take the last entry: a player whose club season was not simulated that year (an academy season,
+ * for instance) would otherwise be shown last year's table finish as if it were this year's.
+ */
+export function clubSeasonFor(career: Career, season: number): ClubSeasonResult | null {
+  return career.world.clubSeasons.find((s) => s.season === season) ?? null;
+}

@@ -1,3 +1,9 @@
+import {
+  crowdResponse,
+  isAtMaccabi,
+  maccabiRelationship,
+  RELATIONSHIP_LABELS,
+} from '../game/maccabiEngine';
 import type { Career } from '../types';
 import {
   headlineSubtitle,
@@ -77,6 +83,26 @@ export function PlayerCard({ career }: { career: Career }): JSX.Element {
         <Stat label="מכביסטיות" value={career.maccabism} tone="maccabism" />
         <Stat label="מוניטין" value={career.reputation} tone="rep" />
       </div>
+
+      {/*
+        How Maccabi remembers him (v0.4) - shown only once he is somewhere else, because while
+        he is there it is just his standing in the squad, which the role chip already says.
+        Deliberately next to מכביסטיות: the gap between what he feels and what they remember is
+        the point, and seeing both at once is what makes it land.
+      */}
+      {!isAtMaccabi(career) && maccabiRelationship(career) !== 'stranger' && (
+        <div className="maccabi-standing">
+          <span className="kicker">מול מכבי חיפה</span>
+          <Chip tone={standingTone(career)}>{RELATIONSHIP_LABELS[maccabiRelationship(career)]}</Chip>
+        </div>
+      )}
     </section>
   );
+}
+
+function standingTone(career: Career): 'gold' | 'warn' | 'plain' {
+  const response = crowdResponse(career);
+  if (response === 'warm') return 'gold';
+  if (response === 'hostile') return 'warn';
+  return 'plain';
 }

@@ -1,4 +1,6 @@
+import { EXPECTED_ROLE_LABELS } from '../game/marketEngine';
 import type { TransferOffer } from '../types';
+import { Chip } from './primitives';
 
 interface Props {
   offers: TransferOffer[];
@@ -38,6 +40,32 @@ export function OffersCard({ offers, onAccept, onDecline }: Props): JSX.Element 
               </div>
               <div className="offer-title">{offer.title}</div>
               <p className="card-body">{offer.description}</p>
+
+              {/*
+                What he would be signing to be, and a few qualitative notes (v0.4). Never a
+                percentage: joining a bigger club as a backup should be a decision the player
+                has to weigh, not one he can read the odds off.
+              */}
+              {(offer.expectedRole || offer.direction) && (
+                <div className="offer-tags">
+                  {offer.expectedRole && (
+                    <Chip tone="plain">{EXPECTED_ROLE_LABELS[offer.expectedRole]}</Chip>
+                  )}
+                  {offer.direction && offer.direction !== 'lateral' && (
+                    <Chip tone={offer.direction === 'up' ? 'gold' : 'warn'}>
+                      {offer.direction === 'up' ? 'צעד קדימה' : 'צעד אחורה'}
+                    </Chip>
+                  )}
+                </div>
+              )}
+              {offer.hints && offer.hints.length > 0 && (
+                <ul className="offer-hints">
+                  {offer.hints.map((hint) => (
+                    <li key={hint}>{hint}</li>
+                  ))}
+                </ul>
+              )}
+
               <button
                 type="button"
                 className="btn btn-primary"

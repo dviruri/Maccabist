@@ -1,6 +1,8 @@
+import { getLeague } from '../data/leagues';
 import { trophyIcon } from '../data/trophies';
 import type { Career, SeasonStats } from '../types';
 import { levelContext } from '../game/rules';
+import { clubSeasonFor, isBadSeason, isGoodSeason } from '../game/worldEngine';
 import { headlineTitle, roleTextOf, seasonLabel } from '../ui/format';
 import { Chip, DeltaList, Ltr, NumberBox } from './primitives';
 
@@ -53,6 +55,29 @@ function coachVerdict(career: Career, stats: SeasonStats): string {
   if (career.coachTrust >= 40) return 'המאמן עוד לא החליט מה הוא חושב עליך';
   if (stats.appearances < 4) return 'המקום שלך בסגל בסכנה';
   return 'המקום שלך בהרכב בסכנה';
+}
+
+/**
+ * How the club itself did (v0.4).
+ *
+ * A career happens inside a season that belongs to a team, and until now the player could win
+ * promotion or be relegated without ever being told. Looked up by season rather than taking the
+ * latest entry, so an academy season - which has no club season - shows nothing instead of last
+ * year's finish.
+ */
+function ClubSeasonLine({ career, season }: { career: Career; season: number }): JSX.Element | null {
+  const result = clubSeasonFor(career, season);
+  if (!result) return null;
+
+  const league = getLeague(result.leagueId);
+  const tone = isGoodSeason(result.outcome) ? 'gold' : isBadSeason(result.outcome) ? 'warn' : 'plain';
+
+  return (
+    <div className="row-between">
+      <div className="faint">{league.name}</div>
+      <Chip tone={tone}>{result.label}</Chip>
+    </div>
+  );
 }
 
 interface MidProps {
@@ -118,6 +143,8 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
         </div>
 
         <StatBoxes career={career} stats={record.stats} teamGames={levelContext(career).seasonGames} />
+
+        <ClubSeasonLine career={career} season={record.season} />
 
         {record.stats.injuredGames > 0 && (
           <p className="faint">
