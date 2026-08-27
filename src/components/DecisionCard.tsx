@@ -7,6 +7,10 @@ import {
   RISK_LABELS,
 } from '../game/decisionEngine';
 import { CHOICE_RISK_LABELS } from '../ui/format';
+import { currentTeamDisplay } from '../game/identity';
+import { playerLeague } from '../game/worldEngine';
+import { eventVisual, isMatchMoment, matchMinute } from '../ui/eventVisuals';
+import { Ltr } from './primitives';
 import type {
   Career,
   DecisionDistribution,
@@ -61,6 +65,48 @@ function OutcomeList({ distribution }: { distribution: DecisionDistribution }): 
   );
 }
 
+/**
+ * A stacked bar of the outcome split, ordered good -> neutral -> bad.
+ *
+ * Deliberately not colour-only: the segments carry a title and the detailed list underneath names
+ * every outcome with its percentage, so nothing is communicated by hue alone.
+ */
+function OddsBar({ distribution }: { distribution: DecisionDistribution }): JSX.Element | null {
+  if (distribution.outcomes.length < 2) return null;
+
+  const order: OutcomeValence[] = [
+    'majorPositive',
+    'positive',
+    'neutral',
+    'negative',
+    'majorNegative',
+  ];
+  const segments = order
+    .map((valence) => ({
+      valence,
+      percent: distribution.outcomes
+        .filter((o) => o.valence === valence)
+        .reduce((sum, o) => sum + o.percent, 0),
+    }))
+    .filter((segment) => segment.percent > 0);
+
+  return (
+    <div className="odds-bar" role="img" aria-label={ariaFor(distribution)}>
+      {segments.map((segment) => (
+        <span
+          key={segment.valence}
+          className={`odds-seg valence-${segment.valence}`}
+          style={{ width: `${segment.percent}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ariaFor(distribution: DecisionDistribution): string {
+  return distribution.outcomes.map((o) => `${o.label} ${o.percent}%`).join(', ');
+}
+
 interface ChoiceBlockProps {
   career: Career;
   event: GameEvent;
@@ -108,10 +154,13 @@ function ChoiceBlock({
       {probabilistic && (
         <>
           {/*
-            Collapsed by default. Four choices with four outcomes each is an unreadable wall on a
-            360px phone, and the risk label on the button is enough to choose by; the breakdown is
-            there for a player who wants to weigh it properly.
+            An at-a-glance split, always visible. The detailed percentages are collapsed because
+            four choices with four outcomes each is an unreadable wall on a 360px phone — but the
+            player has to be able to *compare* choices without expanding every one, and a risk
+            label alone does not let him do that. The bar is the comparison; the list is the detail.
           */}
+          <OddsBar distribution={distribution} />
+
           <button type="button" className="odds-toggle" onClick={onToggle} disabled={disabled}>
             {expanded ? 'הסתר סיכויים' : 'הצג סיכויים'}
           </button>
@@ -134,6 +183,38 @@ function ChoiceBlock({
 }
 
 /* ------------------------------------------------------------------ */
+/* Match moment                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A scoreboard strip above a match-moment event.
+ *
+ * Shows only what is genuinely known: the minute, the player's own club, and the competition. The
+ * engine does not simulate fixtures, so there is no opponent and no score to show — inventing
+ * either would be the game telling the player something untrue, which is exactly the trust
+ * problem the last two versions were about. What it *can* honestly do is make the moment feel
+ * like it is happening in a match rather than in a paragraph.
+ */
+function MatchStrip({ career, event }: { career: Career; event: GameEvent }): JSX.Element {
+  const minute = matchMinute(event);
+  const team = currentTeamDisplay(career);
+  const league = playerLeague(career);
+
+  return (
+    <div className="match-strip">
+      <div className="match-minute">
+        <Ltr>{minute ?? '—'}</Ltr>
+        <span aria-hidden>׳</span>
+      </div>
+      <div className="match-teams">
+        <div className="match-home">{team.club}</div>
+        <div className="match-comp">{league.name}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* The card                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -147,9 +228,29 @@ export function DecisionCard({ career, event, onChoose }: DecisionCardProps): JS
   const [expanded, setExpanded] = useState<string | null>(null);
   const [committed, setCommitted] = useState<string | null>(null);
 
+  const visual = eventVisual(event, career);
+  const asMatch = isMatchMoment(event, career);
+
   return (
-    <article className="card event-card">
+    <article
+      className={`card event-card variant-${visual.variant} importance-${visual.importance}`}
+    >
       <div className="stack">
+        {/*
+          A header strip that says what kind of moment this is. Events used to be
+          indistinguishable from each other; the variant changes the accent, the icon and this
+          label without becoming a different layout.
+        */}
+        <div className="event-head">
+          <span className="event-head-icon" aria-hidden>
+            {visual.icon}
+          </span>
+          <span className="event-head-label">{visual.label}</span>
+          {visual.importance === 'major' && <span className="event-head-flag">רגע גדול</span>}
+        </div>
+
+        {asMatch && <MatchStrip career={career} event={event} />}
+
         {event.kicker && <div className="kicker">{event.kicker}</div>}
         <h2 className="card-title">{event.title}</h2>
         <p className="card-body">{event.description}</p>

@@ -2513,3 +2513,212 @@ p {
   margin-inline: 0;
   overflow-x: hidden;
 }
+
+/* =========================================================================
+   EVENT VARIANTS (v0.4.5)
+   One component, one structure. The variant changes accent, icon and header —
+   never the layout, so the game stays coherent across 128 events.
+   ========================================================================= */
+
+.event-card {
+  position: relative;
+  overflow: hidden;
+  /* Set per variant below; every accent-driven rule reads this one custom property. */
+  --accent: var(--green-primary);
+  --accent-bright: var(--green-bright);
+}
+
+/* The accent bar. Inline-start so it is RTL-correct without a mirror. */
+.event-card::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent-bright), var(--accent));
+  /* Overrides the generic .card corner flash, which would fight the accent. */
+  z-index: 1;
+}
+
+.event-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-micro);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent-bright);
+}
+
+.event-head-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.event-head-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Reserved for turning points, so it keeps meaning something. */
+.event-head-flag {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 201, 74, 0.14);
+  border: 1px solid rgba(255, 201, 74, 0.35);
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+
+/* ---- variants ---- */
+
+.variant-coach {
+  --accent: #4a8f6a;
+  --accent-bright: #6fc79a;
+}
+
+.variant-match {
+  --accent: var(--green-primary);
+  --accent-bright: var(--green-bright);
+}
+
+.variant-development {
+  --accent: #3f8f7a;
+  --accent-bright: #58d2b0;
+}
+
+.variant-transfer {
+  --accent: #8a6fc0;
+  --accent-bright: #b79bf0;
+}
+
+.variant-club {
+  --accent: #5d7f8f;
+  --accent-bright: #8fbcd0;
+}
+
+.variant-europe {
+  --accent: var(--europe-deep);
+  --accent-bright: var(--europe);
+}
+
+/* The one that has to feel like home. */
+.variant-maccabi {
+  --accent: var(--green-deep);
+  --accent-bright: var(--green-bright);
+}
+
+.variant-maccabi .event-head {
+  color: var(--green-bright);
+}
+
+.variant-crisis {
+  --accent: var(--danger-deep);
+  --accent-bright: var(--danger);
+}
+
+.variant-media {
+  --accent: #7a7f8c;
+  --accent-bright: #b3b9c6;
+}
+
+.variant-career {
+  --accent: var(--green-deep);
+  --accent-bright: var(--green-bright);
+}
+
+/* ---- importance ---- */
+
+/* An ordinary event stays quiet. Only a turning point gets the glow. */
+.importance-major {
+  border-color: rgba(255, 201, 74, 0.28);
+  box-shadow: var(--elev-2), 0 0 0 1px rgba(255, 201, 74, 0.08);
+}
+
+.importance-major .card-title {
+  font-size: var(--text-h1);
+}
+
+/* ---- match moment ---- */
+
+/*
+  A scoreboard, not a fixture. The engine has no opponent or score, so this shows only what is
+  true: the minute, the club, the competition. It exists to make the moment feel like it is
+  happening on a pitch.
+*/
+.match-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--line);
+}
+
+.match-minute {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--green-bright);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.match-teams {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-home {
+  font-size: var(--text-small);
+  font-weight: 800;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-comp {
+  font-size: var(--text-micro);
+  color: var(--text-tertiary);
+}
+
+/*
+  At-a-glance outcome split. Always visible so choices can be compared without expanding each
+  one; the named percentages underneath are the accessible source of truth.
+*/
+.odds-bar {
+  display: flex;
+  height: 5px;
+  margin-top: var(--space-2);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--surface-dark);
+}
+
+.odds-seg {
+  height: 100%;
+}
+
+.odds-seg.valence-majorPositive {
+  background: var(--green-bright);
+}
+
+.odds-seg.valence-positive {
+  background: var(--green-primary);
+}
+
+.odds-seg.valence-neutral {
+  background: var(--neutral);
+}
+
+.odds-seg.valence-negative {
+  background: var(--danger-deep);
+}
+
+.odds-seg.valence-majorNegative {
+  background: var(--danger);
+}
