@@ -6,3 +6,6 @@ dist-ssr
 .vite
 coverage
 tsconfig.tsbuildinfo
+
+# Local screenshot output from the dev gallery (scripts are committed, images are not).
+.shots/

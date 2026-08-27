@@ -7,7 +7,7 @@ import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
 import { OutcomeCard } from '../components/EventCard';
 import { OffersCard } from '../components/OffersCard';
 import { OriginReveal, RetrialCard } from '../components/OriginReveal';
-import { PlayerCard } from '../components/PlayerCard';
+import { PlayerHub } from '../components/PlayerHub';
 import {
   MidSeasonCard,
   ProgressionCard,
@@ -44,7 +44,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
 
       <div className="game-layout">
         <aside className="stack">
-          <PlayerCard career={career} />
+          <PlayerHub career={career} />
           <CareerTimeline career={career} />
           {career.seasonHistory.length > 0 && (
             <section className="card-flat">

@@ -2,10 +2,21 @@ import { GamePage } from './pages/GamePage';
 import { NewCareerPage } from './pages/NewCareerPage';
 import { RetirementPage } from './pages/RetirementPage';
 import { WelcomePage } from './pages/WelcomePage';
+import { Gallery, isGalleryRequested } from './dev/Gallery';
 import { useGame } from './state/useGame';
 
 export function App(): JSX.Element {
   const { career, meta, screen, legacySaveDropped, actions } = useGame();
+
+  /*
+   * Dev-only component gallery (v0.4.5).
+   *
+   * The game has no routes, so there is no way to point a headless browser at "the season
+   * summary" without playing thirty seasons in it. `?gallery=1` renders each screen from an
+   * engine-built fixture instead, which is what makes the visual work checkable. Not linked from
+   * anywhere; a player cannot reach it by accident.
+   */
+  if (isGalleryRequested()) return <Gallery />;
 
   return (
     <div className="app">
