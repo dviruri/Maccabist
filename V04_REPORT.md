@@ -254,7 +254,11 @@ ever shown. A player could win promotion or be relegated without being told.
 ## 10. Simulation
 
 **50,000 careers** — 10,000 each across five decision policies, plus a 3,000-seed matched-seed
-comparison. Full output in `V04_SIM.txt`.
+comparison. 664.8s, 75 careers/sec. Full output in `V04_SIM.txt`.
+
+*(The first attempt at this run is not the one reported here. Three `simulate` processes ended up
+writing to the same file concurrently and interleaved their output; the file was discarded and
+the run redone cleanly. Details in §10.7.)*
 
 ### 10.1 Foundation (must hold)
 
@@ -267,10 +271,12 @@ avg seasons in the academy                 8.9
 normal promotion                         96.7%
 early promotion (skipped a level)         1.8%
 same age group again (legal)              1.5%
+same seed reproduces career               PASS
+different seeds diverge                   PASS
 ```
 
-The two invariants that must be zero are zero. Average academy exit is **18.0**, which is the
-first time this has landed inside the intended 18–19 window (it was 19.6 at v0.3.1).
+Both invariants that must be zero are zero. Average academy exit is **18.0** — the first time
+this has landed inside the intended 18–19 window (19.6 at v0.3.1).
 
 ### 10.2 The football world
 
@@ -293,11 +299,23 @@ Balanced policy, 10,000 careers:
 | senior clubs per career | 3.01 |
 | seasons below the top flight | 1.26 |
 
-Two things worth reading here. **Careers move in both directions** — 44.8% up and 39.2% down —
-which is what stops the ladder being a one-way escalator, and 9.0% climb back after dropping,
-which is the shape a real career has. And the world responds to how the career is played:
-`riskTaker` averages **4.45 senior clubs** and a 46.9% loan rate against balanced's 3.01 and
-31.5%, because a career that keeps gambling keeps needing somewhere new to go.
+**Careers move in both directions** — 44.8% up, 39.2% down — which is what stops the ladder being
+a one-way escalator, and 9.0% climb back after dropping, which is the shape a real career has.
+
+The world also responds hard to how the career is played:
+
+| | loyalist | balanced | ambitious | riskTaker |
+|---|---|---|---|---|
+| senior clubs | 1.41 | 3.01 | 4.35 | 4.43 |
+| moved up | 1.7% | 44.8% | 55.2% | 56.7% |
+| moved down | 7.3% | 39.2% | 72.8% | 76.6% |
+| rebuilt after dropping | 1.3% | 9.0% | 32.2% | 30.7% |
+| had a loan spell | 0.0% | 31.5% | 40.2% | 47.0% |
+
+The loyalist's 0.0% loan rate is a property of the *policy*, not the system: `loyalPolicy` only
+ever accepts a homecoming, a promotion or a mandatory move, so it declines every loan it is
+offered. It is reported rather than smoothed over because it is the correct behaviour for a
+one-club man.
 
 ### 10.3 The Maccabi story
 
@@ -307,21 +325,21 @@ conference, or phoned by an old youth coach.
 
 Standing at the end of the career:
 
-| band | balanced | riskTaker |
-|---|---|---|
-| stranger | 34.5% | 82.1% |
-| son_of_the_club | 17.4% | 0.3% |
-| known | 17.3% | 9.6% |
-| respected | 12.4% | 3.5% |
-| beloved | 9.8% | 1.0% |
-| traitor | 7.1% | 3.2% |
-| icon | 1.5% | 0.3% |
+| band | loyalist | balanced | ambitious | riskTaker |
+|---|---|---|---|---|
+| son_of_the_club | 27.1% | 17.4% | 5.5% | 0.3% |
+| icon | 2.2% | 1.5% | 0.6% | 0.2% |
+| beloved | 1.8% | 9.8% | 5.0% | 0.9% |
+| respected | 2.9% | 12.4% | 11.5% | 3.6% |
+| known | 23.0% | 17.3% | 28.9% | 9.8% |
+| stranger | 37.3% | 34.5% | 42.8% | 81.9% |
+| traitor | 5.7% | 7.1% | 5.8% | 3.2% |
 
-Every band is reachable, and the distribution moves hard with how the career was played. A player
-who gambles his way through football mostly ends up a stranger to the club that raised him, which
-is exactly what the system is for.
+Every band is reachable under every policy, and the distribution moves the way it should: a
+one-club man is a son of the club 27.1% of the time, a player who gambles his way through
+football ends a stranger to the club that raised him 81.9% of the time.
 
-Homecoming archetypes, of the 22.3% who came home:
+Homecoming archetypes, of the 22.3% of balanced careers that came home:
 
 ```
 veteran_farewell      28.4%
@@ -336,7 +354,31 @@ returning_leader       2.7%
 All seven fire, and the two best stories — the boy they released coming back a star, and the
 ordinary redemption — together account for **49%** of homecomings.
 
-### 10.4 Repetition
+### 10.4 Do decisions still matter?
+
+```
+strategy        mean  median     sd   peak  seniors  beats base
+balanced        41.5    32.5   26.6   81.1    60.6%       82.2%
+loyalist        42.5    26.0   32.1   80.3    49.1%       81.8%
+ambitious       29.4    23.0   21.0   81.0    57.6%       68.8%
+riskTaker       11.5     7.0   11.1   75.7    28.1%       23.2%
+random          20.5    13.0   19.5   78.5    32.9%        0.0%
+
+seed-driven spread (sd, one strategy)   19.45
+decision-driven spread (same seed)      47.04
+```
+
+Decisions still outweigh luck by more than 2:1 on matched seeds, which is the whole point of the
+balance work. `riskTaker` remains a genuine trap — 23.2% against a random baseline — which is a
+known and documented v0.2 finding, not something v0.4 introduced.
+
+The loyalist-vs-balanced gap has narrowed from **3.6 points at v0.3.1** (46.4 vs 42.8) to **1.0**
+(42.5 vs 41.5). That is v0.4 doing its job: with a working transfer market, a career built on
+moving is now a real alternative to staying rather than a penalty for leaving. Both absolute means
+came down slightly, which is expected — more careers now spend time outside Maccabi, and the
+Legend Score is deliberately Maccabi-centric.
+
+### 10.5 Repetition
 
 ```
 avg events per career                     43.9
@@ -347,9 +389,14 @@ identical event sequences                 0.0%
 distinct events used                       122
 ```
 
-Distinct events used is up from 113 to **122** and average repeats down from ~10 to **7.77**,
-purely because v0.4 added content in the thinnest part of the pool (senior football). No two
-careers in 10,000 produce the same event sequence.
+**122 of the pool's 124 events** are used in a 10,000-career batch, so almost nothing in the data
+is unreachable. v0.4 added its content in the thinnest part of the pool — senior football — which
+is where repetition was worst; average repeats per career sit at 7.77 against 43.9 events seen.
+No two careers in 10,000 produce the same event sequence.
+
+The v0.2 baseline for comparison was 69 of 74 events used and ~44 events per career, so the pool
+has grown 67% while events-per-career has not moved — which is the ratio that actually governs
+how repetitive a career feels.
 
 ### 10.6 A bug this version shipped, and then fixed
 
@@ -361,19 +408,28 @@ immediately.
 
 This is precisely the failure the checkpoint policy exists to prevent (*"old saves crash"*), and
 it sat on `main` across four commits before being caught. It was found by deliberately
-constructing a v0.3.1-shaped save and playing on it, which is a check that should have run at
-Phase 1 rather than at the end.
+constructing a v0.3.1-shaped save and playing on it — a check that should have run at Phase 1
+rather than at the end.
 
 `hydrateCareer` now fills in anything a save from an earlier build of the same schema version is
-missing, and `storage.loadCareer` calls it. One place to add to, and the engine stays free to
-assume a well-formed `Career`. Three tests cover it.
+missing, and `storage.loadCareer` calls it. Three tests cover it.
 
-### 10.5 One honest asymmetry
+### 10.7 A methodology failure worth recording
+
+The first 50,000-career run was discarded. One `simulate` process had been launched with a shell
+`&`, assumed dead, and then relaunched twice — leaving three processes writing to `V04_SIM.txt`
+at once and interleaving their output. The file looked plausible: `grep` reported it as binary,
+and the second strategy block was labelled `riskTaker` when a clean run puts `loyalist` there.
+
+Numbers extracted from it had already been written into a draft of this section. They are not the
+numbers above. The lesson is the cheap one — a long background job needs a single owner and a
+completion check, not an assumption that it died.
+
+### 10.8 One honest asymmetry
 
 `refused to celebrate` reads exactly equal to `scored against them` (10.1% each) because the
 balanced policy always takes the safe option at that fork. A human player has both, and the
-riskTaker column — 5.0% scoring, 0.0% refusing — shows the other side of it.
-
+riskTaker column shows the other side of it.
 
 ---
 
@@ -393,9 +449,12 @@ roulette.
   is limited by there being only two clubs in the second division — a data gap, not a logic one.
 - The warm return to Sami Ofer (2.8%) is still slightly rarer than the hostile one (3.9%) for the
   structural reason in §5.2. Both are reachable; the asymmetry is real football, not a bug.
-- Average Maccabi appearances reach ~760 at the 99th percentile, which is more football than a
-  real career contains. Career length was not in v0.4's scope and was left alone, but it is the
-  obvious next balance target.
+- **Careers run long, and accumulate too much football.** Balanced careers average 28.1 seasons
+  and retire at 36.8; among players who reach Maccabi's first team, appearances *for Maccabi
+  alone* reach ~760 at the 99th percentile. Career length was out of scope for v0.4 and was
+  deliberately left alone, but it is the obvious next balance target — and it is worth noting
+  that the relationship weights in §5.1 had to be calibrated against that inflated distribution,
+  so they will need revisiting when it is fixed.
 
 ---
 
