@@ -501,7 +501,183 @@ script and stays right when the model changes.
 
 ## 16. Simulations
 
-<!--SIM-->
+**60,000 careers** — 10,000 each across six decision policies, plus a 3,000-seed matched-seed
+comparison. 926s, 65 careers/sec. Full output in `V041_SIM.txt`.
+
+### 16.1 Foundation (must hold)
+
+```
+INVALID natural-stage repeats                0
+registered behind own cohort                 0
+legal "cohort caught up"                   948
+full early promotions                     1509
+avg age leaving the academy               18.0
+avg seasons in the academy                 9.0
+normal promotion                         96.5%
+early promotion (skipped a level)         1.9%
+same age group again (legal)              1.6%
+same seed reproduces career               PASS
+different seeds diverge                   PASS
+```
+
+Both invariants that must be zero are zero. Academy exit holds at 18.0, and — new this version —
+**identity coherence holds at every step of every simulated career**, asserted by
+`tests/identity.test.ts` over two policies rather than sampled here.
+
+### 16.2 Career length
+
+```
+senior careers measured                  10,000
+mean retirement age                        34.9
+median retirement age                      35.0
+ended at 38 or later                       8.3%
+
+outfield    n=8,333   mean 34.4   median 35.0
+  29-31  2.2%   32-33 27.6%   34-35 50.6%   36-37 18.4%   38-39 1.1%   40+ 0.0%
+
+goalkeeper  n=1,667   mean 37.2   median 37.0
+  34-35  3.9%   36-37 51.8%   38-39 39.8%   40+ 4.5%
+```
+
+This is the brief's specification almost exactly: most outfield careers end 33–35, exceptional
+ones reach 36–38, very rare ones go beyond; many goalkeepers stay effective to 36–38 and a few go
+further without all of them reaching 40. Compare v0.4, where **every position** was 36/37/38.
+
+### 16.3 By position
+
+| position | peak | legend | Maccabi srs | Europe | major success | retirement age |
+|---|---|---|---|---|---|---|
+| שוער GK | 81.0 | 44.0 | 66.6% | 36.4% | 19.3% | **37.2** |
+| בלם CB | 80.6 | 41.9 | 59.7% | 36.0% | 17.2% | 34.4 |
+| מגן FB | 80.3 | 41.0 | 60.4% | 34.3% | 15.2% | 34.4 |
+| קשר CM | 82.0 | 43.8 | 67.6% | 38.6% | 17.1% | 34.5 |
+| כנף WG | 81.5 | 44.9 | 66.9% | 42.6% | 18.8% | 34.4 |
+| חלוץ ST | 81.7 | 44.5 | 67.9% | 42.7% | 18.3% | 34.4 |
+
+Goalkeepers are no longer the outlier on anything except career length, which is the point. The
+Legend Score band is **41.0–44.9** across all six (was 39.0–45.0 with GK bottom), and GK now sits
+third of six rather than last.
+
+**The remaining outliers, stated rather than smoothed:** full backs are lowest on Legend Score
+(41.0) and major success (15.2%), and centre backs are close behind. Both are defenders in a
+scoring-weighted legacy metric, which is a plausible reason rather than a bug — but it is a real
+2–4 point gap and it has not been chased.
+
+### 16.4 The football world
+
+Balanced policy:
+
+| | |
+|---|---|
+| saw a club-season event | 74.9% |
+| won promotion | 51.0% |
+| suffered relegation | 47.5% |
+| won a title away from Maccabi | 12.9% |
+| carried a small club | 2.4% |
+| played abroad | 38.4% |
+| …came back to Israel | 14.8% |
+| …and it did not work out | 4.0% |
+| had a loan spell | 30.8% |
+| moved up a level | 66.7% |
+| moved down a level | 37.7% |
+| rebuilt after dropping down | 14.3% |
+| senior clubs per career | 3.04 |
+| seasons below the top flight | 2.43 |
+
+Promotion and relegation are both far higher than v0.4's 27.1% / 14.8%, and that needs stating
+plainly rather than presented as an improvement: **v0.4's numbers came from a distribution that
+could not produce a tail at all**, so they were not measuring what they appeared to. The current
+figures come from a real normal with variance tuned down to 1.15 specifically to stop the tails
+overwhelming the middle (the sweep is in §10). Whether ~48% of careers experiencing a relegation
+is right is a football judgement rather than something the model can settle; it is defensible for
+a career that averages 2.4 seasons below the top flight, and it is the first number I would look
+at if this still feels wrong in play.
+
+`moved up a level` at 66.7% is also much higher than v0.4's 44.8%, because §7 changed what counts
+as a level: Hadera → Maccabi is now `up` rather than `lateral`.
+
+### 16.5 The Maccabi story
+
+Of the balanced careers that left Maccabi, **45.0%** met them again in an event afterwards.
+
+| standing at the end | share |
+|---|---|
+| stranger | 31.7% |
+| known | 18.8% |
+| son_of_the_club | 17.1% |
+| respected | 14.3% |
+| beloved | 10.7% |
+| traitor | 6.8% |
+| icon | 0.6% |
+
+Homecoming archetypes, of the 21.9% who came home — all seven fire, and the two best stories
+together account for **43%**:
+
+```
+rejected_child_star   24.9%      successful_return   13.5%
+veteran_farewell      24.1%      european_returnee    8.8%
+redemption            18.6%      prime_hero           5.7%
+                                 returning_leader     4.4%
+```
+
+Ambient Maccabi events (measured separately over 1,200 careers per policy): 39.9% of balanced
+careers and 47.8% of ambitious ones see at least one — title-without-you 27.3%,
+they-need-your-position 12.7%, club-in-crisis 4.4%, they-went-down 0.3%.
+
+### 16.6 Repetition
+
+```
+avg events per career                     41.1
+avg repeated events                       6.56
+avg longest same-category run             2.03
+worst same-category run                      5
+identical event sequences                 0.0%
+distinct events used                       125
+```
+
+**125 of 128 events** used in a 10,000-career batch. Average repeats fell from 7.77 to **6.56**
+while the pool grew from 124 to 128, and events per career fell from 43.9 to 41.1 — so a career
+sees slightly fewer, more varied events. No two careers in 10,000 produce the same sequence.
+
+The worst same-category run rose from 4 to 5. Minor, but it is the wrong direction and worth
+watching.
+
+### 16.7 Risk and agency — matched seeds
+
+3,000 seeds, every policy playing the same seeds:
+
+| strategy | mean | median | sd | peak | seniors | beats base | vs base |
+|---|---|---|---|---|---|---|---|
+| loyalist (safe) | 45.5 | 28.0 | 32.9 | 80.3 | 51.3% | 73.0% | +16.3 |
+| balanced | 42.7 | 35.0 | 26.0 | 81.0 | 64.2% | 72.2% | +13.5 |
+| **bold** | 34.5 | 29.0 | 20.8 | **82.4** | **67.7%** | 60.2% | +5.3 |
+| ambitious | 29.4 | 24.0 | 18.6 | 81.9 | 65.7% | 54.2% | +0.2 |
+| riskTaker (reckless) | 19.0 | 16.0 | 14.0 | 81.3 | 62.0% | 27.9% | −10.2 |
+| random | 29.2 | 21.5 | 23.1 | 81.1 | 55.6% | 0.0% | 0.0 |
+
+```
+seed-driven spread (sd, one strategy)   23.10
+decision-driven spread (same seed)      47.14
+```
+
+**Decisions outweigh luck by better than 2:1**, which is what the balance work exists for. Bold
+beats the random baseline on 60.2% of matched seeds and leads on peak ability and Maccabi
+progression; reckless loses on 72% of them, which is what a stress-test baseline is for.
+
+Over the full 10,000-career batches the same shape holds, with Europe rates that make the trade
+explicit: bold reaches Europe in **73.9%** of careers against balanced's 38.4% and loyalist's 0%.
+
+### 16.8 Decision system validation
+
+Statistical validation lives in `tests/decision.test.ts` rather than in the harness, because it
+needs the distribution objects rather than career aggregates:
+
+- Preview probabilities match `calculateOutcomeWeights` to **12 decimal places** across the pool.
+- Displayed integers sum to exactly **100** for every choice in every event.
+- Resolution only ever returns an outcome the preview listed.
+- Over **12,000 draws** on each of six real choices, observed frequency lands within **2
+  percentage points** of every displayed probability.
+- Same seed and choice always give the same outcome; different seeds diverge.
 
 ---
 
