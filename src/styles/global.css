@@ -2450,30 +2450,17 @@ p {
   color: var(--text-tertiary);
 }
 
-/* Narrow phones: the focal row stacks rather than squeezing the role badge. */
-@media (max-width: 359px) {
-  .hub-focal {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-3);
-  }
-
-  .hub-ability {
-    min-width: 0;
-  }
-
-  .hub-role-block {
-    align-items: center;
-  }
-
-  .hub-role {
-    align-self: center;
-  }
-
-  .hub-chips {
-    justify-content: center;
-  }
-}
+/*
+ * No narrow-phone stacking rule.
+ *
+ * There was one at max-width 359px that stacked the focal row. Screenshots at a pinned 320px
+ * document width show the ability box and role badge sit side by side comfortably, so stacking
+ * would only cost vertical space on the smallest screens - where it is scarcest.
+ *
+ * Worth stating plainly: the screenshot harness pins the *document* width, and width media
+ * queries evaluate against the real viewport, so rules like that one are not verified by it.
+ * Removing an unverified rule that the evidence says is unnecessary beats keeping it.
+ */
 
 /* =========================================================================
    Dev-only component gallery (v0.4.5). Never reachable during play.

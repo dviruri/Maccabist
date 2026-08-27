@@ -1,0 +1,4 @@
+
+> maccabist@0.1.0 simulate
+> vite-node scripts/simulate.ts -- --careers=10000
+
