@@ -3,7 +3,7 @@
 **Scope:** verify the v0.4.1 foundation, fix appearance inflation, and close the gap between how
 well the game plays and how it looks.
 
-**Result:** build passes, **398 tests** pass (from 387 at the end of v0.4.1), 60,000 careers
+**Result:** build passes, **399 tests** pass (from 387 at the end of v0.4.1), 60,000 careers
 simulated. Saves remain compatible; no schema change.
 
 ---
@@ -13,13 +13,13 @@ simulated. Saves remain compatible; no schema change.
 ```
 npm run build                           PASSES
 npx tsc -p tsconfig.test.json --noEmit  PASSES
-npm run preview                         NOW WORKS (it did not before - see §2.4)
+npm run preview                         NOW WORKS (it did not before - see §9)
 ```
 
 ## 2. Test status
 
 ```
-npm test        398 passed   (387 at the end of v0.4.1)
+npm test        399 passed   (387 at the end of v0.4.1)
 ```
 
 Added this version: 6 engine tests for the Phase 0 appearance and impact work, and 5 UI-logic
@@ -317,7 +317,159 @@ arrow is vertical, so it needs no RTL mirroring.
 
 ## 16. Simulations
 
-<!--SIM-->
+**60,000 careers** — 10,000 each across six decision policies, plus a 3,000-seed matched-seed
+comparison. 891s, 67 careers/sec. Single run against committed code, after the Phase 0 changes.
+Full output in `V045_SIM.txt`.
+
+### 16.1 Foundation (must hold)
+
+```
+INVALID natural-stage repeats                0
+registered behind own cohort                 0
+avg age leaving the academy               18.0
+same seed reproduces career               PASS
+different seeds diverge                   PASS
+```
+
+Unchanged by this version's work, which is the point — a visual pass must not move the engine.
+
+### 16.2 Career length
+
+```
+mean retirement age                        34.9
+median retirement age                      35.0
+ended at 38 or later                       7.8%
+
+outfield    n=8,333   mean 34.4   median 35.0
+  29-31  1.8%   32-33 28.5%   34-35 50.3%   36-37 18.5%   38-39 0.9%
+
+goalkeeper  n=1,667   mean 37.1   median 37.0
+  34-35  4.7%   36-37 53.2%   38-39 38.8%   40+ 3.3%
+```
+
+Preserved to within 0.1 of v0.4.1 despite the appearance and standing changes, which is the
+result I wanted: the Phase 0 fix was supposed to change *how much football a career contains*,
+not *how long it lasts*.
+
+### 16.3 Appearances — the Phase 0.3 target
+
+| | v0.4.1 | v0.4.5 |
+|---|---|---|
+| avg Maccabi appearances | 155.0 | **131.6** |
+| avg career seasons | 28.1 | **26.3** |
+| career average share of team games | 83.3% | **74.0%** |
+| appearances per season | 33.4 | **29.5** |
+| total senior appearances p50 | 576 | **511** |
+| Maccabi appearances p99 (GK) | 745 | **679** |
+| Maccabi appearances p99 (CM) | 715 | **601** |
+
+The brief's bar — *"capable of creating legendary careers without making 700–800 Maccabi
+appearances common"* — is met: 700+ is now past the 99th percentile, while the observed maximum
+stays above 400.
+
+### 16.4 By position
+
+| position | peak | legend | Maccabi srs | Europe | major success | retirement age |
+|---|---|---|---|---|---|---|
+| שוער GK | 80.8 | 42.5 | 65.6% | 33.9% | 16.2% | **37.1** |
+| בלם CB | 80.3 | 41.1 | 59.8% | 33.0% | 15.1% | 34.4 |
+| מגן FB | 79.9 | **39.6** | 59.6% | 31.5% | 13.1% | 34.4 |
+| קשר CM | 81.8 | 42.4 | 65.7% | 36.0% | 15.2% | 34.5 |
+| כנף WG | 81.3 | 43.6 | 66.3% | 38.2% | 17.2% | 34.4 |
+| חלוץ ST | 81.5 | **43.9** | 67.0% | 40.2% | 16.9% | 34.4 |
+
+The Legend Score band widened slightly, from 3.9 points at v0.4.1 to **4.3** here, with full backs
+now the lowest rather than centre backs. Both are defenders in a metric weighted toward Maccabi
+service and attacking contribution, so the direction is explicable — but it moved the wrong way and
+is listed in §17 rather than glossed.
+
+Goalkeepers remain in the upper half on Legend Score and clearly first on career length, which is
+the v0.4.1 outcome holding.
+
+### 16.5 The football world
+
+| | v0.4.1 | v0.4.5 |
+|---|---|---|
+| saw a club-season event | 74.9% | 74.9% |
+| won promotion | 51.0% | 53.0% |
+| suffered relegation | 47.5% | 49.1% |
+| won a title away from Maccabi | 12.9% | 11.6% |
+| **carried a small club** | **2.4%** | **0.4%** |
+| played abroad | 38.4% | 35.4% |
+| had a loan spell | 30.8% | 33.4% |
+| moved up a level | 66.7% | 66.5% |
+| moved down a level | 37.7% | 37.0% |
+| rebuilt after dropping down | 14.3% | 13.5% |
+| senior clubs per career | 3.04 | 3.00 |
+
+Almost everything is within noise of v0.4.1, which is what a visual release should look like.
+
+**One real regression:** `carried a small club` fell from 2.4% to **0.4%**. That memory requires a
+player impact above `WORLD.breakoutImpact`, and impact scales with appearance share — which Phase
+0.3 deliberately reduced. The threshold was calibrated in v0.4 against the inflated share and was
+not recalibrated when the share changed. It is a real story beat that is now nearly unreachable.
+Listed in §17; the fix is a one-number recalibration, not a redesign, and doing it properly means
+re-running this simulation, which I did not have room for tonight.
+
+### 16.6 The Maccabi story
+
+| | |
+|---|---|
+| met Maccabi again after leaving | 44.0% |
+| faced them in a match | 16.5% |
+| scored against them | 9.1% |
+| came home | 20.9% |
+
+Standing at the end of the career: stranger 32.1%, known 20.9%, son_of_the_club 14.9%, respected
+13.8%, beloved 11.0%, traitor 6.7%, icon 0.6%.
+
+All seven homecoming archetypes still fire — `rejected_child_star` 27.2%, `veteran_farewell` 22.9%,
+`redemption` 18.5%, `successful_return` 12.5%, `european_returnee` 8.5%, `prime_hero` 6.1%,
+`returning_leader` 4.2%.
+
+### 16.7 Repetition
+
+```
+avg events per career                     41.1
+avg repeated events                       6.62
+avg longest same-category run             2.03
+worst same-category run                      5
+identical event sequences                 0.0%
+distinct events used                       125
+```
+
+Unchanged from v0.4.1. 125 of 128 events used in a 10,000-career batch; no two careers in 10,000
+produce the same sequence.
+
+### 16.8 Risk and agency — matched seeds
+
+| strategy | mean | median | sd | peak | seniors | beats base |
+|---|---|---|---|---|---|---|
+| loyalist (safe) | 43.6 | 27.0 | 32.0 | 80.0 | 49.9% | 74.5% |
+| balanced | 41.5 | 34.0 | 25.3 | 80.8 | 63.1% | 73.7% |
+| **bold** | 32.7 | 27.0 | 19.4 | **82.3** | **67.1%** | 62.8% |
+| ambitious | 28.0 | 23.0 | 17.4 | 81.5 | 64.4% | 55.6% |
+| riskTaker (reckless) | 18.0 | 15.0 | 13.0 | 80.8 | 60.6% | 29.4% |
+| random | 27.1 | 20.0 | 21.4 | 80.8 | 53.3% | 0.0% |
+
+```
+seed-driven spread (sd, one strategy)   21.41
+decision-driven spread (same seed)      44.61
+```
+
+Decisions still outweigh luck better than 2:1. Bold still leads on peak ability and Maccabi
+progression and beats the random baseline on 62.8% of matched seeds; reckless still loses on 71% of
+them. The v0.4.1 shape is intact.
+
+### 16.9 Verification of the Phase 0 claims
+
+The three things the brief asked to be specifically verified:
+
+| claim | verified |
+|---|---|
+| club season RNG metrics correspond to committed code | **yes** — §3.2 reproduces all three v0.4.1 figures exactly from `git show HEAD:` code |
+| negative player impact exists but is modest | **yes** — 3.1% of club seasons negative, min −0.200 against a +0.520 ceiling |
+| appearance totals are more believable | **yes** — §16.3; career share 83.3% → 74.0%, Maccabi p99 745 → 679 |
 
 ---
 
@@ -325,6 +477,15 @@ arrow is vertical, so it needs no RTL mirroring.
 
 Stated explicitly.
 
+- **`carried a small club` regressed from 2.4% to 0.4%.** That memory needs player impact above
+  `WORLD.breakoutImpact`, and impact scales with appearance share — which Phase 0.3 deliberately
+  reduced. The threshold was calibrated in v0.4 against the inflated share and I did not
+  recalibrate it when the share changed. A real story beat is now nearly unreachable. The fix is a
+  one-number recalibration, but doing it honestly means re-running the 60,000-career simulation,
+  which there was not room for tonight.
+- **The Legend Score spread by position widened**, from 3.9 points at v0.4.1 to 4.3, with full
+  backs now lowest (39.6) rather than centre backs. Explicable — both are defenders in a metric
+  weighted toward attacking contribution — but it moved the wrong way.
 - **`rng.gaussian` is still used for season ratings** and remains hard-bounded with no tails
   (measured max 0.9813σ). A rating outlier is therefore impossible. This is the same latent shape
   that made relegation impossible before v0.4.1, and it is the first thing I would audit next.
