@@ -4,7 +4,14 @@
  * All functions are pure - they take a Career and return a new Career.
  */
 
-import { STAGE_LADDER, stageBand, stageConfig, stageLabel, stageOrder } from '../data/academy';
+import {
+  LAST_YOUTH_STAGE,
+  STAGE_LADDER,
+  stageBand,
+  stageConfig,
+  stageLabel,
+  stageOrder,
+} from '../data/academy';
 import { ACHIEVEMENT_DEFS } from '../data/achievements';
 import { getClub, MACCABI_ID, isMaccabiSenior } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
@@ -779,7 +786,18 @@ export function resolveAcademyProgression(
    */
   const naturalTarget = Math.max(stageOrder(nextNatural), stageOrder(from));
   const target = earnedEarly ? naturalTarget + 1 : naturalTarget;
-  const to = STAGE_LADDER[Math.min(STAGE_LADDER.length - 1, target)] as AcademyStage;
+  /*
+   * The academy ladder stops at נוער (v0.4.1).
+   *
+   * 'senior' is the last entry in STAGE_LADDER, so clamping to the ladder's length let a נערים א׳
+   * player with an early promotion land on 'senior' as an ordinary rung - skipping the youth
+   * verdict, the senior offers and the club move entirely. The result was a player whose stage
+   * said senior while his club was still maccabi_academy, so every screen for the rest of his
+   * career read "מכבי חיפה - מחלקת ילדים". Reaching senior football is a transition with a
+   * decision attached, never a step on this ladder.
+   */
+  const ceiling = stageOrder(LAST_YOUTH_STAGE);
+  const to = STAGE_LADDER[Math.min(ceiling, target)] as AcademyStage;
 
   const movedUp = stageOrder(to) > stageOrder(from);
   const kind: ProgressionResult['kind'] = earnedEarly

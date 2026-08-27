@@ -14,6 +14,7 @@
 
 import { FIRST_STAGE, stageConfig } from '../data/academy';
 import { MACCABI_ACADEMY_ID, MACCABI_ID, getClub } from '../data/clubs';
+import { hasCoherentIdentity } from './identity';
 import { EVENTS_BY_ID } from '../data/events';
 import { TRAIT_DEFS } from '../data/traits';
 import type {
@@ -97,14 +98,35 @@ export const SCHEMA_VERSION = 4;
  * stays free to assume a well-formed Career.
  */
 export function hydrateCareer(career: Career): Career {
-  if (career.world && Array.isArray(career.world.clubSeasons)) return career;
-  return {
-    ...career,
-    world: {
-      clubLeagues: career.world?.clubLeagues ?? {},
-      clubSeasons: career.world?.clubSeasons ?? [],
-    },
-  };
+  let next = career;
+
+  if (!next.world || !Array.isArray(next.world.clubSeasons)) {
+    next = {
+      ...next,
+      world: {
+        clubLeagues: next.world?.clubLeagues ?? {},
+        clubSeasons: next.world?.clubSeasons ?? [],
+      },
+    };
+  }
+
+  /*
+   * Repair the stale-identity bug (v0.4.1).
+   *
+   * Until the academy ladder was capped at נוער, a נערים א׳ player with an early promotion could
+   * land on 'senior' as an ordinary rung - moving the stage without ever moving the club. Saves
+   * written in that state have academyStage 'senior' and currentClubId 'maccabi_academy', and
+   * every screen reads "מכבי חיפה - מחלקת ילדים" for the rest of the career.
+   *
+   * The player is a senior; it is the club that was never updated. Put him where the transition
+   * should have put him rather than demoting him back into the youth teams, which would undo
+   * seasons he has actually played.
+   */
+  if (!hasCoherentIdentity(next) && next.academyStage === 'senior') {
+    next = { ...next, currentClubId: MACCABI_ID };
+  }
+
+  return next;
 }
 
 /** Runs `fn` with a fresh Rng seeded from the career and stores the advanced state back. */

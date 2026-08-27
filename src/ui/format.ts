@@ -1,8 +1,10 @@
 /** Presentation helpers. UI-only - the engine never imports this. */
 
-import { stageLabel as academyStageLabel, stageConfig } from '../data/academy';
+import { stageLabel as academyStageLabel } from '../data/academy';
 import { getClub } from '../data/clubs';
 import { CAPTAIN_LABEL, POSITIONS, ROLE_ICONS, ROLE_LABELS } from '../game/balance';
+import { currentTeamDisplay } from '../game/identity';
+import { playerLeague } from '../game/worldEngine';
 import type {
   AcademyStage,
   Career,
@@ -45,17 +47,21 @@ export function teamLine(career: Career): string {
 }
 
 /** The headline the career screen leads with: the academy stage, or the club. */
+/*
+ * Both headline lines come from `currentTeamDisplay` (v0.4.1). The UI used to read the club id
+ * and the stage itself and assemble wording from them, which is how a first-team player kept
+ * being labelled with his old academy club record. There is now one source of truth.
+ */
 export function headlineTitle(career: Career): string {
-  return career.academyStage === 'senior'
-    ? getClub(career.currentClubId).name
-    : stageLabel(career.academyStage);
+  const display = currentTeamDisplay(career);
+  return display.team ?? display.club;
 }
 
-/** Under the headline: the league for a senior, the actual club for an academy player. */
+/** Under the headline: the league for a senior, the club for an academy player. */
 export function headlineSubtitle(career: Career): string {
-  return career.academyStage === 'senior'
-    ? stageConfig('senior').league
-    : getClub(career.currentClubId).name;
+  const display = currentTeamDisplay(career);
+  if (display.unit === 'first_team') return playerLeague(career).name;
+  return display.club;
 }
 
 export const OLDER_GROUP_LABELS: Record<OlderGroupStatus, string> = {

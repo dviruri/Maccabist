@@ -2,6 +2,7 @@ import { getLeague } from '../data/leagues';
 import { trophyIcon } from '../data/trophies';
 import type { Career, SeasonStats } from '../types';
 import { levelContext } from '../game/rules';
+import { teamDisplayFor, teamDisplayLine } from '../game/identity';
 import { clubSeasonFor, isBadSeason, isGoodSeason } from '../game/worldEngine';
 import { headlineTitle, roleTextOf, seasonLabel } from '../ui/format';
 import { Chip, DeltaList, Ltr, NumberBox } from './primitives';
@@ -134,11 +135,13 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
           <div className="season-year">
             עונת <Ltr>{seasonLabel(record.season)}</Ltr> הסתיימה
           </div>
-          {/* The club comes from the record, never hard-coded - the player may not be at Maccabi. */}
+          {/*
+            Rendered from the record's own club and stage through the identity module (v0.4.1),
+            so a past season keeps the wording that was correct at the time and a first-team
+            season never reads as an academy one.
+          */}
           <div className="faint">
-            {record.clubName}
-            {record.teamName !== record.clubName ? ` — ${record.teamName}` : ''}
-            {record.onLoan ? ' · בהשאלה' : ''}
+            {teamDisplayLine(teamDisplayFor(record.clubId, record.academyStage, record.onLoan))}
           </div>
         </div>
 

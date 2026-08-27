@@ -29,6 +29,26 @@ export type AcademyStage =
 /** Coarse grouping used to theme events and pacing. */
 export type StageBand = 'children' | 'teens' | 'u19' | 'senior';
 
+/**
+ * Which side of a club the player is in (v0.4.1).
+ *
+ * Separate from both the club and the development stage. Derived from the stage, never stored -
+ * see `src/game/identity.ts` for why these are three concepts rather than one.
+ */
+export type TeamUnit = 'academy' | 'youth' | 'first_team';
+
+/** Everything the UI needs to name the team the player is in. Built by the engine, not React. */
+export interface TeamDisplay {
+  /** The club, always. Never carries an age-group suffix. */
+  club: string;
+  /** The age group, or null for a first-team player. */
+  team: string | null;
+  unit: TeamUnit;
+  onLoan: boolean;
+  /** Ready to print: the club alone for a senior, "club — age group" otherwise. */
+  full: string;
+}
+
 /** The player's role inside the team he is currently part of. */
 export type TeamRole = 'squad' | 'rotation' | 'starter' | 'key' | 'star' | 'icon';
 

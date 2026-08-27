@@ -6,7 +6,7 @@
  * matches - a half is generated from position, ability, role, coach trust, level and luck.
  */
 
-import { getClub } from '../data/clubs';
+import { clubDisplayName, currentTeamDisplay } from './identity';
 import { TROPHY_DEFS } from '../data/trophies';
 import type { Career, SeasonRecord, SeasonStats, Trophy } from '../types';
 import { POSITIONS, SEASON, TRAITS } from './balance';
@@ -186,7 +186,7 @@ function rollTrophies(career: Career, stats: SeasonStats, rng: Rng): Trophy[] {
       name: def.name,
       season: career.currentSeason,
       clubId: club,
-      clubName: level.teamName,
+      clubName: clubDisplayName(club),
       weight: def.weight,
     });
   };
@@ -293,13 +293,20 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   };
   next = applyHalfProgression(next, halfCtx, rng);
 
+  const identity = currentTeamDisplay(career);
+
   const record: SeasonRecord = {
     season: career.currentSeason,
     age: career.age,
     academyStage: career.academyStage,
     clubId: career.currentClubId,
-    clubName: getClub(career.currentClubId).name,
-    teamName: level.teamName,
+    /*
+     * Both names come from the identity module (v0.4.1), so a record stores the club without an
+     * age-group suffix baked into it and the age group separately. A history row can then be
+     * rendered with the wording that was correct for that season without re-deriving anything.
+     */
+    clubName: identity.club,
+    teamName: identity.team ?? identity.club,
     league: level.league,
     onLoan: career.parentClubId !== null,
     stats: full,
