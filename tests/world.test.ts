@@ -11,7 +11,13 @@ import { describe, expect, it } from 'vitest';
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../src/data/clubs';
 import { WORLD_EVENTS } from '../src/data/events/worldEvents';
 import { getLeague } from '../src/data/leagues';
-import { createCareer } from '../src/game/careerEngine';
+import {
+  beginSeason,
+  continueAfterEvent,
+  continueAfterOrigin,
+  createCareer,
+  hydrateCareer,
+} from '../src/game/careerEngine';
 import { conditionContext } from '../src/game/eventEngine';
 import {
   careerLevel,
@@ -232,6 +238,55 @@ describe('the club season, in events', () => {
       });
       expect(reachable.length, `${event.id} matches no club`).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('saves written before the world existed', () => {
+  /**
+   * v0.4 added Career.world without bumping the schema, so a v0.3.1 save still passes the
+   * version check and gets loaded — and the first thing the season loop does is read
+   * world.clubLeagues. Before hydrateCareer, loading one crashed the game outright, which is
+   * exactly the failure the checkpoint policy exists to prevent.
+   */
+  const v031Save = (): Career => {
+    const fresh = createCareer({ playerName: 'ל', position: 'CM', seed: 5 });
+    const plain = JSON.parse(JSON.stringify(fresh)) as Record<string, unknown>;
+    delete plain.world;
+    return plain as unknown as Career;
+  };
+
+  it('gets an empty world rather than a missing one', () => {
+    const hydrated = hydrateCareer(v031Save());
+    expect(hydrated.world).toBeDefined();
+    expect(hydrated.world.clubLeagues).toEqual({});
+    expect(hydrated.world.clubSeasons).toEqual([]);
+  });
+
+  it('can be played on without crashing', () => {
+    let career = hydrateCareer(v031Save());
+    expect(() => {
+      for (let i = 0; i < 20 && !career.retired; i += 1) {
+        switch (career.phase) {
+          case 'origin':
+            career = continueAfterOrigin(career);
+            break;
+          case 'preseason':
+            career = beginSeason(career);
+            break;
+          case 'event':
+            career = continueAfterEvent(career);
+            break;
+          default:
+            i = 20;
+        }
+      }
+    }).not.toThrow();
+    expect(leagueOf(career.world, career.currentClubId)).toBeDefined();
+  });
+
+  it('leaves a career that already has a world untouched', () => {
+    const fresh = createCareer({ playerName: 'ל', position: 'CM', seed: 5 });
+    expect(hydrateCareer(fresh)).toBe(fresh);
   });
 });
 

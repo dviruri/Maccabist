@@ -85,6 +85,28 @@ import {
  */
 export const SCHEMA_VERSION = 4;
 
+/**
+ * Fills in anything a save written by an earlier build of this schema version is missing.
+ *
+ * v0.4 added `Career.world` without bumping the schema, because every other v0.3.1 field is
+ * still valid and dropping a career in progress would be a worse outcome than migrating it. But
+ * a save written before the world existed has no `world` at all, and the first thing the season
+ * loop does is read `world.clubLeagues` - so loading one crashed the game outright.
+ *
+ * Called on load rather than everywhere the field is read: one place to add to, and the engine
+ * stays free to assume a well-formed Career.
+ */
+export function hydrateCareer(career: Career): Career {
+  if (career.world && Array.isArray(career.world.clubSeasons)) return career;
+  return {
+    ...career,
+    world: {
+      clubLeagues: career.world?.clubLeagues ?? {},
+      clubSeasons: career.world?.clubSeasons ?? [],
+    },
+  };
+}
+
 /** Runs `fn` with a fresh Rng seeded from the career and stores the advanced state back. */
 function withRng<T extends { rngState: number }>(career: T, fn: (rng: Rng) => T): T {
   const rng = createRng(career.rngState);

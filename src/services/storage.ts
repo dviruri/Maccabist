@@ -5,7 +5,7 @@
  * swapped for a backend repository (Base44, an API, whatever) without touching the UI.
  */
 
-import { SCHEMA_VERSION } from '../game/careerEngine';
+import { hydrateCareer, SCHEMA_VERSION } from '../game/careerEngine';
 import type { Career, CareerSummary, MetaProgress } from '../types';
 
 const CAREER_KEY = 'maccabist:career:v1';
@@ -142,7 +142,8 @@ function createLocalRepository(): GameRepository {
         }
         return null;
       }
-      return data;
+      // Saves written before v0.4 have no `world`; fill it in rather than dropping the career.
+      return hydrateCareer(data);
     },
     saveCareer: (career) => write(CAREER_KEY, SCHEMA_VERSION, career),
     clearCareer: () => remove(CAREER_KEY),
