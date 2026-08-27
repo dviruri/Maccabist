@@ -3,6 +3,7 @@ import {
   isAtMaccabi,
   maccabiRelationship,
   RELATIONSHIP_LABELS,
+  RELATIONSHIP_NOTES,
 } from '../game/maccabiEngine';
 import type { Career } from '../types';
 import {
@@ -91,10 +92,18 @@ export function PlayerCard({ career }: { career: Career }): JSX.Element {
         the point, and seeing both at once is what makes it land.
       */}
       {!isAtMaccabi(career) && maccabiRelationship(career) !== 'stranger' && (
-        <div className="maccabi-standing">
-          <span className="kicker">מול מכבי חיפה</span>
-          <Chip tone={standingTone(career)}>{RELATIONSHIP_LABELS[maccabiRelationship(career)]}</Chip>
-        </div>
+        <>
+          <div className="maccabi-standing">
+            <span className="kicker">מול מכבי חיפה</span>
+            <Chip tone={standingTone(career)}>
+              {RELATIONSHIP_LABELS[maccabiRelationship(career)]}
+            </Chip>
+          </div>
+          {/* The band alone is a label; the line is what makes it mean something. */}
+          <p className="faint maccabi-standing-note">
+            {RELATIONSHIP_NOTES[maccabiRelationship(career)]}
+          </p>
+        </>
       )}
     </section>
   );
