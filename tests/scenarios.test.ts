@@ -21,6 +21,9 @@ import { moveToClub } from '../src/game/progressionEngine';
 import { createRng } from '../src/game/random';
 import { balancedPolicy, boldPolicy, simulateCareer } from '../src/game/simulate';
 import { buildReturnHomeOffer } from '../src/game/transferEngine';
+import { computeLegendScore } from '../src/game/legendEngine';
+import { ARCHETYPES } from '../src/game/storyEngine';
+import { LEGENDARY_ENDINGS } from '../src/pages/RetirementPage';
 import { applyPromotionRelegation, recordMaccabiSeason } from '../src/game/worldEngine';
 import type { Career, Position, SeasonRecord } from '../src/types';
 
@@ -321,3 +324,55 @@ describe('M. a homecoming after Maccabi were relegated', () => {
     expect(offer.description).toContain('בליגה הלאומית');
   });
 });
+
+describe('N. the retirement poster (v0.4.5)', () => {
+  /*
+   * The poster's gold treatment follows the ending *title* rather than the raw score, because the
+   * two can disagree — the engine awards "אגדה ירוקה" on career shape, not on the number. A poster
+   * whose headline says legend while its treatment says ordinary is incoherent.
+   *
+   * The ids come from careerArchetype in storyEngine, NOT from data/endings.ts, which only
+   * supplies a fallback description. Using the wrong set is exactly the bug this pins.
+   */
+  it('names archetypes that actually exist', () => {
+    const known = new Set(ARCHETYPES.map((a) => a.id));
+    for (const id of LEGENDARY_ENDINGS) {
+      expect(known, `${id} is not a careerArchetype id`).toContain(id);
+    }
+  });
+
+  it('picks the archetypes that describe a legend', () => {
+    const legendary = ARCHETYPES.filter((a) => LEGENDARY_ENDINGS.includes(a.id));
+    expect(legendary).toHaveLength(LEGENDARY_ENDINGS.length);
+    // They should be the top of the priority order, or the gold is going to the wrong careers.
+    const topPriority = Math.max(...ARCHETYPES.map((a) => a.priority));
+    expect(Math.max(...legendary.map((a) => a.priority))).toBe(topPriority);
+  });
+
+  it('gives a genuine Maccabi legend the legendary ending', () => {
+    const career = createCareerAt(MACCABI_ID);
+    const legend = computeLegendScore({
+      ...career,
+      maccabi: {
+        ...career.maccabi,
+        appearances: 384,
+        seasons: 13,
+        championships: 6,
+        captainSeasons: 5,
+        academyGraduate: true,
+      },
+    });
+    expect(LEGENDARY_ENDINGS).toContain(legend.ending.id);
+  });
+});
+
+function createCareerAt(clubId: string): Career {
+  return {
+    ...fresh(),
+    academyStage: 'senior',
+    currentClubId: clubId,
+    retired: true,
+    retirementAge: 35,
+    age: 35,
+  };
+}

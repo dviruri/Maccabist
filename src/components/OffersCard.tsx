@@ -1,5 +1,5 @@
 import { EXPECTED_ROLE_LABELS } from '../game/marketEngine';
-import type { TransferOffer } from '../types';
+import type { MoveDirection, TransferOffer } from '../types';
 import { Chip } from './primitives';
 
 interface Props {
@@ -15,6 +15,33 @@ const KIND_LABEL: Record<TransferOffer['kind'], string> = {
   contract: 'חוזה',
   release: 'סוף דרך',
   promotion: 'עלייה לבוגרים',
+};
+
+/*
+ * Every band, named (v0.4.5).
+ *
+ * This read `direction === 'up' ? 'צעד קדימה' : 'צעד אחורה'`, written when MoveDirection had three
+ * values. v0.4.1 added major_up and major_down, and the comparison silently became false for them
+ * - so an offer from Napoli to a Maccabi player was labelled "צעד אחורה" while its own hints said
+ * "ליגה חזקה יותר". TypeScript could not catch it because the comparison stayed valid.
+ *
+ * A Record over the union does: adding a band now fails the build until it is given a label.
+ */
+export const DIRECTION_LABELS: Record<MoveDirection, string | null> = {
+  major_up: 'קפיצת מדרגה',
+  up: 'צעד קדימה',
+  // A sideways move is not worth a badge - the expected role is the story there.
+  lateral: null,
+  down: 'צעד אחורה',
+  major_down: 'ירידת מדרגה',
+};
+
+export const DIRECTION_TONES: Record<MoveDirection, 'gold' | 'green' | 'warn' | 'plain'> = {
+  major_up: 'gold',
+  up: 'green',
+  lateral: 'plain',
+  down: 'warn',
+  major_down: 'warn',
 };
 
 export function OffersCard({ offers, onAccept, onDecline }: Props): JSX.Element {
@@ -51,9 +78,9 @@ export function OffersCard({ offers, onAccept, onDecline }: Props): JSX.Element 
                   {offer.expectedRole && (
                     <Chip tone="plain">{EXPECTED_ROLE_LABELS[offer.expectedRole]}</Chip>
                   )}
-                  {offer.direction && offer.direction !== 'lateral' && (
-                    <Chip tone={offer.direction === 'up' ? 'gold' : 'warn'}>
-                      {offer.direction === 'up' ? 'צעד קדימה' : 'צעד אחורה'}
+                  {offer.direction && DIRECTION_LABELS[offer.direction] && (
+                    <Chip tone={DIRECTION_TONES[offer.direction]}>
+                      {DIRECTION_LABELS[offer.direction]}
                     </Chip>
                   )}
                 </div>

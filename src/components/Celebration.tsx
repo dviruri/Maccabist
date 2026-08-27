@@ -49,15 +49,31 @@ export function Celebration({
 
   const dismiss = (): void => setQueue((q) => q.slice(1));
 
+  /*
+   * A career moment (v0.4.5).
+   *
+   * The v0.4 version was a small green dialog box. This is the screen: full-bleed, poster
+   * typography, floodlights behind it. These fire only for genuinely major beats — the queue
+   * above is unchanged — so making them feel like an occasion costs nothing in pacing.
+   *
+   * Tap anywhere to continue, because a moment the player is enjoying should not require finding
+   * a button, and one he has already read should take a single tap to clear.
+   */
   return (
-    <div className="celebration" role="dialog" aria-live="polite" onClick={dismiss}>
-      <div className="celebration-card">
-        <div className="celebration-icon" aria-hidden>
+    <div className="moment" role="dialog" aria-live="polite" aria-modal="true" onClick={dismiss}>
+      <div className="moment-lights" aria-hidden />
+      <div className="moment-body">
+        <div className="moment-icon" aria-hidden>
           {current.icon}
         </div>
-        <div className="celebration-title">{current.title}</div>
-        <div className="celebration-desc">{current.description}</div>
-        <button type="button" className="btn btn-ghost" style={{ marginTop: 16 }} onClick={dismiss}>
+        <h2 className="moment-title">{current.title}</h2>
+        <p className="moment-desc">{current.description}</p>
+        {queue.length > 1 && (
+          <div className="moment-count" aria-hidden>
+            {queue.length - 1} עוד
+          </div>
+        )}
+        <button type="button" className="btn btn-primary moment-btn" onClick={dismiss}>
           יאללה
         </button>
       </div>

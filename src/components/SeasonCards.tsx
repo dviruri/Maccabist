@@ -123,31 +123,34 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
 
   const barelyPlayed = record.stats.appearances < 5 && record.age >= 16;
 
+  /*
+   * The season summary is a chapter ending (v0.4.5).
+   *
+   * The v0.4 version was a card with a heading and four number boxes. This leads with the season
+   * as a poster line, then the club's own result, then the player's — because "we won the league"
+   * is the headline and "I played 27 times" is the detail underneath it.
+   */
   return (
-    <article className="card">
+    <article className="card season-card">
       <div className="stack">
-        <div className="row-between">
-          <div className="kicker">סיכום עונה</div>
-          <Chip tone="plain">{roleTextOf(record.role, record.captain)}</Chip>
-        </div>
-
-        <div>
+        <div className="season-head">
           <div className="season-year">
-            עונת <Ltr>{seasonLabel(record.season)}</Ltr> הסתיימה
+            <Ltr>{seasonLabel(record.season)}</Ltr>
           </div>
           {/*
             Rendered from the record's own club and stage through the identity module (v0.4.1),
             so a past season keeps the wording that was correct at the time and a first-team
             season never reads as an academy one.
           */}
-          <div className="faint">
+          <div className="season-team">
             {teamDisplayLine(teamDisplayFor(record.clubId, record.academyStage, record.onLoan))}
           </div>
+          <Chip tone="plain">{roleTextOf(record.role, record.captain)}</Chip>
         </div>
 
-        <StatBoxes career={career} stats={record.stats} teamGames={levelContext(career).seasonGames} />
-
         <ClubSeasonLine career={career} season={record.season} />
+
+        <StatBoxes career={career} stats={record.stats} teamGames={levelContext(career).seasonGames} />
 
         {record.stats.injuredGames > 0 && (
           <p className="faint">

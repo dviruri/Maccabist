@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { DIRECTION_LABELS, DIRECTION_TONES } from '../src/components/OffersCard';
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../src/data/clubs';
 import { WORLD_EVENTS } from '../src/data/events/worldEvents';
 import { getLeague } from '../src/data/leagues';
@@ -46,7 +47,7 @@ import {
   recordMaccabiSeason,
   simulateMaccabiSeason,
 } from '../src/game/worldEngine';
-import type { Career, ClubSeasonResult, SeasonRecord } from '../src/types';
+import type { Career, ClubSeasonResult, MoveDirection, SeasonRecord } from '../src/types';
 
 const base = (seed = 11): Career => createCareer({ playerName: 'ל', position: 'CM', seed });
 
@@ -530,5 +531,49 @@ describe('player impact on the club season (v0.4.1)', () => {
   it('barely registers either way for a backup', () => {
     const backup = playerImpact(seniorAt(TOP), record({ appearances: 4, starts: 1, rating: 34 }, 44, 20));
     expect(Math.abs(backup)).toBeLessThan(0.05);
+  });
+});
+
+describe('offer direction labels (v0.4.5)', () => {
+  /*
+   * This shipped broken. The chip read `direction === 'up' ? 'צעד קדימה' : 'צעד אחורה'`, written
+   * when MoveDirection had three values; v0.4.1 added major_up and major_down and the comparison
+   * silently became false for them, so a Napoli offer to a Maccabi player was labelled "צעד
+   * אחורה" while its own hints said "ליגה חזקה יותר". TypeScript could not catch it.
+   */
+  const ALL: MoveDirection[] = ['major_up', 'up', 'lateral', 'down', 'major_down'];
+
+  it('labels every direction, or deliberately none', () => {
+    for (const direction of ALL) {
+      expect(DIRECTION_LABELS).toHaveProperty(direction);
+      expect(DIRECTION_TONES).toHaveProperty(direction);
+    }
+    // Lateral is the only one without a badge: the expected role is the story there.
+    expect(DIRECTION_LABELS.lateral).toBeNull();
+  });
+
+  it('never labels an upward move as a step back', () => {
+    for (const direction of ['major_up', 'up'] as MoveDirection[]) {
+      const label = DIRECTION_LABELS[direction];
+      expect(label, direction).not.toBeNull();
+      expect(label, direction).not.toContain('אחורה');
+      expect(label, direction).not.toContain('ירידת');
+      expect(['gold', 'green']).toContain(DIRECTION_TONES[direction]);
+    }
+  });
+
+  it('never labels a downward move as progress', () => {
+    for (const direction of ['down', 'major_down'] as MoveDirection[]) {
+      expect(DIRECTION_LABELS[direction], direction).not.toContain('קדימה');
+      expect(DIRECTION_LABELS[direction], direction).not.toContain('קפיצת');
+      expect(DIRECTION_TONES[direction]).toBe('warn');
+    }
+  });
+
+  it('matches what the engine actually reports for a real offer', () => {
+    // Maccabi -> Napoli is a major step up; the chip must agree with clubCareerLevel.
+    const direction = moveDirection(seniorAt(TOP), getClub('napoli'));
+    expect(direction).toBe('major_up');
+    expect(DIRECTION_TONES[direction]).toBe('gold');
   });
 });

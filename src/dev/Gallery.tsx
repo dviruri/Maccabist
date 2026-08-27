@@ -5,6 +5,8 @@ import { OutcomeCard } from '../components/EventCard';
 import { OffersCard } from '../components/OffersCard';
 import { PlayerHub } from '../components/PlayerHub';
 import { SeasonResultCard } from '../components/SeasonCards';
+import { RetirementPage } from '../pages/RetirementPage';
+import { computeLegendScore } from '../game/legendEngine';
 import { calculateOutcomeDistribution } from '../game/decisionEngine';
 import { createCareer } from '../game/careerEngine';
 import { resolveEventChoice } from '../game/eventEngine';
@@ -153,6 +155,63 @@ const inEurope = (): Career => {
   return { ...withHistory, world: recordMaccabiSeason(withHistory, createRng(7)) };
 };
 
+/** A retired Maccabi legend, scored by the real Legend engine rather than a made-up number. */
+const retiredLegend = (): Career => {
+  const career: Career = {
+    ...seniorAtMaccabi(),
+    retired: true,
+    retirementAge: 35,
+    age: 35,
+    currentSeason: 2056,
+    peakAbility: 88,
+    stats: { appearances: 512, goals: 96, assists: 74, cleanSheets: 0 },
+    maccabi: {
+      ...seniorAtMaccabi().maccabi,
+      appearances: 384,
+      goals: 71,
+      assists: 58,
+      seasons: 13,
+      championships: 6,
+      cups: 2,
+      captainSeasons: 5,
+      europeanRuns: 4,
+      everLeft: false,
+      academyGraduate: true,
+      academySeasons: 9,
+      debutAge: 18,
+    },
+    // A real span, so the poster's "2039-2056" line is not a fixture artifact.
+    seasonHistory: Array.from({ length: 17 }, (_, i) =>
+      seasonRecord({ season: 2039 + i, age: 18 + i }),
+    ),
+    milestones: [
+      { id: 'debut', season: 2039, age: 18, icon: '👕', text: 'הופעת בכורה במכבי חיפה', major: true },
+      { id: 'title', season: 2042, age: 21, icon: '🏆', text: 'אליפות ראשונה', major: true },
+      { id: 'captain', season: 2049, age: 28, icon: '🎖️', text: 'קיבלת את הסרט', major: true },
+    ],
+  };
+  return { ...career, legend: computeLegendScore(career) };
+};
+
+/** A career that never reached Maccabi's first team, so the poster's empty states are visible. */
+const retiredModest = (): Career => {
+  const career: Career = {
+    ...base({
+      academyStage: 'senior',
+      currentClubId: 'hapoel_afula',
+      retired: true,
+      retirementAge: 32,
+      age: 32,
+      currentSeason: 2053,
+      ability: 58,
+      peakAbility: 63,
+    }),
+    stats: { appearances: 214, goals: 18, assists: 21, cleanSheets: 0 },
+    milestones: [],
+  };
+  return { ...career, legend: computeLegendScore(career) };
+};
+
 /* ------------------------------------------------------------------ */
 /* Frame                                                              */
 /* ------------------------------------------------------------------ */
@@ -237,6 +296,8 @@ export function Gallery(): JSX.Element {
       ),
     ],
     ['season', <SeasonResultCard career={senior} onContinue={noop} />],
+    ['retirement', <RetirementPage career={retiredLegend()} onNewCareer={noop} isBest />],
+    ['retirement-modest', <RetirementPage career={retiredModest()} onNewCareer={noop} isBest={false} />],
     [
       'offers',
       offers.length > 0 ? (

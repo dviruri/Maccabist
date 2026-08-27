@@ -37,7 +37,7 @@ const m = (career: Career) => career.maccabi;
  * Ordered by how specific the story is, not by how good the career was - a wrecked knee at 24
  * is a more distinctive story than a solid mid-table career, so it wins the label.
  */
-const ARCHETYPES: readonly ArchetypeRule[] = [
+export const ARCHETYPES: readonly ArchetypeRule[] = [
   {
     id: 'legend',
     title: 'אגדה ירוקה',

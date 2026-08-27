@@ -6,6 +6,18 @@ import { careerStory } from '../game/storyEngine';
 import type { Career } from '../types';
 import { careerYears, positionLabel } from '../ui/format';
 
+/**
+ * The archetypes that describe a career as legendary. The poster's gold treatment follows these.
+ *
+ * These are `careerArchetype` ids from storyEngine, which is what actually populates
+ * `legend.ending` — not the ids in data/endings.ts, which only supply a fallback description. I
+ * used the wrong set first and the poster stayed green under a title that said "אגדה ירוקה";
+ * a test now pins both ids against the archetype table.
+ */
+export const LEGENDARY_ENDINGS: readonly string[] = ['legend', 'one_club_icon'];
+/** Aligned with the engine's own top Legend Score band. */
+const LEGENDARY_SCORE = 75;
+
 interface Props {
   career: Career;
   onNewCareer: () => void;
@@ -21,41 +33,93 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
   );
   const europeApps = europeSeasons.reduce((sum, s) => sum + s.stats.appearances, 0);
 
+  const score = legend?.score ?? 0;
+  /*
+   * Gold follows the *ending*, not the raw score.
+   *
+   * The two can disagree - the engine awarded "אגדה ירוקה" to a career scoring 61 - and a poster
+   * whose headline says legend while its treatment says ordinary is incoherent. The title is what
+   * the player reads, so the title is what the colour answers to. The score threshold stays as a
+   * second route in, aligned with the engine's own top band.
+   */
+  const legendary =
+    LEGENDARY_ENDINGS.includes(legend?.ending.id ?? '') || score >= LEGENDARY_SCORE;
+
   return (
-    <div className="shell narrow" style={{ paddingTop: 26 }}>
-      {/* --- share-card style hero --- */}
-      <section className="legend-hero">
-        <Logo className="legend-logo" />
-        <h1 style={{ fontSize: 'clamp(30px, 10vw, 42px)', marginTop: 10 }}>{career.playerName}</h1>
-        <p className="muted">
+    <div className="shell narrow retirement">
+      {/*
+        The career poster (v0.4.5).
+        
+        Deliberately built from flow layout and CSS only, with no measured or browser-dependent
+        positioning, so it can later be rendered to a share image without being rebuilt. That is
+        the whole of Phase 19 tonight: no export, but nothing in the way of one.
+      */}
+      <section className={`poster${legendary ? ' poster-legend' : ''}`}>
+        <div className="poster-glow" aria-hidden />
+
+        <Logo className="poster-logo" />
+
+        <h1 className="poster-name">{career.playerName}</h1>
+        <p className="poster-sub">
           {positionLabel(career.position)} · <Ltr>{careerYears(career)}</Ltr> · פרש בגיל{' '}
           <Ltr>{career.retirementAge}</Ltr>
         </p>
 
-        <div style={{ marginTop: 22 }}>
-          <div className="legend-label">מדד אגדה</div>
-          <div className="legend-score">
-            <Ltr>{legend?.score ?? 0}</Ltr>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 44 }} aria-hidden>
+        <div className="poster-ending">
+          <div className="poster-ending-icon" aria-hidden>
             {legend?.ending.icon}
           </div>
-          <h2 className="ending-title">{legend?.ending.title}</h2>
-          <div className="ending-sub">{legend?.ending.subtitle}</div>
+          <h2 className="poster-ending-title">{legend?.ending.title}</h2>
+          <div className="poster-ending-sub">{legend?.ending.subtitle}</div>
         </div>
 
-        {isBest && (
-          <div style={{ marginTop: 14 }}>
-            <Chip tone="gold">⭐ השיא האישי החדש שלך</Chip>
+        <div className="poster-score">
+          <div className="poster-score-value">
+            <Ltr>{score}</Ltr>
           </div>
-        )}
+          <div className="poster-score-label">מדד אגדה</div>
+        </div>
+
+        {/* The headline of the whole career, in the poster rather than buried in a stat grid. */}
+        <div className="poster-lines">
+          {m.appearances > 0 && (
+            <div>
+              <Ltr>{m.appearances}</Ltr> הופעות במכבי חיפה
+            </div>
+          )}
+          {m.championships > 0 && (
+            <div>
+              <Ltr>{m.championships}</Ltr> {m.championships === 1 ? 'אליפות' : 'אליפויות'}
+            </div>
+          )}
+          {m.cups > 0 && (
+            <div>
+              <Ltr>{m.cups}</Ltr> {m.cups === 1 ? 'גביע' : 'גביעים'}
+            </div>
+          )}
+          {m.captainSeasons > 0 && (
+            <div>
+              <Ltr>{m.captainSeasons}</Ltr> עונות כקפטן
+            </div>
+          )}
+          {europeApps > 0 && (
+            <div>
+              <Ltr>{europeSeasons.length}</Ltr> עונות באירופה
+            </div>
+          )}
+          {/* Never leave the poster empty: a career that never reached Maccabi still had one. */}
+          {m.appearances === 0 && (
+            <div>
+              <Ltr>{career.stats.appearances}</Ltr> הופעות בקריירה
+            </div>
+          )}
+        </div>
+
+        {isBest && <Chip tone="gold">⭐ השיא האישי החדש שלך</Chip>}
       </section>
 
       {/* --- the career, told as a story --- */}
-      <section className="card" style={{ marginTop: 16 }}>
+      <section className="card retirement-block">
         <div className="stack-sm">
           <div className="kicker">סיפור הקריירה</div>
           {careerStory(career).map((line) => (
@@ -63,7 +127,7 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
               {line}
             </p>
           ))}
-          <div className="row" style={{ flexWrap: 'wrap', marginTop: 6 }}>
+          <div className="row row-wrap">
             {career.traits.map((trait) => (
               <Chip key={trait.id} tone="plain">
                 {TRAITS_BY_ID[trait.id].icon} {TRAITS_BY_ID[trait.id].label}
@@ -74,12 +138,12 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
       </section>
 
       {/* --- every moment that mattered --- */}
-      <div style={{ marginTop: 14 }}>
+      <div className="retirement-block">
         <CareerTimeline career={career} defaultOpen />
       </div>
 
       {/* --- headline numbers --- */}
-      <section className="card" style={{ marginTop: 18 }}>
+      <section className="card retirement-block">
         <div className="stack">
           <div className="kicker">במדים של מכבי חיפה</div>
           <div className="numbers">
@@ -93,7 +157,7 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
             <NumberBox value={career.trophies.length} label="תארים בקריירה" />
           </div>
 
-          <div className="row" style={{ flexWrap: 'wrap', marginTop: 4 }}>
+          <div className="row row-wrap">
             {m.academyGraduate && <Chip>🌱 בוגר האקדמיה</Chip>}
             {m.returned && (
               <Chip>
@@ -115,7 +179,7 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
 
       {/* --- legend breakdown --- */}
       {legend && (
-        <section className="card" style={{ marginTop: 14 }}>
+        <section className="card retirement-block">
           <div className="stack-sm">
             <div className="kicker">ממה מורכב מדד האגדה</div>
             {legend.components.map((component) => (
@@ -138,8 +202,8 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
       )}
 
       {/* --- career timeline --- */}
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="kicker" style={{ marginBottom: 12 }}>
+      <section className="card retirement-block">
+        <div className="kicker kicker-spaced">
           ציר הקריירה
         </div>
         <Timeline history={career.seasonHistory} />
@@ -147,11 +211,11 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
 
       {/* --- achievements --- */}
       {career.achievements.length > 0 && (
-        <section className="card" style={{ marginTop: 14 }}>
-          <div className="kicker" style={{ marginBottom: 10 }}>
+        <section className="card retirement-block">
+          <div className="kicker kicker-spaced">
             רגעים בקריירה
           </div>
-          <div className="row" style={{ flexWrap: 'wrap' }}>
+          <div className="row row-wrap">
             {career.achievements.map((achievement) => (
               <Chip key={achievement.id} tone="plain">
                 {achievement.icon} {achievement.name}
@@ -163,13 +227,12 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
 
       <button
         type="button"
-        className="btn btn-primary"
-        style={{ marginTop: 22 }}
+        className="btn btn-primary retirement-cta"
         onClick={onNewCareer}
       >
         קריירה חדשה
       </button>
-      <p className="faint" style={{ textAlign: 'center', marginTop: 10, marginBottom: 20 }}>
+      <p className="faint retirement-footnote">
         יאללה, עוד קריירה אחת.
       </p>
     </div>

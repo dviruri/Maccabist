@@ -2722,3 +2722,310 @@ p {
 .odds-seg.valence-majorNegative {
   background: var(--danger);
 }
+
+/* =========================================================================
+   CAREER MOMENT (v0.4.5)
+   Replaces the small green dialog. These fire only for genuinely major beats,
+   so they can afford to take the whole screen.
+   ========================================================================= */
+
+.moment {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(15, 166, 74, 0.3) 0%, transparent 65%),
+    rgba(3, 6, 4, 0.94);
+  animation: fade-in var(--t-normal) var(--ease-out) backwards;
+  cursor: pointer;
+}
+
+/*
+  Floodlight sweep. One slow pass, then it settles - a loop would turn a moment into a
+  screensaver and the player has to be able to read the text.
+*/
+.moment-lights {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 200deg at 50% -20%,
+    transparent 0deg,
+    rgba(41, 217, 106, 0.16) 22deg,
+    transparent 44deg,
+    transparent 316deg,
+    rgba(41, 217, 106, 0.12) 338deg,
+    transparent 360deg
+  );
+  animation: moment-sweep 1600ms var(--ease-out) 1 backwards;
+}
+
+@keyframes moment-sweep {
+  from {
+    opacity: 0;
+    transform: scale(1.3) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.moment-body {
+  position: relative;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+  animation: moment-in var(--t-slow) var(--ease-out) backwards;
+}
+
+@keyframes moment-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.moment-icon {
+  font-size: 72px;
+  line-height: 1;
+  filter: drop-shadow(0 10px 30px var(--green-glow));
+}
+
+.moment-title {
+  margin-top: var(--space-3);
+  font-size: var(--text-hero);
+  font-weight: 900;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.035em;
+  color: var(--white);
+  text-shadow: 0 0 40px var(--green-glow);
+  /* Balanced wrapping keeps a two-line title from leaving one orphan word. */
+  text-wrap: balance;
+}
+
+.moment-desc {
+  margin-top: var(--space-3);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
+}
+
+.moment-count {
+  margin-top: var(--space-3);
+  font-size: var(--text-micro);
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+}
+
+.moment-btn {
+  margin-top: var(--space-5);
+  /* Comfortably above the browser chrome on a phone. */
+  min-height: 48px;
+}
+
+/* =========================================================================
+   SEASON SUMMARY (v0.4.5) — a chapter ending, not a stat dump.
+   ========================================================================= */
+
+.season-card {
+  border-color: var(--line-strong);
+}
+
+.season-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+/* The year is the poster line. Latin numerals, so it needs its own direction. */
+.season-card .season-year {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-size: var(--text-hero);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+}
+
+.season-team {
+  font-size: var(--text-h3);
+  font-weight: 800;
+  color: var(--green-bright);
+}
+
+/* =========================================================================
+   RETIREMENT POSTER (v0.4.5)
+   The last screen of a career, and the one that should feel like an artefact.
+   Flow layout and CSS only — no measured positioning — so it can later be
+   rendered to a share image without being rebuilt.
+   ========================================================================= */
+
+.retirement {
+  padding-top: var(--space-5);
+}
+
+.retirement-block {
+  margin-top: var(--space-4);
+}
+
+.kicker-spaced {
+  margin-bottom: var(--space-3);
+}
+
+.row-wrap {
+  flex-wrap: wrap;
+}
+
+.retirement-cta {
+  margin-top: var(--space-5);
+}
+
+.retirement-footnote {
+  text-align: center;
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.poster {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line-strong);
+  background:
+    radial-gradient(90% 55% at 50% 0%, rgba(15, 166, 74, 0.24) 0%, transparent 62%),
+    linear-gradient(180deg, var(--surface-light) 0%, var(--black) 100%);
+  box-shadow: var(--elev-3);
+}
+
+/* A legendary career gets gold. Everyone else gets green - the distinction has to mean something. */
+.poster-legend {
+  border-color: rgba(255, 201, 74, 0.4);
+  background:
+    radial-gradient(90% 55% at 50% 0%, rgba(255, 201, 74, 0.2) 0%, transparent 62%),
+    linear-gradient(180deg, var(--surface-light) 0%, var(--black) 100%);
+  box-shadow: var(--elev-3), var(--elev-gold);
+}
+
+.poster-glow {
+  position: absolute;
+  inset-block-start: -30%;
+  inset-inline: -20%;
+  height: 60%;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--green-glow) 0%, transparent 68%);
+}
+
+.poster-legend .poster-glow {
+  background: radial-gradient(circle, rgba(255, 201, 74, 0.24) 0%, transparent 68%);
+}
+
+.poster-logo {
+  position: relative;
+  width: min(160px, 46vw);
+  height: auto;
+}
+
+.poster-name {
+  position: relative;
+  font-size: var(--text-hero);
+  font-weight: 900;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.04em;
+  color: var(--white);
+  text-wrap: balance;
+}
+
+.poster-sub {
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+}
+
+.poster-ending {
+  margin-top: var(--space-2);
+}
+
+.poster-ending-icon {
+  font-size: 46px;
+  line-height: 1;
+}
+
+.poster-ending-title {
+  margin-top: var(--space-1);
+  font-size: var(--text-h1);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--green-bright);
+}
+
+.poster-legend .poster-ending-title {
+  color: var(--gold);
+}
+
+.poster-ending-sub {
+  margin-top: 2px;
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+}
+
+/* The score, as the single largest thing on the screen. */
+.poster-score {
+  margin-top: var(--space-2);
+}
+
+.poster-score-value {
+  font-size: var(--text-display);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 50px var(--green-glow);
+}
+
+.poster-legend .poster-score-value {
+  color: var(--gold);
+  text-shadow: 0 0 50px rgba(255, 201, 74, 0.45);
+}
+
+.poster-score-label {
+  font-size: var(--text-micro);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: var(--text-tertiary);
+}
+
+/* The career in four lines, in the poster rather than buried in a stat grid. */
+.poster-lines {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-body);
+  font-weight: 700;
+  color: var(--text-primary);
+}
