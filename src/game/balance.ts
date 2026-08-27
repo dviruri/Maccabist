@@ -576,7 +576,27 @@ export const SEASON = {
   minutesBase: 0.4,
   minutesSpread: 32,
   minutesMin: 0.02,
-  minutesMax: 0.98,
+  /**
+   * A footballing ceiling, not a mathematical one (v0.4.5).
+   *
+   * At 0.98 the cap was reachable and constantly reached: the median senior season was played at
+   * a 100% appearance share. Nobody plays every match of a season - rotation, suspensions, minor
+   * knocks and cup rest all take games away from even a first-choice player. 0.88 of ~42 games is
+   * about 37, which is a heavy but believable season for a star.
+   */
+  minutesMax: 0.88,
+
+  /**
+   * Where standing settles, given how good he is for the club (v0.4.5).
+   *
+   * roleValue used to accumulate without an equilibrium and saturated at 100 for most careers.
+   * These put a player at his club's level around "starter" (52) and one ten points clear of it
+   * around "star" (80), with the pull below returning him if he overshoots on a hot streak.
+   */
+  roleCeilingBase: 52,
+  roleCeilingPerPoint: 1.9,
+  /** How hard standing is dragged back when it is above where he belongs, per half-season. */
+  roleCeilingPull: 0.45,
   /** Academy and youth teams rotate everyone - nobody is a total spectator there. */
   youthMinutesFloor: 0.3,
   /** Role contributes to the fight for minutes on top of raw ability. */

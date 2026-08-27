@@ -15,7 +15,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { POSITIONS, RETIREMENT } from '../src/game/balance';
+import { getClub } from '../src/data/clubs';
+import { POSITIONS, RETIREMENT, SEASON, WORLD } from '../src/game/balance';
 import {
   createCareer,
   forcedRetirementAge,
@@ -256,5 +257,88 @@ describe('the retirement thresholds', () => {
     expect(t.loyal).toBeLessThan(t.balanced);
     expect(t.balanced).toBeLessThan(t.ambitious);
     expect(t.ambitious).toBeLessThan(t.riskTaker);
+  });
+});
+
+describe('v0.4.5 Phase 0: appearance inflation', () => {
+  /*
+   * roleValue accumulated every half-season with no equilibrium, so it saturated at the clamp:
+   * median final roleValue was 100 and 67% of all senior seasons were played at the `icon` tier.
+   * That fed a 99% appearance share (p50 and p90 both 100% of team games) and ~576 career
+   * appearances. Being the best player at your club should be an achievement, not the default.
+   */
+  const seniorSeasons = (position: Position, count = 400): SeasonRecord[] => {
+    const out: SeasonRecord[] = [];
+    for (let seed = 1; seed <= count; seed += 1) {
+      const career = simulateCareer({ playerName: 'ל', position, seed, policy: balancedPolicy });
+      out.push(...career.seasonHistory.filter((s) => s.academyStage === 'senior'));
+    }
+    return out;
+  };
+
+  it('does not let standing saturate at the ceiling', () => {
+    const finals: number[] = [];
+    for (let seed = 1; seed <= 400; seed += 1) {
+      finals.push(simulateCareer({ playerName: 'ל', position: 'CM', seed, policy: balancedPolicy }).roleValue);
+    }
+    const sorted = [...finals].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)] as number;
+    // Was exactly 100. It should be a distribution, not a wall.
+    expect(median).toBeLessThan(100);
+    expect(new Set(finals.map((v) => Math.round(v))).size).toBeGreaterThan(10);
+  });
+
+  it('never has anyone playing every match of a season', () => {
+    const shares = seniorSeasons('CM').map(
+      (s) => s.stats.appearances / Math.max(1, getClub(s.clubId).seasonGames),
+    );
+    // Rotation, suspensions, knocks and cup rest take games from even a first-choice player.
+    expect(Math.max(...shares)).toBeLessThanOrEqual(SEASON.minutesMax + 0.02);
+  });
+
+  it('scales appearances by role the way football does', () => {
+    const byRole = new Map<string, number[]>();
+    for (const s of seniorSeasons('CM')) {
+      const share = s.stats.appearances / Math.max(1, getClub(s.clubId).seasonGames);
+      byRole.set(s.role, [...(byRole.get(s.role) ?? []), share]);
+    }
+    const avg = (role: string): number => {
+      const v = byRole.get(role) ?? [];
+      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+    };
+    expect(avg('rotation')).toBeLessThan(avg('starter'));
+    expect(avg('starter')).toBeLessThan(avg('key'));
+    expect(avg('key')).toBeLessThan(avg('star'));
+    // A rotation player is not a starter who plays slightly less.
+    expect(avg('rotation')).toBeLessThan(0.55);
+  });
+
+  it('keeps a legendary Maccabi career possible without making 700+ appearances common', () => {
+    const apps: number[] = [];
+    for (let seed = 1; seed <= 900; seed += 1) {
+      apps.push(simulateCareer({ playerName: 'ל', position: 'CM', seed, policy: balancedPolicy }).maccabi.appearances);
+    }
+    const sorted = [...apps].sort((a, b) => a - b);
+    const p99 = sorted[Math.floor(sorted.length * 0.99)] as number;
+    // Was ~700 at the 99th percentile. A 700-appearance Maccabi career should be exceptional.
+    expect(p99).toBeLessThan(700);
+    // ...but still reachable, or there are no legends.
+    expect(Math.max(...apps)).toBeGreaterThan(400);
+  });
+});
+
+describe('v0.4.5 Phase 0: player impact on the club', () => {
+  it('is mostly positive, occasionally negative, and never catastrophic', () => {
+    const impacts: number[] = [];
+    for (let seed = 1; seed <= 600; seed += 1) {
+      const career = simulateCareer({ playerName: 'ל', position: 'CM', seed, policy: balancedPolicy });
+      impacts.push(...career.world.clubSeasons.map((s) => s.playerImpact));
+    }
+    const negative = impacts.filter((i) => i < -0.001).length / impacts.length;
+    expect(negative).toBeGreaterThan(0.005);
+    expect(negative).toBeLessThan(0.2);
+    // Nobody relegates a club by himself: the floor is a fraction of the ceiling.
+    expect(Math.min(...impacts)).toBeGreaterThanOrEqual(-WORLD.impactMinimum);
+    expect(Math.abs(Math.min(...impacts))).toBeLessThan(Math.max(...impacts));
   });
 });

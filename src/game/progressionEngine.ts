@@ -667,6 +667,26 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
   roleChange += clamp((next.ability - level.quality) * 0.35, -6, 6);
   roleChange += (next.coachTrust - 50) * COACH_TRUST.roleInfluence * 0.25;
   if (career.age >= 33) roleChange -= (career.age - 32) * 0.9;
+
+  /*
+   * Standing pulls towards a ceiling set by how good he is *for this club* (v0.4.5).
+   *
+   * Without this, roleChange accumulated every half-season with nothing pulling it back: a player
+   * even slightly better than his club gained standing indefinitely, so roleValue ratcheted to
+   * the clamp. Measured before the fix: median final roleValue 100, and 67% of all senior seasons
+   * were played at the `icon` tier - which then fed a 99% appearance share and ~576 career
+   * appearances. Being the best player at your club is supposed to be an achievement, not the
+   * default resting state of anyone competent.
+   *
+   * The ceiling is where he belongs: comfortably clear of the level makes him a star, at the level
+   * a starter, below it a squad player. He can exceed it briefly on a great run, but gravity pulls
+   * him back - which is what makes a genuinely exceptional season feel like one.
+   */
+  const edge = next.ability - level.quality;
+  const ceiling = clamp(SEASON.roleCeilingBase + edge * SEASON.roleCeilingPerPoint, 20, 100);
+  const overshoot = next.roleValue - ceiling;
+  if (overshoot > 0) roleChange -= overshoot * SEASON.roleCeilingPull;
+
   next.roleValue = clamp(next.roleValue + roleChange * fraction * 2, 2, 100);
   next.role = roleFromValue(next.roleValue);
 
