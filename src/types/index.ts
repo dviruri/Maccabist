@@ -434,7 +434,9 @@ export type ArcId =
   | 'position_battle'
   | 'europe_move'
   | 'contract_standoff'
-  | 'homecoming';
+  | 'homecoming'
+  /** v0.4: relegated, and what he did about it. Runs off the football-world memories. */
+  | 'fall_and_rise';
 
 export interface ActiveArc {
   id: ArcId;

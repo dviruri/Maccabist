@@ -108,6 +108,14 @@ export const ACHIEVEMENT_DEFS: AchievementDefinition[] = [
     check: (c) => c.maccabi.academyGraduate,
   },
   {
+    /* v0.4: earned by the fall-and-rise arc, so it has no `check` - the event grants it. */
+    id: 'brought_them_back',
+    name: 'ירדת וחזרת',
+    description: 'נשארת אחרי הירידה, והחזרת את המועדון לליגה הבכירה.',
+    icon: '🔺',
+    major: true,
+  },
+  {
     id: 'derby_moment',
     name: 'הרגע בדרבי',
     description: 'שער שהשתיק אצטדיון שלם.',
