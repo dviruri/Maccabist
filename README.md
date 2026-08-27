@@ -92,6 +92,10 @@ src/
     rules.ts              Shared helpers: level context, role tier, minutes age curve.
     calendar.ts           Real dates: leap years, month lengths, date of birth.
     eligibility.ts        Who is old enough for professional football. One predicate.
+    identity.ts           Club vs team unit vs stage. The one source of team wording.
+    decisionEngine.ts     Outcome distributions. The preview and the resolver share one.
+    eventValidation.ts    Developer-time rules that catch whole classes of content bug.
+    bugReport.ts          A reproducible snapshot for playtest reports.
     conditions.ts         Generic condition matching for events and outcomes.
     worldEngine.ts        Season-level football world: club seasons, promotion, relegation.
     marketEngine.ts       The career ladder: what a player is worth, who wants him, as what.
@@ -382,6 +386,65 @@ phrase-based, not word-based: `קשר` also means "contact" and `מגן` also me
 naming the *opponent's* position (the striker you mark, the keeper you beat) is perfectly
 correct.
 
+### Three things that are not one thing (v0.4.1)
+
+`identity.ts` keeps apart what the codebase used to collapse into a club id:
+
+```
+CLUB IDENTITY   which club he belongs to        maccabi_haifa
+TEAM UNIT       which side of it he plays for   academy | youth | first_team
+STAGE           where he is in development      youth_a | u19 | senior
+```
+
+A boy at Maccabi's academy and a Maccabi first-team player share a club and share nothing else.
+Collapsing them produced the playtest bug where a promoted player was described as
+"מכבי חיפה - מחלקת ילדים" for the rest of his career.
+
+**The UI never assembles team wording.** It calls `currentTeamDisplay(career)` and renders the
+result. Historical rows call `teamDisplayFor(clubId, stage)` with the values that were true then,
+so a first-team player's נערים ב׳ season still reads נערים ב׳ — history, not staleness.
+
+Everything is derived, never stored, so it cannot go stale and old saves get correct answers for
+free. `hasCoherentIdentity` asserts the only two legitimate club/stage combinations.
+
+### Decisions with visible odds (v0.4.1)
+
+The player sees what can happen and how likely each result is before committing. The hard part is
+not rendering percentages — it is guaranteeing the numbers shown are the numbers used.
+
+```
+calculateOutcomeDistribution(career, event, choice, slot)
+            |                              |
+      UI preview                   resolveEventChoice
+```
+
+One function, consumed by both. `resolveEventChoice` is *handed* the preview's distribution and
+draws from that object, so there is no second formula to drift. **React computes no
+probabilities.**
+
+Two rules that make it hold rather than merely look like it holds:
+
+- The distribution is computed on the career state the player is *looking at*, before the choice's
+  own `effects` are applied. Otherwise a choice that costs coach trust silently moves the odds it
+  was shown alongside.
+- Integer percentages are computed once, in the engine, by largest remainder. If the UI rounded
+  independently it could print 33/33/33 while the engine used something else.
+
+The reveal animation is presentation only: the engine resolves from the seeded stream first and
+the animation merely delays showing it. Turning it off changes nothing but the wait.
+
+Adding odds to an event means nothing more than giving a choice more than one weighted outcome. A
+single-outcome choice simply shows no odds, so old content keeps working untouched.
+
+### Validating content (v0.4.1)
+
+`eventValidation.ts` runs in the test suite and catches whole classes of content bug: a Maccabi
+event with no declared Maccabi relationship, a professional gate reaching childhood, an outcome
+list that cannot produce a result, a club-strength window no club in the game satisfies,
+contradictory conditions, duplicate ids.
+
+Every rule corresponds to a bug that actually shipped. When you add a class of mistake, add a rule.
+
 ### The football world (v0.4)
 
 The world is simulated at **season** level: no fixtures, no tables, no squads. A club's season
@@ -643,7 +706,7 @@ seed 17384920" is enough to recreate the exact career.
 npm test
 ```
 
-273 tests over the pure engine, in ten files:
+387 tests over the pure engine, in fifteen files:
 
 | File | Covers |
 | --- | --- |
@@ -656,6 +719,11 @@ npm test
 | `eventAudit.test.ts` | Every event naming Maccabi declares a `clubScope`; position phrasing matches the player's position |
 | `world.test.ts` | Promotion/relegation, loan parent club and expiry, expected roles, position need, draw determinism, and that every world event's club-strength window matches a real club |
 | `maccabi.test.ts` | Service and grievance, the relationship bands, the rival override, the ex-Maccabi event family, homecoming archetypes and the traitor gate |
+| `identity.test.ts` | Club vs team unit vs stage, display wording, and a coherence sweep over whole careers |
+| `decision.test.ts` | The probability invariant (preview == resolver), 100% rounding, determinism, frequency validation, bug reports |
+| `longevity.test.ts` | Retirement windows, career-length distributions, and the goalkeeper root causes |
+| `risk.test.ts` | Choice-level expected value, bold vs reckless, variance and collapse rates |
+| `scenarios.test.ts` | The lettered end-to-end scenarios: academy to senior, prodigy promotion, goalkeeper longevity, bold success and collapse, move direction, ambient Maccabi, facing them, relegated homecoming |
 | `simulation.test.ts` | Full headless careers to retirement, determinism, and batch-level sanity bounds |
 
 ---
@@ -692,9 +760,16 @@ references them.
 - **Mobile layout is CSS-audited, not browser-verified** at 360/390/412px.
 - **The second division has only two clubs**, so promotion races there are reachable but thin.
   A data gap rather than a logic one.
-- **Careers accumulate a lot of football.** Maccabi appearances reach ~760 at the 99th
-  percentile, which is more than a real career contains. Career length was out of scope for
-  v0.4 and is the obvious next balance target.
+- **Careers accumulate a lot of football.** Retirement ages are believable since v0.4.1 (outfield
+  mean 34.4, goalkeepers 37.2), but total appearances still run high. The Maccabi relationship
+  weights were calibrated against that inflated distribution and will need revisiting when it is
+  fixed.
+- **`rng.gaussian` is hard-bounded** to +/- its spread, with no tails. Club seasons use
+  `rng.normal` since v0.4.1 for exactly that reason - a dominant club could not be relegated at
+  all - but season ratings still use `gaussian`, so a rating outlier is impossible.
+- **Bold play cannot win on Legend Score**, because the score is deliberately Maccabi-weighted and
+  bold careers go to Europe. Its upside is real and measured in football rather than in Maccabi
+  service; whether that needs a second axis is a product decision.
 
 ## Not in this version
 
