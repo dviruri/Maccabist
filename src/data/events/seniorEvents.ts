@@ -801,7 +801,15 @@ export const SENIOR_EVENTS: GameEvent[] = [
     description:
       'מספר לא מוכר. בצד השני מנהל הספורט של מכבי חיפה: "צריך מישהו שיודע מה זה המועדון הזה."',
     category: 'transfer',
-    conditions: { abroad: true, minAge: 28, minMaccabism: 35, hasLeftMaccabi: true },
+    // clubScope makes the Maccabi relationship explicit (v0.4.1); hasLeftMaccabi alone said it
+    // implicitly, which the validator could not see and a reader had to infer.
+    conditions: {
+      clubScope: 'formerMaccabi',
+      abroad: true,
+      minAge: 28,
+      minMaccabism: 35,
+      hasLeftMaccabi: true,
+    },
     weight: 10,
     cooldownSeasons: 2,
     choices: [

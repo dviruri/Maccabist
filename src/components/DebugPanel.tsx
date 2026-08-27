@@ -19,6 +19,7 @@ import {
   promotionScore,
   revealTrait,
 } from '../game/progressionEngine';
+import { formatBugReport } from '../game/bugReport';
 import { createRng } from '../game/random';
 import { isInAcademy, roleFromValue } from '../game/rules';
 import { simulateBatch } from '../game/simulate';
@@ -87,6 +88,17 @@ export function DebugPanel({
   const odds = debugOdds(career);
   const rng = createRng(career.rngState);
 
+  const [copied, setCopied] = useState(false);
+  const copyReport = (): void => {
+    const text = formatBugReport(career);
+    // Clipboard access can be blocked; the console copy is the fallback that always works.
+    void navigator.clipboard?.writeText(text).catch(() => undefined);
+    // eslint-disable-next-line no-console
+    console.log(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
   return (
     <div className="debug">
       <button type="button" className="debug-toggle" onClick={() => setOpen((v) => !v)}>
@@ -95,6 +107,16 @@ export function DebugPanel({
 
       {open && (
         <div className="debug-panel">
+          {/*
+            v0.4.1: a reproducible bug report. Every coherence bug so far arrived as a sentence and
+            then took a diagnostic script to locate; the state needed to reproduce one was always
+            in the Career and simply unreachable from the game. Debug-only, so it never clutters
+            normal play.
+          */}
+          <button type="button" className="debug-report" onClick={copyReport}>
+            {copied ? '✓ הועתק' : '🐞 דווח על אירוע לא הגיוני'}
+          </button>
+
           <Row label="seed" value={career.seed} />
           <Row label="phase" value={`${career.phase} / ${career.seasonSlot}`} />
           <Row label="age" value={career.age} />

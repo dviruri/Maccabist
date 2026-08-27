@@ -14,6 +14,8 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { formatIssues, validateEvents } from '../src/game/eventValidation';
+
 import { EVENT_POOL } from '../src/data/events';
 import { createCareer } from '../src/game/careerEngine';
 import { matchesClubScope } from '../src/game/conditions';
@@ -241,3 +243,138 @@ describe('event audit: position context', () => {
     expect(eligible.length).toBeGreaterThan(0);
   });
 });
+
+describe('the event validation engine (v0.4.1)', () => {
+  /*
+   * Every coherence bug found across v0.3.1, v0.4 and v0.4.1 was a *class* of mistake rather than
+   * a one-off, and every one was found by hand after shipping. These rules turn those classes
+   * into something `npm test` catches.
+   */
+  it('finds no problems in the shipped event pool', () => {
+    const issues = validateEvents();
+    expect(issues.length, formatIssues(issues)).toBe(0);
+  });
+
+  it('catches an event with only one choice', () => {
+    const issues = validateEvents([
+      {
+        ...sample(),
+        id: 'bad_single',
+        choices: [sample().choices[0]!],
+      },
+    ]);
+    expect(issues.some((i) => i.rule === 'single-choice')).toBe(true);
+  });
+
+  it('catches a distribution that cannot produce a result', () => {
+    const event = sample();
+    const issues = validateEvents([
+      {
+        ...event,
+        id: 'bad_weights',
+        choices: [
+          {
+            ...event.choices[0]!,
+            outcomes: event.choices[0]!.outcomes.map((o) => ({ ...o, baseWeight: 0 })),
+          },
+          event.choices[1] ?? event.choices[0]!,
+        ],
+      },
+    ]);
+    expect(issues.some((i) => i.rule === 'zero-weight')).toBe(true);
+  });
+
+  it('catches a Maccabi event with no Maccabi scope', () => {
+    const event = sample();
+    const issues = validateEvents([
+      {
+        ...event,
+        id: 'bad_scope',
+        description: 'הקהל בסמי עופר קם על הרגליים',
+        conditions: { bands: ['senior'] },
+      },
+    ]);
+    expect(issues.some((i) => i.rule === 'maccabi-without-scope')).toBe(true);
+  });
+
+  it('catches a professional event that reaches childhood', () => {
+    const issues = validateEvents([
+      {
+        ...sample(),
+        id: 'bad_gate',
+        conditions: { requiresProfessionalFootball: true, stages: ['pre_b', 'children_a'] },
+      },
+    ]);
+    expect(issues.some((i) => i.rule === 'professional-in-childhood')).toBe(true);
+  });
+
+  it('catches a club-strength window no club satisfies', () => {
+    // Exactly how three v0.4 world events shipped firing 0% of the time.
+    const issues = validateEvents([
+      {
+        ...sample(),
+        id: 'bad_strength',
+        conditions: { minClubStrength: 0.99, clubLeagueTier: [2] },
+      },
+    ]);
+    expect(issues.some((i) => i.rule === 'unreachable-club-strength')).toBe(true);
+  });
+
+  it('catches duplicate event ids', () => {
+    const issues = validateEvents([sample(), sample()]);
+    expect(issues.some((i) => i.rule === 'duplicate-id')).toBe(true);
+  });
+
+  it('catches contradictory conditions', () => {
+    const issues = validateEvents([
+      { ...sample(), id: 'bad_age', conditions: { minAge: 30, maxAge: 20 } },
+      {
+        ...sample(),
+        id: 'bad_pos',
+        conditions: { positions: ['GK'], notPositions: ['GK'] },
+      },
+      {
+        ...sample(),
+        id: 'bad_club_scope',
+        conditions: { clubScope: 'formerMaccabi', atMaccabi: true },
+      },
+      {
+        ...sample(),
+        id: 'bad_memory',
+        conditions: { requiresMemory: ['derby_hero'], forbidsMemory: ['derby_hero'] },
+      },
+    ]);
+    for (const rule of [
+      'impossible-age-window',
+      'no-position-can-match',
+      'contradictory-club-scope',
+      'contradictory-memory',
+    ]) {
+      expect(issues.some((i) => i.rule === rule), rule).toBe(true);
+    }
+  });
+});
+
+/** A minimal valid event to mutate in the tests above. */
+function sample(): GameEvent {
+  return {
+    id: 'sample_event',
+    title: 'כותרת',
+    description: 'תיאור',
+    category: 'team',
+    weight: 10,
+    conditions: { bands: ['senior'] },
+    choices: [
+      {
+        id: 'a',
+        label: 'א',
+        outcomes: [{ id: 'x', baseWeight: 50, tone: 'good', text: 'טוב', effects: {} }],
+      },
+      {
+        id: 'b',
+        label: 'ב',
+        outcomes: [{ id: 'y', baseWeight: 50, tone: 'bad', text: 'רע', effects: {} }],
+      },
+    ],
+  };
+}

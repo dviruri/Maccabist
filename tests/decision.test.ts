@@ -18,6 +18,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { EVENT_POOL, EVENTS_BY_ID } from '../src/data/events';
+import { buildBugReport, formatBugReport } from '../src/game/bugReport';
 import { createCareer } from '../src/game/careerEngine';
 import { conditionContext } from '../src/game/conditions';
 import {
@@ -32,6 +33,7 @@ import {
 import { resolveEventChoice } from '../src/game/eventEngine';
 import { calculateOutcomeWeights } from '../src/game/outcomeEngine';
 import { createRng } from '../src/game/random';
+import { balancedPolicy, simulateCareer } from '../src/game/simulate';
 import type { Career, EventChoice, GameEvent, SeasonSlot } from '../src/types';
 
 const base = (seed = 4): Career => createCareer({ playerName: 'ל', position: 'CM', seed });
@@ -389,5 +391,49 @@ describe('impossible choices', () => {
     expect(dist.outcomes).toEqual([]);
     expect(dist.totalWeight).toBe(0);
     expect(resolveFromDistribution(dist, createRng(1))).toBeNull();
+  });
+});
+
+describe('the debug bug report (v0.4.1)', () => {
+  it('captures everything needed to reproduce what the tester saw', () => {
+    const career = simulateCareer({ playerName: 'ל', position: 'CM', seed: 17, policy: balancedPolicy });
+    const report = buildBugReport(career);
+
+    // The two fields that make a report reproducible rather than anecdotal.
+    expect(report.seed).toBe(career.seed);
+    expect(report.rngState).toBe(career.rngState);
+
+    // Identity, which is where the coherence bugs live.
+    expect(report.currentStage).toBe(career.academyStage);
+    expect(report.teamUnit).toBeTruthy();
+    expect(report.teamDisplay).toBeTruthy();
+    expect(report.naturalStage).toBeTruthy();
+    expect(report.maccabiRelationship).toBeTruthy();
+    expect(report.maccabiLeague).toBeTruthy();
+  });
+
+  it('records the odds the player was actually looking at', () => {
+    const career = { ...midCareer(), pendingEventIds: [] as string[] };
+    const { event, choice } = probabilisticChoices(career)[0] as {
+      event: GameEvent;
+      choice: EventChoice;
+    };
+    const resolved = resolveEventChoice(career, event.id, choice.id, createRng(5), 'early');
+    const report = buildBugReport(resolved.career);
+
+    expect(report.event).not.toBeNull();
+    expect(report.event?.id).toBe(event.id);
+    expect(report.event?.outcomeId).toBe(resolved.result.outcomeId);
+    expect(report.event?.odds.length).toBeGreaterThan(1);
+    // Percentages, so a report shows what was on screen rather than raw weights.
+    for (const line of report.event?.odds ?? []) expect(line).toMatch(/=\d+%$/);
+  });
+
+  it('serialises to text without throwing', () => {
+    const career = simulateCareer({ playerName: 'ל', position: 'GK', seed: 21, policy: balancedPolicy });
+    const text = formatBugReport(career, 'הכותרת אמרה מחלקת ילדים');
+    expect(text).toContain('MACCABIST v0.4.1');
+    expect(text).toContain('הכותרת אמרה מחלקת ילדים');
+    expect(() => JSON.parse(text.split('```json')[1]!.split('```')[0]!)).not.toThrow();
   });
 });
