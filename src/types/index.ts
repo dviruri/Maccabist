@@ -588,6 +588,20 @@ export interface EventConditions {
   playedForMaccabi?: boolean;
   /** He must be somewhere he could actually meet them - same division, not their own player. */
   canFaceMaccabi?: boolean;
+
+  /* ---------- v0.4: the club's own season ---------- */
+  /** Which division the club is in. 1 is a top flight, 2 a second division. */
+  clubLeagueTier?: number[];
+  /**
+   * How the club stands relative to its own division, -1..1.
+   *
+   * This is what an in-season event can honestly know: the table is only resolved at season end,
+   * but everyone at the club knows in August whether they are expected to go up, stay up, or
+   * fight. A strongly negative value is a relegation candidate; strongly positive in tier 2 is a
+   * promotion favourite.
+   */
+  minClubStrength?: number;
+  maxClubStrength?: number;
 }
 
 /**

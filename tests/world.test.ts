@@ -8,9 +8,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { getClub, MACCABI_ID } from '../src/data/clubs';
+import { ALL_CLUBS, getClub, MACCABI_ID } from '../src/data/clubs';
+import { WORLD_EVENTS } from '../src/data/events/worldEvents';
 import { getLeague } from '../src/data/leagues';
 import { createCareer } from '../src/game/careerEngine';
+import { conditionContext } from '../src/game/eventEngine';
 import {
   careerLevel,
   drawDestination,
@@ -21,7 +23,12 @@ import {
 import { moveToClub } from '../src/game/progressionEngine';
 import { createRng } from '../src/game/random';
 import { applyAutomaticMoves, buildLoanOffers } from '../src/game/transferEngine';
-import { applyPromotionRelegation, emptyWorld, leagueOf } from '../src/game/worldEngine';
+import {
+  applyPromotionRelegation,
+  clubStrengthVsLeague,
+  emptyWorld,
+  leagueOf,
+} from '../src/game/worldEngine';
 import type { Career, ClubSeasonResult, SeasonRecord } from '../src/types';
 
 const base = (seed = 11): Career => createCareer({ playerName: 'ל', position: 'CM', seed });
@@ -178,6 +185,52 @@ describe('loans', () => {
       expect(offer.kind).toBe('loan');
       expect(offer.clubId).not.toBe(career.currentClubId);
       expect(offer.expectedRole).toBeDefined();
+    }
+  });
+});
+
+describe('the club season, in events', () => {
+  it('can plan a mid/late event that requires appearances', () => {
+    /*
+     * The whole season is planned at preseason, when firstHalfStats is still null. Read
+     * naively that made every mid/late event with a minLastAppearances floor evaluate against
+     * zero appearances and become unplannable — an entire class of events that silently never
+     * fired. At planning time last season is the honest evidence.
+     */
+    const career: Career = {
+      ...seniorAt(TOP),
+      firstHalfStats: null,
+      seasonSlot: 'preseason' as Career['seasonSlot'],
+    };
+    expect(conditionContext(career, 'late').appearances).toBe(20);
+    expect(conditionContext(career, 'mid').appearances).toBe(20);
+  });
+
+  it('still reads this season once the first half has been played', () => {
+    const career: Career = {
+      ...seniorAt(TOP),
+      firstHalfStats: { ...seasonAt(TOP).stats, appearances: 3 },
+    };
+    expect(conditionContext(career, 'mid').appearances).toBe(3);
+  });
+
+  it('gives every world event a reachable club-strength window', () => {
+    // A window no club in the game satisfies is dead content, and that is how three of these
+    // events shipped firing 0% of the time.
+    for (const event of WORLD_EVENTS) {
+      const c = event.conditions ?? {};
+      if (c.minClubStrength === undefined && c.maxClubStrength === undefined) continue;
+      const tiers = c.clubLeagueTier;
+      const reachable = ALL_CLUBS.filter((club) => {
+        if (club.isSenior !== true) return false;
+        const league = leagueOf(emptyWorld(), club.id);
+        if (tiers && !tiers.includes(league.tier)) return false;
+        const strength = clubStrengthVsLeague(emptyWorld(), club.id);
+        if (c.minClubStrength !== undefined && strength < c.minClubStrength) return false;
+        if (c.maxClubStrength !== undefined && strength > c.maxClubStrength) return false;
+        return true;
+      });
+      expect(reachable.length, `${event.id} matches no club`).toBeGreaterThan(0);
     }
   });
 });

@@ -26,6 +26,7 @@ import {
   seniorPhase,
 } from './memory';
 import { isAtMaccabi, isAtMaccabiSenior, isOnLoan, isPlayingAbroad } from './rules';
+import { clubStrengthVsLeague, leagueOf } from './worldEngine';
 
 export interface ConditionContext {
   /** Appearances the condition should read: this season so far, or last season. */
@@ -112,6 +113,15 @@ export function matchesConditions(
     return false;
   }
   if (c.canFaceMaccabi !== undefined && canFaceMaccabi(career) !== c.canFaceMaccabi) return false;
+
+  /* ---------- v0.4: the club's own season ---------- */
+  if (c.clubLeagueTier && !c.clubLeagueTier.includes(leagueOf(career.world, career.currentClubId).tier)) {
+    return false;
+  }
+  if (c.minClubStrength !== undefined || c.maxClubStrength !== undefined) {
+    const strength = clubStrengthVsLeague(career.world, career.currentClubId);
+    if (!between(strength, c.minClubStrength, c.maxClubStrength)) return false;
+  }
 
   if (!between(ctx.appearances, c.minLastAppearances, c.maxLastAppearances)) return false;
 

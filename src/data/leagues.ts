@@ -51,7 +51,12 @@ export const LEAGUES: readonly League[] = [
     name: 'הליגה הלאומית',
     country: 'ישראל',
     tier: 2,
-    quality: 42,
+    /**
+     * Was 42, which sat *above* both of its own clubs (40 and 36) - so nobody in the second
+     * division was ever a promotion contender and the promotion-race events were unreachable.
+     * A division's quality should be the level its clubs play at, not an aspiration.
+     */
+    quality: 37,
     prestige: 16,
     visibility: 12,
     development: 52,

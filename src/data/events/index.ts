@@ -6,6 +6,7 @@ import { POSITION_EVENTS } from './positionEvents';
 import { SENIOR_EVENTS } from './seniorEvents';
 import { SENIOR_PHASE_EVENTS } from './seniorPhaseEvents';
 import { SPONTANEOUS_EVENTS } from './spontaneousEvents';
+import { WORLD_EVENTS } from './worldEvents';
 
 /**
  * The whole event pool.
@@ -22,6 +23,7 @@ export const EVENT_POOL: GameEvent[] = [
   ...SPONTANEOUS_EVENTS,
   ...SENIOR_EVENTS,
   ...SENIOR_PHASE_EVENTS,
+  ...WORLD_EVENTS,
 ];
 
 export const EVENTS_BY_ID: Record<string, GameEvent> = Object.fromEntries(
@@ -42,4 +44,5 @@ export {
   SENIOR_EVENTS,
   SENIOR_PHASE_EVENTS,
   SPONTANEOUS_EVENTS,
+  WORLD_EVENTS,
 };
