@@ -574,6 +574,20 @@ export interface EventConditions {
    * things like "the first-team coach came to watch", never for contracts.
    */
   allowsExceptionalYouth?: boolean;
+
+  /* ---------- v0.4: standing with Maccabi ---------- */
+  /**
+   * How the club remembers him. This is what lets one event text serve a returning hero and a
+   * booed defector without either reading wrong, and it is the intended way to write anything
+   * about Maccabi for a player who is no longer there.
+   */
+  maccabiRelationship?: MaccabiRelationship[];
+  /** What the Sami Ofer crowd would do, which is not always what his record deserves. */
+  crowdResponse?: MaccabiStanding[];
+  /** He must once have played senior football for Maccabi (the academy alone does not count). */
+  playedForMaccabi?: boolean;
+  /** He must be somewhere he could actually meet them - same division, not their own player. */
+  canFaceMaccabi?: boolean;
 }
 
 /**

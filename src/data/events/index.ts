@@ -1,6 +1,7 @@
 import type { GameEvent } from '../../types';
 import { ACADEMY_EVENTS } from './academyEvents';
 import { ARC_EVENTS } from './arcEvents';
+import { MACCABI_EVENTS } from './maccabiEvents';
 import { POSITION_EVENTS } from './positionEvents';
 import { SENIOR_EVENTS } from './seniorEvents';
 import { SENIOR_PHASE_EVENTS } from './seniorPhaseEvents';
@@ -16,6 +17,7 @@ import { SPONTANEOUS_EVENTS } from './spontaneousEvents';
 export const EVENT_POOL: GameEvent[] = [
   ...ACADEMY_EVENTS,
   ...ARC_EVENTS,
+  ...MACCABI_EVENTS,
   ...POSITION_EVENTS,
   ...SPONTANEOUS_EVENTS,
   ...SENIOR_EVENTS,
@@ -35,6 +37,7 @@ export function getEvent(id: string): GameEvent {
 export {
   ACADEMY_EVENTS,
   ARC_EVENTS,
+  MACCABI_EVENTS,
   POSITION_EVENTS,
   SENIOR_EVENTS,
   SENIOR_PHASE_EVENTS,

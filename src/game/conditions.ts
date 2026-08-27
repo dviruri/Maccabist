@@ -11,6 +11,12 @@ import {
   isSenior,
 } from './eligibility';
 import {
+  canFaceMaccabi,
+  crowdResponse,
+  maccabiRelationship,
+  playedForMaccabi,
+} from './maccabiEngine';
+import {
   activeArc,
   hasCompletedArc,
   hasMemory,
@@ -95,6 +101,17 @@ export function matchesConditions(
   if (c.clubScope && !matchesClubScope(career, c.clubScope)) return false;
   if (c.isCaptain !== undefined && career.captain !== c.isCaptain) return false;
   if (c.hasLeftMaccabi !== undefined && career.maccabi.everLeft !== c.hasLeftMaccabi) return false;
+
+  /* ---------- v0.4: standing with Maccabi ---------- */
+  // Derived, never stored, so these stay correct for saves made before the system existed.
+  if (c.maccabiRelationship && !c.maccabiRelationship.includes(maccabiRelationship(career))) {
+    return false;
+  }
+  if (c.crowdResponse && !c.crowdResponse.includes(crowdResponse(career))) return false;
+  if (c.playedForMaccabi !== undefined && playedForMaccabi(career) !== c.playedForMaccabi) {
+    return false;
+  }
+  if (c.canFaceMaccabi !== undefined && canFaceMaccabi(career) !== c.canFaceMaccabi) return false;
 
   if (!between(ctx.appearances, c.minLastAppearances, c.maxLastAppearances)) return false;
 

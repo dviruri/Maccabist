@@ -10,8 +10,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { MACCABI_ID } from '../src/data/clubs';
+import { MACCABI_EVENTS } from '../src/data/events/maccabiEvents';
 import { LEAVING } from '../src/game/balance';
 import { createCareer } from '../src/game/careerEngine';
+import { isEventEligible } from '../src/game/eventEngine';
 import {
   canFaceMaccabi,
   crowdResponse,
@@ -26,7 +28,13 @@ import {
   RELATIONSHIP_NOTES,
 } from '../src/game/maccabiEngine';
 import { balancedPolicy, loyalPolicy, simulateCareer } from '../src/game/simulate';
-import type { Career, MaccabiRecord, MaccabiRelationship, SeasonRecord } from '../src/types';
+import type {
+  Career,
+  MaccabiRecord,
+  MaccabiRelationship,
+  SeasonRecord,
+  SeasonSlot,
+} from '../src/types';
 
 const base = (seed = 3): Career => createCareer({ playerName: 'ל', position: 'CM', seed });
 
@@ -65,6 +73,7 @@ const seniorSeason = (clubId: string, onLoan = false): SeasonRecord => ({
 });
 
 const RIVAL = LEAVING.rivalClubIds[0] as string;
+const SLOTS: SeasonSlot[] = ['early', 'mid', 'late'];
 
 describe('service and grievance', () => {
   it('gives a player who never went near the club nothing', () => {
@@ -274,6 +283,46 @@ describe('facing them', () => {
   it('never happens to an academy player', () => {
     const boy: Career = { ...base(), currentClubId: 'bnei_sakhnin', academyStage: 'youth_a' };
     expect(canFaceMaccabi(boy)).toBe(false);
+  });
+});
+
+describe('the Maccabi event family', () => {
+  it('is entirely for players who are no longer there', () => {
+    for (const event of MACCABI_EVENTS) {
+      // `formerMaccabi` is the scope that means "has history there, is somewhere else now".
+      expect(event.conditions?.clubScope).toBe('formerMaccabi');
+      expect(event.conditions?.atMaccabi).not.toBe(true);
+    }
+  });
+
+  it('never reaches a player still at Maccabi', () => {
+    const home: Career = {
+      ...withMaccabi({ appearances: 200, seasons: 6, academyGraduate: true }),
+      currentClubId: MACCABI_ID,
+      academyStage: 'senior',
+    };
+    for (const event of MACCABI_EVENTS) {
+      for (const slot of SLOTS) expect(isEventEligible(event, home, slot)).toBe(false);
+    }
+  });
+
+  it('never reaches a child', () => {
+    const boy: Career = { ...base(), currentClubId: 'bnei_sakhnin', academyStage: 'children_a' };
+    for (const event of MACCABI_EVENTS) {
+      for (const slot of SLOTS) expect(isEventEligible(event, boy, slot)).toBe(false);
+    }
+  });
+
+  it('fires for a meaningful share of careers that leave', () => {
+    const ids = new Set(MACCABI_EVENTS.map((e) => e.id));
+    let withOne = 0;
+    const N = 400;
+    for (let seed = 1; seed <= N; seed += 1) {
+      const career = simulateCareer({ playerName: 'ל', position: 'CM', seed, policy: balancedPolicy });
+      if (career.eventsHistory.some((e) => ids.has(e.eventId))) withOne += 1;
+    }
+    // Maccabi never leaves the player's story: measured ~45% across policies.
+    expect(withOne / N).toBeGreaterThan(0.25);
   });
 });
 
