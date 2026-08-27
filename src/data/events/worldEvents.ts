@@ -344,7 +344,6 @@ export const WORLD_EVENTS: GameEvent[] = [
               roleValue: 6,
               reputation: 4,
               coachTrust: 5,
-              remember: 'breakout_at_small_club',
             },
           },
         ],
@@ -363,7 +362,6 @@ export const WORLD_EVENTS: GameEvent[] = [
               transferChance: 0.4,
               reputation: 6,
               roleValue: -3,
-              remember: 'breakout_at_small_club',
             },
           },
           {

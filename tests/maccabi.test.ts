@@ -28,6 +28,7 @@ import {
   RELATIONSHIP_NOTES,
 } from '../src/game/maccabiEngine';
 import { balancedPolicy, loyalPolicy, simulateCareer } from '../src/game/simulate';
+import { homecomingKind, homecomingPossible } from '../src/game/transferEngine';
 import type {
   Career,
   MaccabiRecord,
@@ -323,6 +324,43 @@ describe('the Maccabi event family', () => {
     }
     // Maccabi never leaves the player's story: measured ~45% across policies.
     expect(withOne / N).toBeGreaterThan(0.25);
+  });
+});
+
+describe('the homecoming', () => {
+  it('is never offered to a player who left them for a rival', () => {
+    const defector: Career = {
+      ...withMaccabi({ appearances: 250, seasons: 8, academyGraduate: true, everLeft: true }),
+      seasonHistory: [seniorSeason(MACCABI_ID), seniorSeason(RIVAL)],
+      currentClubId: RIVAL,
+      academyStage: 'senior',
+      ability: 85,
+      maccabism: 90,
+    };
+    // Good enough, keen enough, and one of their own — and it still does not happen.
+    expect(homecomingPossible(defector)).toBe(false);
+  });
+
+  it('is possible for a player who simply left', () => {
+    const emigrant: Career = {
+      ...withMaccabi({ appearances: 250, seasons: 8, academyGraduate: true, everLeft: true }),
+      seasonHistory: [seniorSeason(MACCABI_ID), seniorSeason('benfica')],
+      currentClubId: 'benfica',
+      academyStage: 'senior',
+    };
+    expect(homecomingPossible(emigrant)).toBe(true);
+  });
+
+  it('tells the rejected boy who came back a star apart from an ordinary redemption', () => {
+    const released: Career = {
+      ...base(),
+      academyStage: 'senior',
+      currentClubId: 'hapoel_afula',
+      flags: ['released_by_maccabi'],
+      age: 24,
+    };
+    expect(homecomingKind({ ...released, ability: 40 })).toBe('redemption');
+    expect(homecomingKind({ ...released, ability: 85 })).toBe('rejected_child_star');
   });
 });
 

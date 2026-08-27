@@ -14,15 +14,18 @@ import type {
   AttributeDelta,
   Career,
   CareerFlag,
+  Club,
   EventEffects,
   ExpectedRole,
+  MemoryKind,
   ProgressionResult,
   SeasonStats,
   TraitId,
 } from '../types';
+import { moveDirection } from './marketEngine';
 import { COACH_TRUST, MARKET, PROGRESSION, PROMOTION, RECOVERY, SEASON, TRAITS } from './balance';
 import { cohortLead, nextNaturalStage } from './cohort';
-import { advanceArc, hasTrait, recordMemory, startArc } from './memory';
+import { advanceArc, hasMemory, hasTrait, recordMemory, startArc } from './memory';
 import { clamp, round, type Rng } from './random';
 import { levelContext, roleFromValue } from './rules';
 
@@ -175,6 +178,63 @@ export function moveToClub(career: Career, clubId: string, options: MoveOptions 
   );
   next.olderGroup = 'none';
   if (target.id !== MACCABI_ID) next.captain = false;
+
+  return rememberTheMove(career, next, target, options);
+}
+
+/**
+ * Records what kind of move this was (v0.4).
+ *
+ * The memories exist so that later events and homecoming archetypes can key off the shape of a
+ * career rather than a snapshot of it - "he went abroad once and it worked" is a different player
+ * from "he went abroad once and came straight back". Written here, at the one place every move
+ * goes through, so no route into a club can skip them.
+ */
+function rememberTheMove(
+  before: Career,
+  after: Career,
+  target: Club,
+  options: MoveOptions,
+): Career {
+  // A loan is a spell, not a career direction; the loan's *return* is where the story is.
+  if (options.loan) return after;
+
+  let next = after;
+  const remember = (kind: MemoryKind): void => {
+    next = { ...next, memories: recordMemory(next, kind) };
+  };
+
+  const wasAbroad = getClub(before.currentClubId).country !== 'ישראל';
+  const goingAbroad = target.country !== 'ישראל';
+
+  if (goingAbroad && !wasAbroad) {
+    if (!hasMemory(before, 'first_move_abroad')) remember('first_move_abroad');
+    // Reaching Europe without ever having been a Maccabi senior player is its own route.
+    if (before.maccabi.appearances === 0) remember('direct_europe_from_non_maccabi');
+  }
+
+  if (!goingAbroad && wasAbroad) {
+    remember('returned_to_israel');
+    /*
+     * Whether the spell abroad worked is judged on football played, not on where he goes next -
+     * a player who managed a handful of games in two seasons did not have a European career.
+     */
+    const abroadGames = before.seasonHistory
+      .filter((s) => getClub(s.clubId).country !== 'ישראל')
+      .reduce((total, s) => total + s.stats.appearances, 0);
+    if (abroadGames < MARKET.failedAbroadAppearances) remember('failed_abroad');
+  }
+
+  if (before.academyStage === 'senior' && target.isSenior) {
+    const direction = moveDirection(before, target);
+    if (direction === 'up') {
+      remember('moved_up_a_level');
+      // Climbing again after having dropped down is the story worth its own name.
+      if (hasMemory(before, 'moved_down_a_level')) remember('rebuilt_career');
+    } else if (direction === 'down') {
+      remember('moved_down_a_level');
+    }
+  }
 
   return next;
 }

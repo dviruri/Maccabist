@@ -111,7 +111,7 @@ export const WORLD = {
   /** Player impact at or above which he genuinely shaped the season. */
   contributionThreshold: 0.25,
   /** ...and at which carrying a small club counts as a breakout. */
-  breakoutImpact: 0.42,
+  breakoutImpact: 0.39,
   /**
    * League prestige at or below which a club counts as "small".
    *
@@ -178,6 +178,12 @@ export const MARKET = {
   /* ---- hints ---- */
   goodDevelopment: 74,
   highVisibility: 70,
+
+  /**
+   * Appearances across every spell abroad below which the move abroad did not work out.
+   * Roughly a season and a half of regular football - less than that is not a European career.
+   */
+  failedAbroadAppearances: 40,
 
   /* ---- trajectory ---- */
   trajectoryUp: 4,
@@ -738,6 +744,12 @@ export const TRAITS = {
 
 /** Which homecoming story a return reads as. */
 export const HOMECOMING = {
+  /* v0.4 archetypes. A return is not one event. */
+  /** Coming home to lead is about standing in a dressing room, not raw ability. */
+  leaderLeadership: 62,
+  leaderMinAge: 27,
+  /** A European career has to have actually amounted to something to change the story. */
+  europeReputation: 62,
   primeMaxAge: 28,
   primeAbility: 76,
   veteranAge: 33,

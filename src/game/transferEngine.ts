@@ -21,6 +21,8 @@ import {
   moveDirection,
   offerHints,
 } from './marketEngine';
+import { maccabiRelationship } from './maccabiEngine';
+import { hasMemory, hasTrait } from './memory';
 import { leagueOf } from './worldEngine';
 import { leagueLevel } from '../data/leagues';
 import { applyEffects, cloneCareer, moveToClub } from './progressionEngine';
@@ -227,15 +229,60 @@ function loanOffer(club: Club, career: Career): TransferOffer {
 }
 
 /** Which kind of homecoming story this is. They are not the same event. */
-export type HomecomingKind = 'prime_hero' | 'successful_return' | 'veteran_farewell' | 'redemption';
+export type HomecomingKind =
+  | 'prime_hero'
+  | 'successful_return'
+  | 'veteran_farewell'
+  | 'redemption'
+  | 'rejected_child_star'
+  | 'returning_leader'
+  | 'european_returnee';
 
+/**
+ * Which return story this is (v0.4).
+ *
+ * Order matters, most specific first. The boy who was released and came back a genuine star is a
+ * different story from an ordinary redemption, and it is the single best story this game can
+ * tell - so it is checked before everything else.
+ */
 export function homecomingKind(career: Career): HomecomingKind {
-  if (career.flags.includes('released_by_maccabi') && !career.maccabi.everLeft) return 'redemption';
+  const wasReleased =
+    career.flags.includes('released_by_maccabi') || hasMemory(career, 'released_by_maccabi');
+
+  if (wasReleased && career.ability >= HOMECOMING.primeAbility) return 'rejected_child_star';
+  if (wasReleased && !career.maccabi.everLeft) return 'redemption';
+
   if (career.age >= HOMECOMING.veteranAge) return 'veteran_farewell';
+
+  // Coming home to lead is about standing in a dressing room, not raw ability.
+  if (
+    career.hidden.leadership >= HOMECOMING.leaderLeadership &&
+    career.age >= HOMECOMING.leaderMinAge &&
+    (career.captain || hasTrait(career, 'leader'))
+  ) {
+    return 'returning_leader';
+  }
+
+  // A real European career behind him changes what the return means to everyone.
+  if (hasMemory(career, 'first_move_abroad') && career.reputation >= HOMECOMING.europeReputation) {
+    return 'european_returnee';
+  }
+
   if (career.age <= HOMECOMING.primeMaxAge && career.ability >= HOMECOMING.primeAbility) {
     return 'prime_hero';
   }
   return 'successful_return';
+}
+
+/**
+ * Whether Maccabi would make the call at all.
+ *
+ * The relationship system finally makes this answerable properly: a player who left them for a
+ * domestic rival does not get a homecoming, however good he is. That is not a balance decision,
+ * it is the same rule the crowd applies.
+ */
+export function homecomingPossible(career: Career): boolean {
+  return maccabiRelationship(career) !== 'traitor';
 }
 
 const HOMECOMING_COPY: Record<HomecomingKind, { title: string; description: string; maccabism: number }> = {
@@ -262,6 +309,24 @@ const HOMECOMING_COPY: Record<HomecomingKind, { title: string; description: stri
     description:
       'שחררו אותך בגיל 18 ואמרו שאתה לא מספיק. עכשיו הם מתקשרים. יש בזה משהו מתוק ומר בו-זמנית.',
     maccabism: 20,
+  },
+  rejected_child_star: {
+    title: 'הילד ששחררו חוזר ככוכב',
+    description:
+      'הם אמרו לך שאתה לא מספיק טוב, ואתה הלכת והפכת לאחד הטובים בליגה. עכשיו הם מבקשים ממך לחזור, ואתה זה שמחזיק את הטלפון.',
+    maccabism: 26,
+  },
+  returning_leader: {
+    title: 'הם צריכים מישהו שיוביל',
+    description:
+      'חדר הלבשה צעיר, עונה קשה מאחור, ומועדון שמחפש מבוגר אחראי שיחזיק את זה. הם חושבים שזה אתה.',
+    maccabism: 20,
+  },
+  european_returnee: {
+    title: 'חזרה מאירופה',
+    description:
+      'עשית את הדרך החוצה, וזה הצליח. עכשיו יש שיחה על לסגור את המעגל - עם שם שכבר לא צריך הסבר.',
+    maccabism: 22,
   },
 };
 
@@ -588,7 +653,14 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
     // Coming home twice is not a story, it is a commute.
     const notAlreadyBack = !career.maccabi.returned;
 
-    if (goodEnough && notTooExpensive && ourOwn && notAlreadyBack && rng.chance(clamp(chance, 0, 0.5))) {
+    if (
+      goodEnough &&
+      notTooExpensive &&
+      ourOwn &&
+      notAlreadyBack &&
+      homecomingPossible(career) &&
+      rng.chance(clamp(chance, 0, 0.5))
+    ) {
       offers.push(returnHomeOffer(career));
     }
   }
