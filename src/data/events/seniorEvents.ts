@@ -13,7 +13,18 @@ export const SENIOR_EVENTS: GameEvent[] = [
     title: 'הרגע של המשחק הגדול',
     description: 'הכדור מגיע אליך בקצה הרחב. שוויון בדרבי, והיציע כבר על הרגליים.',
     category: 'match_moment',
-    conditions: { bands: ['senior'], atMaccabiSenior: true, minRoleValue: 40, requiresDerby: true },
+    /*
+     * v0.4.6: notPositions GK. This had no position condition at all, so a goalkeeper could be
+     * told "the ball reaches you at the far edge" and offered "shoot". Keepers get
+     * `gk_derby_save` instead - a derby is a derby for them too, it is just a different moment.
+     */
+    conditions: {
+      bands: ['senior'],
+      atMaccabiSenior: true,
+      minRoleValue: 40,
+      requiresDerby: true,
+      notPositions: ['GK'],
+    },
     weight: 9,
     cooldownSeasons: 2,
     choices: [

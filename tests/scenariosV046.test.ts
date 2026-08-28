@@ -279,6 +279,40 @@ describe('J. a goalkeeper gets goalkeeping moments', () => {
     }
   });
 
+  it('never offers a shooting event to a goalkeeper', () => {
+    /*
+     * The gap the position-condition test above could not see. It only checked events that
+     * *declare* `positions`, and sen_derby_moment declared none - so a keeper could be told the
+     * ball had reached him at the far edge and offered "לבעוט". Three more did the same. The
+     * rule is now enforced over the catalogue by `eventClaims`; this is the end-to-end version.
+     */
+    const keeper: Career = { ...seniorAt(MACCABI_ID, 'title_challenge'), position: 'GK' };
+    const shooting = ['לבעוט', 'הכדור מגיע אליך', 'לנגח', 'לכבוש'];
+    for (const slot of ['early', 'mid', 'late'] as SeasonSlot[]) {
+      for (const id of eligible(keeper, slot)) {
+        const event = EVENTS_BY_ID[id];
+        if (!event) continue;
+        const text = `${event.kicker ?? ''} ${event.title} ${event.description ?? ''} ${event.choices
+          .map((c) => c.label)
+          .join(' ')}`;
+        for (const word of shooting) {
+          expect(text.includes(word), `${id} offered to a goalkeeper: "${word}"`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('gives a goalkeeper his own derby moment', () => {
+    // Excluding him from the outfield one was necessary and not sufficient.
+    const keeper: Career = { ...seniorAt(MACCABI_ID, 'title_challenge'), position: 'GK' };
+    const offered = new Set([
+      ...eligible(keeper, 'early'),
+      ...eligible(keeper, 'mid'),
+      ...eligible(keeper, 'late'),
+    ]);
+    expect(offered.has('gk_derby_save')).toBe(true);
+  });
+
   it('never offers a goalkeeper-only event to an outfield player', () => {
     const striker: Career = { ...seniorAt(MACCABI_ID, 'title_challenge'), position: 'ST' };
     const keeperOnly = EVENT_POOL.filter(

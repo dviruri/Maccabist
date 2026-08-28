@@ -301,7 +301,8 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
     description:
       'שוויון, המשחק נגמר עוד רגע, והכדור נופל אליך בדיוק בקצה הרחב. היציע כבר על הרגליים.',
     category: 'match_moment',
-    conditions: { bands: ['teens', 'u19', 'senior'], minRoleValue: 38 },
+    // v0.4.6: a ball falling to you at the far edge in the 88th minute is not a keeper's moment.
+    conditions: { bands: ['teens', 'u19', 'senior'], minRoleValue: 38, notPositions: ['GK'] },
     weight: 8,
     slots: ['late'],
     cooldownSeasons: 2,
@@ -591,6 +592,8 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
       minRoleValue: 50,
       minAbility: 55,
       requiresDerby: true,
+      // The ball arriving in the box is not a goalkeeper's moment.
+      notPositions: ['GK'],
     },
     weight: 9,
     oncePerCareer: true,
@@ -888,7 +891,16 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
     title: 'שפל',
     description: 'לא נכנס לך כלום, והמאמן מתחיל להסתכל לכיוונים אחרים.',
     category: 'competition',
-    conditions: { bands: ['teens', 'u19', 'senior'], maxForm: 48, minRoleValue: 35 },
+    /*
+     * v0.4.6: "לא נכנס לך כלום" and "לבעוט מאה כדורים" is a scoring drought. A goalkeeper has
+     * bad runs too, and they do not look like this one.
+     */
+    conditions: {
+      bands: ['teens', 'u19', 'senior'],
+      maxForm: 48,
+      minRoleValue: 35,
+      notPositions: ['GK'],
+    },
     weight: 8,
     cooldownSeasons: 2,
     choices: [

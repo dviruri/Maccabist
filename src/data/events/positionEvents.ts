@@ -15,6 +15,114 @@ export const POSITION_EVENTS: GameEvent[] = [
   /* ================================================================= */
   /* שוער                                                              */
   /* ================================================================= */
+  /*
+   * A goalkeeper's derby (v0.4.6, Phase 21).
+   *
+   * `sen_derby_moment` had no position condition, so a keeper could be told the ball had reached
+   * him at the far edge and offered "shoot". Excluding him from it was necessary and not
+   * sufficient - a derby is a derby for a goalkeeper too. It is simply a different moment, and
+   * the memory it leaves is a save rather than a goal.
+   */
+  {
+    id: 'gk_derby_save',
+    kicker: 'דרבי, דקה 90',
+    title: 'הכדור הזה או שאתה מציל אותו',
+    description:
+      'שוויון בדרבי, והם מגיעים בהתקפה אחרונה. הכנף שלהם חופשי בצד, והרחבה מתמלאת.',
+    category: 'match_moment',
+    conditions: {
+      positions: ['GK'],
+      bands: ['senior'],
+      minRoleValue: 40,
+      requiresDerby: true,
+    },
+    weight: 10,
+    cooldownSeasons: 2,
+    choices: [
+      {
+        id: 'come_out',
+        label: 'לצאת על הכדור',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'claimed_it',
+            baseWeight: 42,
+            tone: 'good',
+            preview: 'תצא בזמן ותאסוף את ההרמה מעל שלושה ראשים',
+            text: 'יצאת ברגע הנכון ואספת את ההרמה מעל שלושה ראשים. שריקת הסיום, והיציע שר את השם שלך.',
+            effects: {
+              reputation: 8,
+              maccabism: 7,
+              roleValue: 8,
+              confidence: 10,
+              coachTrust: 7,
+              remember: 'derby_hero',
+              milestone: {
+                id: 'derby_save',
+                icon: '🧤',
+                text: 'ההצלה שהכריעה דרבי',
+                major: true,
+              },
+            },
+            traitModifiers: [{ trait: 'big_game', multiplier: 1.6 }],
+          },
+          {
+            id: 'caught_out',
+            baseWeight: 30,
+            tone: 'bad',
+            preview: 'תצא מוקדם מדי, והשער יישאר ריק מאחוריך',
+            text: 'יצאת מוקדם מדי. הכדור עבר מעליך, והשער היה ריק. בדרבי לא שוכחים את זה.',
+            effects: { confidence: -12, coachTrust: -9, roleValue: -6, reputation: -5 },
+          },
+          {
+            id: 'scrambled',
+            baseWeight: 28,
+            tone: 'neutral',
+            preview: 'זה ייצא מכוער, אבל הכדור לא ייכנס',
+            text: 'לא היה בזה שום דבר יפה. הכדור נגע בך, בבלם, ובקורה - ולא נכנס. 0:0.',
+            effects: { confidence: 3, coachTrust: 2 },
+          },
+        ],
+      },
+      {
+        id: 'hold_line',
+        label: 'להישאר על הקו ולחכות לבעיטה',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'big_save',
+            baseWeight: 46,
+            tone: 'good',
+            preview: 'תקרא את הבעיטה ותציל אותה על הקו',
+            text: 'חיכית, קראת את הבעיטה, והרחקת אותה ברגל. הקהל לא הבין כמה קרוב זה היה.',
+            effects: {
+              reputation: 6,
+              roleValue: 6,
+              confidence: 8,
+              coachTrust: 5,
+              remember: 'derby_hero',
+            },
+          },
+          {
+            id: 'beaten',
+            baseWeight: 34,
+            tone: 'bad',
+            preview: 'הבעיטה תיכנס לפינה שאי אפשר להגיע אליה',
+            text: 'הבעיטה נכנסה לפינה הרחוקה. אין הרבה מה לעשות עם זאת, וזה עדיין כואב בדרבי.',
+            effects: { confidence: -6, coachTrust: -3 },
+          },
+          {
+            id: 'cleared',
+            baseWeight: 20,
+            tone: 'neutral',
+            preview: 'הבלם ינקה את זה לפניך',
+            text: 'הבלם הגיע לפניך וניקה. לפעמים העבודה הטובה שלך היא לא לעשות כלום.',
+            effects: { coachTrust: 1 },
+          },
+        ],
+      },
+    ],
+  },
   {
     id: 'gk_penalty_save',
     kicker: 'דקה 90, 1:1',

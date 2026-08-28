@@ -37,6 +37,23 @@ function says(event: GameEvent, patterns: readonly string[]): boolean {
   return patterns.some((p) => text.includes(p));
 }
 
+/**
+ * The presented text *and* the choice labels.
+ *
+ * A choice reading "לבעוט" is as much a claim about the player as the description is - arguably
+ * more, since it is the thing he is being asked to do.
+ */
+function saysInChoices(event: GameEvent, patterns: readonly string[]): boolean {
+  const text = `${presentedText(event)} ${event.choices.map((ch) => ch.label).join(' ')}`;
+  return patterns.some((p) => text.includes(p));
+}
+
+/*
+ * Outfield actions. Narrow on purpose: "שער" is excluded because it also means a gate ("שער
+ * צפוני" is a stand), and a rule that fires on a stand name is a rule people learn to ignore.
+ */
+const OUTFIELD_PATTERNS = ['לבעוט', 'הכדור מגיע אליך', 'לנגח', 'לכבוש'];
+
 const c = (event: GameEvent): EventConditions => event.conditions ?? {};
 
 /*
@@ -118,6 +135,25 @@ export const CLAIM_RULES: readonly ClaimRule[] = [
     requirement: 'promotionRace: true',
     mentions: (e) => says(e, PROMOTION_PATTERNS),
     supported: (e) => c(e).promotionRace === true,
+  },
+  {
+    /*
+     * v0.4.6: an event that describes shooting may not reach a goalkeeper.
+     *
+     * `sen_derby_moment` had no position condition at all, so a keeper could be told the ball had
+     * reached him at the far edge and offered "לבעוט". Three more did the same. This is the same
+     * failure as the derby one - text asserting something about the player that nothing required
+     * to be true - and it deserves the same treatment rather than four edits.
+     */
+    id: 'outfield-action',
+    patterns: OUTFIELD_PATTERNS,
+    requirement: "positions without GK, or notPositions: ['GK']",
+    mentions: (e) => saysInChoices(e, OUTFIELD_PATTERNS),
+    supported: (e) => {
+      const conditions = c(e);
+      if (conditions.notPositions?.includes('GK')) return true;
+      return conditions.positions !== undefined && !conditions.positions.includes('GK');
+    },
   },
 ];
 
