@@ -371,8 +371,21 @@ THIS club), `open_manager_history`, `duplicate_person_id`, `unknown_person_arche
 
 ## 19. The 50,000-career simulation (Phase 67)
 
+Coherence at 3,000 careers first: zero club seasons without a table position, zero positions
+outside their division, zero outcomes a final position cannot produce, and every gated event
+of v0.4.6 still reachable with people in the pool (world-race events ceded ~3pp of frequency
+to the people slot — the intended pacing, not a regression).
+
+The full scan, every career through `validateCareerIntegrity` — all twelve v0.4.8 codes plus
+the seven people codes (trust ownership, person-id uniqueness, archetype validity, position
+fit, memory references, open tenures, missing managers):
+
 ```
-PLACEHOLDER_INT50K
+v0.5 INTEGRITY SCAN — 50,000 careers, balanced policy
+
+clean careers   50,000 / 50,000   100.00%
+
+No violations in any category.
 ```
 
 ## 20. Regression vs v0.4.8 (Phase 68)
