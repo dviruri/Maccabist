@@ -21,12 +21,13 @@ import {
   outcomeForPosition,
   positionsForOutcome,
   projectSeason,
+  settleProjection,
 } from '../src/game/leagueEngine';
 import { createCareer } from '../src/game/careerEngine';
 import { createRng } from '../src/game/random';
 import { balancedPolicy, simulateCareer } from '../src/game/simulate';
 import { emptyWorld } from '../src/game/worldEngine';
-import type { SeasonPhase, SeasonProjection, WorldState } from '../src/types';
+import type { Career, SeasonPhase, SeasonProjection, SeasonRecord, WorldState } from '../src/types';
 
 const PHASES: SeasonPhase[] = ['early', 'mid', 'late', 'end'];
 
@@ -337,6 +338,101 @@ describe('table coherence across real careers', () => {
 });
 
 /* ------------------------------------------------------------------ */
+
+describe('settling the season does not rewrite its history', () => {
+  /*
+   * Phase 25's explicit requirement. The player's actual season moves his club's final position
+   * via `settleProjection`, and that must not reach backwards: a table a player was shown in
+   * January has to still say the same thing in June, or the season was never one continuous
+   * thing.
+   */
+  const world = emptyWorld();
+
+  function playedWell(clubId: string): { career: Career; record: SeasonRecord } {
+    const base = createCareer({ playerName: 'ס', position: 'ST', seed: 3 });
+    const record: SeasonRecord = {
+      season: 2040,
+      age: 26,
+      academyStage: 'senior',
+      clubId,
+      clubName: clubId,
+      teamName: clubId,
+      league: 'ליגת העל',
+      onLoan: false,
+      stats: {
+        appearances: 34,
+        starts: 33,
+        goals: 18,
+        assists: 9,
+        cleanSheets: 0,
+        goalsConceded: 0,
+        rating: 78,
+        injuredGames: 0,
+      },
+      firstHalf: null,
+      ability: 86,
+      role: 'star',
+      coachTrust: 80,
+      trophies: [],
+      captain: true,
+      olderGroup: 'none',
+    };
+    return {
+      career: { ...base, academyStage: 'senior', currentClubId: clubId, currentSeason: 2040 },
+      record,
+    };
+  }
+
+  it('leaves the early, mid and late positions untouched', () => {
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const before = project(MACCABI_ID, seed);
+      const { career, record } = playedWell(MACCABI_ID);
+      const after = settleProjection(before, career, record);
+      for (const phase of ['early', 'mid', 'late'] as SeasonPhase[]) {
+        expect(after.path[phase], `seed ${seed} ${phase}`).toBe(before.path[phase]);
+      }
+    }
+  });
+
+  it('redraws the identical early-season table afterwards', () => {
+    const before = project(MACCABI_ID, 8);
+    const { career, record } = playedWell(MACCABI_ID);
+    const after = settleProjection(before, career, record);
+    for (const phase of ['early', 'mid', 'late'] as SeasonPhase[]) {
+      expect(buildTable(world, after, phase), phase).toEqual(buildTable(world, before, phase));
+    }
+  });
+
+  it('never moves the club out of the outcome band it committed to', () => {
+    /*
+     * He can be why they finished second instead of fourth. He cannot turn a season that was
+     * planned as a title race into mid-table after the events for it were already chosen.
+     */
+    for (let seed = 1; seed <= 80; seed += 1) {
+      const before = project(MACCABI_ID, seed);
+      const { career, record } = playedWell(MACCABI_ID);
+      const after = settleProjection(before, career, record);
+      expect(after.finalOutcome, `seed ${seed}`).toBe(before.finalOutcome);
+      const shape = leagueShape(after.leagueId);
+      if (!shape) continue;
+      expect(
+        outcomeForPosition(after.leagueId, after.finalPosition, shape),
+        `seed ${seed}`,
+      ).toBe(after.finalOutcome);
+    }
+  });
+
+  it('lets a great season actually move the club, at least sometimes', () => {
+    // A settle step that never changes anything is not a feature.
+    let moved = 0;
+    for (let seed = 1; seed <= 120; seed += 1) {
+      const before = project(MACCABI_ID, seed);
+      const { career, record } = playedWell(MACCABI_ID);
+      if (settleProjection(before, career, record).finalPosition !== before.finalPosition) moved += 1;
+    }
+    expect(moved).toBeGreaterThan(0);
+  });
+});
 
 describe('youth football has no table', () => {
   it('projects nothing for an academy player', () => {
