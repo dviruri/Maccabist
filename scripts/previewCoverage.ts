@@ -15,7 +15,7 @@
  */
 
 import { EVENT_POOL, EVENTS_BY_ID } from '../src/data/events';
-import { isGenericLabel } from '../src/game/decisionEngine';
+import { hasSharedLabel } from '../src/game/decisionEngine';
 import { POSITION_LIST } from '../src/game/balance';
 import { balancedPolicy, simulateCareer } from '../src/game/simulate';
 import type { GameEvent, Position } from '../src/types';
@@ -26,28 +26,48 @@ const arg = (name: string, fallback: number): number => {
 };
 const careers = arg('careers', 600);
 
-/** Outcomes belonging to a choice the player actually gambles on. */
-function probabilisticOutcomes(event: GameEvent): { total: number; concrete: number } {
+/**
+ * Outcomes belonging to a choice the player actually gambles on, split by how they are labelled.
+ *
+ * Three tiers, and the middle one is the reason this is not a single number. A shared label like
+ * 'הצלחה גדולה' is better than a bare valence and still not *specific* - it tells the player the
+ * result was good, which he could have guessed from the colour. Counting it as concrete would
+ * flatter the figure, so it is reported separately.
+ */
+function probabilisticOutcomes(event: GameEvent): {
+  total: number;
+  concrete: number;
+  shared: number;
+  valence: number;
+} {
   let total = 0;
   let concrete = 0;
+  let shared = 0;
+  let valence = 0;
   for (const choice of event.choices) {
     if (choice.outcomes.length <= 1) continue;
     for (const outcome of choice.outcomes) {
       total += 1;
-      if (!isGenericLabel(outcome.id, outcome.preview)) concrete += 1;
+      if (outcome.preview) concrete += 1;
+      else if (hasSharedLabel(outcome.id)) shared += 1;
+      else valence += 1;
     }
   }
-  return { total, concrete };
+  return { total, concrete, shared, valence };
 }
 
 /* ---------- catalogue ---------- */
 
 let catTotal = 0;
 let catConcrete = 0;
+let catShared = 0;
+let catValence = 0;
 for (const event of EVENT_POOL) {
-  const { total, concrete } = probabilisticOutcomes(event);
-  catTotal += total;
-  catConcrete += concrete;
+  const counts = probabilisticOutcomes(event);
+  catTotal += counts.total;
+  catConcrete += counts.concrete;
+  catShared += counts.shared;
+  catValence += counts.valence;
 }
 
 /* ---------- what players actually see ---------- */
@@ -63,23 +83,33 @@ for (let seed = 1; seed <= careers; seed += 1) {
 
 let seenTotal = 0;
 let seenConcrete = 0;
+let seenShared = 0;
+let seenValence = 0;
 const gaps: Array<{ id: string; fires: number; total: number; concrete: number }> = [];
 
 for (const [id, count] of fires) {
   const event = EVENTS_BY_ID[id];
   if (!event) continue;
-  const { total, concrete } = probabilisticOutcomes(event);
+  const { total, concrete, shared, valence } = probabilisticOutcomes(event);
   if (total === 0) continue;
   seenTotal += total * count;
   seenConcrete += concrete * count;
+  seenShared += shared * count;
+  seenValence += valence * count;
   if (concrete < total) gaps.push({ id, fires: count, total, concrete });
 }
 
 const pct = (n: number, d: number): string => `${((100 * n) / Math.max(1, d)).toFixed(1)}%`;
 
 console.log(`\nOUTCOME PREVIEW COVERAGE — ${careers.toLocaleString()} careers\n`);
-console.log(`  catalogue   ${catConcrete}/${catTotal} outcomes concrete   ${pct(catConcrete, catTotal)}`);
-console.log(`  as seen     weighted by how often events fire        ${pct(seenConcrete, seenTotal)}`);
+console.log('  CATALOGUE');
+console.log(`    written preview   ${String(catConcrete).padStart(4)}/${catTotal}   ${pct(catConcrete, catTotal)}`);
+console.log(`    shared label      ${String(catShared).padStart(4)}/${catTotal}   ${pct(catShared, catTotal)}`);
+console.log(`    bare valence      ${String(catValence).padStart(4)}/${catTotal}   ${pct(catValence, catTotal)}`);
+console.log('\n  AS SEEN (weighted by how often events fire)');
+console.log(`    written preview   ${pct(seenConcrete, seenTotal)}`);
+console.log(`    shared label      ${pct(seenShared, seenTotal)}`);
+console.log(`    bare valence      ${pct(seenValence, seenTotal)}`);
 
 gaps.sort((a, b) => b.fires * (b.total - b.concrete) - a.fires * (a.total - a.concrete));
 console.log(`\nBIGGEST GAPS — events players see often that still fall back to a valence label\n`);

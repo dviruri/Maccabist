@@ -240,6 +240,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'respected',
             baseWeight: 32,
             tone: 'good',
+            preview: 'תענה בפנים בלי לצעוק, והוא יאמר "עכשיו תראה לי במגרש"',
             text: 'ענית לו בפנים, בלי לצעוק. הוא הסתכל עליך רגע ואמר "יופי. עכשיו תראה לי במגרש."',
             effects: {
               coachTrust: 5,

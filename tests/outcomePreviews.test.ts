@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { EVENT_POOL, EVENTS_BY_ID } from '../src/data/events';
-import { calculateOutcomeDistribution, isGenericLabel } from '../src/game/decisionEngine';
+import { calculateOutcomeDistribution } from '../src/game/decisionEngine';
 import { POSITION_LIST } from '../src/game/balance';
 import { balancedPolicy, simulateCareer } from '../src/game/simulate';
 import type { GameEvent, Position } from '../src/types';
@@ -27,7 +27,12 @@ function gambledOutcomes(event: GameEvent): { total: number; concrete: number } 
     if (choice.outcomes.length <= 1) continue;
     for (const outcome of choice.outcomes) {
       total += 1;
-      if (!isGenericLabel(outcome.id, outcome.preview)) concrete += 1;
+      /*
+       * Strictly a *written* preview. A shared label like 'הצלחה גדולה' is better than a bare
+       * valence and still not specific - it tells the player the result was good, which the
+       * colour already told him - so counting it here would flatter the number.
+       */
+      if (outcome.preview) concrete += 1;
     }
   }
   return { total, concrete };
@@ -36,9 +41,9 @@ function gambledOutcomes(event: GameEvent): { total: number; concrete: number } 
 describe('outcome previews say something', () => {
   it('covers the large majority of what players actually see', () => {
     /*
-     * Weighted by firing frequency. Measured at 10.5% before this version's content pass and
-     * 92.3% after; the floor is set below that so ordinary content edits do not fail the build,
-     * but a regression to valence labels would.
+     * Weighted by firing frequency, and counting only written previews. Measured at 0% before
+     * this version's content pass and 88.0% after; the floor is set below that so ordinary
+     * content edits do not fail the build, but a regression to valence labels would.
      */
     const fires = new Map<string, number>();
     for (let seed = 1; seed <= 150; seed += 1) {
@@ -60,7 +65,7 @@ describe('outcome previews say something', () => {
     }
 
     expect(total).toBeGreaterThan(1000);
-    expect(concrete / total).toBeGreaterThan(0.8);
+    expect(concrete / total).toBeGreaterThan(0.75);
   });
 
   it('has raised catalogue coverage well clear of where it started', () => {
@@ -71,8 +76,8 @@ describe('outcome previews say something', () => {
       total += counts.total;
       concrete += counts.concrete;
     }
-    // 12.8% before the pass.
-    expect(concrete / total).toBeGreaterThan(0.5);
+    // 0% written previews before the pass; 54.6% after.
+    expect(concrete / total).toBeGreaterThan(0.45);
   });
 
   it('never writes a preview in the past tense of the resolution', () => {

@@ -56,6 +56,7 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             id: 'held_own',
             baseWeight: 40,
             tone: 'good',
+            preview: 'קשה בהתחלה, ואחרי כמה שבועות אתה מדביק את הקצב',
             text: 'קשה לך בהתחלה, אבל אחרי כמה שבועות אתה מדביק את הקצב. המאמן מרוצה.',
             effects: {
               ability: 1.4,
@@ -71,6 +72,7 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             id: 'struggled',
             baseWeight: 28,
             tone: 'bad',
+            preview: 'הם גדולים ממך פיזית, ותחזור לשנתון שלך קצת שבור',
             text: 'הם גדולים ממך פיזית ואתה מוצא את עצמך רץ אחרי הכדור. חוזר לשנתון שלך קצת שבור.',
             effects: {
               confidence: -8,
@@ -91,6 +93,7 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             baseWeight: 8,
             conditions: { minPotential: 82 },
             tone: 'good',
+            preview: 'לא רק תעמוד בקצב - תשלוט, וידברו עליך במחלקה',
             text: 'לא רק שעמדת בקצב - שלטת. אחרי חודש כבר מדברים עליך בכל המחלקה.',
             effects: {
               ability: 4,
@@ -502,6 +505,7 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             id: 'fine',
             baseWeight: 45,
             tone: 'good',
+            preview: 'תתעלם מהתחושה המוזרה, והגוף ידביק את עצמו',
             text: 'התעלמת מהתחושה המוזרה ופשוט המשכת לשחק. הגוף הדביק את עצמו.',
             effects: { ability: 1.5, coachTrust: 3, confidence: 4 },
             modifiers: [{ attribute: 'confidence', above: 65, multiplier: 1.4 }],

@@ -320,6 +320,17 @@ export function isGenericLabel(id: string, preview?: string): boolean {
   return preview === undefined && OUTCOME_LABELS[id] === undefined;
 }
 
+/**
+ * True when this outcome id has a shared label.
+ *
+ * Reported separately from a written preview when measuring coverage. 'הצלחה גדולה' is better
+ * than a bare valence and still not *specific* - it tells the player the result was good, which
+ * the colour already told him - so counting it as concrete would flatter the number.
+ */
+export function hasSharedLabel(id: string): boolean {
+  return OUTCOME_LABELS[id] !== undefined;
+}
+
 /* ------------------------------------------------------------------ */
 /* Resolution                                                          */
 /* ------------------------------------------------------------------ */
