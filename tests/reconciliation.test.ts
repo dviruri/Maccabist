@@ -400,13 +400,19 @@ describe('real careers do not contradict themselves', () => {
    * The two bugs the 50,000-career scan found and 20,000 did not. Both are pinned by their own
    * seed, because a population test that only samples 150 careers is exactly what missed them.
    */
-  it('counts a title won on loan at Maccabi (seed 3119)', () => {
+  it('counts a title won on loan at Maccabi (seed 722)', () => {
     /*
      * The counters were incremented inside the countsForMaccabiLegacy branch, which requires
      * parentClubId === null - so a title won on loan at Maccabi awarded a trophy with
      * clubId maccabi_haifa and counted nothing. They are recomputed from the trophy list now.
      */
-    const career = simulateCareer({ playerName: 'ת', position: 'ST', seed: 3119, policy: balancedPolicy });
+    /*
+     * Re-pinned for v0.5: the manager minutes factor shifted every career's trajectory, and
+     * seed 3119 no longer produces the loan-title shape. Seed 722 does - a 2053 title at Maccabi
+     * sandwiched between two Dortmund seasons. The invariant itself is also covered across a
+     * population below; this pin exists so the loan case specifically stays exercised.
+     */
+    const career = simulateCareer({ playerName: 'ת', position: 'ST', seed: 722, policy: balancedPolicy });
     const titles = career.trophies.filter(
       (t) => t.clubId === MACCABI_ID && t.id === 'championship',
     ).length;

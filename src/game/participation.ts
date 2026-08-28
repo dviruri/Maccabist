@@ -43,8 +43,15 @@ export function projectedMinutesShare(career: Career): number {
   const withForm = withAge * (0.9 + career.hidden.form / 500 + career.hidden.confidence / 700);
   const withOlderGroup = withForm * SEASON.olderGroupMinutesPenalty[career.olderGroup];
   const withEvents = withOlderGroup * career.hidden.minutesModifier;
+  /*
+   * v0.5: the manager factor, mirrored from `computeMinutesShare` exactly. If the engine's
+   * minutes model gains a term and this projection does not, the participation gate starts
+   * answering a different question from the one the football asks - which is the precise shape
+   * of bug v0.4.8 existed to remove. Keep these two in lockstep.
+   */
+  const withManager = withEvents * managerMinutesFactor(career);
   const floor = level.isAcademy ? SEASON.youthMinutesFloor : SEASON.minutesMin;
-  return clamp(withEvents, floor, SEASON.minutesMax);
+  return clamp(withManager, floor, SEASON.minutesMax);
 }
 
 /** Roughly how many matches he would expect across the whole season. */
@@ -178,4 +185,5 @@ export function needsAppearanceReconciliation(career: Career, appearances: numbe
   const ledger = career.seasonParticipation;
   if (!ledger || ledger.season !== career.currentSeason) return false;
   return ledger.onFieldEventFired === true && appearances < 1;
-}
+}import { managerMinutesFactor } from './peopleEngine';
+

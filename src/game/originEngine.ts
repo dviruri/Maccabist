@@ -9,6 +9,7 @@
  * Pure functions over a Career plus an Rng. No React, no side effects.
  */
 
+import { endManagerTenure, installManager } from './peopleEngine';
 import { MACCABI_ACADEMY_ID } from '../data/clubs';
 import { stageConfig } from '../data/academy';
 import { EXTERNAL_YOUTH_CLUBS } from '../data/youthClubs';
@@ -230,6 +231,12 @@ export function resolveRetrial(career: Career, rng: Rng): RetrialOutcome {
     currentClubId: MACCABI_ACADEMY_ID,
     origin: next.origin,
   };
+  /*
+   * v0.5: joining Maccabi mid-childhood is a club change like any other, and it happens outside
+   * `moveToClub` - so the coach relationship is swapped here explicitly. The external club's
+   * coach closes with his trust snapshot; Maccabi's age-group coach takes over.
+   */
+  next = installManager(endManagerTenure(next, true));
   next.memories = recordMemory(next, 'joined_maccabi_late');
   next = addMilestone(next, {
     id: 'joined_maccabi_late',

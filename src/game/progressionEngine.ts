@@ -16,6 +16,15 @@ import { ACHIEVEMENT_DEFS } from '../data/achievements';
 import { getClub, MACCABI_ID, isMaccabiSenior } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
 import { guardedMaccabismDelta } from './truth';
+import {
+  endManagerTenure,
+  installManager,
+  managerBaselineDelta,
+  personalCoachDevBonus,
+  personalCoachInjuryRelief,
+  personalCoachRecoveryBonus,
+  scaleTrustMove,
+} from './peopleEngine';
 import { EXTERNAL_YOUTH_CLUBS } from '../data/youthClubs';
 import type {
   AcademyStage,
@@ -131,6 +140,16 @@ export interface MoveOptions {
 /** Moves the player to a new club and keeps the Maccabi legacy bookkeeping straight. */
 export function moveToClub(career: Career, clubId: string, options: MoveOptions = {}): Career {
   const next = cloneCareer(career);
+  /*
+   * v0.5, Phase 45: a club change is a manager change. The old relationship closes HERE, before
+   * anything recomputes trust, so the snapshot honestly records where it stood on the day the
+   * player left - and the old manager stays remembered at his club, findable on a return. The
+   * new manager is installed at the bottom of this function, after arrival trust is settled, so
+   * there is never a moment where trust belongs to nobody, and never any leakage between the two.
+   */
+  if (clubId !== career.currentClubId) {
+    next.people = endManagerTenure(career, true).people;
+  }
   const wasMaccabiSenior =
     isMaccabiSenior(career.currentClubId) &&
     career.parentClubId === null &&
@@ -210,6 +229,16 @@ export function moveToClub(career: Career, clubId: string, options: MoveOptions 
   );
   next.olderGroup = 'none';
   if (target.id !== MACCABI_ID) next.captain = false;
+
+  /*
+   * v0.5: the new club's manager becomes the current relationship. Installed after arrival trust
+   * is computed, so the number the tenure opens under is the one the new staff actually hold. The
+   * archetype-aware baseline then shapes where trust drifts from here - the same man the transfer
+   * screen's hint described, because both read `clubManagerArchetype`.
+   */
+  if (clubId !== career.currentClubId) {
+    next.people = installManager(next).people;
+  }
 
   return rememberTheMove(career, next, target, options);
 }
@@ -589,8 +618,13 @@ export function updateCoachTrust(career: Career, ctx: HalfContext): number {
       ? RECOVERY.formRecoveryBonus
       : 0;
 
+  /*
+   * v0.5, Phase 18: the manager's temperament scales the MOVEMENT, never the level. A short fuse
+   * makes both directions steeper; a conservative flattens the climb. Applied before the cap so
+   * an amplified swing still cannot exceed what one half-season is allowed to change.
+   */
   const move = clamp(
-    performance + minutes + discipline + drift + earnedItBack,
+    scaleTrustMove(career, performance + minutes + discipline + drift + earnedItBack),
     -COACH_TRUST.maxMovePerHalf,
     COACH_TRUST.maxMovePerHalf,
   );
@@ -640,6 +674,15 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
     if (gap > 0) {
       const potentialPull = clamp(gap / 22, 0, 1.4) ** PROGRESSION.potentialPullStrength;
       growth = base * potentialPull * common;
+      /*
+       * v0.5, Phase 23: the personal specialist's edge. Additive and small - well under an
+       * ordinary half-season's development - and diminishing with ability, so it compounds into
+       * a meaningful career-long difference for a developing player and into scraps for a made
+       * one. It rides INSIDE the gap>0 branch on purpose: the specialist helps a player approach
+       * his own ceiling, and no session in the world moves the ceiling. Potential is never read
+       * or written here.
+       */
+      growth += personalCoachDevBonus(next) * fraction * 2;
     } else {
       // Past the ceiling: only an exceptional spell keeps pushing, and only so far.
       const o = PROGRESSION.overshoot;
@@ -789,13 +832,26 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
   );
   const confidenceTarget =
     PROGRESSION.confidenceBaseline + (stats.rating - 58) * 0.8 + minutesShare * 12;
+  /*
+   * v0.5, Phase 23: the mental coach's work is recovery, not talent. He pulls a shaken player
+   * back toward his baseline faster - only when confidence is actually low, because there is
+   * nothing for him to do with a player already sure of himself. The fitness coach eases injury
+   * pressure the same way: a relief on the drift, never immunity.
+   */
+  const mentalHelp =
+    next.hidden.confidence < confidenceTarget ? personalCoachRecoveryBonus(next) : 0;
   next.hidden.confidence = clamp(
     next.hidden.confidence +
-      (confidenceTarget - next.hidden.confidence) * PROGRESSION.confidenceRecovery * fraction * 2,
+      (confidenceTarget - next.hidden.confidence) * PROGRESSION.confidenceRecovery * fraction * 2 +
+      mentalHelp * fraction * 2,
   );
   next.hidden.injuryRisk = clamp(
     next.hidden.injuryRisk +
-      ((career.age > 30 ? 2.2 : 0) + (stats.injuredGames > 0 ? 4 : -1.5)) * fraction * 2,
+      ((career.age > 30 ? 2.2 : 0) +
+        (stats.injuredGames > 0 ? 4 : -1.5) -
+        personalCoachInjuryRelief(next)) *
+        fraction *
+        2,
   );
   next.hidden.pressure = clamp(next.hidden.pressure * 0.95 + (next.roleValue - 50) * 0.04);
 
@@ -844,10 +900,16 @@ export function coachTrustBaseline(career: Career): number {
   const level = levelContext(career);
   const edge = career.ability - level.quality;
   const seasons = Math.min(career.maccabi.seasons, RECOVERY.baselineSeasonsCap);
+  /*
+   * v0.5, Phase 16: the current manager's archetype tilts where trust settles - a youth believer
+   * anchors a teenager higher, a star-driven manager reads reputation into everything. A tilt on
+   * the equilibrium the existing terms already compute, never a replacement for them.
+   */
   return clamp(
     RECOVERY.baselineAnchor +
       edge * RECOVERY.baselineAbilityWeight +
-      seasons * RECOVERY.baselineSeasonsWeight,
+      seasons * RECOVERY.baselineSeasonsWeight +
+      managerBaselineDelta(career),
   );
 }
 

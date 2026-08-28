@@ -54,13 +54,20 @@ export function countMemories(career: Career, kind: MemoryKind): number {
 }
 
 /** Appends a memory. Returns the array so callers can assign it onto a cloned career. */
-export function recordMemory(career: Career, kind: MemoryKind, detail?: string): CareerMemory[] {
+export function recordMemory(
+  career: Career,
+  kind: MemoryKind,
+  detail?: string,
+  /** Who was involved (v0.5). The memory keeps pointing at this person for life. */
+  personId?: string,
+): CareerMemory[] {
   const memory: CareerMemory = {
     kind,
     season: career.currentSeason,
     age: career.age,
     stage: career.academyStage,
     ...(detail === undefined ? {} : { detail }),
+    ...(personId === undefined ? {} : { personId }),
   };
   return [...career.memories, memory];
 }

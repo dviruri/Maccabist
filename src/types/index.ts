@@ -628,7 +628,19 @@ export type MemoryKind =
   // The ambient Maccabi world (v0.4.1) - things the club did while he was elsewhere
   | 'maccabi_title_without_me'
   | 'maccabi_relegated_while_away'
-  | 'maccabi_asked_about_me';
+  | 'maccabi_asked_about_me'
+  // People (v0.5) - narrative facts about relationships, each carrying a personId
+  | 'signed_with_agent'
+  | 'changed_agent'
+  | 'rejected_elite_agent'
+  | 'agent_opened_market'
+  | 'manager_gave_debut'
+  | 'manager_showed_faith'
+  | 'manager_conflict'
+  | 'manager_left'
+  | 'new_manager_page'
+  | 'personal_coach_started'
+  | 'personal_coach_breakthrough';
 
 export interface CareerMemory {
   kind: MemoryKind;
@@ -637,6 +649,13 @@ export interface CareerMemory {
   stage: AcademyStage;
   /** Optional detail for templating, e.g. a club name. */
   detail?: string;
+  /**
+   * Who was involved (v0.5, Phase 2). A memory referencing a person keeps referencing the SAME
+   * person for life - the manager who gave the debut stays that manager, whoever is in charge
+   * now. Career Memory stores narrative facts about relationships; it is never a second source
+   * of football-stat truth.
+   */
+  personId?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -748,6 +767,145 @@ export type MaccabiRelevance =
   | 'return'
   /** Facing them. */
   | 'opponent';
+
+/* ------------------------------------------------------------------ */
+/* People (v0.5)                                                       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * v0.5's product goal in one sentence: the career should contain recurring human relationships,
+ * so that at retirement the player remembers not only which clubs he played for but who believed
+ * in him, who pushed him to leave, and who gave him his chance.
+ *
+ * Three person types, deliberately no more - the brief is explicit that this must not grow into
+ * a social graph. Every person is fictional, generated from seeded name pools, and keeps a stable
+ * id for life: the agent who signed him at sixteen is the same object in a memory at thirty-five.
+ */
+export type PersonType = 'agent' | 'club_manager' | 'personal_coach';
+
+export type AgentArchetypeId =
+  /** Patient, protective, strong at home. The relationship is the product. */
+  | 'family'
+  /** Knows every Israeli chairman. Loans and role-fit moves. */
+  | 'israel_networker'
+  /** Opens specific foreign markets. Less useful for a domestic step. */
+  | 'europe_specialist'
+  /** Pushes upward. More offers, more ambition, more risk of a bad fit. */
+  | 'dealmaker'
+  /** Rare, reputation-gated, wide reach - and less patience for sentiment. */
+  | 'super_agent';
+
+export type ManagerArchetypeId =
+  /** Gives young players real chances. */
+  | 'youth_believer'
+  /** Trust must be earned. Leans on the established. */
+  | 'conservative'
+  /** Role fit and discipline over flair. */
+  | 'disciplinarian'
+  /** Rotates the squad - more opportunities, less stability. */
+  | 'rotation'
+  /** Reputation and ability carry the day. Hard on unknowns, good for stars. */
+  | 'star_driven'
+  /** Trust moves fast in both directions. */
+  | 'short_fuse';
+
+export type CoachSpecialtyId =
+  | 'goalkeeping'
+  | 'technical'
+  | 'fitness'
+  | 'mental'
+  | 'finishing'
+  | 'speed';
+
+/**
+ * A person with a stable identity (v0.5, Phase 1).
+ *
+ * The id is deterministic - generated from the career's seeded rng and a per-career sequence
+ * number - and NEVER regenerated. If the name were re-rolled per event, "the manager who gave
+ * you your debut" would be a different man every time the sentence was rendered.
+ */
+export interface PersonIdentity {
+  id: string;
+  type: PersonType;
+  /** Full display name, Hebrew or Hebrew-transliterated. */
+  name: string;
+  /** Surname alone, for compact UI. */
+  shortName: string;
+  /** AgentArchetypeId | ManagerArchetypeId | CoachSpecialtyId, by type. */
+  archetypeId: string;
+  createdSeason: number;
+  /** Name-pool provenance - one of the modelled club countries. */
+  country: string;
+}
+
+/**
+ * One manager's spell with the player (v0.5, Phase 15).
+ *
+ * THE SCOPING RULE: `career.coachTrust` IS the relationship with the *current* manager - there
+ * is deliberately no `trust` field on the open tenure, because two copies of one number is the
+ * exact defect v0.4.8 existed to remove. Trust is snapshotted into `finalTrust` only when the
+ * relationship ends (the manager leaves, or the player does).
+ */
+export interface ManagerTenure {
+  person: PersonIdentity;
+  clubId: string;
+  fromSeason: number;
+  /** Set when the relationship ends. An open tenure has no end. */
+  toSeason?: number;
+  /** Where trust stood when it ended. The current relationship lives in `career.coachTrust`. */
+  finalTrust?: number;
+  /** This manager handed the player his senior debut. Callback material for life. */
+  gaveDebut?: boolean;
+}
+
+/** The player's representation (v0.5, Phases 3-5). */
+export interface AgentBond {
+  person: PersonIdentity;
+  /** 0-100. Separate from Maccabism and from Coach Trust, and never shown as a giant bar. */
+  relationship: number;
+  sinceSeason: number;
+  /** Set when the player moves on. */
+  endedSeason?: number;
+  /** Advice bookkeeping, so later events can honestly reference the pattern. */
+  advicesFollowed: number;
+  advicesRejected: number;
+}
+
+/** A personal specialist the player trains with outside the club (v0.5, Phases 21-26). */
+export interface PersonalCoachBond {
+  person: PersonIdentity;
+  specialty: CoachSpecialtyId;
+  sinceSeason: number;
+  endedSeason?: number;
+  /** Full seasons of work together - feeds the breakthrough arc, not a stat bonus. */
+  seasonsTogether: number;
+}
+
+/**
+ * Everything people (v0.5).
+ *
+ * Optional on Career so every v0.4.8 save loads; `hydrateCareer` builds it, seeding the current
+ * manager relationship from the existing Coach Trust so nothing is lost (Phase 15.1).
+ */
+export interface PeopleState {
+  /** The current club's manager. His trust IS `career.coachTrust`. */
+  manager: ManagerTenure | null;
+  /** Every ended manager relationship, oldest first. */
+  managerHistory: ManagerTenure[];
+  agent: AgentBond | null;
+  agentHistory: AgentBond[];
+  personalCoach: PersonalCoachBond | null;
+  personalCoachHistory: PersonalCoachBond[];
+  /**
+   * Last-known manager at clubs the player has left, so a return can plausibly find the same
+   * man - or discover he has moved on. Not a world simulation: only clubs the player knew.
+   */
+  clubManagers: Record<string, PersonIdentity>;
+  /** Monotonic sequence for person ids, so they never collide. */
+  personSeq: number;
+  /** Season a people-family event last fired, for anti-spam pacing (Phase 42). */
+  lastPeopleEventSeason?: number;
+}
 
 /** One recorded Maccabism change (v0.4.8, Phase 24). */
 export interface MaccabismTraceEntry {
@@ -1456,6 +1614,11 @@ export interface Career {
    * rebuilds it rather than leaving on-field events ungated.
    */
   seasonParticipation?: SeasonParticipation;
+  /**
+   * The people around the career (v0.5). Optional so v0.4.8 saves load; `hydrateCareer`
+   * migrates, seeding the current manager's relationship from the existing `coachTrust`.
+   */
+  people?: PeopleState;
   /**
    * The last few Maccabism changes, with why each was allowed (v0.4.8, Phase 24).
    *

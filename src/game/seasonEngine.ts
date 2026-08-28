@@ -12,6 +12,7 @@ import { TROPHY_DEFS } from '../data/trophies';
 import type { Career, SeasonRecord, SeasonStats, Trophy } from '../types';
 import { POSITIONS, SEASON, TRAITS } from './balance';
 import { hasTrait } from './memory';
+import { managerMinutesFactor } from './peopleEngine';
 import { creditParticipation, needsAppearanceReconciliation } from './participation';
 import { checkMilestones } from './milestones';
 import { checkTraitReveals } from './traitReveal';
@@ -44,7 +45,15 @@ export function computeMinutesShare(career: Career, rng: Rng): number {
   const withForm = withAge * (0.9 + career.hidden.form / 500 + career.hidden.confidence / 700);
   const withOlderGroup = withForm * SEASON.olderGroupMinutesPenalty[career.olderGroup];
   const withEvents = withOlderGroup * career.hidden.minutesModifier;
-  const noisy = withEvents * rng.range(0.88, 1.12);
+  /*
+   * v0.5, Phase 18: the manager's hand on the team sheet. A narrow factor - a youth believer
+   * plays his teenagers more, a rotation manager spreads minutes toward the fringe - that
+   * COMBINES with ability, trust, form and everything above. Archetype tilts selection; it never
+   * decides it. `projectedMinutesShare` mirrors this term, so the participation gate keeps
+   * agreeing with the football (the v0.4.8 rule).
+   */
+  const withManager = withEvents * managerMinutesFactor(career);
+  const noisy = withManager * rng.range(0.88, 1.12);
   const floor = level.isAcademy ? SEASON.youthMinutesFloor : SEASON.minutesMin;
   return clamp(noisy, floor, SEASON.minutesMax) as number;
 }

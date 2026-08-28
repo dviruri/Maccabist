@@ -60,6 +60,7 @@ import { LEAGUE_TROPHY_IDS } from './truth';
 import { mayDeliverOnField, openParticipation } from './participation';
 import { computeLegendScore } from './legendEngine';
 import { hasTrait, recordMemory } from './memory';
+import { advancePeopleSeason, migratePeople, replaceManager } from './peopleEngine';
 import {
   addMilestone,
   applyEffects,
@@ -245,6 +246,17 @@ export function hydrateCareer(career: Career): Career {
     next = { ...next, maccabi: { ...next.maccabi, championships, cups, europeanRuns } };
   }
 
+  /*
+   * People for a pre-v0.5 save (Phase 49).
+   *
+   * The one migration that matters is Coach Trust: the number in the save already IS a
+   * relationship with somebody - the player just never knew his name. So the current club's
+   * manager is instantiated deterministically from the seed, and the existing trust becomes his,
+   * unchanged. No agent and no personal coach are invented, because the save knows of none, and
+   * a migration that guessed at history would be writing fiction into a career that has one.
+   */
+  next = migratePeople(next);
+
   return next;
 }
 
@@ -428,7 +440,16 @@ export function createCareer(input: NewCareerInput): Career {
   career.startAge = career.age;
 
   // Every career passes through Maccabi's door - it just does not always open.
-  return resolveOrigin(career, rng);
+  const originated = resolveOrigin(career, rng);
+
+  /*
+   * People are built AFTER the origin resolves (v0.5) - origin can place a rejected boy at an
+   * external youth club by writing `currentClubId` directly, and building people first would
+   * hand him Maccabi's age-group coach at a club Maccabi turned him away from. Done here rather
+   * than in `hydrateCareer` for the same reason as the participation ledger above: hydration
+   * stays a pure migration for old saves.
+   */
+  return migratePeople(originated);
 }
 
 /**
@@ -689,6 +710,25 @@ export function beginSeason(career: Career): Career {
     let next = driftTrustTowardsBaseline(career, RECOVERY.seasonDriftToBaseline);
     const coach = maybeChangeCoach(next, rng);
     next = coach.career;
+    /*
+     * v0.5: the coach change is now a person change. The outgoing manager's relationship is
+     * closed with its trust snapshot, a successor with a different archetype takes over, and
+     * both moments are remembered with the person attached - which is what lets an event years
+     * later say who left, by name, and be right.
+     */
+    if (coach.changed) {
+      const leaving = next.people?.manager?.person;
+      next = replaceManager(next, rng);
+      if (leaving) {
+        next = cloneCareer(next);
+        next.memories = recordMemory(next, 'manager_left', leaving.name, leaving.id);
+        const incoming = next.people?.manager?.person;
+        if (incoming) {
+          next.memories = recordMemory(next, 'new_manager_page', incoming.name, incoming.id);
+        }
+      }
+    }
+    next = advancePeopleSeason(next);
 
     next = snapshotOpening(next);
     next.newCoachThisSeason = coach.changed;
