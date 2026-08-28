@@ -14,6 +14,7 @@ import { CareerTimeline } from '../components/CareerTimeline';
 import { OriginReveal } from '../components/OriginReveal';
 import { StageLadder } from '../components/StageLadder';
 import { LeagueTableCard } from '../components/LeagueTableCard';
+import { MidSeasonCard } from '../components/SeasonCards';
 import { ClubCrest } from '../components/ClubCrest';
 import { resolveOrigin } from '../game/originEngine';
 import { projectSeason } from '../game/leagueEngine';
@@ -346,6 +347,17 @@ const memorableSeason = (): Career => {
  * A senior career with a live projection, for the table scenes. Runs the real projector rather
  * than hand-building a table, so the gallery shows what the game actually generates.
  */
+/* A mid-season senior career with a live table, for the phase-37 standing line. */
+const midSeasonCareer = (): Career => {
+  const base = tableCareer(MACCABI_ID, 3);
+  return {
+    ...base,
+    seasonPoint: 'midseason',
+    seasonSlot: 'mid',
+    firstHalfStats: { appearances: 14, starts: 12, goals: 4, assists: 3, cleanSheets: 0, goalsConceded: 0, rating: 71, injuredGames: 0 },
+  };
+};
+
 const tableCareer = (clubId: string, seed: number): Career => {
   const base = seniorAtMaccabi();
   const career: Career = {
@@ -558,6 +570,7 @@ export function Gallery(): JSX.Element {
     ['news', <AmbientNewsHeader career={euro} />],
     ['timeline', <CareerTimeline career={retiredLegend()} defaultOpen />],
     ['season', <SeasonResultCard career={senior} onContinue={noop} />],
+    ['midseason', <MidSeasonCard career={midSeasonCareer()} onContinue={noop} />],
     /* A season that actually produced milestones, so the "what you will remember" strip renders. */
     ['season-memorable', <SeasonResultCard career={memorableSeason()} onContinue={noop} />],
     ['retirement', <RetirementPage career={retiredLegend()} onNewCareer={noop} isBest />],

@@ -7,6 +7,8 @@ import { clubSeasonFor, isBadSeason, isGoodSeason } from '../game/worldEngine';
 import { headlineTitle, roleTextOf, seasonLabel } from '../ui/format';
 import { Chip, DeltaList, Ltr, NumberBox } from './primitives';
 import { StageLadder } from './StageLadder';
+import { situationText } from './LeagueTableCard';
+import { currentLeagueContext } from '../game/leagueEngine';
 
 /** Which numbers matter depends on where you play. */
 function StatBoxes({
@@ -76,8 +78,40 @@ function ClubSeasonLine({ career, season }: { career: Career; season: number }):
 
   return (
     <div className="row-between">
-      <div className="faint">{league.name}</div>
+      <div className="faint">
+        {league.name}
+        {/*
+          v0.4.6: the actual finishing position, not only the category. "מקום 4" is what a
+          supporter would say; "חלק עליון בטבלה" is what a database would.
+        */}
+        {result.finalPosition !== undefined && (
+          <span className="season-finish">
+            {' · מקום '}
+            <Ltr>{result.finalPosition}</Ltr>
+          </span>
+        )}
+      </div>
       <Chip tone={tone}>{result.label}</Chip>
+    </div>
+  );
+}
+
+/**
+ * Where the club stands right now, mid-season (v0.4.6, Phase 37).
+ *
+ * The same `leagueContext` the events are gated on, so a player told he is in a title race is
+ * being told the thing that decides which events he can receive.
+ */
+function LeagueStanding({ career }: { career: Career }): JSX.Element | null {
+  const context = currentLeagueContext(career);
+  if (!context) return null;
+
+  return (
+    <div className="standing-line">
+      <span className="standing-pos">
+        מקום <Ltr>{context.position}</Ltr>
+      </span>
+      <span className="standing-text">{situationText(context)}</span>
     </div>
   );
 }
@@ -98,6 +132,13 @@ export function MidSeasonCard({ career, onContinue }: MidProps): JSX.Element | n
         <h2 className="card-title">
           {headlineTitle(career)} · <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
         </h2>
+
+        {/*
+          Half-way through, the table is half the story (v0.4.6, Phase 37). Shown above the
+          player's own numbers because "we are second, four off the top" is the context his
+          twelve appearances happened inside.
+        */}
+        <LeagueStanding career={career} />
 
         <StatBoxes career={career} stats={stats} teamGames={Math.round(levelContext(career).seasonGames / 2)} />
 
