@@ -96,6 +96,39 @@ describe('A. a lower-table club gets no championship decider', () => {
   });
 });
 
+describe('A2. a top club gets no relegation crisis', () => {
+  const claimsRelegation = (id: string): boolean =>
+    EVENTS_BY_ID[id]?.conditions?.relegationBattle === true;
+
+  it('offers no survival event to a club at the top of the table', () => {
+    for (const outcome of ['champion', 'title_challenge', 'european_places'] as ClubSeasonOutcome[]) {
+      const career = seniorAt(MACCABI_ID, outcome);
+      expect(leagueContextAt(career, 'late')?.relegationBattle, outcome).toBe(false);
+      for (const slot of ['early', 'mid', 'late'] as SeasonSlot[]) {
+        expect(eligible(career, slot).filter(claimsRelegation), `${outcome} ${slot}`).toEqual([]);
+      }
+    }
+  });
+
+  it('is true across every seed', () => {
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const career = seniorAt(MACCABI_ID, 'champion', seed);
+      expect(eligible(career, 'mid').filter(claimsRelegation), `seed ${seed}`).toEqual([]);
+    }
+  });
+
+  it('and no promotion event in a top division, ever', () => {
+    const claimsPromotion = (id: string): boolean =>
+      EVENTS_BY_ID[id]?.conditions?.promotionRace === true;
+    for (const outcome of ['champion', 'mid_table', 'relegation_battle'] as ClubSeasonOutcome[]) {
+      const career = seniorAt(MACCABI_ID, outcome);
+      for (const slot of ['early', 'mid', 'late'] as SeasonSlot[]) {
+        expect(eligible(career, slot).filter(claimsPromotion), `${outcome} ${slot}`).toEqual([]);
+      }
+    }
+  });
+});
+
 describe('B. a club with no derby rival gets no derby', () => {
   it('has no modelled local rival for these clubs', () => {
     for (const clubId of ['hapoel_hadera', 'bnei_sakhnin', 'ironi_kiryat_shmona']) {
