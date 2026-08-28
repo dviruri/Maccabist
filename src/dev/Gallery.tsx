@@ -8,6 +8,7 @@ import {
   MaccabiBanner,
   SamiOferHeader,
 } from '../components/MaccabiCards';
+import { CareerTimeline } from '../components/CareerTimeline';
 import { PlayerHub } from '../components/PlayerHub';
 import { SeasonResultCard } from '../components/SeasonCards';
 import { RetirementPage } from '../pages/RetirementPage';
@@ -385,6 +386,7 @@ export function Gallery(): JSX.Element {
     ['maccabi-banner', <MaccabiBanner career={belovedFormerPlayer()} />],
     ['maccabi-banner-rejected', <MaccabiBanner career={rejectedAsAChild()} />],
     ['news', <AmbientNewsHeader career={euro} />],
+    ['timeline', <CareerTimeline career={retiredLegend()} defaultOpen />],
     ['season', <SeasonResultCard career={senior} onContinue={noop} />],
     ['retirement', <RetirementPage career={retiredLegend()} onNewCareer={noop} isBest />],
     ['retirement-modest', <RetirementPage career={retiredModest()} onNewCareer={noop} isBest={false} />],
