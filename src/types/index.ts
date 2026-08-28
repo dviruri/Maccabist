@@ -49,8 +49,23 @@ export interface TeamDisplay {
   full: string;
 }
 
-/** The player's role inside the team he is currently part of. */
+/**
+ * How much the player plays. A squad-role ladder, nothing more.
+ *
+ * 'icon' is retained so season records written before v0.4.5.1 still parse, but `roleFromValue`
+ * no longer produces it - being a club's symbol is a matter of history, not of being the best
+ * player in the dressing room. See `LegacyStatus` and `src/game/legacyEngine.ts`.
+ */
 export type TeamRole = 'squad' | 'rotation' | 'starter' | 'key' | 'star' | 'icon';
+
+/**
+ * What the club's supporters think you are (v0.4.5.1).
+ *
+ * Deliberately separate from TeamRole. A player can be his club's best footballer in his first
+ * season; he cannot be its symbol in his first season. Derived from tenure - seasons,
+ * appearances, captaincy, trophies - and never from ability.
+ */
+export type LegacyStatus = 'none' | 'fan_favourite' | 'icon' | 'legend';
 
 /** Whether the player has been pulled up to the age group above him. */
 export type OlderGroupStatus = 'none' | 'training' | 'playing';

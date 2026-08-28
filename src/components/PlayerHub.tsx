@@ -8,6 +8,7 @@ import {
   RELATIONSHIP_LABELS,
 } from '../game/maccabiEngine';
 import { clubDisplayName } from '../game/identity';
+import { hasLegacy, LEGACY_ICONS, LEGACY_LABELS, legacyStatus } from '../game/legacyEngine';
 import { playerLeague } from '../game/worldEngine';
 import type { Career } from '../types';
 import { moodChips, olderGroupLine, positionIcon, positionLabel, roleIcon, roleText, seasonLabel } from '../ui/format';
@@ -129,6 +130,7 @@ export function PlayerHub({ career }: { career: Career }): JSX.Element {
   const older = olderGroupLine(career);
   const abroad = playerLeague(career).country !== 'ישראל';
   const relationship = maccabiRelationship(career);
+  const legacy = legacyStatus(career);
   const showStanding = !isAtMaccabi(career) && relationship !== 'stranger';
 
   return (
@@ -192,6 +194,16 @@ export function PlayerHub({ career }: { career: Career }): JSX.Element {
             {roleText(career)}
           </div>
           <div className="hub-chips">
+            {/*
+              Legacy is separate from the squad role (v0.4.5.1). The role badge says how much he
+              plays; this says what he means to the club. It appears in 8% of senior seasons, so
+              it stays a badge worth seeing rather than furniture.
+            */}
+            {hasLegacy(legacy) && (
+              <Chip tone={legacy === 'legend' ? 'gold' : 'green'}>
+                {LEGACY_ICONS[legacy]} {LEGACY_LABELS[legacy]}
+              </Chip>
+            )}
             {older && <Chip>{older}</Chip>}
             {abroad && <Chip tone="plain">✈️ בחו״ל</Chip>}
             {onLoan && <Chip tone="plain">🔁 מושאל</Chip>}

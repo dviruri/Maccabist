@@ -123,7 +123,24 @@ export const WORLD = {
   /** Player impact at or above which he genuinely shaped the season. */
   contributionThreshold: 0.25,
   /** ...and at which carrying a small club counts as a breakout. */
-  breakoutImpact: 0.39,
+  /**
+   * Recalibrated for the v0.4.5 appearance model (v0.4.5.1).
+   *
+   * `playerImpact` scales with appearance share, and v0.4.5 cut that share from ~83% to ~74% to
+   * fix appearance inflation - without moving this threshold, which had been calibrated against
+   * the inflated numbers. Impact at small clubs now peaks at 0.450 with a 99th percentile of
+   * 0.380, so a bar of 0.39 was cleared by 6 qualifying seasons out of 1,696 and the memory
+   * collapsed from 2.4% of careers to 0.33%.
+   *
+   * Swept against the new distribution and then verified end to end, because the sweep and the
+   * real recording path disagreed by about a point: 0.34 measured 3.6% of balanced careers rather
+   * than the predicted 2.8%. 0.355 measures 1.9% of balanced careers - close to the pre-regression
+   * 2.4% and where a "carried them" story belongs: notable, not something most careers collect.
+   *
+   * The loyalist policy sits higher at 3.9%, which is coherent rather than a miscalibration: a good
+   * player who spends a decade at one small club has many more chances to carry it once.
+   */
+  breakoutImpact: 0.355,
   /**
    * League prestige at or below which a club counts as "small".
    *
@@ -287,14 +304,54 @@ export const RETIREMENT_FORCED_AGE = RETIREMENT.goalkeeper.forced;
 /* Team role ladder                                                    */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The squad-role ladder. Tops out at `star` (v0.4.5.1).
+ *
+ * `icon` used to sit above it at 90, which made "club symbol" something you got for being better
+ * than your teammates: 91% of careers reached it, after 3.8 seasons, and only 12.6% of those
+ * players had ever captained the side. Legacy now lives in its own dimension - see LEGACY below
+ * and `legacyEngine.ts` - and this ladder answers only "how much does he play".
+ */
 export const ROLE_TIERS: ReadonlyArray<{ role: TeamRole; min: number }> = [
-  { role: 'icon', min: 90 },
   { role: 'star', min: 78 },
   { role: 'key', min: 64 },
   { role: 'starter', min: 50 },
   { role: 'rotation', min: 32 },
   { role: 'squad', min: 0 },
 ];
+
+/**
+ * What it takes to become part of a club's identity (v0.4.5.1).
+ *
+ * Time floors are ANDs so nothing here can be short-circuited by being good; the achievement
+ * clause is an OR, because a one-club servant who never won anything is still an icon, and so is
+ * a captain, and so is a winner.
+ */
+export const LEGACY = {
+  /*
+   * Calibrated against the measured tenure distribution, not guessed.
+   *
+   * Across 1,800 careers the median spell at one club is 5 seasons and 136 appearances, the median
+   * *longest* spell is 12 seasons, and the median tenure yields 1 trophy. A first pass at 5
+   * seasons / 110 appearances therefore sat below the median and handed icon status to 77% of
+   * careers - the same failure the split was supposed to end, one level down.
+   */
+  favouriteSeasons: 4,
+  favouriteAppearances: 90,
+
+  /** Around the 70th percentile of tenure, plus something to show for it. */
+  iconSeasons: 9,
+  iconAppearances: 280,
+  /** Median tenure produces 1 trophy, so one alone proves nothing. Captaincy does - 13% ever get it. */
+  iconTrophies: 2,
+  iconCaptainSeasons: 1,
+
+  /** A one-club career, essentially. */
+  legendSeasons: 14,
+  legendAppearances: 480,
+  legendTrophies: 4,
+  legendCaptainSeasons: 3,
+};
 
 export const ROLE_LABELS: Record<TeamRole, string> = {
   squad: 'שחקן סגל',

@@ -107,7 +107,13 @@ describe('career creation', () => {
     expect(roleFromValue(55)).toBe('starter');
     expect(roleFromValue(70)).toBe('key');
     expect(roleFromValue(82)).toBe('star');
-    expect(roleFromValue(95)).toBe('icon');
+    /*
+     * The ladder tops out at `star` (v0.4.5.1). It used to continue to `icon` at 90, which made
+     * "club symbol" something awarded for being better than your teammates - 91% of careers got
+     * it. Legacy moved to its own dimension; see legacyEngine and tests/legacy.test.ts.
+     */
+    expect(roleFromValue(95)).toBe('star');
+    expect(roleFromValue(100)).toBe('star');
   });
 });
 
