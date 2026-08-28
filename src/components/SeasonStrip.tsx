@@ -1,5 +1,6 @@
 import { MACCABI_ID } from '../data/clubs';
 import { getLeague } from '../data/leagues';
+import { leagueShape } from '../data/leagueShape';
 import { currentLeagueContext, maccabiLeagueContext } from '../game/leagueEngine';
 import type { Career, LeagueContext } from '../types';
 import { seasonPhaseSteps } from '../ui/format';
@@ -95,6 +96,21 @@ export function stakesText(context: LeagueContext): string {
   if (context.championClinched) return 'האליפות בכיס';
   if (context.promotionClinched) return 'העלייה מובטחת';
   if (context.relegationConfirmed) return 'הירידה סופית';
+
+  /*
+   * Being *in* the drop zone says so, whatever the arithmetic (v0.4.7).
+   *
+   * `relegationBattle` is a race test - close enough on points, with enough season left. A club
+   * cut adrift at the bottom fails it, because there is no race: the gap is too large. Union SG
+   * sitting 16th of 16 was therefore reading "מתחת לציפיות", which is true and absurd. The zone
+   * is checked first, and it is a fact about the position rather than about the gap.
+   */
+  const shape = leagueShape(context.leagueId);
+  if (shape && shape.relegationPlaces > 0 && context.position > shape.size - shape.relegationPlaces) {
+    return context.pointsFromSafety !== null && Math.abs(context.pointsFromSafety) <= 9
+      ? `${n(context.pointsFromSafety)} נק׳ מתחת לקו`
+      : 'בתוך מקומות הירידה';
+  }
 
   if (context.titleRace) {
     if (context.position === 1) {

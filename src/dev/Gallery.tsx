@@ -20,7 +20,8 @@ import { Sheet } from '../components/Sheet';
 import type { GameActions } from '../state/useGame';
 import { ClubCrest } from '../components/ClubCrest';
 import { resolveOrigin } from '../game/originEngine';
-import { projectSeason } from '../game/leagueEngine';
+import { positionsForOutcome, projectSeason } from '../game/leagueEngine';
+import { leagueShape } from '../data/leagueShape';
 import { NewCareerPage } from '../pages/NewCareerPage';
 import { PlayerHub } from '../components/PlayerHub';
 import { SeasonResultCard } from '../components/SeasonCards';
@@ -377,6 +378,61 @@ const awayEventCareer = (): Career => {
   };
 };
 
+/* Put a career on a specific pending event, which is what ordinary gameplay looks like. */
+const playCareer = (career: Career, eventId: string): Career => ({
+  ...career,
+  phase: 'event',
+  seasonSlot: 'late',
+  seasonPoint: 'midseason',
+  pendingEventIds: [eventId],
+  lastEventResult: null,
+});
+
+/* A senior career whose season is pinned to a given outcome, for the race scenarios. */
+const forcedOutcome = (clubId: string, outcome: Career['world']['clubSeasons'][number]['outcome']): Career => {
+  const career = tableCareer(clubId, 4);
+  const projection = career.world.projection;
+  if (!projection) return career;
+  const shape = leagueShape(projection.leagueId);
+  if (!shape) return career;
+  const band = positionsForOutcome(projection.leagueId, outcome, shape);
+  const position = band[Math.floor(band.length / 2)] ?? projection.finalPosition;
+  return {
+    ...career,
+    world: {
+      ...career.world,
+      projection: {
+        ...projection,
+        finalPosition: position,
+        finalOutcome: outcome,
+        path: { early: position, mid: position, late: position, end: position },
+      },
+    },
+  };
+};
+
+/* A loan offer, so the parent -> destination header can be looked at. */
+const loanOffers = (): Career['pendingOffers'] => [
+  {
+    id: 'loan_demo',
+    kind: 'loan',
+    clubId: 'hapoel_kfar_saba',
+    clubName: 'הפועל כפר סבא',
+    league: 'הליגה הלאומית',
+    country: 'ישראל',
+    title: 'השאלה לעונה',
+    description:
+      'המועדון רוצה שתשחק. בכפר סבא מחכים לך דקות אמיתיות, ובמכבי ימשיכו לעקוב מקרוב.',
+    acceptEffects: {},
+    declineEffects: {},
+    acceptLabel: 'לצאת להשאלה',
+    declineLabel: 'להישאר ולהילחם',
+    expectedRole: 'starter',
+    direction: 'down',
+    hints: ['⬇ רמת ליגה', '⚽ דקות מובטחות', '↩ חוזרים בסוף העונה'],
+  },
+];
+
 const midSeasonCareer = (): Career => {
   const base = tableCareer(MACCABI_ID, 3);
   return {
@@ -533,6 +589,7 @@ export function Gallery(): JSX.Element {
   const senior = seniorAtMaccabi();
   const euro = inEurope();
   const decisionEvent = EVENTS_BY_ID.sen_derby_moment;
+  const decisionFour = EVENTS_BY_ID.kids_older_group;
   /*
    * v0.4.6: a decision fixture needs a live projection, otherwise the match strip has no
    * opponent to name and correctly falls back to the league name - which looks like the old
@@ -570,6 +627,17 @@ export function Gallery(): JSX.Element {
   const screens: Array<[string, JSX.Element]> = [
     ['gameplay', <GamePage career={eventCareer()} actions={noopActions} onExit={noop} />],
     ['gameplay-away', <GamePage career={awayEventCareer()} actions={noopActions} onExit={noop} />],
+    /* Phase 46 scenarios A, D, E, H, K, N, O. */
+    ['play-academy', <GamePage career={playCareer(academyBoy(), 'kids_older_group')} actions={noopActions} onExit={noop} />],
+    ['play-abroad', <GamePage career={playCareer(tableCareer('union_sg', 7), 'es_form_slump')} actions={noopActions} onExit={noop} />],
+    ['play-title', <GamePage career={playCareer(forcedOutcome('maccabi_haifa', 'champion'), 'sen_title_run_in')} actions={noopActions} onExit={noop} />],
+    ['play-relegation', <GamePage career={playCareer(forcedOutcome('hapoel_hadera', 'relegation_battle'), 'wrl_relegation_battle')} actions={noopActions} onExit={noop} />],
+    ['play-gk', <GamePage career={{ ...playCareer(tableCareer(MACCABI_ID, 3), 'gk_derby_save'), position: 'GK' }} actions={noopActions} onExit={noop} />],
+    ['play-longname', <GamePage career={playCareer(tableCareer('union_sg', 2), 'sen_new_coach')} actions={noopActions} onExit={noop} />],
+    ['four-outcomes', decisionFour ? (
+      <DecisionCard career={academyBoy()} event={decisionFour} onChoose={noop} defaultExpanded="go_up" />
+    ) : <div />],
+    ['loan-offer', <OffersCard offers={loanOffers()} onAccept={noop} onDecline={noop} fromClub="מכבי חיפה" />],
     ['sheet-table', <Sheet open title="ליגת העל" subtitle="מחזור 13" onClose={noop}>
       <LeagueTableCard career={tableCareer(MACCABI_ID, 3)} defaultOpen inSheet />
     </Sheet>],

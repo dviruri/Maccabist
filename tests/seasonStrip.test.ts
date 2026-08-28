@@ -94,6 +94,30 @@ describe('the strip says what the table means', () => {
     expect(stakesText(context)).toMatch(/הקו/);
   });
 
+  it('says a club is in the drop zone even when there is no race left', () => {
+    /*
+     * Found by looking at a screenshot. `relegationBattle` is a *race* test - close enough on
+     * points, with enough season left - so a club cut adrift at the bottom fails it, and Union SG
+     * sitting 16th of 16 was reading "מתחת לציפיות". True, and absurd. The zone is a fact about
+     * the position, so it is now checked before the race tests.
+     */
+    const shape = leagueShape('il_premier');
+    if (!shape) throw new Error('no shape');
+    const career = seniorAt(MACCABI_ID, 'mid_table');
+    const projection = career.world.projection!;
+
+    for (let position = shape.size - shape.relegationPlaces + 1; position <= shape.size; position += 1) {
+      const context = leagueContextFrom(
+        career.world,
+        { ...projection, path: { ...projection.path, late: position } },
+        'late',
+      );
+      const text = stakesText(context);
+      expect(text, `position ${position}`).toMatch(/ירידה|לקו/);
+      expect(text, `position ${position}`).not.toMatch(/ציפיות/);
+    }
+  });
+
   it('gives a second-division club promotion language and never European', () => {
     const career = seniorAt('hapoel_petah_tikva', 'promotion_challenge');
     const context = contextFor(career);
