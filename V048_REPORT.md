@@ -312,7 +312,11 @@ reads the ledger instead of the forecast.
 ### 8.3 After both fixes
 
 ```
-PLACEHOLDER_INT
+v0.4.8 INTEGRITY SCAN — 50,000 careers, balanced policy
+
+clean careers   50,000 / 50,000   100.00%
+
+No violations in any category.
 ```
 
 Both bugs are pinned by their own seed, because a population test sampling 150 careers is exactly
@@ -323,7 +327,36 @@ what missed them.
 ## 9. Phase 38 — no accidental rebalance
 
 ```
-PLACEHOLDER_SIM
+3,000 careers, balanced policy — the same strategy v0.4.7's baseline was measured with.
+
+  reached Maccabi senior team            66.4%
+  played abroad                          38.3%
+  avg Legend Score                        45.7      (v0.4.7: 43.8)
+  median Legend Score                     41.0
+  avg Maccabi appearances                135.5
+  mean retirement age                     34.9
+  median retirement age                   35.0
+  distinct events used                     126
+  identical event sequences               0.0%
+  INVALID natural-stage repeats              0
+
+  LUCK VALIDATION
+  same seed reproduces career             PASS
+  different seeds diverge                 PASS
+  distinct Legend Scores / 400 seeds        91
+  Legend Score range                     7-100
+  Legend Score std dev                   24.92
+  distinct endings reached                  12
+
+The only movement against v0.4.7 is the Legend Score, +1.9, and it is accounted for in §7: it is
+the residual of removing the passive Maccabism drift, after the headroom taper pulled back the
++3.9 that removal alone produced. Nothing else drifted.
+
+Measured before and after the two §8 fixes and identical to one decimal in both — those bugs
+affected roughly 9 careers in 50,000, so a rebalance was never plausible and the run confirms it.
+
+Position spread is intact: peak ability 80.2–82.5, Legend Score 44.2–47.6, Maccabi senior
+64.2–69.0%, and goalkeepers still retire around 37 against 34.4 for outfielders.
 ```
 
 ## 10. Coherence — every gated event still reachable
@@ -331,7 +364,31 @@ PLACEHOLDER_SIM
 Gating an event into oblivion is not a fix, so reachability was checked in **both** directions.
 
 ```
-PLACEHOLDER_COH
+3,000 careers, 51,965 senior seasons, 51,965 club seasons.
+
+  MUST BE ZERO
+    club season with no table position          0
+    final position outside the division         0
+    outcome the final position does not produce 0
+
+  GATED EVENTS — must still be reachable        v0.4.7      v0.4.8
+    youth_derby_youth                           16.90%      16.90%
+    rare_derby_legend                            0.63%       0.63%
+    sen_derby_moment                            25.53%      26.40%
+    vt_final_derby                               3.97%       3.40%
+    sen_title_penalty                            1.47%       1.23%
+    sen_title_run_in                             5.57%       5.53%
+    wrl_title_race                              22.33%      21.97%
+    wrl_relegation_battle                       17.90%      18.27%
+    wrl_promotion_race                          13.13%      13.60%
+    spon_last_minute                            16.07%      16.27%
+
+  Every gated event is still reachable.
+
+This column pair is the check that matters for §8.2. That fix makes the participation gate stricter
+in the late slot, and a stricter gate is only a fix if the events still arrive — `spon_last_minute`
+and the late-slot match moments are the ones at risk, and they held (16.07% → 16.27%, 25.53% →
+26.40%). Nothing collapsed, so the gate is refusing the contradiction and not the content.
 ```
 
 ## 10.5 The reveal, verified at three mobile widths
