@@ -121,7 +121,12 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
       {/* --- the career, told as a story --- */}
       <section className="card retirement-block">
         <div className="stack-sm">
-          <div className="kicker">סיפור הקריירה</div>
+          {/*
+            "במילים שלהם", not "סיפור הקריירה" (v0.4.5.1). The CareerTimeline directly below is
+            also titled סיפור הקריירה, so the retirement screen carried the same heading twice
+            over two different things - prose here, the moment list there.
+          */}
+          <div className="kicker">במילים שלהם</div>
           {careerStory(career).map((line) => (
             <p key={line} className="card-body story-line">
               {line}
