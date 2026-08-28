@@ -27,10 +27,15 @@ export const WORLD_EVENTS: GameEvent[] = [
     description:
       'הקבוצה בתחתית הטבלה, והאווירה במועדון כבדה. באימון היום המאמן דיבר על אופי, לא על טקטיקה.',
     category: 'team',
+    /*
+     * v0.4.6: was gated on `maxClubStrength: -0.3` - a preseason expectation, not the table.
+     * So "הקבוצה בתחתית הטבלה" fired for any weak squad, including one having the season of its
+     * life. It now reads the live position, which is the thing the text is describing.
+     */
     conditions: {
       bands: ['senior'],
       clubScope: 'currentClub',
-      maxClubStrength: -0.3,
+      relegationBattle: true,
       requiresProfessionalFootball: true,
       minRoleValue: 28,
     },
@@ -167,11 +172,15 @@ export const WORLD_EVENTS: GameEvent[] = [
     description:
       'הקבוצה בצמרת הליגה, ופתאום כל משחק הוא גמר. בעיר מדברים על עלייה בפעם הראשונה מזה שנים.',
     category: 'competition',
+    /*
+     * v0.4.6: "הקבוצה בצמרת הליגה" now requires actually being in the promotion picture, rather
+     * than merely being a strong squad for the division.
+     */
     conditions: {
       bands: ['senior'],
       clubScope: 'currentClub',
       clubLeagueTier: [2],
-      minClubStrength: 0.15,
+      promotionRace: true,
       requiresProfessionalFootball: true,
       minRoleValue: 30,
     },
@@ -238,15 +247,22 @@ export const WORLD_EVENTS: GameEvent[] = [
     description:
       'הפרש נקודה אחת בצמרת, וארבעה משחקים לסיום. באימונים כבר אין צחוקים.',
     category: 'competition',
+    /*
+     * v0.4.6: the headline case from the brief.
+     *
+     * "הפרש נקודה אחת בצמרת, וארבעה משחקים לסיום" was gated on `minClubStrength: 0.3` - squad
+     * quality relative to the division, decided in August. A strong club having a dreadful season
+     * was told the title was one point away. It now requires a real title race at the phase the
+     * event is planned for, which the projection has already committed to.
+     */
     conditions: {
       bands: ['senior'],
       clubScope: 'currentClub',
       clubLeagueTier: [1],
-      minClubStrength: 0.3,
+      titleRace: true,
       requiresProfessionalFootball: true,
       minRoleValue: 40,
     },
-    // Was late-only, which combined with the narrow strength window made it unreachable.
     slots: ['mid', 'late'],
     weight: 12,
     cooldownSeasons: 2,

@@ -35,6 +35,11 @@ const WATCHED = [
   'vt_final_derby',
   'sen_title_penalty',
   'sen_title_run_in',
+  // v0.4.6: the world events, re-gated from squad strength onto the live table.
+  'wrl_title_race',
+  'wrl_relegation_battle',
+  'wrl_promotion_race',
+  'spon_last_minute',
 ];
 
 const seen: Record<string, number> = Object.fromEntries(WATCHED.map((id) => [id, 0]));

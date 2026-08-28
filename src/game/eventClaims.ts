@@ -39,6 +39,51 @@ function says(event: GameEvent, patterns: readonly string[]): boolean {
 
 const c = (event: GameEvent): EventConditions => event.conditions ?? {};
 
+/*
+ * The phrasings that make each claim.
+ *
+ * Deliberately generous. The first version listed five ways of saying "title race" and missed
+ * "אליפות באוויר" and "בצמרת" entirely, which let the world events - the ones that assert a table
+ * position in so many words - through the audit untouched. A false positive here costs one
+ * explicit condition on an event; a false negative costs a player being told his mid-table club
+ * is one point off the top.
+ */
+const TITLE_PATTERNS = [
+  'מאבק אליפות',
+  'מרוץ האליפות',
+  'על האליפות',
+  'קרב על התואר',
+  'מאבק על האליפות',
+  'אליפות באוויר',
+  'הפרש נקודה',
+  /*
+   * 'בצמרת' was here and is deliberately not: "הקבוצה בצמרת הליגה" in a second division is a
+   * promotion race, not a title race, and the bare phrase cannot tell them apart. It flagged
+   * `wrl_promotion_race` as an unsupported title claim. The two phrasings above already catch
+   * the event this rule exists for.
+   */
+];
+
+const RELEGATION_PATTERNS = [
+  'מאבק הישרדות',
+  'קרב תחתית',
+  'לרדת ליגה',
+  'הישרדות בליגה',
+  'מהקו האדום',
+  'קרב ההישרדות',
+  'בתחתית הטבלה',
+  'הקו האדום',
+];
+
+const PROMOTION_PATTERNS = [
+  'מאבק על עלייה',
+  'משחק על העלייה',
+  'לעלות ליגה',
+  'פלייאוף עלייה',
+  'המרוץ לעלייה',
+  'מדברים על עלייה',
+];
+
 export const CLAIM_RULES: readonly ClaimRule[] = [
   {
     id: 'derby',
@@ -49,25 +94,29 @@ export const CLAIM_RULES: readonly ClaimRule[] = [
   },
   {
     id: 'title-race',
-    patterns: ['מאבק אליפות', 'מרוץ האליפות', 'על האליפות', 'קרב על התואר', 'מאבק על האליפות'],
+    /*
+     * v0.4.6: widened after the first pass missed the world events entirely.
+     * "אליפות באוויר" and "הפרש נקודה אחת בצמרת" are title claims and matched none of the
+     * original five phrasings, so `wrl_title_race` - which gated only on squad strength and
+     * could fire for a strong club having a terrible season - passed the audit clean.
+     */
+    patterns: TITLE_PATTERNS,
     requirement: 'titleRace: true (or championClinched)',
-    mentions: (e) =>
-      says(e, ['מאבק אליפות', 'מרוץ האליפות', 'על האליפות', 'קרב על התואר', 'מאבק על האליפות']),
+    mentions: (e) => says(e, TITLE_PATTERNS),
     supported: (e) => c(e).titleRace === true || c(e).championClinched === true,
   },
   {
     id: 'relegation',
-    patterns: ['מאבק הישרדות', 'קרב תחתית', 'לרדת ליגה', 'הישרדות בליגה', 'מהקו האדום'],
+    patterns: RELEGATION_PATTERNS,
     requirement: 'relegationBattle: true (or relegationConfirmed)',
-    mentions: (e) =>
-      says(e, ['מאבק הישרדות', 'קרב תחתית', 'לרדת ליגה', 'הישרדות בליגה', 'מהקו האדום']),
+    mentions: (e) => says(e, RELEGATION_PATTERNS),
     supported: (e) => c(e).relegationBattle === true || c(e).relegationConfirmed === true,
   },
   {
     id: 'promotion',
-    patterns: ['מאבק על עלייה', 'משחק על העלייה', 'לעלות ליגה', 'פלייאוף עלייה'],
+    patterns: PROMOTION_PATTERNS,
     requirement: 'promotionRace: true',
-    mentions: (e) => says(e, ['מאבק על עלייה', 'משחק על העלייה', 'לעלות ליגה', 'פלייאוף עלייה']),
+    mentions: (e) => says(e, PROMOTION_PATTERNS),
     supported: (e) => c(e).promotionRace === true,
   },
 ];
