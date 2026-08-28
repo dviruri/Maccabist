@@ -9,7 +9,8 @@ import {
 import { CHOICE_RISK_LABELS } from '../ui/format';
 import { currentTeamDisplay } from '../game/identity';
 import { playerLeague } from '../game/worldEngine';
-import { eventVisual, isMatchMoment, matchMinute } from '../ui/eventVisuals';
+import { eventVisual, isMatchMoment, maccabiPresentation, matchMinute } from '../ui/eventVisuals';
+import { AmbientNewsHeader, MaccabiBanner, SamiOferHeader } from './MaccabiCards';
 import { Ltr } from './primitives';
 import type {
   Career,
@@ -230,6 +231,7 @@ export function DecisionCard({ career, event, onChoose }: DecisionCardProps): JS
 
   const visual = eventVisual(event, career);
   const asMatch = isMatchMoment(event, career);
+  const maccabi = maccabiPresentation(event, career);
 
   return (
     <article
@@ -249,7 +251,16 @@ export function DecisionCard({ career, event, onChoose }: DecisionCardProps): JS
           {visual.importance === 'major' && <span className="event-head-flag">רגע גדול</span>}
         </div>
 
-        {asMatch && <MatchStrip career={career} event={event} />}
+        {/*
+          Maccabi gets its own header (v0.4.5.1). Sami Ofer and news-from-home are distinct enough
+          moments to deserve their own framing; everything else about the club gets the "מהבית"
+          band so it cannot read as a message from the current club.
+        */}
+        {maccabi === 'sami_ofer' && <SamiOferHeader career={career} />}
+        {maccabi === 'ambient_news' && <AmbientNewsHeader career={career} />}
+        {maccabi === 'relationship' && <MaccabiBanner career={career} />}
+
+        {asMatch && maccabi !== 'sami_ofer' && <MatchStrip career={career} event={event} />}
 
         {event.kicker && <div className="kicker">{event.kicker}</div>}
         <h2 className="card-title">{event.title}</h2>

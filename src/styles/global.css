@@ -3016,3 +3016,201 @@ p {
   font-weight: 700;
   color: var(--text-primary);
 }
+
+/* =========================================================================
+   THE MACCABI FAMILY (v0.4.5.1)
+   Three headers, one language. They tell the player at a glance that this
+   is about the club he came from, not the club he is at.
+   ========================================================================= */
+
+/* ---- מהבית ---- */
+
+.mac-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, rgba(15, 166, 74, 0.2), rgba(6, 105, 45, 0.06));
+  border: 1px solid rgba(41, 217, 106, 0.28);
+  flex-wrap: wrap;
+}
+
+.mac-banner-mark {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.mac-banner-label {
+  font-size: var(--text-small);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: var(--green-bright);
+}
+
+/* A player they turned away has a relationship too - it is just not a fond one. */
+.mac-banner-note {
+  font-size: var(--text-micro);
+  color: var(--text-secondary);
+  padding-inline-start: var(--space-2);
+  border-inline-start: 1px solid var(--line-strong);
+}
+
+/* ---- Sami Ofer ---- */
+
+.sami {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-3);
+  text-align: center;
+  border: 1px solid var(--line-strong);
+  background:
+    radial-gradient(100% 70% at 50% 0%, rgba(15, 166, 74, 0.26) 0%, transparent 68%),
+    linear-gradient(180deg, var(--surface) 0%, var(--black) 100%);
+}
+
+/* Floodlights over the stand. One pass, no loop. */
+.sami-lights {
+  position: absolute;
+  inset-block-start: -50%;
+  inset-inline: -10%;
+  height: 100%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 210deg at 50% 100%,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.07) 25deg,
+    transparent 50deg,
+    transparent 310deg,
+    rgba(255, 255, 255, 0.06) 335deg,
+    transparent 360deg
+  );
+  animation: fade-in var(--t-slow) var(--ease-out) backwards;
+}
+
+.sami-body {
+  position: relative;
+}
+
+.sami-venue {
+  font-size: var(--text-micro);
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  color: var(--text-tertiary);
+}
+
+.sami-title {
+  margin-top: var(--space-1);
+  font-size: var(--text-h1);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--white);
+  text-wrap: balance;
+}
+
+.sami-line {
+  margin-top: var(--space-1);
+  font-size: var(--text-body);
+  font-weight: 700;
+  color: var(--green-bright);
+  text-wrap: balance;
+}
+
+.sami-crowd {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
+}
+
+/*
+  Each context recolours the moment. Never colour alone: the crowd line always says in words
+  what the stand is doing.
+*/
+.sami-returning_legend {
+  border-color: rgba(255, 201, 74, 0.34);
+  background:
+    radial-gradient(100% 70% at 50% 0%, rgba(255, 201, 74, 0.2) 0%, transparent 68%),
+    linear-gradient(180deg, var(--surface) 0%, var(--black) 100%);
+}
+
+.sami-returning_legend .sami-line {
+  color: var(--gold);
+}
+
+.sami-hostile_return {
+  border-color: rgba(255, 95, 82, 0.34);
+  background:
+    radial-gradient(100% 70% at 50% 0%, rgba(143, 42, 36, 0.4) 0%, transparent 68%),
+    linear-gradient(180deg, var(--surface) 0%, var(--black) 100%);
+}
+
+.sami-hostile_return .sami-line {
+  color: var(--danger);
+}
+
+/* Turned away as a boy. Cool and unsentimental - this is not a homecoming. */
+.sami-rejected_child {
+  border-color: var(--line-strong);
+  background:
+    radial-gradient(100% 70% at 50% 0%, rgba(107, 168, 255, 0.14) 0%, transparent 68%),
+    linear-gradient(180deg, var(--surface) 0%, var(--black) 100%);
+}
+
+.sami-rejected_child .sami-line {
+  color: var(--europe);
+}
+
+.sami-quiet_return .sami-line,
+.sami-no_history .sami-line {
+  color: var(--text-secondary);
+}
+
+/* ---- news from home ---- */
+
+.news {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, rgba(15, 166, 74, 0.1), rgba(0, 0, 0, 0.3));
+  overflow: hidden;
+}
+
+.news-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: rgba(6, 105, 45, 0.45);
+  border-bottom: 1px solid rgba(41, 217, 106, 0.22);
+}
+
+.news-mark {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.news-label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-micro);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--white);
+}
+
+.news-season {
+  font-size: var(--text-micro);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.news-headline {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-h3);
+  font-weight: 800;
+  color: var(--text-primary);
+}

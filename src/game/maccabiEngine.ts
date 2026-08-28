@@ -189,3 +189,98 @@ export function canFaceMaccabi(career: Career): boolean {
 export function timesFacedMaccabi(career: Career): number {
   return countMemories(career, 'played_against_maccabi');
 }
+
+/* ------------------------------------------------------------------ */
+/* Walking back into Sami Ofer (v0.4.5.1)                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Why this player is standing in that stadium.
+ *
+ * The brief's requirement is that the reception "must come from actual Maccabi Relationship /
+ * history. Do not invent it randomly." So this is a derivation, not a draw — the same career
+ * always produces the same context.
+ *
+ * The distinction that matters most is `rejected_child`. A boy Maccabi turned away at nine and who
+ * never played for them is **not** a former hero returning, and framing him as one would be the
+ * game telling him a story about himself that never happened. The crowd does not know who he is.
+ * He knows exactly who they are. That asymmetry is the whole moment, and it is the opposite of
+ * nostalgia.
+ */
+export type SamiOferContext =
+  /** Former captain or long-serving great. The stand stands up. */
+  | 'returning_legend'
+  /** Served them well and left properly. Warm, unsentimental. */
+  | 'respected_return'
+  /** Was there, made no mark. Nobody looks up. */
+  | 'quiet_return'
+  /** Left for a rival, or left badly. They have not forgotten. */
+  | 'hostile_return'
+  /** They released him as a boy. He never wore the shirt. Not a homecoming. */
+  | 'rejected_child'
+  /** No history at all. Just another away player. */
+  | 'no_history';
+
+/** True when Maccabi turned him away and he never went on to play for their senior side. */
+export function wasRejectedAsAChild(career: Career): boolean {
+  const turnedAway =
+    career.origin === 'trial_rejected' ||
+    career.flags.includes('released_by_maccabi') ||
+    hasMemory(career, 'failed_first_maccabi_trial') ||
+    hasMemory(career, 'released_by_maccabi');
+  return turnedAway && !playedForMaccabi(career);
+}
+
+/**
+ * The context for a return to Sami Ofer, from history alone.
+ *
+ * Order matters. Hostility overrides service, because that is how crowds work. And the
+ * rejected-child case is checked before the "no history" fallback, because those two look
+ * identical to the relationship model - both are `stranger` - and could not be more different
+ * to the player.
+ */
+export function samiOferContext(career: Career): SamiOferContext {
+  const relationship = maccabiRelationship(career);
+
+  if (relationship === 'traitor') return 'hostile_return';
+
+  if (playedForMaccabi(career)) {
+    if (relationship === 'son_of_the_club' || relationship === 'icon') return 'returning_legend';
+    if (relationship === 'beloved' || relationship === 'respected') return 'respected_return';
+    return 'quiet_return';
+  }
+
+  if (wasRejectedAsAChild(career)) return 'rejected_child';
+  return 'no_history';
+}
+
+/** The headline for each context. Never "a hero returns" for someone who was never one. */
+export const SAMI_OFER_TITLES: Record<SamiOferContext, string> = {
+  returning_legend: 'חוזרים לסמי עופר',
+  respected_return: 'חוזרים לסמי עופר',
+  quiet_return: 'חוזרים לסמי עופר',
+  hostile_return: 'חוזרים לסמי עופר',
+  // Not "חוזרים" - he was never here.
+  rejected_child: 'סמי עופר, בצד השני',
+  no_history: 'סמי עופר',
+};
+
+export const SAMI_OFER_LINES: Record<SamiOferContext, string> = {
+  returning_legend: 'הפעם בצד השני.',
+  respected_return: 'הפעם בצד השני.',
+  quiet_return: 'הפעם בצד השני.',
+  hostile_return: 'הפעם בצד השני.',
+  rejected_child: 'המועדון שלא קיבל אותך בילדות עומד עכשיו מולך.',
+  no_history: 'אצטדיון שאתה מכיר רק מהטלוויזיה.',
+};
+
+/** What the stand actually does. */
+export const SAMI_OFER_CROWD: Record<SamiOferContext, string> = {
+  returning_legend: 'היציע קם על הרגליים. חלק מהם שרים את השם שלך.',
+  respected_return: 'מחיאות כפיים מכובדות מכל האצטדיון.',
+  quiet_return: 'אף אחד לא מרים את הראש. עברת כאן, וזה הכל.',
+  hostile_return: 'שריקות בוז מכל היציעים. הם לא סלחו.',
+  rejected_child: 'הם לא מזהים אותך. אתה מזהה כל פינה במקום הזה.',
+  no_history: 'קהל אדיש, כמו לכל שחקן אורח.',
+};
+

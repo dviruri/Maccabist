@@ -3,6 +3,11 @@ import { MACCABI_ACADEMY_ID, MACCABI_ID } from '../data/clubs';
 import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
 import { OutcomeCard } from '../components/EventCard';
 import { OffersCard } from '../components/OffersCard';
+import {
+  AmbientNewsHeader,
+  MaccabiBanner,
+  SamiOferHeader,
+} from '../components/MaccabiCards';
 import { PlayerHub } from '../components/PlayerHub';
 import { SeasonResultCard } from '../components/SeasonCards';
 import { RetirementPage } from '../pages/RetirementPage';
@@ -212,6 +217,85 @@ const retiredModest = (): Career => {
   return { ...career, legend: computeLegendScore(career) };
 };
 
+/* --- the three Sami Ofer histories the brief names (v0.4.5.1) --- */
+
+const rivalId = 'maccabi_tel_aviv';
+
+/** A former captain and long-serving great, now at another top-flight club. */
+const belovedFormerPlayer = (): Career => {
+  const career = base({
+    academyStage: 'senior',
+    currentClubId: 'bnei_sakhnin',
+    age: 32,
+    ability: 74,
+    roleValue: 70,
+    currentSeason: 2053,
+  });
+  return {
+    ...career,
+    maccabi: {
+      ...career.maccabi,
+      appearances: 312,
+      seasons: 11,
+      championships: 4,
+      cups: 2,
+      captainSeasons: 4,
+      academyGraduate: true,
+      academySeasons: 9,
+      everLeft: true,
+    },
+    seasonHistory: [seasonRecord({ clubId: MACCABI_ID })],
+  };
+};
+
+/** Left Maccabi's senior side directly for a domestic rival. */
+const controversialDeparture = (): Career => {
+  const career = base({
+    academyStage: 'senior',
+    currentClubId: rivalId,
+    age: 29,
+    ability: 78,
+    roleValue: 72,
+    currentSeason: 2050,
+  });
+  return {
+    ...career,
+    maccabi: {
+      ...career.maccabi,
+      appearances: 190,
+      seasons: 6,
+      championships: 1,
+      academyGraduate: true,
+      academySeasons: 9,
+      everLeft: true,
+      betrayalMoments: 1,
+    },
+    seasonHistory: [seasonRecord({ clubId: MACCABI_ID }), seasonRecord({ clubId: rivalId })],
+  };
+};
+
+/**
+ * Turned away at the trials at nine, never played for them.
+ *
+ * The case the brief is most explicit about: this must NOT be framed as a former player returning.
+ */
+const rejectedAsAChild = (): Career => {
+  const career = base({
+    academyStage: 'senior',
+    currentClubId: 'hapoel_tel_aviv',
+    age: 27,
+    ability: 71,
+    roleValue: 66,
+    currentSeason: 2048,
+    origin: 'trial_rejected',
+  });
+  return {
+    ...career,
+    flags: ['released_by_maccabi'],
+    maccabi: { ...career.maccabi, appearances: 0, seasons: 0, academySeasons: 0 },
+  };
+};
+
 /* ------------------------------------------------------------------ */
 /* Frame                                                              */
 /* ------------------------------------------------------------------ */
@@ -295,6 +379,12 @@ export function Gallery(): JSX.Element {
         <div />
       ),
     ],
+    ['sami-legend', <SamiOferHeader career={belovedFormerPlayer()} />],
+    ['sami-traitor', <SamiOferHeader career={controversialDeparture()} />],
+    ['sami-rejected', <SamiOferHeader career={rejectedAsAChild()} />],
+    ['maccabi-banner', <MaccabiBanner career={belovedFormerPlayer()} />],
+    ['maccabi-banner-rejected', <MaccabiBanner career={rejectedAsAChild()} />],
+    ['news', <AmbientNewsHeader career={euro} />],
     ['season', <SeasonResultCard career={senior} onContinue={noop} />],
     ['retirement', <RetirementPage career={retiredLegend()} onNewCareer={noop} isBest />],
     ['retirement-modest', <RetirementPage career={retiredModest()} onNewCareer={noop} isBest={false} />],

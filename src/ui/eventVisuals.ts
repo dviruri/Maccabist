@@ -162,3 +162,40 @@ export function mentionsVenue(event: GameEvent): boolean {
   const text = `${event.kicker ?? ''} ${event.description}`;
   return text.includes('סמי עופר') || text.includes('אצטדיון');
 }
+
+/* ------------------------------------------------------------------ */
+/* Which Maccabi presentation an event wants (v0.4.5.1)                */
+/* ------------------------------------------------------------------ */
+
+export type MaccabiPresentation = 'none' | 'relationship' | 'sami_ofer' | 'ambient_news';
+
+/** Events that are the player physically walking back into Sami Ofer. */
+const SAMI_OFER_EVENTS: readonly string[] = [
+  'mac_return_to_sami_ofer_warm',
+  'mac_return_to_sami_ofer_hostile',
+  'mac_scored_against_them',
+];
+
+/** Events that are news about Maccabi rather than something happening to the player. */
+const AMBIENT_EVENTS: readonly string[] = [
+  'amb_they_won_it_without_you',
+  'amb_the_club_is_falling_apart',
+  'amb_they_went_down',
+  'amb_they_need_your_position',
+];
+
+/**
+ * Which of the three Maccabi headers this event should carry.
+ *
+ * Keyed on event id for the two specific families, and falling back to the `formerMaccabi` scope
+ * for everything else about the club. Keyed by id rather than by a new data field because these are
+ * two small, named families - adding a `presentation` field to 128 events to describe seven of them
+ * would be the wrong trade.
+ */
+export function maccabiPresentation(event: GameEvent, career: Career): MaccabiPresentation {
+  if (isAtMaccabi(career)) return 'none';
+  if (SAMI_OFER_EVENTS.includes(event.id)) return 'sami_ofer';
+  if (AMBIENT_EVENTS.includes(event.id)) return 'ambient_news';
+  if (event.conditions?.clubScope === 'formerMaccabi') return 'relationship';
+  return 'none';
+}
