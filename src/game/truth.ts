@@ -275,11 +275,33 @@ export const CUP_TROPHY_IDS: readonly string[] = ['cup', 'foreign_cup', 'youth_c
 export function guardedMaccabismDelta(
   requested: number | undefined,
   relevance: MaccabiRelevance | undefined,
+  /** Current value, for the headroom taper. Omitted skips the taper entirely. */
+  current?: number,
 ): number {
   if (!requested) return 0;
   if (relevance === undefined || relevance === 'none') return 0;
-  return requested;
+  if (requested < 0 || current === undefined) return requested;
+
+  /*
+   * Positive deltas taper as the number approaches the ceiling (v0.4.8).
+   *
+   * Removing the passive drift was correct and it had a consequence I did not anticipate: the
+   * event deltas are net positive, and with nothing pulling back they ratcheted. Measured
+   * immediately after the removal - median Maccabism 100, mean 94.7, p75 and p90 both 100. A stat
+   * pinned at its ceiling carries no information, and it inflated the Legend Score with it.
+   *
+   * This is deliberately NOT the old decay coming back. Nothing here moves the number on its own;
+   * an event still has to happen, and it still has to be about Maccabi. What changed is that the
+   * hundredth point of devotion is harder to earn than the fiftieth, which is both a better model
+   * and what keeps the top of the scale meaning something.
+   */
+  const headroom = Math.max(0, (MACCABISM_CEILING - current) / MACCABISM_CEILING);
+  return requested * headroom ** MACCABISM_TAPER;
 }
+
+const MACCABISM_CEILING = 100;
+/** Higher taper = harder to reach the top. Tuned against the measured distribution. */
+const MACCABISM_TAPER = 0.55;
 
 /**
  * Why a Maccabism change was allowed, for the debug trace (Phase 24).

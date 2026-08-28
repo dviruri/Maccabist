@@ -116,6 +116,46 @@ describe('the Maccabism guard', () => {
     }
   });
 
+  it('tapers a positive delta as the ceiling approaches, and never a negative one', () => {
+    /*
+     * A consequence I caused and then had to fix. Removing the passive drift was correct, and it
+     * left the event deltas - which are net positive - with nothing pulling back. Measured right
+     * after the removal: median Maccabism 100, mean 94.7, p75 and p90 both 100. A stat pinned at
+     * its ceiling carries no information, and it inflated the Legend Score with it.
+     *
+     * The taper is not the old decay returning: nothing moves the number on its own, an event
+     * still has to happen and it still has to be about Maccabi. The hundredth point of devotion is
+     * simply harder to earn than the fiftieth.
+     */
+    const low = guardedMaccabismDelta(10, 'identity', 20);
+    const high = guardedMaccabismDelta(10, 'identity', 95);
+    expect(low).toBeGreaterThan(high);
+    expect(high).toBeGreaterThan(0);
+    expect(low).toBeLessThanOrEqual(10);
+
+    // At the ceiling there is nothing left to gain.
+    expect(guardedMaccabismDelta(10, 'identity', 100)).toBe(0);
+
+    // Losing devotion is never softened - that is the half a player actually feels.
+    expect(guardedMaccabismDelta(-10, 'identity', 95)).toBe(-10);
+    expect(guardedMaccabismDelta(-10, 'identity', 5)).toBe(-10);
+  });
+
+  it('keeps the maccabism distribution off the ceiling across real careers', () => {
+    const values: number[] = [];
+    for (let seed = 1; seed <= 150; seed += 1) {
+      values.push(
+        simulateCareer({ playerName: 'מ', position: 'CM', seed, policy: balancedPolicy }).maccabism,
+      );
+    }
+    values.sort((a, b) => a - b);
+    const median = values[Math.floor(values.length / 2)] ?? 0;
+    // Was exactly 100 immediately after the passive drift was removed.
+    expect(median).toBeLessThan(96);
+    // ...and still high, because this is a career raised in green.
+    expect(median).toBeGreaterThan(60);
+  });
+
   it('does not invent a delta where there was none', () => {
     expect(guardedMaccabismDelta(0, 'identity')).toBe(0);
     expect(guardedMaccabismDelta(undefined, 'identity')).toBe(0);

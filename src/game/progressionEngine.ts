@@ -315,7 +315,7 @@ export function applyEffects(
 
   if (effects.ability) next.ability = clamp(next.ability + effects.ability);
   if (effects.potential) next.hidden.potential = clamp(next.hidden.potential + effects.potential);
-  const maccabismDelta = guardedMaccabismDelta(effects.maccabism, maccabiRelevance);
+  const maccabismDelta = guardedMaccabismDelta(effects.maccabism, maccabiRelevance, next.maccabism);
   if (maccabismDelta) next.maccabism = clamp(next.maccabism + maccabismDelta);
   if (effects.reputation) next.reputation = clamp(next.reputation + effects.reputation);
   if (effects.coachTrust) next.coachTrust = clamp(next.coachTrust + effects.coachTrust);
