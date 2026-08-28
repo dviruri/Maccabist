@@ -1,6 +1,6 @@
 import type { Career, EventCategory, GameEvent } from '../types';
 import { isAtMaccabi } from '../game/maccabiEngine';
-import { playerLeague } from '../game/worldEngine';
+import { isPlayingAbroad } from '../game/rules';
 
 /**
  * How an event should look (v0.4.5).
@@ -122,7 +122,8 @@ export function eventVisual(event: GameEvent, career: Career): EventVisual {
 }
 
 function isAbroad(career: Career): boolean {
-  return playerLeague(career).country !== 'ישראל';
+  // v0.4.8: one "is he abroad" answer, from the club's country. See PlayerHub for the reasoning.
+  return isPlayingAbroad(career);
 }
 
 function importanceOf(event: GameEvent, variant: EventVariant): EventImportance {

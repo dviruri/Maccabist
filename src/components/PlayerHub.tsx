@@ -9,6 +9,7 @@ import {
 } from '../game/maccabiEngine';
 import { clubDisplayName } from '../game/identity';
 import { hasLegacy, LEGACY_ICONS, LEGACY_LABELS, legacyStatus } from '../game/legacyEngine';
+import { isPlayingAbroad } from '../game/rules';
 import { playerLeague } from '../game/worldEngine';
 import type { Career } from '../types';
 import { moodChips, olderGroupLine, positionIcon, positionLabel, roleIcon, roleText, seasonLabel } from '../ui/format';
@@ -128,7 +129,15 @@ export function PlayerHub({ career }: { career: Career }): JSX.Element {
   const ability = useCountUp(career.ability);
   const onLoan = career.parentClubId !== null;
   const older = olderGroupLine(career);
-  const abroad = playerLeague(career).country !== 'ישראל';
+  /*
+   * v0.4.8: through the domain, and from the CLUB's country rather than the league's.
+   *
+   * Two different "is he abroad" tests existed - this one read `playerLeague(career).country`
+   * while `truth.isForeignSeason` reads the club's. They agree for every modelled club today and
+   * they are still two answers to one question, which is the shape of every bug this version
+   * fixed. `isPlayingAbroad` is the one answer.
+   */
+  const abroad = isPlayingAbroad(career);
   const relationship = maccabiRelationship(career);
   const legacy = legacyStatus(career);
   const showStanding = !isAtMaccabi(career) && relationship !== 'stranger';
