@@ -126,7 +126,7 @@ describe('career memory', () => {
 });
 
 describe('memory conditions', () => {
-  const ctx = { appearances: 10 };
+  const ctx = { appearances: 10, phase: 'early' as const };
 
   it('gates an event on a memory being present or absent', () => {
     const career = base();
@@ -214,7 +214,7 @@ describe('story arcs', () => {
   });
 
   it('gates events on active and completed arcs', () => {
-    const ctx = { appearances: 0 };
+    const ctx = { appearances: 0, phase: 'early' as const };
     const career = base();
     const inArc = { ...career, arcs: startArc(career, 'coach_relationship', 'conflict') };
 
@@ -288,7 +288,7 @@ describe('traits', () => {
   });
 
   it('gates events on traits', () => {
-    const ctx = { appearances: 0 };
+    const ctx = { appearances: 0, phase: 'early' as const };
     const career: Career = {
       ...base(),
       traits: [{ id: 'big_game', revealed: false, revealedSeason: null }],
@@ -330,7 +330,7 @@ describe('leadership and captaincy', () => {
   });
 
   it('requires dressing-room standing as well as quality', () => {
-    const ctx = { appearances: 0 };
+    const ctx = { appearances: 0, phase: 'early' as const };
     const career = senior({ hidden: { ...base().hidden, leadership: 40 } });
     expect(matchesConditions(career, { minLeadership: CAPTAINCY.minLeadership }, ctx)).toBe(false);
 
@@ -495,7 +495,7 @@ describe('senior career phase', () => {
   });
 
   it('gates events by phase', () => {
-    const ctx = { appearances: 0 };
+    const ctx = { appearances: 0, phase: 'early' as const };
     const young = senior({ age: 19, stats: { appearances: 2, goals: 0, assists: 0, cleanSheets: 0 } });
     expect(matchesConditions(young, { seniorPhases: ['breakthrough'] }, ctx)).toBe(true);
     expect(matchesConditions(young, { seniorPhases: ['veteran'] }, ctx)).toBe(false);

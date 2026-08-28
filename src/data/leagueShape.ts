@@ -40,7 +40,7 @@ const IL_PREMIER: LeagueShape = {
     { name: 'הפועל ירושלים', quality: 54 },
     { name: 'מכבי בני ריינה', quality: 46 },
     { name: 'עירוני טבריה', quality: 45 },
-    { name: 'הפועל חיפה', quality: 51 },
+    { name: 'הפועל רמת השרון', quality: 47 },
     { name: 'מ.ס אשדוד', quality: 49 },
   ],
 };

@@ -42,7 +42,7 @@ const prodigyAt = (stage: AcademyStage): Career => ({
   hidden: { ...base().hidden, potential: 96, form: 85, confidence: 85 },
 });
 
-const ctx = { appearances: 10 };
+const ctx = { appearances: 10, phase: 'early' as const };
 
 function allText(event: GameEvent): string {
   return [

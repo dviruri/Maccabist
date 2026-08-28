@@ -171,6 +171,29 @@ const clubList: Club[] = [
     isSenior: true,
     seasonGames: 38,
   },
+  /*
+   * v0.4.6: Maccabi Haifa's actual derby opponent.
+   *
+   * The derby is the most-used match label in the game and the club it is played against was not
+   * in the dataset - so a "derby" event had no opponent to name and no rivalry to check against.
+   * Modelled rather than left as a table filler precisely because the rivalry system needs a real
+   * club id on the other side of it.
+   */
+  {
+    id: 'hapoel_haifa',
+    name: 'הפועל חיפה',
+    country: 'ישראל',
+    league: 'ליגת העל',
+    quality: 51,
+    prestige: 22,
+    development: 57,
+    tier: 'israeli_mid',
+    titleChance: 0.004,
+    cupChance: 0.05,
+    europeChance: 0.01,
+    isSenior: true,
+    seasonGames: 36,
+  },
   {
     id: 'hapoel_hadera',
     name: 'הפועל חדרה',

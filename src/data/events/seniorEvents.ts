@@ -13,7 +13,7 @@ export const SENIOR_EVENTS: GameEvent[] = [
     title: 'הרגע של המשחק הגדול',
     description: 'הכדור מגיע אליך בקצה הרחב. שוויון בדרבי, והיציע כבר על הרגליים.',
     category: 'match_moment',
-    conditions: { bands: ['senior'], atMaccabiSenior: true, minRoleValue: 40 },
+    conditions: { bands: ['senior'], atMaccabiSenior: true, minRoleValue: 40, requiresDerby: true },
     weight: 9,
     cooldownSeasons: 2,
     choices: [
@@ -358,7 +358,18 @@ export const SENIOR_EVENTS: GameEvent[] = [
     title: 'פנדל על האליפות',
     description: 'שוויון. השופט מצביע על הנקודה. הקפטן שואל אם אתה רוצה את זה.',
     category: 'match_moment',
-    conditions: { bands: ['senior'], atMaccabiSenior: true, minRoleValue: 55 },
+    /*
+     * "פנדל על האליפות" in the last round of the season. v0.4.6 requires the club to actually be
+     * in a title race, and pins it to the late slot - a title-deciding penalty in September is
+     * not a thing.
+     */
+    conditions: {
+      bands: ['senior'],
+      atMaccabiSenior: true,
+      minRoleValue: 55,
+      titleRace: true,
+    },
+    slots: ['late'],
     weight: 7,
     cooldownSeasons: 3,
     choices: [
@@ -938,7 +949,16 @@ export const SENIOR_EVENTS: GameEvent[] = [
     description:
       'כל משחק הוא גמר. בעיתונות מדברים על לחץ, בחדר ההלבשה אף אחד לא מדבר בכלל.',
     category: 'pressure',
-    conditions: { bands: ['senior'], minRoleValue: 42, minAge: 20 },
+    /*
+     * "חמישה מחזורים לסוף, הפרש נקודה". This required nothing but a senior role, so any player
+     * at any club in any season could be handed the stress of a title run-in - including one
+     * heading for eleventh. It now needs a real title race, late in the season.
+     *
+     * Deliberately not Maccabi-scoped: a title run-in at Beitar or at Union SG is the current
+     * club's story, which is exactly the routing v0.4.6 wants.
+     */
+    conditions: { bands: ['senior'], minRoleValue: 42, minAge: 20, titleRace: true },
+    slots: ['late'],
     weight: 10,
     cooldownSeasons: 2,
     choices: [

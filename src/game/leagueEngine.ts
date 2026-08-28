@@ -474,11 +474,25 @@ export function currentProjection(career: Career): SeasonProjection | null {
   return projection;
 }
 
-/** What the player's club is fighting for right now, or null in youth football. */
-export function currentLeagueContext(career: Career): LeagueContext | null {
+/**
+ * What the player's club is fighting for at a given phase, or null in youth football.
+ *
+ * The phase is a parameter because event planning needs it to be. `planSeason` chooses the whole
+ * season at preseason, so a late-slot event has to be judged against the table as it will be in
+ * April - not as it is in August. Reading `currentPhase` here instead gated every late-slot
+ * title event on the early-season table, and since a title race is not usually decided in August
+ * the result was that `sen_title_run_in` and `sen_title_penalty` became unreachable: fired 0
+ * times in 1,500 careers. A condition that makes an event impossible is not a fix.
+ */
+export function leagueContextAt(career: Career, phase: SeasonPhase): LeagueContext | null {
   const projection = currentProjection(career);
   if (!projection) return null;
-  return leagueContextFrom(career.world, projection, currentPhase(career));
+  return leagueContextFrom(career.world, projection, phase);
+}
+
+/** What the player's club is fighting for right now, or null in youth football. */
+export function currentLeagueContext(career: Career): LeagueContext | null {
+  return leagueContextAt(career, currentPhase(career));
 }
 
 /** The player's club's table right now, or null in youth football. */

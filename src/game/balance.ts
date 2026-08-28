@@ -845,6 +845,14 @@ export const EVENTS = {
   riskyUpsideGain: 2.1,
   /** Chance the late-season "key moment" slot is used at all. */
   lateSlotChance: 0.45,
+  /**
+   * How often a two-event season puts its second event late rather than mid (v0.4.6).
+   *
+   * The senior stage budgets one or two events, so the three-slot branch never ran there and the
+   * late slot was never allocated at all - making every senior `slots: ['late']` event
+   * unreachable. This does not add events, it moves when the second one lands.
+   */
+  lateInsteadOfMidChance: 0.32,
   /** Two injury or discipline events back to back feels punishing - block it. */
   blockedRepeatCategories: ['injury', 'discipline'] as const,
 };

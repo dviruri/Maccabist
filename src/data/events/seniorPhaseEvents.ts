@@ -994,7 +994,12 @@ export const SENIOR_PHASE_EVENTS: GameEvent[] = [
     description:
       'ידעת שזה האחרון עוד לפני שהודעת. בחימום הסתכלת על היציע קצת יותר מדי זמן.',
     category: 'match_moment',
-    conditions: { seniorPhases: ['veteran'], atMaccabiSenior: true, minAge: 33 },
+    conditions: {
+      seniorPhases: ['veteran'],
+      atMaccabiSenior: true,
+      minAge: 33,
+      requiresDerby: true,
+    },
     weight: 11,
     oncePerCareer: true,
     choices: [

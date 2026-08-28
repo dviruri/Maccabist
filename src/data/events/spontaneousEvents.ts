@@ -565,7 +565,17 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
       'דרבי שהמחלקה כולה הגיעה לראות. שוויון, הרגע האחרון, והכדור מגיע אליך בתוך הרחבה.',
     category: 'rare',
     rarity: 'rare',
-    conditions: { bands: ['teens', 'u19'], minRoleValue: 50, minAbility: 55 },
+    /*
+     * v0.4.6: this carried no club condition at all, so a boy at any academy in the game could
+     * receive "a derby the whole department came to watch". `requiresDerby` ties it to a club
+     * that actually has a modelled local rival.
+     */
+    conditions: {
+      bands: ['teens', 'u19'],
+      minRoleValue: 50,
+      minAbility: 55,
+      requiresDerby: true,
+    },
     weight: 9,
     oncePerCareer: true,
     slots: ['late'],

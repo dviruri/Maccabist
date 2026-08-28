@@ -22,7 +22,7 @@ function career(overrides: Partial<Career> = {}): Career {
   return { ...createCareer({ playerName: 'בודק', position: 'CM', seed: 99 }), ...overrides };
 }
 
-const ctx = { appearances: 10 };
+const ctx = { appearances: 10, phase: 'early' as const };
 
 const outcomes: EventOutcome[] = [
   { id: 'good', baseWeight: 50, tone: 'good', text: 'טוב', effects: {} },

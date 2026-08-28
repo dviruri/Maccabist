@@ -4,7 +4,7 @@
  */
 
 import { stageBand } from '../data/academy';
-import type { Career, ClubScope, EventConditions, SeasonSlot } from '../types';
+import type { Career, ClubScope, EventConditions, SeasonPhase, SeasonSlot } from '../types';
 import {
   allowsExceptionalSeniorContact,
   allowsSeniorContact,
@@ -25,7 +25,10 @@ import {
   seasonsSinceMemory,
   seniorPhase,
 } from './memory';
+import { leagueContextAt } from './leagueEngine';
+import { hasRivalryOfType, matchContext } from './matchEngine';
 import { isAtMaccabi, isAtMaccabiSenior, isOnLoan, isPlayingAbroad } from './rules';
+import { isDerbyEligible } from './worldPredicates';
 import {
   clubStrengthVsLeague,
   lastAmbientMaccabiSeason,
@@ -37,11 +40,18 @@ import {
 export interface ConditionContext {
   /** Appearances the condition should read: this season so far, or last season. */
   appearances: number;
+  /**
+   * Which phase of the season this event is being judged for (v0.4.6).
+   *
+   * The slot, not "now". `planSeason` picks the whole season at preseason, so a late-slot event
+   * must be checked against the table as it will be in April rather than as it is in August.
+   */
+  phase: SeasonPhase;
 }
 
 export function conditionContext(career: Career, slot: SeasonSlot): ConditionContext {
   if (slot === 'early') {
-    return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0 };
+    return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0, phase: slot };
   }
   /*
    * Mid and late slots normally read this season's first half. But the whole season is *planned*
@@ -52,8 +62,8 @@ export function conditionContext(career: Career, slot: SeasonSlot): ConditionCon
    * season is the only evidence there is.
    */
   const firstHalf = career.firstHalfStats?.appearances;
-  if (firstHalf !== undefined) return { appearances: firstHalf };
-  return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0 };
+  if (firstHalf !== undefined) return { appearances: firstHalf, phase: slot };
+  return { appearances: career.lastSeasonRecord?.stats.appearances ?? 0, phase: slot };
 }
 
 function between(value: number, min?: number, max?: number): boolean {
@@ -162,6 +172,10 @@ export function matchesConditions(
     if (!between(strength, c.minClubStrength, c.maxClubStrength)) return false;
   }
 
+  /* ---------- v0.4.6: the live table, and the fixture ---------- */
+  if (!matchesWorldState(career, c, ctx.phase)) return false;
+  if (!matchesMatchContext(career, c, ctx.phase)) return false;
+
   if (!between(ctx.appearances, c.minLastAppearances, c.maxLastAppearances)) return false;
 
   if (c.requiresFlags && !c.requiresFlags.every((f) => career.flags.includes(f))) return false;
@@ -204,6 +218,103 @@ export function matchesConditions(
   }
 
   if (c.seniorPhases && !c.seniorPhases.includes(seniorPhase(career))) return false;
+
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* v0.4.6: the live world                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Does the club's actual league situation match what the event needs?
+ *
+ * Everything here **fails closed**. A career with no table - youth football, or a league with no
+ * modelled shape - matches none of these rather than all of them. That default is the whole
+ * point: an event about a title race asking a question the world cannot answer must not be
+ * allowed through on the grounds that nothing said no.
+ */
+function matchesWorldState(career: Career, c: EventConditions, phase: SeasonPhase): boolean {
+  const wants =
+    c.titleRace !== undefined ||
+    c.europeRace !== undefined ||
+    c.relegationBattle !== undefined ||
+    c.promotionRace !== undefined ||
+    c.midTable !== undefined ||
+    c.championClinched !== undefined ||
+    c.relegationConfirmed !== undefined ||
+    c.clubOverperforming !== undefined ||
+    c.clubUnderperforming !== undefined ||
+    c.minLeaguePosition !== undefined ||
+    c.maxLeaguePosition !== undefined ||
+    c.requiresLeagueTable === true;
+  if (!wants) return true;
+
+  const league = leagueContextAt(career, phase);
+  if (!league) return false;
+
+  const flag = (want: boolean | undefined, actual: boolean): boolean =>
+    want === undefined || want === actual;
+
+  if (!flag(c.titleRace, league.titleRace)) return false;
+  if (!flag(c.europeRace, league.europeRace)) return false;
+  if (!flag(c.relegationBattle, league.relegationBattle)) return false;
+  if (!flag(c.promotionRace, league.promotionRace)) return false;
+  if (!flag(c.midTable, league.midTable)) return false;
+  if (!flag(c.championClinched, league.championClinched)) return false;
+  if (!flag(c.relegationConfirmed, league.relegationConfirmed)) return false;
+  if (!flag(c.clubOverperforming, league.overperforming)) return false;
+  if (!flag(c.clubUnderperforming, league.underperforming)) return false;
+
+  // Position 1 is the top of the table, so "max" is the better finish.
+  if (c.maxLeaguePosition !== undefined && league.position > c.maxLeaguePosition) return false;
+  if (c.minLeaguePosition !== undefined && league.position < c.minLeaguePosition) return false;
+
+  return true;
+}
+
+/**
+ * Does the fixture support what the event says about it?
+ *
+ * `requiresDerby` is the important one. It is checked against a modelled rivalry between the
+ * player's club and a club in the same division - not against how big the match feels - which is
+ * what makes it impossible for a club with no local rival to receive a derby event.
+ */
+function matchesMatchContext(career: Career, c: EventConditions, phase: SeasonPhase): boolean {
+  const wants =
+    c.requiresDerby !== undefined ||
+    c.rivalryTypes !== undefined ||
+    c.matchImportance !== undefined ||
+    c.titleDecider !== undefined ||
+    c.relegationSixPointer !== undefined ||
+    c.promotionDecider !== undefined ||
+    c.vsMaccabi !== undefined ||
+    c.vsFormerClub !== undefined;
+  if (!wants) return true;
+
+  if (c.requiresDerby === true && !isDerbyEligible(career)) return false;
+  if (c.rivalryTypes && !hasRivalryOfType(career, c.rivalryTypes)) return false;
+
+  const needsFixture =
+    c.matchImportance !== undefined ||
+    c.titleDecider !== undefined ||
+    c.relegationSixPointer !== undefined ||
+    c.promotionDecider !== undefined ||
+    c.vsMaccabi !== undefined ||
+    c.vsFormerClub !== undefined;
+  if (!needsFixture) return true;
+
+  const match = matchContext(career, phase);
+  if (!match) return false;
+
+  if (c.matchImportance && !c.matchImportance.includes(match.importance)) return false;
+  if (c.titleDecider !== undefined && match.titleDecider !== c.titleDecider) return false;
+  if (c.relegationSixPointer !== undefined && match.relegationSixPointer !== c.relegationSixPointer) {
+    return false;
+  }
+  if (c.promotionDecider !== undefined && match.promotionDecider !== c.promotionDecider) return false;
+  if (c.vsMaccabi !== undefined && match.vsMaccabi !== c.vsMaccabi) return false;
+  if (c.vsFormerClub !== undefined && match.vsFormerClub !== c.vsFormerClub) return false;
 
   return true;
 }

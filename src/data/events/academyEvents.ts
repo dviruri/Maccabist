@@ -937,10 +937,21 @@ export const ACADEMY_EVENTS: GameEvent[] = [
     kicker: 'דרבי נוער, יציע מלא',
     title: 'המשחק שכולם מדברים עליו',
     description:
-      'דרבי מול מכבי תל אביב. הצופים של הבוגרים מגיעים לראות, וההורים מצלמים הכול.',
+      'דרבי מול הפועל חיפה. הצופים של הבוגרים מגיעים לראות, וההורים מצלמים הכול.',
     category: 'match_moment',
-    // A youth derby against the other Haifa club - only means anything in green.
-    conditions: { bands: ['teens', 'u19'], minRoleValue: 42, clubScope: 'maccabi' },
+    /*
+     * A youth derby against the other Haifa club - only means anything in green.
+     *
+     * v0.4.6: the comment said "the other Haifa club" and the description said מכבי תל אביב,
+     * which is a major rivalry and not a derby. Corrected to the club the rivalry data actually
+     * models as Maccabi Haifa's local derby, and gated on it.
+     */
+    conditions: {
+      bands: ['teens', 'u19'],
+      minRoleValue: 42,
+      clubScope: 'maccabi',
+      requiresDerby: true,
+    },
     weight: 8,
     cooldownSeasons: 2,
     choices: [

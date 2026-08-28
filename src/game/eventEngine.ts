@@ -184,18 +184,37 @@ export interface PlannedEvent {
  */
 export function planSeason(career: Career, rng: Rng): PlannedEvent[] {
   const budget = eventBudget(career, rng);
+
+  /*
+   * v0.4.6: a two-event season can put its second event in April.
+   *
+   * The senior stage budgets one or two events, so `budget === 3` never happened there and the
+   * late slot was never allocated - which quietly made **every senior event declaring
+   * `slots: ['late']` unreachable**. `spon_last_minute` had been in the catalogue unreachable
+   * since it was written, and the v0.4.6 title events joined it: eligible in 131 of 481 senior
+   * preseasons and planned in none of them.
+   *
+   * Swapping mid for late some of the time fixes the class rather than the three events. The
+   * number of events per season is unchanged, so pacing is untouched - only *when* the second
+   * one lands, and a season whose decisive moment comes in April is the normal case in football.
+   */
   const slots: SeasonSlot[] =
     budget <= 1
       ? [rng.chance(0.6) ? 'early' : 'mid']
       : budget === 2
-        ? ['early', 'mid']
+        ? rng.chance(EVENTS.lateInsteadOfMidChance)
+          ? ['early', 'late']
+          : ['early', 'mid']
         : ['early', 'mid', 'late'];
+
+  /* Only the *third* slot is optional; a late slot that replaced mid is the season's second event. */
+  const lateIsExtra = slots.length === 3;
 
   const planned: PlannedEvent[] = [];
   const used: EventCategory[] = [];
   for (const slot of slots) {
-    // The late "key moment" slot is not always used, even when budgeted.
-    if (slot === 'late' && !rng.chance(EVENTS.lateSlotChance + 0.35)) continue;
+    // The late "key moment" slot is not always used, when it is an extra on top of two others.
+    if (slot === 'late' && lateIsExtra && !rng.chance(EVENTS.lateSlotChance + 0.35)) continue;
     const event = pickEventForSlot(
       career,
       rng,

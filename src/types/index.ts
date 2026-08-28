@@ -1,3 +1,5 @@
+import type { RivalryType } from '../data/rivalries';
+
 /**
  * Maccabist domain model (v0.2).
  * Everything here is plain data - no React, no DOM, no side effects.
@@ -462,6 +464,38 @@ export interface LeagueContext {
   underperforming: boolean;
 }
 
+/**
+ * How big a match this is (v0.4.6). Derived, never asserted by an event.
+ */
+export type MatchImportance = 'routine' | 'important' | 'huge';
+
+/**
+ * The fixture an event is talking about.
+ *
+ * Derived from the career and the live table rather than stored, so there is always a real club
+ * on the other side of it in a real table position. An event may only use a label - דרבי, משחק
+ * אליפות, קרב תחתית - that this context actually supports.
+ */
+export interface MatchContext {
+  opponentClubId: string;
+  opponentName: string;
+  /** Where the opponent sits, or null if they are not in a modelled table. */
+  opponentPosition: number | null;
+  home: boolean;
+  rivalryType: RivalryType | null;
+  rivalryName: string | null;
+  /** True only for a modelled local derby. Not a synonym for "important". */
+  isDerby: boolean;
+  importance: MatchImportance;
+  titleDecider: boolean;
+  relegationSixPointer: boolean;
+  promotionDecider: boolean;
+  vsMaccabi: boolean;
+  vsFormerClub: boolean;
+  /** Points between the two clubs, or null when the opponent has no table row. */
+  pointsGap: number | null;
+}
+
 export interface WorldState {
   /**
    * The player's club's season, decided at preseason (v0.4.6). Optional: v0.4.5.1 saves have
@@ -783,6 +817,63 @@ export interface EventConditions {
    */
   minClubStrength?: number;
   maxClubStrength?: number;
+
+  /* ---------- v0.4.6: what the club is actually fighting for ---------- */
+  /*
+   * These read the live table via `leagueContext`, which is committed at preseason - so an event
+   * planned in August for the late slot is gated on the season the club will actually have, not
+   * on last year's finish or on nothing at all.
+   *
+   * Every one of them fails closed. A career with no table (youth football, a league with no
+   * modelled shape) matches none of these conditions rather than all of them, so an event about
+   * a title race can never reach a fifteen year old.
+   */
+  /** The club is genuinely in contention at the top. */
+  titleRace?: boolean;
+  /** Chasing a European place, and not already in the title race. */
+  europeRace?: boolean;
+  /** Close enough to the drop for it to be the story. */
+  relegationBattle?: boolean;
+  /** Second division, in the promotion picture. */
+  promotionRace?: boolean;
+  /** None of the above: the season has nothing riding on it. */
+  midTable?: boolean;
+  /** The title is mathematically settled. */
+  championClinched?: boolean;
+  /** Going down is mathematically settled. */
+  relegationConfirmed?: boolean;
+  /** Doing clearly better, or worse, than the squad's quality implies. */
+  clubOverperforming?: boolean;
+  clubUnderperforming?: boolean;
+  /** League position, 1 = top. `maxLeaguePosition: 4` means "fourth or better". */
+  minLeaguePosition?: number;
+  maxLeaguePosition?: number;
+  /** The event needs a modelled league table to exist at all. */
+  requiresLeagueTable?: boolean;
+
+  /* ---------- v0.4.6: the fixture ---------- */
+  /**
+   * The event describes a derby.
+   *
+   * True means the club must have a modelled local rival *in the same division this season*.
+   * This is the condition that makes `rare_derby_legend` - a derby event that carried no club
+   * condition whatsoever - impossible to fire at a club with no derby.
+   */
+  requiresDerby?: boolean;
+  /** Any modelled rivalry of these types against a club in the same division. */
+  rivalryTypes?: RivalryType[];
+  /** How big the fixture is. Derived from the table, never asserted by the event. */
+  matchImportance?: MatchImportance[];
+  /** The match can genuinely decide the title. Requires a late-phase title race on both sides. */
+  titleDecider?: boolean;
+  /** Two clubs in the relegation fight, close together. */
+  relegationSixPointer?: boolean;
+  /** A promotion decider, which only a second division can have. */
+  promotionDecider?: boolean;
+  /** The opponent is Maccabi. */
+  vsMaccabi?: boolean;
+  /** The opponent is a club he used to play for. */
+  vsFormerClub?: boolean;
 }
 
 /**
