@@ -49,7 +49,9 @@ export type IntegrityCode =
   /** a season with an on-field event and no appearances. */
   | 'on_field_without_appearance'
   /** a cup trophy stored with a league trophy id, or vice versa. */
-  | 'trophy_kind_confusion';
+  | 'trophy_kind_confusion'
+  /** a stored career counter disagrees with the trophy list it is derived from. */
+  | 'counter_disagrees_with_trophies';
 
 export interface IntegrityViolation {
   code: IntegrityCode;
@@ -205,6 +207,35 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
     if (isLeague && isCup) {
       push('trophy_kind_confusion', `trophy ${trophy.id} counts as both a league and a cup`);
     }
+  }
+
+  /* ---------------- stored counters against derived truth ---------------- */
+
+  /*
+   * `maccabi.championships` and `maccabi.cups` are counters incremented from trophies, which is
+   * derived-and-stored rather than derived-on-read (Phase 42). They cannot disagree with the
+   * trophy list in a career played under v0.4.8 - the increment only happens when a trophy is
+   * added - but a save written by older code can, and the retirement poster reads the counters.
+   * So the identity is checked rather than assumed.
+   */
+  const maccabiLeagueTitles = career.trophies.filter(
+    (t) => t.clubId === MACCABI_ID && t.id === 'championship',
+  ).length;
+  if (career.maccabi.championships !== maccabiLeagueTitles) {
+    push(
+      'counter_disagrees_with_trophies',
+      `maccabi.championships is ${career.maccabi.championships}, trophy list holds ${maccabiLeagueTitles}`,
+    );
+  }
+
+  const maccabiCups = career.trophies.filter(
+    (t) => t.clubId === MACCABI_ID && t.id === 'cup',
+  ).length;
+  if (career.maccabi.cups !== maccabiCups) {
+    push(
+      'counter_disagrees_with_trophies',
+      `maccabi.cups is ${career.maccabi.cups}, trophy list holds ${maccabiCups}`,
+    );
   }
 
   /* ---------------- promotion and relegation ---------------- */
