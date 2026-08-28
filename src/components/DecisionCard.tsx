@@ -94,15 +94,45 @@ function OddsBar({ distribution }: { distribution: DecisionDistribution }): JSX.
     }))
     .filter((segment) => segment.percent > 0);
 
+  /*
+   * Roll the five valences up into three numbers for the summary (v0.4.7, Phase 9.1).
+   *
+   * The bar alone shows the shape and not the size: a player can see that a choice is mostly green
+   * without knowing whether that is 55% or 85%, which is exactly the judgement he is being asked
+   * to make. Three figures beside the bar give him that without expanding anything - and this is a
+   * *summary*, so the concrete outcomes stay one tap away and are not replaced by it.
+   */
+  const share = (valences: OutcomeValence[]): number =>
+    segments.filter((s) => valences.includes(s.valence)).reduce((sum, s) => sum + s.percent, 0);
+
+  const summary = [
+    { key: 'good', icon: '🟢', label: 'טוב', percent: share(['majorPositive', 'positive']) },
+    { key: 'flat', icon: '⚪', label: 'ללא שינוי', percent: share(['neutral']) },
+    { key: 'bad', icon: '🔴', label: 'רע', percent: share(['negative', 'majorNegative']) },
+  ].filter((row) => row.percent > 0);
+
   return (
-    <div className="odds-bar" role="img" aria-label={ariaFor(distribution)}>
-      {segments.map((segment) => (
-        <span
-          key={segment.valence}
-          className={`odds-seg valence-${segment.valence}`}
-          style={{ width: `${segment.percent}%` }}
-        />
-      ))}
+    <div className="odds-summary">
+      <div className="odds-bar" role="img" aria-label={ariaFor(distribution)}>
+        {segments.map((segment) => (
+          <span
+            key={segment.valence}
+            className={`odds-seg valence-${segment.valence}`}
+            style={{ width: `${segment.percent}%` }}
+          />
+        ))}
+      </div>
+      <div className="odds-figures">
+        {summary.map((row) => (
+          <span key={row.key} className={`odds-figure is-${row.key}`}>
+            {/* The icon is decoration; the label is what carries the meaning for a screen reader
+                and for anyone who cannot distinguish the colours. */}
+            <span aria-hidden>{row.icon}</span>
+            <span className="odds-figure-pct">{row.percent}%</span>
+            <span className="sr-only">{row.label}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -166,7 +196,12 @@ function ChoiceBlock({
           <OddsBar distribution={distribution} />
 
           <button type="button" className="odds-toggle" onClick={onToggle} disabled={disabled}>
-            {expanded ? 'הסתר סיכויים' : 'הצג סיכויים'}
+            {/*
+              "What could happen?" rather than "show odds" (Phase 9.2). The player is not asking
+              for numbers, he is asking what this decision might do to his career - and what the
+              expansion actually contains is v0.4.6's concrete outcome descriptions.
+            */}
+            {expanded ? 'להסתיר' : 'מה יכול לקרות?'}
           </button>
           {expanded && (
             <>
