@@ -325,6 +325,20 @@ function firstOriginOf(origin: CareerOrigin): Career {
   return createCareer({ playerName: 'דויד', position: 'CM', seed: 1 });
 }
 
+/* A senior season with milestones stamped to it, for the season-memories strip. */
+const memorableSeason = (): Career => {
+  const career = seniorAtMaccabi();
+  const season = career.lastSeasonRecord?.season ?? career.currentSeason;
+  return {
+    ...career,
+    milestones: [
+      { id: 'm1', season, age: career.age, icon: '🏆', text: 'אליפות ראשונה עם מכבי חיפה', major: true },
+      { id: 'm2', season, age: career.age, icon: '🎯', text: 'השער ה-50 שלך בליגה', major: false },
+      { id: 'm3', season, age: career.age, icon: '🇮🇱', text: 'הופעת בכורה בנבחרת', major: true },
+    ],
+  };
+};
+
 const originScouted = (): Career => firstOriginOf('scouted');
 const originAccepted = (): Career => firstOriginOf('trial_accepted');
 const originRejected = (): Career => firstOriginOf('trial_rejected');
@@ -503,6 +517,8 @@ export function Gallery(): JSX.Element {
     ['news', <AmbientNewsHeader career={euro} />],
     ['timeline', <CareerTimeline career={retiredLegend()} defaultOpen />],
     ['season', <SeasonResultCard career={senior} onContinue={noop} />],
+    /* A season that actually produced milestones, so the "what you will remember" strip renders. */
+    ['season-memorable', <SeasonResultCard career={memorableSeason()} onContinue={noop} />],
     ['retirement', <RetirementPage career={retiredLegend()} onNewCareer={noop} isBest />],
     ['retirement-modest', <RetirementPage career={retiredModest()} onNewCareer={noop} isBest={false} />],
     [

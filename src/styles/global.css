@@ -3687,3 +3687,34 @@ p {
   display: flex;
   justify-content: center;
 }
+
+/* What you will remember from this season (v0.4.5.1). */
+.season-memories {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.season-memory {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.season-memory.is-major {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.season-memory-icon {
+  flex-shrink: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}

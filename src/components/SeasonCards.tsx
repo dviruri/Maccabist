@@ -177,6 +177,8 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
           </div>
         )}
 
+        <SeasonMemories career={career} season={record.season} />
+
         {career.lastSeasonDeltas.length > 0 && (
           <div className="stack-sm">
             <div className="kicker">התקדמות</div>
@@ -189,6 +191,39 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
         </button>
       </div>
     </article>
+  );
+}
+
+/**
+ * What you will remember from this season (v0.4.5.1).
+ *
+ * The numbers say 27 appearances and 9 goals; they do not say that one of them was your first
+ * for the first team. The season card ended without ever mentioning the things the career will
+ * still be talking about in fifteen years.
+ *
+ * Built from milestones rather than from `career.memories`. Milestones are already the engine's
+ * own judgement of what mattered, and they already carry written Hebrew - reading the memory log
+ * instead would have meant inventing a display string for all fifty-odd MemoryKinds, most of
+ * which are gating flags rather than moments a player would recount.
+ */
+function SeasonMemories({ career, season }: { career: Career; season: number }): JSX.Element | null {
+  const moments = career.milestones.filter((m) => m.season === season);
+  if (moments.length === 0) return null;
+
+  return (
+    <div className="stack-sm">
+      <div className="kicker">מה שתזכור מהעונה</div>
+      <ul className="season-memories">
+        {moments.map((moment) => (
+          <li key={moment.id} className={`season-memory${moment.major ? ' is-major' : ''}`}>
+            <span className="season-memory-icon" aria-hidden>
+              {moment.icon}
+            </span>
+            <span>{moment.text}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
