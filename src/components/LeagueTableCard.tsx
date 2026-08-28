@@ -30,9 +30,19 @@ import { ClubCrest } from './ClubCrest';
 export function LeagueTableCard({
   career,
   defaultOpen = false,
+  inSheet = false,
 }: {
   career: Career;
   defaultOpen?: boolean;
+  /**
+   * Suppresses this card's own league heading (v0.4.7).
+   *
+   * Inside the table sheet the sheet's own header already names the league and the round, so
+   * printing them again immediately below is the screen saying the same thing twice. The
+   * situation line stays either way - "6 נקודות ממקומות אירופה" is the context Phase 26 asks for
+   * at the top of the sheet, not a repetition.
+   */
+  inSheet?: boolean;
 }): JSX.Element | null {
   const [full, setFull] = useState(defaultOpen);
 
@@ -46,15 +56,17 @@ export function LeagueTableCard({
 
   return (
     <section className="card-flat table-card">
-      <header className="table-head">
-        <div>
-          <div className="kicker">מצב הליגה</div>
-          <h3 className="table-league">{league.name}</h3>
-        </div>
-        <div className="table-played">
-          מחזור <Ltr>{context.played}</Ltr>
-        </div>
-      </header>
+      {!inSheet && (
+        <header className="table-head">
+          <div>
+            <div className="kicker">מצב הליגה</div>
+            <h3 className="table-league">{league.name}</h3>
+          </div>
+          <div className="table-played">
+            מחזור <Ltr>{context.played}</Ltr>
+          </div>
+        </header>
+      )}
 
       <SituationLine context={context} />
 

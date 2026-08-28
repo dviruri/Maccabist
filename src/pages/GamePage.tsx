@@ -1,7 +1,10 @@
 import { useState } from 'react';
 
 import { CareerTimeline } from '../components/CareerTimeline';
+import { CompactHub } from '../components/CompactHub';
 import { LeagueTableCard } from '../components/LeagueTableCard';
+import { SeasonStrip } from '../components/SeasonStrip';
+import { Sheet } from '../components/Sheet';
 import { Celebration } from '../components/Celebration';
 import { DebugPanel } from '../components/DebugPanel';
 import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
@@ -18,6 +21,8 @@ import {
 import { Timeline } from '../components/Timeline';
 import { Chip, Logo, Ltr } from '../components/primitives';
 import { EVENTS_BY_ID } from '../data/events';
+import { getLeague } from '../data/leagues';
+import { currentTable } from '../game/leagueEngine';
 import type { GameActions } from '../state/useGame';
 import type { Career } from '../types';
 import { headlineTitle, olderGroupLine, seasonLabel, seasonPhaseSteps } from '../ui/format';
@@ -28,32 +33,99 @@ interface Props {
   onExit: () => void;
 }
 
+/**
+ * What the secondary sheets are, and which one is open.
+ *
+ * A plain union rather than three booleans: only one sheet can be open at a time, and encoding
+ * that in the type means it cannot get into a state where two are.
+ */
+type SheetId = 'table' | 'timeline' | 'history' | null;
+
 export function GamePage({ career, actions, onExit }: Props): JSX.Element {
+  const [sheet, setSheet] = useState<SheetId>(null);
+  const close = (): void => setSheet(null);
+
+  const table = currentTable(career);
+  const league = table ? getLeague(table.leagueId) : null;
+
+  /*
+   * The gameplay screen, restructured for a phone (v0.4.7).
+   *
+   * v0.4.6 rendered an aside of secondary panels before the main column. On a desktop that is a
+   * sidebar; on a phone the grid collapses and it becomes four screens of dashboard stacked on top
+   * of the event. Measured at 390px: the decision began at y=1155 and the first button a player
+   * could press was at y=1454.
+   *
+   * The order now is the loop itself - WHO AM I, WHERE ARE WE, WHAT IS HAPPENING, WHAT DO I
+   * CHOOSE - and everything else is one tap away in a sheet. Nothing was deleted.
+   */
   return (
-    <div className="shell">
-      <header className="topbar">
+    <div className="shell play">
+      <header className="topbar topbar-slim">
         <Logo variant="mark" className="topbar-mark" />
         <div className="topbar-brand">
           מכבי<span>סט</span>
         </div>
         <div className="spacer" />
-        <Chip tone="plain">{headlineTitle(career)}</Chip>
+        <span className="topbar-season">
+          <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
+        </span>
         <button type="button" className="debug-toggle" onClick={onExit}>
           תפריט
         </button>
       </header>
 
-      <div className="game-layout">
-        <aside className="stack">
+      {/* ---------- primary gameplay layer ---------- */}
+      <CompactHub career={career} onOpenCareer={() => setSheet('history')} />
+      <SeasonStrip career={career} onOpenTable={() => setSheet('table')} />
+
+      {/*
+        The five-dot season-phase strip is gone from here (v0.4.7). Its one piece of information -
+        which part of the season this is - is now a word inside SeasonStrip, and it kept an academy
+        career's context too, where there is no league table for the strip to show.
+      */}
+      {!career.retired && !currentTable(career) && <SeasonProgress career={career} />}
+
+      <main className="play-main">
+        <PhaseView career={career} actions={actions} />
+      </main>
+
+      {/* ---------- one tap to everything else ---------- */}
+      <nav className="play-nav" aria-label="מידע נוסף">
+        {table && (
+          <button type="button" className="play-nav-btn" onClick={() => setSheet('table')}>
+            טבלה
+          </button>
+        )}
+        <button type="button" className="play-nav-btn" onClick={() => setSheet('timeline')}>
+          סיפור הקריירה
+        </button>
+        <button type="button" className="play-nav-btn" onClick={() => setSheet('history')}>
+          הקריירה
+        </button>
+      </nav>
+
+      {/*
+        The sheets render nothing at all while closed, so a fourteen-row table and a full career
+        timeline are not mounted during ordinary play (Phase 39).
+      */}
+      <Sheet
+        open={sheet === 'table'}
+        title={league?.name ?? 'מצב הליגה'}
+        subtitle={table ? `מחזור ${table.rows[0]?.played ?? ''}` : undefined}
+        onClose={close}
+      >
+        <LeagueTableCard career={career} defaultOpen inSheet />
+      </Sheet>
+
+      <Sheet open={sheet === 'timeline'} title="סיפור הקריירה" onClose={close}>
+        <CareerTimeline career={career} defaultOpen />
+      </Sheet>
+
+      <Sheet open={sheet === 'history'} title="הקריירה" onClose={close}>
+        <div className="stack">
+          {/* The full Player Hub lives here now - all of it, where its height costs nothing. */}
           <PlayerHub career={career} />
-          {/*
-            מצב הליגה, directly under the hub (v0.4.6).
-            Above the timeline deliberately: the timeline is what already happened, and this is
-            the thing the player needs while deciding - what the club is fighting for right now,
-            and where Maccabi are. Renders nothing in youth football, which has no table.
-          */}
-          <LeagueTableCard career={career} />
-          <CareerTimeline career={career} />
           {career.seasonHistory.length > 0 && (
             <section className="card-flat">
               <div className="kicker" style={{ marginBottom: 10 }}>
@@ -62,13 +134,8 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
               <Timeline history={career.seasonHistory.slice(-14)} />
             </section>
           )}
-        </aside>
-
-        <main className="stack">
-          {!career.retired && <SeasonProgress career={career} />}
-          <PhaseView career={career} actions={actions} />
-        </main>
-      </div>
+        </div>
+      </Sheet>
 
       <Celebration achievements={career.lastAchievements} progression={career.lastProgression} />
       {import.meta.env.DEV && <DebugPanel career={career} onChange={actions.overrideCareer} />}

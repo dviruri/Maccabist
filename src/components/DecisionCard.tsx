@@ -10,8 +10,8 @@ import { CHOICE_RISK_LABELS } from '../ui/format';
 import { currentTeamDisplay } from '../game/identity';
 import { playerLeague } from '../game/worldEngine';
 import { eventVisual, isMatchMoment, maccabiPresentation, matchMinute } from '../ui/eventVisuals';
-import { currentLeagueContext } from '../game/leagueEngine';
 import { matchContext, requirementOf } from '../game/matchEngine';
+import { ClubCrest } from './ClubCrest';
 import { AmbientNewsHeader, MaccabiBanner, SamiOferHeader } from './MaccabiCards';
 import { Ltr } from './primitives';
 import type {
@@ -204,15 +204,14 @@ function MatchStrip({ career, event }: { career: Career; event: GameEvent }): JS
   const team = currentTeamDisplay(career);
   const league = playerLeague(career);
   /*
-   * v0.4.6: there is now a real fixture behind the moment.
+   * v0.4.6 gave the moment a real fixture. v0.4.7 makes it one line (Phase 8.2).
    *
-   * The strip used to name the player's own club and the league and stop there, which meant a
-   * "biggest match of the season" was being played against nobody in particular. The opponent,
-   * both table positions and the gap between them come from `matchContext`, so a match that
-   * looks like a decider is one - and a match that is not one cannot be dressed as it.
+   * It was two stacked rows naming the player's own club and its position - which the compact hub
+   * and the season strip directly above already say - plus the opponent and a stakes line. Crests
+   * carry the recognition instead, so the row is a scoreboard rather than a paragraph, and the
+   * only thing repeated is the position, which is the whole point of the comparison.
    */
   const match = matchContext(career, undefined, requirementOf(event));
-  const own = currentLeagueContext(career);
 
   return (
     <div className="match-strip">
@@ -220,31 +219,37 @@ function MatchStrip({ career, event }: { career: Career; event: GameEvent }): JS
         <Ltr>{minute ?? '—'}</Ltr>
         <span aria-hidden>׳</span>
       </div>
-      <div className="match-teams">
-        <div className="match-home">
-          {team.club}
-          {own && (
-            <span className="match-pos">
-              {' · מקום '}
-              <Ltr>{own.position}</Ltr>
-            </span>
-          )}
-        </div>
-        {match ? (
-          <div className="match-away">
-            {match.opponentName}
+
+      {match ? (
+        <div className="match-fixture">
+          {/*
+            No position pill on the player's own side. The season strip directly above shows it as
+            the largest number on the screen, and repeating it here cost the width that was
+            truncating both club names to "מכב..." and "הפ..." at 360px. The opponent's position
+            is the new information, so that one stays.
+          */}
+          <div className="match-side">
+            <ClubCrest clubId={career.currentClubId} size="small" />
+            <span className="match-side-name">{team.club}</span>
+          </div>
+          <div className="match-side">
+            <ClubCrest clubId={match.opponentClubId} name={match.opponentName} size="small" />
+            <span className="match-side-name">{match.opponentName}</span>
             {match.opponentPosition !== null && (
-              <span className="match-pos">
-                {' · מקום '}
+              <span className="match-side-pos">
                 <Ltr>{match.opponentPosition}</Ltr>
               </span>
             )}
           </div>
-        ) : (
+        </div>
+      ) : (
+        <div className="match-teams">
+          <div className="match-home">{team.club}</div>
           <div className="match-comp">{league.name}</div>
-        )}
-        {match && <MatchStakes match={match} /> }
-      </div>
+        </div>
+      )}
+
+      {match && <MatchStakes match={match} />}
     </div>
   );
 }
@@ -272,9 +277,10 @@ function MatchStakes({ match }: { match: MatchContext }): JSX.Element | null {
   return (
     <div className="match-stakes">
       {label && <span className="match-stakes-label">{label}</span>}
+      {/* The gap, in the compact form. Only when it is small enough to be the story. */}
       {match.pointsGap !== null && match.pointsGap <= 8 && (
         <span className="match-gap">
-          <Ltr>{match.pointsGap}</Ltr> נקודות מפרידות ביניהן
+          <Ltr>{match.pointsGap}</Ltr> נק׳ הפרש
         </span>
       )}
     </div>

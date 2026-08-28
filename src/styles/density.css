@@ -1,0 +1,542 @@
+/* =========================================================================
+   MOBILE GAMEPLAY DENSITY (v0.4.7)
+
+   v0.4.6 put the hub, the full league table, the timeline and the season
+   history above the event. At 390px the decision began at y=1155 and the first
+   pressable choice at y=1454 - more than one and a half viewports of scrolling
+   to reach the thing the player opened the game to do.
+
+   The rule here is DENSE, NOT SMALL. Nothing below is under 10px, the player's
+   name is still the largest thing in the header, and ability still gets weight.
+   The height comes back from hierarchy and from moving secondary information
+   one tap away, not from shrinking type.
+   ========================================================================= */
+
+.shell.play {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.topbar-slim {
+  min-height: 44px;
+  padding-block: var(--space-2);
+}
+
+.topbar-season {
+  font-size: var(--text-micro);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.play-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ---------- compact hub ---------- */
+
+/*
+  A grid rather than a stack. Identity and ability sit side by side, which is where most of the
+  saved height comes from, and the metrics row spans underneath both.
+*/
+.chub {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    'crest identity ability'
+    'metrics metrics metrics';
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(160deg, rgba(15, 166, 74, 0.1), var(--surface) 60%);
+  text-align: start;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chub:focus-visible {
+  outline: 2px solid var(--green-bright);
+  outline-offset: 2px;
+}
+
+.chub-crest {
+  grid-area: crest;
+}
+
+.chub-identity {
+  grid-area: identity;
+  min-width: 0;
+}
+
+.chub-name {
+  font-size: var(--text-h2);
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chub-where {
+  margin-top: 1px;
+  font-size: var(--text-small);
+  color: var(--green-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chub-dot {
+  color: var(--text-tertiary);
+}
+
+.chub-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.chub-role {
+  font-size: var(--text-micro);
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(15, 166, 74, 0.18);
+  border: 1px solid rgba(15, 166, 74, 0.34);
+  color: var(--green-bright);
+  white-space: nowrap;
+}
+
+.chub-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line-strong);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.chub-tag.is-captain,
+.chub-tag.is-legacy {
+  color: var(--gold);
+  border-color: rgba(255, 201, 74, 0.4);
+}
+
+/* A loan is two clubs, and it used to need its own line. */
+.chub-tag.is-loan {
+  color: var(--europe);
+  border-color: rgba(107, 168, 255, 0.36);
+}
+
+/* Ability keeps its weight - it is just no longer a panel of its own. */
+.chub-ability {
+  grid-area: ability;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.chub-ability-value {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+}
+
+.chub-ability-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--green-bright);
+}
+
+/* Three numbers in a row, labelled, instead of three ring widgets. */
+.chub-metrics {
+  grid-area: metrics;
+  display: flex;
+  margin: 0;
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--line);
+}
+
+.chub-metric {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.chub-metric dt {
+  font-size: var(--text-micro);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.chub-metric dd {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: 800;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- season strip ---------- */
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.strip-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* A comfortable tap target for the whole strip, not just the word at the end of it. */
+  min-height: 52px;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.strip-main:focus-visible {
+  outline: 2px solid var(--green-bright);
+  outline-offset: -2px;
+}
+
+.strip-pos {
+  flex-shrink: 0;
+  min-width: 34px;
+  text-align: center;
+  font-size: var(--text-h2);
+  font-weight: 900;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.strip-lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.strip-league {
+  font-size: var(--text-micro);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strip-round {
+  font-variant-numeric: tabular-nums;
+}
+
+.strip-phase {
+  color: var(--text-tertiary);
+}
+
+/* The line that actually answers "what are we playing for". */
+.strip-context {
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--green-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strip-open {
+  flex-shrink: 0;
+  font-size: var(--text-micro);
+  font-weight: 800;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  color: var(--text-secondary);
+}
+
+/*
+  Maccabi, when the player is elsewhere. Quieter than the line above it on purpose - the club he
+  represents owns the strip, and this is the thread running beside it.
+*/
+.strip-maccabi {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-3);
+  border-block-start: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.24);
+  font-size: var(--text-micro);
+}
+
+.strip-maccabi-name {
+  font-weight: 800;
+  color: var(--green-bright);
+  white-space: nowrap;
+}
+
+.strip-maccabi-pos {
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.strip-maccabi-league {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  text-align: end;
+}
+
+/* ---------- one tap to everything else ---------- */
+
+.play-nav {
+  display: flex;
+  gap: var(--space-2);
+  padding-block-end: var(--space-2);
+}
+
+.play-nav-btn {
+  flex: 1;
+  /* 44px, so it is a real thumb target rather than a link that happens to be tappable. */
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--text-micro);
+  font-weight: 800;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.play-nav-btn:hover,
+.play-nav-btn:focus-visible {
+  color: var(--green-bright);
+  border-color: var(--green-primary);
+}
+
+/* =========================================================================
+   BOTTOM SHEET (v0.4.7)
+   ========================================================================= */
+
+.sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  animation: sheet-fade 180ms ease-out;
+}
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Tall enough for a full timeline, short enough that the screen behind stays visible. */
+  max-height: 88dvh;
+  border-start-start-radius: var(--radius-xl);
+  border-start-end-radius: var(--radius-xl);
+  border-block-start: 1px solid var(--line-strong);
+  background: var(--surface-dark);
+  animation: sheet-up 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet:focus {
+  outline: none;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+/* A grip, because a sheet that looks draggable is a sheet people understand. */
+.sheet-grip {
+  position: absolute;
+  inset-block-start: 7px;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+
+.sheet-titles {
+  flex: 1;
+  min-width: 0;
+  padding-block-start: var(--space-2);
+}
+
+.sheet-title {
+  margin: 0;
+  font-size: var(--text-h3);
+  font-weight: 900;
+  color: var(--white);
+}
+
+.sheet-subtitle {
+  font-size: var(--text-micro);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-close {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.sheet-close:hover,
+.sheet-close:focus-visible {
+  color: var(--white);
+  border-color: var(--green-primary);
+}
+
+/*
+  The sheet scrolls, not the page. `overscroll-behavior: contain` stops a flick at the end of the
+  list from scrolling the gameplay screen underneath, which reads as the app losing its place.
+*/
+.sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-3) var(--space-4);
+  /* Nothing ends up under the home indicator. */
+  padding-block-end: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(14px);
+    opacity: 0.4;
+  }
+}
+
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .sheet-backdrop {
+    animation: none;
+  }
+}
+
+/* ---------- compact match scoreboard (v0.4.7) ---------- */
+
+/*
+  One line instead of two stacked rows. The hub and the season strip directly above already name
+  the club and its position; what this needs to add is the opponent and the comparison.
+*/
+/*
+  The two sides stack.
+
+  Side by side, a 360px row could not hold minute + two crests + two club names + a position, and
+  truncated them to "מכבי חי..." and "הפ...". Stacking is what football apps do on a phone for the
+  same reason, and it costs about fifteen pixels for names that can actually be read.
+*/
+.match-fixture {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.match-side {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.match-side-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-small);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.match-side-pos {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  The stakes badge takes its own row.
+
+  Squeezing minute + two crests + two club names + two positions + a badge onto one 390px line
+  truncated the clubs to "מ..." and "ה.", which is denser and unreadable - exactly the trade this
+  version is not supposed to make. The badge is the least urgent thing in the row, so it wraps.
+*/
+.match-strip {
+  flex-wrap: wrap;
+}
+
+.match-stakes {
+  flex-basis: 100%;
+  margin-top: 0;
+}

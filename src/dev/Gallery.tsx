@@ -15,6 +15,9 @@ import { OriginReveal } from '../components/OriginReveal';
 import { StageLadder } from '../components/StageLadder';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { MidSeasonCard } from '../components/SeasonCards';
+import { GamePage } from '../pages/GamePage';
+import { Sheet } from '../components/Sheet';
+import type { GameActions } from '../state/useGame';
 import { ClubCrest } from '../components/ClubCrest';
 import { resolveOrigin } from '../game/originEngine';
 import { projectSeason } from '../game/leagueEngine';
@@ -348,6 +351,32 @@ const memorableSeason = (): Career => {
  * than hand-building a table, so the gallery shows what the game actually generates.
  */
 /* A mid-season senior career with a live table, for the phase-37 standing line. */
+/* A senior career sitting on a pending decision, which is the ordinary gameplay state. */
+const eventCareer = (): Career => {
+  const base = tableCareer(MACCABI_ID, 3);
+  return {
+    ...base,
+    phase: 'event',
+    seasonSlot: 'late',
+    seasonPoint: 'midseason',
+    pendingEventIds: ['sen_derby_moment'],
+    lastEventResult: null,
+  };
+};
+
+/* The same gameplay state, at a club that is not Maccabi - so the Maccabi side line shows. */
+const awayEventCareer = (): Career => {
+  const base = tableCareer('hapoel_hadera', 11);
+  return {
+    ...base,
+    phase: 'event',
+    seasonSlot: 'late',
+    seasonPoint: 'midseason',
+    pendingEventIds: ['wrl_relegation_battle'],
+    lastEventResult: null,
+  };
+};
+
 const midSeasonCareer = (): Career => {
   const base = tableCareer(MACCABI_ID, 3);
   return {
@@ -463,9 +492,25 @@ function useOverflowProbe(enabled: boolean, pinnedWidth: string | null): void {
           over.add(`${name.split(' ')[0]}+${past}`);
         }
       }
+      /*
+       * Scroll depth (v0.4.7, Phase 45). How far down the page the active decision begins, and
+       * how tall the whole thing is. `.event-card` is the decision; `.btn-choice` is the first
+       * thing a player can actually press.
+       */
+      const body = document.body.getBoundingClientRect();
+      const yOf = (selector: string): number => {
+        const el = document.querySelector(selector);
+        return el ? Math.round(el.getBoundingClientRect().top - body.top) : -1;
+      };
+      const depth = [
+        `event=${yOf('.event-card')}`,
+        `choice=${yOf('.btn-choice')}`,
+        `total=${Math.round(body.height)}`,
+      ].join(' ');
+
       document.documentElement.dataset.probe = `vw=${vw} over=${over.size} ${[...over]
         .slice(0, 6)
-        .join(' ')}`;
+        .join(' ')} | ${depth}`;
     };
     // After fonts settle, since a fallback font can change wrapping and therefore widths.
     const id = window.setTimeout(measure, 300);
@@ -515,7 +560,22 @@ export function Gallery(): JSX.Element {
   const offerCareer = { ...senior, ability: 80, reputation: 72 };
   const offers = generateOffers(offerCareer, createRng(11));
 
+  /*
+   * The whole gameplay screen, for measuring how far a player scrolls before the event starts
+   * (v0.4.7). Rendering the real GamePage rather than a mock of it - a measurement taken against
+   * an approximation of the layout would measure the approximation.
+   */
+  const noopActions = new Proxy({} as GameActions, { get: () => noop });
+
   const screens: Array<[string, JSX.Element]> = [
+    ['gameplay', <GamePage career={eventCareer()} actions={noopActions} onExit={noop} />],
+    ['gameplay-away', <GamePage career={awayEventCareer()} actions={noopActions} onExit={noop} />],
+    ['sheet-table', <Sheet open title="ליגת העל" subtitle="מחזור 13" onClose={noop}>
+      <LeagueTableCard career={tableCareer(MACCABI_ID, 3)} defaultOpen inSheet />
+    </Sheet>],
+    ['sheet-timeline', <Sheet open title="סיפור הקריירה" onClose={noop}>
+      <CareerTimeline career={retiredLegend()} defaultOpen />
+    </Sheet>],
     ['new-career', <NewCareerPage onCreate={noop} onBack={noop} />],
     /*
       Deliberately 600px wide, so `?probe=1` can be re-validated on demand. A clean overflow
@@ -622,6 +682,23 @@ export function Gallery(): JSX.Element {
             plus half the layout. Absolute positioning is direction-agnostic.
           */
           body { position: absolute; left: 0; top: 0; margin: 0; }
+          /*
+            Pin fixed-position UI too (v0.4.7).
+
+            A bottom sheet is \`position: fixed; inset: 0\`, which resolves against the *viewport* -
+            and headless Chrome's viewport is not the pinned body width. The first sheet screenshot
+            showed club names cut off at the right edge, which looked exactly like a layout bug and
+            was the harness measuring 504px while the page was pinned to 390. Same class of false
+            positive as the v0.4.5 overflow scare.
+
+            Physical left/right on purpose: the document is RTL, so \`inset-inline: 0 auto\` anchors
+            to the *viewport's* right edge and pushes the sheet off a narrow screenshot entirely.
+          */
+          /*
+            Physical left/right on purpose: the document is RTL, so a logical inset anchors to the
+            viewport's right edge and pushes the sheet off a narrow screenshot entirely.
+          */
+          .sheet-root { left: 0; right: auto; width: ${width}px; }
         `}</style>
       )}
       <div className="shell gallery">
