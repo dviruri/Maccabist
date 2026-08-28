@@ -774,7 +774,7 @@ export function acceptOffer(career: Career, offerId: string, rng: Rng): Career {
    * licensed (v0.4.8). `leavingContext` returns zero when the club being left is not Maccabi's,
    * so declaring relevance here cannot smuggle a delta into an unrelated move.
    */
-  let next = applyEffects(career, offer.acceptEffects, rng, offerRelevance(offer)).career;
+  let next = applyEffects(career, offer.acceptEffects, rng, offerRelevance(offer), `offer:${offer.id}`).career;
   const cameFromAcademy = isInAcademy(career);
 
   if (offer.kind === 'loan') {
@@ -815,7 +815,7 @@ export function declineAllOffers(career: Career, rng: Rng): Career {
   let next = career;
   for (const offer of career.pendingOffers) {
     if (offer.mandatory) continue;
-    next = applyEffects(next, offer.declineEffects, rng, offerRelevance(offer)).career;
+    next = applyEffects(next, offer.declineEffects, rng, offerRelevance(offer), `offer:decline:${offer.id}`).career;
   }
   next = cloneCareer(next);
   next.pendingOffers = [];

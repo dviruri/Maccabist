@@ -156,6 +156,40 @@ describe('the Maccabism guard', () => {
     expect(median).toBeGreaterThan(60);
   });
 
+  it('records why maccabism moved, and never records a change it blocked', () => {
+    /*
+     * Phase 24. The guard is easy to state and impossible to see, so the trace makes it checkable:
+     * every entry names the cause and the relevance that let it through. A blocked delta leaves no
+     * entry, because nothing happened - an audit trail of non-events would bury the real ones.
+     */
+    const rng = createRng(11);
+    const base = createCareer({ playerName: 'מ', position: 'CM', seed: 11 });
+
+    const blocked = applyEffects(base, { maccabism: 8 }, rng, 'none', 'some_event').career;
+    expect(blocked.maccabismTrace ?? []).toHaveLength(0);
+    expect(blocked.maccabism).toBe(base.maccabism);
+
+    const allowed = applyEffects(base, { maccabism: 8 }, rng, 'fans', 'sen_fans_sing').career;
+    const trace = allowed.maccabismTrace ?? [];
+    expect(trace).toHaveLength(1);
+    expect(trace[0]?.source).toBe('sen_fans_sing');
+    expect(trace[0]?.relevance).toBe('fans');
+    expect(trace[0]?.requested).toBe(8);
+    expect(trace[0]?.applied).toBeGreaterThan(0);
+    expect(trace[0]?.after).toBeCloseTo(allowed.maccabism, 5);
+  });
+
+  it('bounds the trace so a long career does not grow the save', () => {
+    const rng = createRng(12);
+    let career = createCareer({ playerName: 'מ', position: 'CM', seed: 12 });
+    for (let i = 0; i < 40; i += 1) {
+      career = applyEffects(career, { maccabism: -1 }, rng, 'identity', `e${i}`).career;
+    }
+    expect((career.maccabismTrace ?? []).length).toBeLessThanOrEqual(12);
+    // The most recent change is the one kept.
+    expect(career.maccabismTrace?.at(-1)?.source).toBe('e39');
+  });
+
   it('does not invent a delta where there was none', () => {
     expect(guardedMaccabismDelta(0, 'identity')).toBe(0);
     expect(guardedMaccabismDelta(undefined, 'identity')).toBe(0);

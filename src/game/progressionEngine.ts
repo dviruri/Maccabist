@@ -27,6 +27,7 @@ import type {
   EventEffects,
   ExpectedRole,
   MaccabiRelevance,
+  MaccabismTraceEntry,
   MemoryKind,
   ProgressionResult,
   SeasonStats,
@@ -274,6 +275,22 @@ function rememberTheMove(
 /* Effects                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Append to the bounded Maccabism trace (v0.4.8, Phase 24).
+ *
+ * Keeps the most recent changes only. Long careers make hundreds of these and none of them are
+ * worth carrying in a save; what the trace is for is answering "why did that just move", which
+ * only ever needs the recent past.
+ */
+function recordMaccabismChange(
+  career: Career,
+  entry: MaccabismTraceEntry,
+): MaccabismTraceEntry[] {
+  return [...(career.maccabismTrace ?? []), entry].slice(-MACCABISM_TRACE_LIMIT);
+}
+
+const MACCABISM_TRACE_LIMIT = 12;
+
 export interface EffectsResult {
   career: Career;
   deltas: AttributeDelta[];
@@ -309,6 +326,8 @@ export function applyEffects(
   effects: EventEffects,
   rng: Rng,
   maccabiRelevance?: MaccabiRelevance,
+  /** What caused this, for the Maccabism trace. An event id, or a transfer offer. */
+  maccabismSource?: string,
 ): EffectsResult {
   const before = career;
   let next = cloneCareer(career);
@@ -316,7 +335,17 @@ export function applyEffects(
   if (effects.ability) next.ability = clamp(next.ability + effects.ability);
   if (effects.potential) next.hidden.potential = clamp(next.hidden.potential + effects.potential);
   const maccabismDelta = guardedMaccabismDelta(effects.maccabism, maccabiRelevance, next.maccabism);
-  if (maccabismDelta) next.maccabism = clamp(next.maccabism + maccabismDelta);
+  if (maccabismDelta) {
+    next.maccabism = clamp(next.maccabism + maccabismDelta);
+    next.maccabismTrace = recordMaccabismChange(next, {
+      season: next.currentSeason,
+      source: maccabismSource ?? 'unknown',
+      relevance: maccabiRelevance ?? 'none',
+      requested: effects.maccabism ?? 0,
+      applied: maccabismDelta,
+      after: next.maccabism,
+    });
+  }
   if (effects.reputation) next.reputation = clamp(next.reputation + effects.reputation);
   if (effects.coachTrust) next.coachTrust = clamp(next.coachTrust + effects.coachTrust);
   if (effects.roleValue) next.roleValue = clamp(next.roleValue + effects.roleValue);

@@ -344,7 +344,7 @@ export function resolveEventChoice(
      * drops the delta, which is the correct default: an outcome that does not say what about
      * Maccabi happened may not move how the player feels about Maccabi.
      */
-    const applied = applyEffects(next, effects, rng, outcome.maccabiRelevance);
+    const applied = applyEffects(next, effects, rng, outcome.maccabiRelevance, event.id);
     next = applied.career;
     achievements.push(...applied.achievements);
   }

@@ -7,7 +7,12 @@ import { autoStep, retire } from '../game/careerEngine';
 import { cohortLead, isPlayingUpACohort, naturalStage, relativeAgeBonus } from '../game/cohort';
 import { matchesClubScope } from '../game/conditions';
 import { validateCareerIntegrity } from '../game/integrity';
-import { appearanceBreakdown, cupWins, leagueTitles } from '../game/truth';
+import {
+  appearanceBreakdown,
+  cupWins,
+  leagueTitles,
+  MACCABI_RELEVANCE_REASONS,
+} from '../game/truth';
 import { conditionContext } from '../game/eventEngine';
 import { eligibleForRetrial, resolveRetrial } from '../game/originEngine';
 import { recordMemory, seniorPhase, startArc } from '../game/memory';
@@ -524,6 +529,30 @@ function IntegrityBlock({ career }: { career: Career }): JSX.Element {
         label="cups"
         value={cupWins(career).map((t) => `${t.season} ${t.clubName}`).join(' | ') || 'none'}
       />
+
+      {/*
+        Why Maccabism moved (Phase 24).
+
+        The reported bug was the number changing for reasons that had nothing to do with Maccabi.
+        The guard makes that impossible; this makes it checkable, by naming the cause and the
+        relevance behind every recent change. `requested` and `applied` differ near the ceiling,
+        where the headroom taper is doing its work - shown separately so the taper is visible
+        rather than looking like a rounding error.
+      */}
+      <div className="debug-integrity-head">מכביסטיות — למה השתנתה</div>
+      {(career.maccabismTrace ?? []).length === 0 ? (
+        <div className="debug-integrity-row">לא השתנתה עדיין</div>
+      ) : (
+        [...(career.maccabismTrace ?? [])].reverse().map((t, i) => (
+          <div key={`${t.source}-${t.season}-${i}`} className="debug-integrity-row">
+            {t.season} <b>{t.source}</b> — {MACCABI_RELEVANCE_REASONS[t.relevance]} —{' '}
+            {t.requested > 0 ? '+' : ''}
+            {t.requested}
+            {Math.abs(t.applied - t.requested) > 0.05 ? ` → ${t.applied.toFixed(1)}` : ''} ⇒{' '}
+            {t.after.toFixed(1)}
+          </div>
+        ))
+      )}
     </div>
   );
 }

@@ -749,6 +749,20 @@ export type MaccabiRelevance =
   /** Facing them. */
   | 'opponent';
 
+/** One recorded Maccabism change (v0.4.8, Phase 24). */
+export interface MaccabismTraceEntry {
+  season: number;
+  /** What caused it - an event id, or a transfer offer. */
+  source: string;
+  relevance: MaccabiRelevance;
+  /** What the outcome asked for, before the headroom taper. */
+  requested: number;
+  /** What was actually applied. Differs from `requested` near the ceiling. */
+  applied: number;
+  /** The value afterwards. */
+  after: number;
+}
+
 export type ClubScope =
   /** Only while actually at Maccabi Haifa (academy or senior). */
   | 'maccabi'
@@ -1442,6 +1456,17 @@ export interface Career {
    * rebuilds it rather than leaving on-field events ungated.
    */
   seasonParticipation?: SeasonParticipation;
+  /**
+   * The last few Maccabism changes, with why each was allowed (v0.4.8, Phase 24).
+   *
+   * The reported bug was Maccabism moving for reasons that had nothing to do with Maccabi, and the
+   * fix is a guard that is easy to state and impossible to see. This makes it visible: every entry
+   * names what moved the number and under which relevance, so "why did that go up" has an answer
+   * on the screen instead of in a diff.
+   *
+   * Bounded and optional - a trace that grows without limit is a save-size bug.
+   */
+  maccabismTrace?: MaccabismTraceEntry[];
   seasonOpening: SeasonOpening | null;
   lastSeasonRecord: SeasonRecord | null;
   lastSeasonDeltas: AttributeDelta[];
