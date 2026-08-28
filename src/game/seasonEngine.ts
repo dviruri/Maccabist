@@ -6,7 +6,7 @@
  * matches - a half is generated from position, ability, role, coach trust, level and luck.
  */
 
-import { getClub } from '../data/clubs';
+import { getClub, MACCABI_ID } from '../data/clubs';
 import { clubDisplayName, currentTeamDisplay } from './identity';
 import { TROPHY_DEFS } from '../data/trophies';
 import type { Career, SeasonRecord, SeasonStats, Trophy } from '../types';
@@ -333,6 +333,15 @@ export interface SeasonEnd {
   record: SeasonRecord;
 }
 
+/**
+ * How many of these trophies the career holds for Maccabi Haifa.
+ *
+ * Read over the trophy list, which is the authoritative record of what was actually won.
+ */
+function countMaccabiTrophies(career: Career, ...ids: string[]): number {
+  return career.trophies.filter((t) => t.clubId === MACCABI_ID && ids.includes(t.id)).length;
+}
+
 /** Simulates the second half, then closes the season and writes the record. */
 export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   const level = levelContext(career);
@@ -379,16 +388,29 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
       next.maccabi.seasons += 1;
       if (next.maccabi.returned) next.maccabi.seasonsAfterReturn += 1;
     }
-    for (const trophy of trophies) {
-      if (trophy.id === 'championship') next.maccabi.championships += 1;
-      if (trophy.id === 'cup') next.maccabi.cups += 1;
-      if (trophy.id === 'european_run' || trophy.id === 'champions_league') {
-        next.maccabi.europeanRuns += 1;
-      }
-    }
   } else if (next.captain && full.appearances > 0) {
     next.captainSeasons += 1;
   }
+
+  /*
+   * The Maccabi trophy counters, recomputed from the trophy list rather than incremented (v0.4.8).
+   *
+   * They used to be incremented inside the `countsForMaccabiLegacy` branch, which requires
+   * `parentClubId === null` - so a title won *on loan at Maccabi* awarded a trophy with
+   * `clubId: maccabi_haifa` and incremented nothing. The 50,000-career scan found 8 careers like
+   * it; seed 3119 spends 2045 at Maccabi between two Benfica seasons, wins the league, and the
+   * counter stayed at zero while the trophy list held one.
+   *
+   * Recomputing removes the class of bug rather than the instance: the trophy list is the
+   * authoritative record, and a derived counter that is *recalculated* from it cannot drift from
+   * it, whereas one that is incremented can drift in any branch anyone adds later.
+   *
+   * Whether a loan spell counts toward `maccabi.seasons` is a separate judgement and is left
+   * alone - a medal is a fact, "a season of his Maccabi career" is a design decision.
+   */
+  next.maccabi.championships = countMaccabiTrophies(next, 'championship');
+  next.maccabi.cups = countMaccabiTrophies(next, 'cup');
+  next.maccabi.europeanRuns = countMaccabiTrophies(next, 'european_run', 'champions_league');
 
   const halfCtx: HalfContext = {
     stats: half.stats,

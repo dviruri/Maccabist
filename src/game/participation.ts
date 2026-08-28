@@ -75,8 +75,22 @@ const PROJECTED_APPEARANCE_FLOOR = 3;
  * been played whatever slot the event is for. Keying on the slot instead blocked every late-slot
  * match moment outright, because the ledger was necessarily empty when it was asked.
  */
+/**
+ * Has this season's football actually happened yet?
+ *
+ * Two ways it has. Mid-season, `firstHalfStats` holds the first half. After settlement that field
+ * is cleared - so the season record is the other way, and it has to be checked, because the late
+ * slot runs *after* the season is settled.
+ *
+ * That second clause is a fix, not defensiveness. `playSecondHalf` closes the season at the end of
+ * the mid slot and only then are the late-slot events loaded, so for the whole late slot
+ * `firstHalfStats` was null and the gate fell back to the *projection* - which let an on-field
+ * event fire into a season already recorded with zero appearances, with reconciliation long past.
+ * Found by the 50,000-career scan; 20,000 was not enough to see it once.
+ */
 function hasPlayedThisSeason(career: Career): boolean {
-  return career.firstHalfStats !== null;
+  if (career.firstHalfStats !== null) return true;
+  return career.seasonHistory.some((s) => s.season === career.currentSeason);
 }
 
 /**

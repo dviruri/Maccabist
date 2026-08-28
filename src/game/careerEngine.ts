@@ -220,6 +220,31 @@ export function hydrateCareer(career: Career): Career {
     next = { ...next, trophies: next.trophies.filter((t) => !contradicted.includes(t)) };
   }
 
+  /*
+   * Recompute the Maccabi trophy counters from the trophy list (Phase 18).
+   *
+   * These were incremented inside a branch that excludes loan spells, so a title won on loan at
+   * Maccabi awarded the trophy and counted nothing - and the counters are what the retirement
+   * poster and two achievements read. `playSecondHalf` now recalculates rather than increments, and
+   * an existing save is corrected here for the same reason: the trophy list is the record of what
+   * was won, and the counter is only a cached read of it.
+   *
+   * Also runs after the contradicted-title removal above, deliberately - a save that loses a
+   * phantom championship must lose the count with it.
+   */
+  const countMaccabi = (...ids: string[]): number =>
+    next.trophies.filter((t) => t.clubId === MACCABI_ID && ids.includes(t.id)).length;
+  const championships = countMaccabi('championship');
+  const cups = countMaccabi('cup');
+  const europeanRuns = countMaccabi('european_run', 'champions_league');
+  if (
+    next.maccabi.championships !== championships ||
+    next.maccabi.cups !== cups ||
+    next.maccabi.europeanRuns !== europeanRuns
+  ) {
+    next = { ...next, maccabi: { ...next.maccabi, championships, cups, europeanRuns } };
+  }
+
   return next;
 }
 
