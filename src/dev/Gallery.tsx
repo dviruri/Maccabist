@@ -695,6 +695,12 @@ export function Gallery(): JSX.Element {
       ),
     ],
     ['reveal', <OutcomeReveal outcomes={revealOutcomes} onDone={noop} />],
+    /* The locked frame (v0.4.8): the reel has stopped on the resolved outcome. */
+    ['reveal-locked', <OutcomeReveal
+      outcomes={revealOutcomes}
+      resolvedOutcomeId={revealOutcomes[1]?.id}
+      onDone={noop}
+    />],
     [
       'outcome',
       resolved?.result ? (

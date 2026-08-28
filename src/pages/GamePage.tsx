@@ -199,6 +199,12 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
           return (
             <OutcomeReveal
               outcomes={odds}
+              /*
+                The resolved outcome (v0.4.8). The engine picked it before this component mounted;
+                the reveal now locks onto it instead of stopping on whichever label the reel
+                happened to be showing.
+              */
+              resolvedOutcomeId={career.lastEventResult.outcomeId}
               onDone={() => setRevealed((seen) => [...seen, revealKey(career)])}
             />
           );

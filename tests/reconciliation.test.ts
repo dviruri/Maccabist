@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { EVENT_POOL } from '../src/data/events';
 import { getClub, MACCABI_ID } from '../src/data/clubs';
 import { leagueShape } from '../src/data/leagueShape';
-import { createCareer } from '../src/game/careerEngine';
+import { createCareer, hydrateCareer } from '../src/game/careerEngine';
 import { validateCareerIntegrity } from '../src/game/integrity';
 import { outcomeForPosition, positionsForOutcome, projectSeason } from '../src/game/leagueEngine';
 import { applyEffects } from '../src/game/progressionEngine';
@@ -363,6 +363,159 @@ describe('real careers do not contradict themselves', () => {
       const b = appearanceBreakdown(career);
       expect(b.maccabi + b.otherIsraeli + b.foreign, `seed ${seed}`).toBe(b.total);
     }
+  });
+});
+
+describe('the decision reveal can lock onto the resolved outcome', () => {
+  /*
+   * The reveal used to cycle labels and stop wherever the reel happened to be, then hand over to
+   * the narrative on the same tick - so the selected outcome was visible for zero milliseconds and
+   * the player inferred it afterwards. It now locks onto `lastEventResult.outcomeId`, which only
+   * works if that id is always one of the outcomes the player was shown.
+   */
+  it('always resolves to an outcome that was in the displayed distribution', () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 120; seed += 1) {
+      const career = simulateCareer({ playerName: 'ת', position: 'CM', seed, policy: balancedPolicy });
+      for (const entry of career.eventsHistory) {
+        const odds = entry.odds ?? [];
+        if (odds.length < 2) continue;
+        checked += 1;
+        expect(
+          odds.map((o) => o.id),
+          `${entry.eventId}/${entry.choiceId}`,
+        ).toContain(entry.outcomeId);
+      }
+    }
+    expect(checked).toBeGreaterThan(200);
+  });
+
+  it('is the same outcome on the same seed, however it is revealed', () => {
+    /*
+     * The RNG invariant (Phase 9.5). The reveal is timers over data the engine already produced,
+     * so reduced motion, a skipped animation and a full cycle cannot differ - resolving twice from
+     * the same seed gives the same answer, and nothing in the component participates.
+     */
+    for (let seed = 1; seed <= 30; seed += 1) {
+      const a = simulateCareer({ playerName: 'ת', position: 'ST', seed, policy: balancedPolicy });
+      const b = simulateCareer({ playerName: 'ת', position: 'ST', seed, policy: balancedPolicy });
+      expect(a.eventsHistory.map((e) => e.outcomeId)).toEqual(b.eventsHistory.map((e) => e.outcomeId));
+    }
+  });
+});
+
+describe('save migration', () => {
+  /** What a v0.4.7 save looks like: no ledger, and possibly a contradicted title. */
+  function oldSave(over: Partial<Career> = {}): Career {
+    const career = simulateCareer({ playerName: 'ש', position: 'CM', seed: 13, policy: balancedPolicy });
+    const stripped = { ...career, retired: false, ...over };
+    delete (stripped as { seasonParticipation?: unknown }).seasonParticipation;
+    return stripped as Career;
+  }
+
+  it('loads without crashing', () => {
+    expect(() => hydrateCareer(JSON.parse(JSON.stringify(oldSave())) as Career)).not.toThrow();
+  });
+
+  it('rebuilds the participation ledger rather than leaving on-field events ungated', () => {
+    const loaded = hydrateCareer(oldSave());
+    expect(loaded.seasonParticipation).toBeTruthy();
+  });
+
+  it('recalculates career totals from season records rather than trusting counters', () => {
+    /*
+     * The appearance breakdown is derived on read, so a save with a wrong stored counter gets the
+     * right answer without a migration step at all - which is the point of deriving it.
+     */
+    const loaded = hydrateCareer(oldSave());
+    const b = appearanceBreakdown(loaded);
+    expect(b.maccabi + b.otherIsraeli + b.foreign).toBe(b.total);
+  });
+
+  it('removes a league title the recorded final position contradicts', () => {
+    /*
+     * The reported bug, already written into a save. A championship rolled from titleChance in a
+     * season the club finished fifth is decidable - the world record holds the position - so it is
+     * safely correctable on load.
+     */
+    const base = simulateCareer({ playerName: 'ש', position: 'CM', seed: 21, policy: balancedPolicy });
+    const nonFirst = base.world.clubSeasons.find(
+      (s) => s.finalPosition !== undefined && s.finalPosition > 1,
+    );
+    expect(nonFirst, 'fixture needs a non-first season').toBeTruthy();
+    if (!nonFirst) return;
+
+    const corrupted: Career = {
+      ...base,
+      retired: false,
+      trophies: [
+        ...base.trophies,
+        {
+          id: 'championship',
+          name: 'אליפות',
+          season: nonFirst.season,
+          clubId: nonFirst.clubId,
+          clubName: nonFirst.clubId,
+          weight: 3,
+        },
+      ],
+    };
+
+    const loaded = hydrateCareer(corrupted);
+    const stillThere = loaded.trophies.some(
+      (t) => t.id === 'championship' && t.season === nonFirst.season && t.clubId === nonFirst.clubId,
+    );
+    expect(stillThere).toBe(false);
+  });
+
+  it('leaves a title alone when there is nothing to check it against', () => {
+    /*
+     * Conservative on purpose. A title whose season has no world record cannot be judged, and
+     * destroying history on a guess is worse than an inconsistency.
+     */
+    const base = simulateCareer({ playerName: 'ש', position: 'CM', seed: 22, policy: balancedPolicy });
+    const orphan: Career = {
+      ...base,
+      retired: false,
+      trophies: [
+        ...base.trophies,
+        {
+          id: 'championship',
+          name: 'אליפות',
+          season: 1999,
+          clubId: MACCABI_ID,
+          clubName: 'מכבי חיפה',
+          weight: 3,
+        },
+      ],
+    };
+    const loaded = hydrateCareer(orphan);
+    expect(loaded.trophies.some((t) => t.season === 1999)).toBe(true);
+  });
+
+  it('never touches a youth championship, which has no table to check', () => {
+    const base = simulateCareer({ playerName: 'ש', position: 'CM', seed: 23, policy: balancedPolicy });
+    const withYouth: Career = {
+      ...base,
+      retired: false,
+      trophies: [
+        ...base.trophies,
+        {
+          id: 'youth_championship',
+          name: 'אליפות נוער',
+          season: base.world.clubSeasons[0]?.season ?? 2040,
+          clubId: base.world.clubSeasons[0]?.clubId ?? MACCABI_ID,
+          clubName: 'x',
+          weight: 1,
+        },
+      ],
+    };
+    expect(hydrateCareer(withYouth).trophies.some((t) => t.id === 'youth_championship')).toBe(true);
+  });
+
+  it('leaves a fresh career exactly as created', () => {
+    const fresh = createCareer({ playerName: 'ש', position: 'CM', seed: 5 });
+    expect(hydrateCareer(fresh)).toBe(fresh);
   });
 });
 

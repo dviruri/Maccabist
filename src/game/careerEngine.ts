@@ -54,7 +54,9 @@ import {
 import { ageAt } from './cohort';
 import { eligibleForRetrial, resolveOrigin, resolveRetrial } from './originEngine';
 import { planSeason, resolveEventChoice } from './eventEngine';
-import { projectSeason } from './leagueEngine';
+import { outcomeForPosition, projectSeason } from './leagueEngine';
+import { leagueShape } from '../data/leagueShape';
+import { LEAGUE_TROPHY_IDS } from './truth';
 import { mayDeliverOnField, openParticipation } from './participation';
 import { computeLegendScore } from './legendEngine';
 import { hasTrait, recordMemory } from './memory';
@@ -166,6 +168,56 @@ export function hydrateCareer(career: Career): Career {
             );
       next = { ...next, world: { ...next.world, projection: migrated, maccabiProjection: maccabi } };
     }
+  }
+
+  /*
+   * Rebuild the participation ledger for a pre-v0.4.8 save (Phase 18).
+   *
+   * Without one, `canBeOnField` falls back to the projection for the whole season - so a save
+   * loaded mid-season could still receive an on-field event the player is not entitled to. The
+   * last season record is the authoritative history for a *finished* season, so the ledger is
+   * rebuilt from it when it belongs to the current season, and opened empty otherwise.
+   */
+  if (!next.seasonParticipation && !next.retired) {
+    const record = next.lastSeasonRecord;
+    next =
+      record && record.season === next.currentSeason
+        ? {
+            ...next,
+            seasonParticipation: {
+              season: next.currentSeason,
+              appearances: record.stats.appearances,
+              starts: record.stats.starts,
+            },
+          }
+        : { ...next, seasonParticipation: openParticipation(next.currentSeason) };
+  }
+
+  /*
+   * Remove a league title that the authoritative table contradicts (Phase 18).
+   *
+   * A v0.4.7 save can contain a championship rolled from `club.titleChance` in a season the club
+   * finished fifth - that is the reported bug, and it is already written into the career. It is
+   * safely correctable because the world record holds the finishing position, so the contradiction
+   * is decidable rather than guessed at.
+   *
+   * Conservative on purpose: only a title whose season has a recorded position that is NOT first
+   * is removed. A title with no matching world record is left alone, because there is nothing to
+   * check it against and destroying history on a guess is worse than an inconsistency.
+   */
+  const contradicted = next.trophies.filter((trophy) => {
+    if (!LEAGUE_TROPHY_IDS.includes(trophy.id)) return false;
+    if (trophy.id === 'youth_championship') return false;
+    const result = next.world.clubSeasons.find(
+      (s) => s.season === trophy.season && s.clubId === trophy.clubId,
+    );
+    if (!result || result.finalPosition === undefined) return false;
+    const shape = leagueShape(result.leagueId);
+    if (!shape) return false;
+    return outcomeForPosition(result.leagueId, result.finalPosition, shape) !== 'champion';
+  });
+  if (contradicted.length > 0) {
+    next = { ...next, trophies: next.trophies.filter((t) => !contradicted.includes(t)) };
   }
 
   return next;
@@ -325,6 +377,11 @@ export function createCareer(input: NewCareerInput): Career {
     pendingOffers: [],
 
     firstHalfStats: null,
+    /*
+     * A fresh career opens its own participation ledger (v0.4.8), so `hydrateCareer` stays a pure
+     * migration for old saves rather than something every new career also passes through.
+     */
+    seasonParticipation: { season: FIRST_ACADEMY_SEASON, appearances: 0, starts: 0 },
     seasonOpening: null,
     lastSeasonRecord: null,
     lastSeasonDeltas: [],

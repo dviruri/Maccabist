@@ -411,8 +411,18 @@ export function DecisionCard({
 /* ------------------------------------------------------------------ */
 
 /** Roughly how long the cycle runs before locking in. Short - this happens a lot. */
-const REVEAL_MS = 1200;
-const TICK_MS = 110;
+/*
+ * Reveal timing (v0.4.8, Phase 9.2).
+ *
+ * The old constants were a 1,200ms cycle and a flat 110ms tick, and then `onDone()` on the same
+ * tick the cycle ended - so the selected outcome was visible for zero milliseconds. The player
+ * learned what had happened from the narrative that replaced it.
+ */
+const CYCLE_MS = 1100;
+/** How long the locked result stays on screen before the narrative. The brief asks for ~1s. */
+const HOLD_MS = 1000;
+const TICK_MIN_MS = 90;
+const TICK_MAX_MS = 260;
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false;
@@ -429,48 +439,118 @@ function prefersReducedMotion(): boolean {
  */
 export function OutcomeReveal({
   outcomes,
+  resolvedOutcomeId,
   onDone,
 }: {
   outcomes: DecisionOutcomeView[];
+  /**
+   * The outcome the engine actually resolved (v0.4.8).
+   *
+   * Before this, the reveal cycled through labels and then simply stopped, so the last thing a
+   * player saw was `outcomes[index % length]` - an arbitrary label - and `onDone` fired on the
+   * same tick, replacing it instantly with the narrative. The player never got to see which
+   * outcome had been selected; he inferred it afterwards from the explanation.
+   */
+  resolvedOutcomeId?: string;
   onDone: () => void;
 }): JSX.Element | null {
   const [index, setIndex] = useState(0);
-  const done = useRef(false);
+  const [locked, setLocked] = useState(false);
+  const finished = useRef(false);
+
+  const resolved = resolvedOutcomeId
+    ? (outcomes.find((o) => o.id === resolvedOutcomeId) ?? null)
+    : null;
 
   useEffect(() => {
-    if (outcomes.length < 2 || prefersReducedMotion()) {
+    if (outcomes.length < 2) {
       onDone();
       return;
     }
-    const started = Date.now();
-    const timer = window.setInterval(() => {
-      const elapsed = Date.now() - started;
-      if (elapsed >= REVEAL_MS) {
-        if (!done.current) {
-          done.current = true;
-          window.clearInterval(timer);
+
+    /*
+     * Reduced motion still gets the locked moment (Phase 9.4).
+     *
+     * It skips the cycling, which is the part that is motion - but it must not skip the *result*.
+     * Previously this branch called `onDone()` immediately, so a player who had asked for less
+     * animation got no reveal at all.
+     */
+    if (prefersReducedMotion()) {
+      setLocked(true);
+      const hold = window.setTimeout(() => {
+        if (!finished.current) {
+          finished.current = true;
           onDone();
         }
+      }, HOLD_MS);
+      return () => window.clearTimeout(hold);
+    }
+
+    /*
+     * CYCLE -> SLOW -> LOCK -> HOLD -> narrative.
+     *
+     * The interval lengthens as it goes, so the reel decelerates into the answer rather than
+     * stopping dead. Timers only; the engine resolved this outcome before the component mounted
+     * and nothing here can change it.
+     */
+    let timer = 0;
+    let cancelled = false;
+    const started = Date.now();
+
+    const tick = (): void => {
+      if (cancelled) return;
+      const elapsed = Date.now() - started;
+      if (elapsed >= CYCLE_MS) {
+        setLocked(true);
+        timer = window.setTimeout(() => {
+          if (!cancelled && !finished.current) {
+            finished.current = true;
+            onDone();
+          }
+        }, HOLD_MS);
         return;
       }
       setIndex((current) => current + 1);
-    }, TICK_MS);
-    return () => window.clearInterval(timer);
+      // Ease out: 90ms at the start, ~260ms by the end.
+      const progress = elapsed / CYCLE_MS;
+      timer = window.setTimeout(tick, TICK_MIN_MS + (TICK_MAX_MS - TICK_MIN_MS) * progress ** 2);
+    };
+    timer = window.setTimeout(tick, TICK_MIN_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [outcomes.length, onDone]);
 
   if (outcomes.length < 2) return null;
-  const showing = outcomes[index % outcomes.length]!;
+
+  /*
+   * Once locked, the label shown is the resolved outcome - never the reel's position. If no
+   * resolved id was passed the reel's last frame is used, which is the old behaviour and is why
+   * the prop exists.
+   */
+  const showing = locked ? (resolved ?? outcomes[index % outcomes.length]!) : outcomes[index % outcomes.length]!;
 
   return (
-    <article className="card reveal-card">
+    <article className={`card reveal-card${locked ? ' is-locked' : ''}`}>
       <div className="stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-        <div className="kicker">רגע…</div>
-        <div className={`reveal-slot valence-${showing.valence}`} aria-live="polite">
+        <div className="kicker">{locked ? 'נבחר' : 'רגע…'}</div>
+        <div
+          className={`reveal-slot valence-${showing.valence}`}
+          aria-live="polite"
+          /* Only the locked value is worth announcing; the reel is decoration. */
+          aria-atomic="true"
+        >
           <span aria-hidden>{VALENCE_ICON[showing.valence]}</span> {showing.label}
         </div>
-        <div className="reveal-bar">
-          <span />
-        </div>
+        {locked ? (
+          <div className="reveal-locked-pct">{showing.percent}%</div>
+        ) : (
+          <div className="reveal-bar">
+            <span />
+          </div>
+        )}
       </div>
     </article>
   );

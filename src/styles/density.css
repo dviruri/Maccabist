@@ -685,3 +685,70 @@
 .offer-arrow {
   color: var(--green-bright);
 }
+
+/* ---------- the locked reveal (v0.4.8, Phase 9.3) ---------- */
+
+/*
+  Unmistakable, and not a casino screen. The card gains a green edge and the slot stops moving;
+  the label itself is already the concrete outcome text, so the treatment only has to say
+  "this one".
+*/
+.reveal-card.is-locked {
+  border-color: var(--green-primary);
+  box-shadow: 0 0 0 1px rgba(15, 166, 74, 0.34);
+}
+
+.reveal-card.is-locked .reveal-slot {
+  animation: reveal-lock 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-locked-pct {
+  font-size: var(--text-h3);
+  font-weight: 900;
+  color: var(--green-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes reveal-lock {
+  from {
+    transform: scale(0.94);
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-card.is-locked .reveal-slot {
+    animation: none;
+  }
+}
+
+/* ---------- career integrity, debug only (v0.4.8) ---------- */
+
+.debug-integrity {
+  margin-block-end: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.debug-integrity-head {
+  font-size: var(--text-micro);
+  font-weight: 800;
+  margin-block-end: 4px;
+}
+
+.debug-integrity-head.is-ok {
+  color: var(--green-bright);
+}
+
+.debug-integrity-head.is-bad {
+  color: var(--danger);
+}
+
+.debug-integrity-row {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
