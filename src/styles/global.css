@@ -552,27 +552,33 @@ p {
 
 .pitch {
   position: relative;
-  /* Aspect ratio keeps it proportional at any width, so no media queries needed. */
-  aspect-ratio: 3 / 4;
+  /*
+    Aspect ratio keeps it proportional at any width, so no media queries needed.
+    v0.4.5.1: was 3/4, which at 358px wide made the pitch 477px tall and pushed the primary
+    button off a 390x844 screen on its own. The markers only ever occupy 7%-84% of the height,
+    so the extra depth was empty turf. 1/1 keeps the formation readable and buys back ~90px.
+  */
+  aspect-ratio: 1;
   width: 100%;
-  border-radius: 16px;
-  border: 1px solid rgba(41, 217, 106, 0.28);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(41, 217, 106, 0.3);
+  /* Actual turf, not a dark card with a green tint on top. */
   background:
-    linear-gradient(180deg, rgba(15, 166, 74, 0.16) 0%, rgba(7, 40, 20, 0.55) 100%),
-    var(--ink-card);
+    radial-gradient(120% 80% at 50% 0%, rgba(41, 217, 106, 0.14), transparent 70%),
+    linear-gradient(180deg, #0d3a1f 0%, #082a16 100%);
   overflow: hidden;
   /* The markers are positioned physically, so the pitch itself must not flip in RTL. */
   direction: ltr;
 }
 
-/* Mown-grass banding. */
+/* Mown-grass banding. Stronger than v0.4.5's 0.022, which was invisible in practice. */
 .pitch::before {
   content: '';
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.022) 0 12.5%,
+    rgba(255, 255, 255, 0.045) 0 12.5%,
     transparent 12.5% 25%
   );
   pointer-events: none;
@@ -580,7 +586,7 @@ p {
 
 .pitch-lines span {
   position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   pointer-events: none;
 }
 
@@ -612,6 +618,24 @@ p {
 }
 
 .pitch-box-far {
+  top: 0;
+  border-top: 0;
+}
+
+/* The goals. Small, white-ish, and the reason the near/far ends are legible at a glance. */
+.pitch-goal {
+  left: 38%;
+  width: 24%;
+  height: 2.5%;
+  border-width: 2px;
+}
+
+.pitch-goal-near {
+  bottom: 0;
+  border-bottom: 0;
+}
+
+.pitch-goal-far {
   top: 0;
   border-top: 0;
 }
@@ -3265,4 +3289,110 @@ p {
   font-size: var(--text-micro);
   color: var(--green-bright);
   opacity: 0.85;
+}
+
+/* =========================================================================
+   NEW CAREER (v0.4.5.1)
+   Three numbered steps, then a read-back of the boy you just described.
+   ========================================================================= */
+
+.nc-page {
+  padding-block: var(--space-6) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.nc-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.nc-title {
+  margin: 0;
+  font-size: var(--text-display);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.nc-intro {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+.nc-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.nc-step-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/*
+  The step number. A ring rather than a filled chip, so it frames the question without competing
+  with the green the pitch and the primary button are using.
+*/
+.nc-step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--green-primary);
+  color: var(--green-bright);
+  display: grid;
+  place-items: center;
+  font-size: var(--text-micro);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.nc-step-label {
+  margin: 0;
+  font-size: var(--text-h3);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.nc-hint {
+  margin: 0;
+  font-size: var(--text-micro);
+  line-height: var(--leading-normal);
+  color: var(--text-tertiary);
+}
+
+/* The read-back. */
+.nc-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong);
+  border-inline-start: 3px solid var(--green-primary);
+  background: var(--surface);
+}
+
+.nc-summary-name {
+  font-size: var(--text-h2);
+  font-weight: 900;
+  color: var(--white);
+  overflow-wrap: anywhere;
+}
+
+.nc-summary-meta {
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+}
+
+.nc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }

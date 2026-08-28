@@ -9,6 +9,7 @@ import {
   SamiOferHeader,
 } from '../components/MaccabiCards';
 import { CareerTimeline } from '../components/CareerTimeline';
+import { NewCareerPage } from '../pages/NewCareerPage';
 import { PlayerHub } from '../components/PlayerHub';
 import { SeasonResultCard } from '../components/SeasonCards';
 import { RetirementPage } from '../pages/RetirementPage';
@@ -359,6 +360,7 @@ export function Gallery(): JSX.Element {
   const offers = generateOffers(offerCareer, createRng(11));
 
   const screens: Array<[string, JSX.Element]> = [
+    ['new-career', <NewCareerPage onCreate={noop} onBack={noop} />],
     ['hub-senior', <PlayerHub career={senior} />],
     ['hub-academy', <PlayerHub career={academyBoy()} />],
     ['hub-loan', <PlayerHub career={abroadOnLoan()} />],

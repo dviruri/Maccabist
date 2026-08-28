@@ -28,7 +28,12 @@ interface Marker {
  *              GK
  */
 const MARKERS: readonly Marker[] = [
-  { id: 'GK', bottom: 7, left: 50 },
+  /*
+    GK sits at 13% rather than 7%. A marker is anchored by its `bottom` and then translated down
+    half its own height, so it hangs below its anchor by roughly 31px - which fitted inside the
+    old 3/4 pitch and clipped the שוער label off the bottom edge once v0.4.5.1 squared it up.
+  */
+  { id: 'GK', bottom: 13, left: 50 },
   { id: 'CB', bottom: 27, left: 62 },
   { id: 'FB', bottom: 27, left: 24 },
   { id: 'CM', bottom: 50, left: 50 },
@@ -54,6 +59,8 @@ export function PitchSelector({
           <span className="pitch-circle" />
           <span className="pitch-box pitch-box-near" />
           <span className="pitch-box pitch-box-far" />
+          <span className="pitch-goal pitch-goal-near" />
+          <span className="pitch-goal pitch-goal-far" />
         </div>
 
         {MARKERS.map((marker) => {
