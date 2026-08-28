@@ -3,8 +3,8 @@
 **Scope:** make the game know what is happening in the football world right now, and make every
 event earn what it claims about it.
 
-**Result:** build passes, **543 tests** pass (from 455 at the end of v0.4.5.1). No schema break;
-v0.4.5.1 saves load and are given a league table.
+**Result:** build passes, **554 tests** pass (from 455 at the end of v0.4.5.1). No schema break —
+`SCHEMA_VERSION` is still 4, so v0.4.5.1 saves are migrated rather than discarded.
 
 The headline is not a feature. It is an **ordering fix**: `planSeason` chooses every event for a
 season at *preseason*, and the club's league finish was drawn at *season end*. A late-slot "title
@@ -18,17 +18,17 @@ per-event condition could have prevented it — the information did not exist ye
 ```
 npm run build                           PASSES
 npx tsc -p tsconfig.test.json --noEmit  PASSES
-npm test                                543 passed   (455 at the end of v0.4.5.1)
+npm test                                554 passed   (455 at the end of v0.4.5.1)
 ```
 
 | new test file | tests | what it pins |
 |---|---|---|
-| `tests/leagueTable.test.ts` | 24 | the table cannot contradict the season it describes |
-| `tests/leagueSave.test.ts` | 13 | a round trip redraws the identical table; old saves get one |
+| `tests/leagueTable.test.ts` | 28 | the table cannot contradict the season it describes |
+| `tests/leagueSave.test.ts` | 15 | a round trip redraws the identical table; old saves get one |
 | `tests/eventClaims.test.ts` | 16 | no event says דרבי without requiring one |
 | `tests/roleBalance.test.ts` | 9 | `star` discriminates, and roles fall as well as rise |
 | `tests/outcomePreviews.test.ts` | 9 | previews are concrete, and belong to the drawn outcome |
-| `tests/scenariosV046.test.ts` | 17 | the brief's ten bug scenarios, reproduced deliberately |
+| `tests/scenariosV046.test.ts` | 22 | the brief's bug scenarios, reproduced deliberately |
 
 ## 2. Baseline (v0.4.5.1, measured not assumed)
 
@@ -116,13 +116,30 @@ so licensed artwork could later be a data edit rather than a component rewrite.
 
 ## 5. Event eligibility
 
+### 5.0 Position coherence, and why the first test missed it
+
+`sen_derby_moment` had **no position condition at all**, so a goalkeeper could be told
+"הכדור מגיע אליך בקצה הרחב" and offered "לבעוט". Three more did the same — `spon_last_minute`,
+`rare_derby_legend`, and `spon_form_slump`, the last being a scoring drought, which goalkeepers do
+not have.
+
+The scenario test could not see this: it checked events that *declare* `positions`, and these
+declared none. So it became a rule rather than four edits — an event whose text or choice labels
+say לבעוט / הכדור מגיע אליך / לנגח / לכבוש must exclude GK. The patterns are narrow on purpose:
+`שער` is left out because it also means a gate, and "שער צפוני" is a stand. A rule that fires on a
+stand name is a rule people learn to ignore.
+
+Excluding him was necessary and not sufficient, so keepers now have **`gk_derby_save`**. A derby
+is a derby for a goalkeeper too; it is a different moment, and the memory it leaves is a save
+rather than a goal.
+
 ### 5.1 The rule, stated once
 
 `src/game/eventClaims.ts` scans each event's **presented** text — kicker, title, description — for
 claims and requires the matching condition. Outcome text is deliberately excluded: "you won the
 title" inside a winning branch is a result, not a premise.
 
-The audit found six, all fixed:
+Five rules over 129 events, **zero unsupported claims**. The audit found six on the first pass:
 
 | event | what was wrong |
 |---|---|
@@ -132,6 +149,22 @@ The audit found six, all fixed:
 | `vt_final_derby` | same |
 | `sen_title_run_in` | "five rounds to go, one point apart" required only a senior role |
 | `sen_title_penalty` | a title-deciding penalty with no title race |
+
+…and three more once the patterns were widened, because the first version listed five ways of
+saying "title race" and none of them was "אליפות באוויר":
+
+| event | what was wrong |
+|---|---|
+| `wrl_title_race` | "one point apart at the top" gated on **squad strength decided in August** |
+| `wrl_relegation_battle` | "bottom of the table" for any weak squad, including one having a great season |
+| `wrl_promotion_race` | "top of the league" for any strong second-division squad, up there or not |
+
+`wrl_title_race` is the brief's headline bug verbatim: a championship event in a season the club
+finished low. The patterns are now deliberately generous — a false positive costs one explicit
+condition on an event, a false negative costs a player being told his mid-table club is one point
+off the top. One pattern was then *removed* again: `בצמרת` flagged `wrl_promotion_race` as an
+unsupported title claim, and it was right to be ambiguous — "top of the league" in a second
+division is a promotion race, and the bare phrase cannot tell them apart.
 
 ### 5.2 The systems behind them
 
@@ -251,7 +284,37 @@ to senior football.
 
 ---
 
-## 10. Mobile and RTL
+## 10. Acceptance criteria
+
+| # | criterion | where |
+|---|---|---|
+| 1 | player can see where his club stands | `LeagueTableCard`, in `GamePage` under the hub |
+| 2 | and where Maccabi stands | `MaccabiStatus` footer; separate league shown when different |
+| 3 | the table evolves across the season | `path` per phase, §3.1, tested |
+| 4 | deterministic, survives saves | `tests/leagueSave.test.ts` |
+| 5 | final table never contradicts the outcome | derived, not drawn — §3.1 |
+| 6 | lower-table club gets no late title-decider | scenario A, 60 seeds |
+| 7 | top club gets no relegation-decider | scenario A2, 60 seeds |
+| 8 | promotion events only in promotion context | scenario A2 |
+| 9 | דרבי only for modelled rivalries | scenarios B and C |
+| 10 | at Maccabi, live events are Maccabi events | scenario D |
+| 11 | elsewhere, they belong to the current club | scenario E |
+| 12 | Maccabi still appears as a side thread | scenario F |
+| 13 | side events never imply current membership | `clubScope`, unchanged from v0.4 |
+| 14 | external careers feel like club careers | table, match strip, crests |
+| 15 | crests make the world richer | §4 |
+| 16–17 | events know *why* they are eligible, and debug can say so | §5, Phase 29 |
+| 18–19 | concrete consequences, not good/bad/neutral | §6 — 88.0% written |
+| 20 | displayed odds are the resolver's odds | `tests/outcomePreviews.test.ts`, object identity |
+| 21–22 | narrative first, numbers second | verified, not rebuilt — §6 |
+| 23–24 | star inflation reduced, star still meaningful | §7 — 64.8% → 25.9% |
+| 25 | goalkeeper events position-coherent | §5.0, scenario J |
+| 26–28 | academy rules, Maccabi relationship, visual identity intact | 0 invalid repeats; suite green |
+| 29–31 | tests, build, large simulation | §1, §9 |
+
+---
+
+## 10.1 Mobile and RTL
 
 26 gallery scenes × 6 widths (320 / 360 / 375 / 390 / 412 / 430): **zero overflow**, with the
 probe re-validated against its 600px canary immediately afterwards — a clean sweep from an
@@ -264,7 +327,27 @@ red row means nothing to someone who cannot see red.
 
 ## 11. Known issues
 
-*(filled at the end)*
+**`spon_form_slump` no longer reaches goalkeepers, and nothing replaced it.** Excluding them was
+right — "לא נכנס לך כלום" is a scoring drought — but a keeper's bad run is a real thing and there
+is now no event for it. `gk_derby_save` covers the derby gap; this one is open.
+
+**Rivalries are Israeli only.** Six pairs, all in ליגת העל. A player abroad has no derby, which is
+honest rather than wrong — the dataset models one or two clubs per European league, so there is
+nobody to have a rivalry *with* — but it does mean an external career is missing one of the things
+that makes a club career feel like one.
+
+**37% of the catalogue still has no written preview.** Weighted by what players see it is 12%
+(§6), and the remainder is the long tail of rare and narrow events. The tail is genuinely less
+valuable, but it is not zero.
+
+**The second division has no modelled derby.** Same cause as above.
+
+**`europe` is a declared event variant that no event currently resolves to** for a home-based
+career. Carried over from v0.4.5.1 and still true.
+
+**Filler clubs are names and a quality number.** They fill a table and never appear in a transfer,
+which is correct for now and would be wrong if the table ever became something a player interacts
+with.
 
 ---
 
