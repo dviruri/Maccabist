@@ -3,8 +3,9 @@
 **Scope:** complete the visual identity, fix the remaining balance and engine edge cases, and make
 the whole game feel like one product.
 
-**Result:** build passes, **449 tests** pass (from 442 at the end of v0.4.5), an 84,000-career
-simulation run (14,000 × 6 strategies). No schema change; old saves load unchanged.
+**Result:** build passes, **455 tests** pass (from 442 at the end of v0.4.5), an 84,000-career
+simulation run (14,000 × 6 strategies) plus an 18,000-career matched-seed comparison — 102,000
+careers in total. No schema change; old saves load unchanged.
 
 This report is written to be useful rather than flattering. Section 9 is the list of things this
 version did **not** finish, and §7.2 is a balance defect that v0.4.5.1 discovered, measured, and
@@ -17,7 +18,7 @@ deliberately did not patch.
 ```
 npm run build                           PASSES
 npx tsc -p tsconfig.test.json --noEmit  PASSES
-npm test                                449 passed   (442 at the end of v0.4.5)
+npm test                                455 passed   (442 at the end of v0.4.5)
 ```
 
 New test files this version:
@@ -29,6 +30,7 @@ New test files this version:
 | `tests/samiOfer.test.ts` | 14 | the rejected child is never framed as a returning hero |
 | `tests/timeline.test.ts` | 7 | a milestone is never backdated to today's club |
 | `tests/stageLadder.test.ts` | 7 | an early promotion lights two rungs, not one |
+| `tests/eventVisuals.test.ts` | 6 | all 128 events resolve to a variant with an icon and label |
 
 ---
 
@@ -206,12 +208,30 @@ and offer generation, so re-tuning its growth needs its own measure-tune-validat
 than a threshold nudge late in a polish pass. Nudging `ROLE_TIERS` would have moved the reported
 percentages without changing the game, which is worse than leaving it visible.
 
+### 7.4 Event visual coverage (Phase 14)
+
+`tests/eventVisuals.test.ts` walks the real catalogue rather than a sample. Every one of the 128
+events resolves to a known variant with a non-empty icon, label and importance; the result is
+stable for a given event; and no single variant holds more than half the catalogue — a variant
+system where 80% of events are `career` is a variant system in name only.
+
+For a Maccabi senior career:
+
+```
+match 21.9%   development 18.0%   career 12.5%   transfer 12.5%   maccabi 10.9%
+coach  9.4%   media        6.3%   club     5.5%   crisis    3.1%
+```
+
+`europe` shows as unused in that table because `eventVisual` reads the career, and this one is at
+home rather than abroad. `VARIANTS` is exported so the audit checks the real list rather than a
+copy that would drift out of step with it.
+
 ---
 
 ## 8. Phase 27 — simulation
 
-84,000 careers (14,000 × 6 strategies). Balanced-policy figures below; the acceptance criterion is
-reported per strategy.
+84,000 careers (14,000 × 6 strategies), plus an 18,000-career matched-seed comparison
+(3,000 seeds × 6). Balanced-policy figures:
 
 ```
 INVALID natural-stage repeats                 0        <- the version's acceptance criterion
@@ -236,18 +256,28 @@ Career length   outfield  n=11,666  median 35   (29-31 2.0%, 32-33 27.3%, 34-35 
                 goalkeeper n=2,334  median 37   (34-35 4.7%, 36-37 53.0%, 38-39 38.6%, 40+ 3.6%)
 ```
 
-Acceptance criterion, per strategy:
+**Acceptance criterion, all six strategies:**
 
 ```
-balanced    INVALID natural-stage repeats   0
-loyalist    INVALID natural-stage repeats   0
-ambitious   INVALID natural-stage repeats   0
+balanced 0    loyalist 0    ambitious 0    bold 0    riskTaker 0    random 0
 ```
 
-Legend Score separates the strategies as intended — loyalist 46.7, balanced 43.6, ambitious 28.9 —
-so playing for the badge is rewarded and chasing the move is not free.
+Zero invalid natural-stage repeats across all 84,000 careers.
 
----
+**Strategy separation.** Average Legend Score by policy:
+
+```
+loyalist    46.7      playing for the badge is the best strategy in the game
+balanced    43.6
+bold        34.0
+ambitious   28.9      chasing every move is not free
+random      28.2
+riskTaker   18.7      the deliberate worst case: preferring `risky` over `opportunity`
+```
+
+The ordering is the one the design intends. `riskTaker` sitting well below `random` is the
+important one — it confirms that risky choices are a genuine trap rather than a bonus, since
+`riskTaker` differs from `random` only by *preferring* them.
 
 ## 9. What this version did not finish
 
@@ -257,11 +287,11 @@ the sections above:
 | phase | status |
 |---|---|
 | 8.1 playing up, 8.2 direct senior promotion | engine and copy already existed (`olderGroupLine`, the youth verdict); no dedicated presentation added beyond the ladder |
-| 14 event visual consistency audit | not done |
+| ~~14 event visual consistency audit~~ | **done** — see §7.4 |
 | 15 career moment coverage audit | not done |
 | 17 transfer/loan consistency pass | not done |
-| 18 retirement screen polish | not done (screens verified overflow-clean, not redesigned) |
-| 20 RTL / mixed-language audit | partial — every screen built this version uses logical properties and was shot in RTL; no systematic sweep of existing screens |
+| 18 retirement screen polish | partial — fixed a duplicated heading; not redesigned |
+| 20 RTL / mixed-language audit | partial — every `seasonLabel`/`careerYears` call site verified inside an `<Ltr>` isolate; no sweep of event copy |
 | 21 decision UI final polish | not done |
 | 22 reveal animation polish | not done |
 | 24 performance | not done |
@@ -279,7 +309,7 @@ gameplay defect rather than a polish item.
 - Opening season 2030/31; birth cohort 2021, year locked, player picks day and month.
 - Academy stage derived from cohort + season, never from numeric age.
 - Ladder טרום ב׳ → … → נוער → בוגרים; senior is a transition with a decision attached, never a rung.
-- No natural-stage repeat: **0** in every strategy measured.
+- No natural-stage repeat: **0** across all 84,000 careers, in all six strategies.
 - Potential stays hidden. Nothing added this version reveals a hidden number.
 - Seeded determinism; no `Math.random()` in core game logic.
 - **The player may leave Maccabi. Maccabi never leaves the player's story.** Phases 2–4 are this
