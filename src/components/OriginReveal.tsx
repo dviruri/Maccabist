@@ -1,5 +1,7 @@
-import { getClub } from '../data/clubs';
-import type { Career } from '../types';
+import { teamDisplayFor, teamDisplayLine } from '../game/identity';
+import { SCOUTED_COPY } from '../game/originEngine';
+import type { Career, CareerOrigin } from '../types';
+import { seasonLabel } from '../ui/format';
 import { Chip, Ltr } from './primitives';
 
 /**
@@ -8,7 +10,35 @@ import { Chip, Ltr } from './primitives';
  * Shown once, straight after creation, before the first season. It never reveals a hidden
  * number - being scouted says "a scout saw you", not "potential 94" - and a rejection is
  * framed as a longer road rather than a failure screen.
+ *
+ * v0.4.5.1 gives it the presentation it never had. The component referenced `.origin-card` and
+ * `.origin-icon`, neither of which existed in the stylesheet, so the first screen of the game
+ * rendered as a plain card with a stray emoji. It now has three treatments sharing one language,
+ * because the three openings are three different stories:
+ *
+ *   scouted          they came to you. Gold. Rare enough that it should feel rare.
+ *   trial_accepted   you got through the door. Maccabi green.
+ *   trial_rejected   the door shut. Not a loss screen - the premise of the whole game.
+ *
+ * The copy comes from `originEngine`. It used to be duplicated here for the scouted case, which
+ * meant two strings kept in step by hand.
  */
+
+/** Which of the three treatments this opening gets. */
+type OriginTone = 'prodigy' | 'accepted' | 'setback';
+
+function toneFor(origin: CareerOrigin): OriginTone {
+  if (origin === 'scouted') return 'prodigy';
+  return origin === 'trial_rejected' ? 'setback' : 'accepted';
+}
+
+/** The line above the title: what kind of beginning this was. */
+const KICKERS: Record<OriginTone, string> = {
+  prodigy: 'לפני שהתחלת',
+  accepted: 'המבחנים למכבי חיפה',
+  setback: 'המבחנים למכבי חיפה',
+};
+
 export function OriginReveal({
   career,
   onContinue,
@@ -17,35 +47,41 @@ export function OriginReveal({
   onContinue: () => void;
 }): JSX.Element {
   const trial = career.trials[0];
-  const club = getClub(career.currentClubId);
+  /*
+    Through the identity module, not `getClub().name`. The academy club record is named
+    "מכבי חיפה - מחלקת ילדים" because it doubles as the player's club id while he is a boy, and
+    printing it raw put that suffix on the very first screen of the game - the exact failure the
+    identity module was written to stop.
+  */
+  const team = teamDisplayLine(teamDisplayFor(career.currentClubId, career.academyStage));
+  const tone = toneFor(career.origin);
 
-  const scouted = career.origin === 'scouted';
-  const rejected = career.origin === 'trial_rejected';
-
-  const kicker = scouted ? 'לפני שהתחלת' : 'המבחנים למכבי חיפה';
-  const icon = scouted ? '⭐' : (trial?.icon ?? '💚');
-  const title = scouted ? 'אותרת על ידי מכבי' : (trial?.title ?? 'התקבלת למכבי חיפה');
-  const body = scouted
-    ? 'סקאוט של מכבי חיפה ראה אותך בטורניר ילדים והזמין אותך ישר למחלקה, בלי מבחנים. זה קורה למעטים.'
-    : (trial?.description ?? '');
+  const icon = tone === 'prodigy' ? SCOUTED_COPY.icon : (trial?.icon ?? '💚');
+  const title = tone === 'prodigy' ? SCOUTED_COPY.title : (trial?.title ?? 'התקבלת למכבי חיפה');
+  const body = tone === 'prodigy' ? SCOUTED_COPY.description : (trial?.description ?? '');
 
   return (
-    <article className={`card origin-card${rejected ? ' is-setback' : ''}`}>
-      <div className="stack">
-        <div className="kicker">{kicker}</div>
+    <article className={`origin origin-${tone}`}>
+      {/* Chapter one, said out loud. This is a beginning, including when it is a rejection. */}
+      <div className="origin-chapter">
+        <span className="origin-chapter-label">פרק ראשון</span>
+        <span className="origin-chapter-season">
+          <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
+        </span>
+      </div>
+
+      <div className="origin-body">
+        <div className="kicker">{KICKERS[tone]}</div>
 
         <div className="origin-icon" aria-hidden>
           {icon}
         </div>
-        <h2 className="card-title" style={{ textAlign: 'center' }}>
-          {title}
-        </h2>
-        <p className="card-body" style={{ textAlign: 'center' }}>
-          {body}
-        </p>
 
-        <div className="row" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Chip tone={rejected ? 'warn' : 'green'}>{club.name}</Chip>
+        <h2 className="origin-title">{title}</h2>
+        <p className="origin-text">{body}</p>
+
+        <div className="origin-facts">
+          <Chip tone={tone === 'setback' ? 'warn' : 'green'}>{team}</Chip>
           <Chip tone="plain">
             בן <Ltr>{career.age}</Ltr>
           </Chip>
@@ -54,14 +90,24 @@ export function OriginReveal({
           </Chip>
         </div>
 
-        {rejected && (
-          <p className="card-body faint" style={{ textAlign: 'center' }}>
-            הדלת של מכבי לא נפתחה - בינתיים. אם תבלוט כאן, הם ישמעו עליך.
+        {tone === 'setback' && (
+          <div className="origin-premise">
+            <p className="origin-premise-note">
+              הדלת של מכבי לא נפתחה - בינתיים. אם תבלוט כאן, הם ישמעו עליך.
+            </p>
+            {/* The question the version is built around. Worth saying to his face, once. */}
+            <p className="origin-premise-question">איך תגרום להם להתחרט?</p>
+          </div>
+        )}
+
+        {tone === 'prodigy' && (
+          <p className="origin-premise-note">
+            סקאוט ראה משהו. עכשיו צריך להוכיח שהוא לא טעה.
           </p>
         )}
 
         <button type="button" className="btn btn-primary" onClick={onContinue}>
-          {rejected ? 'להתחיל מהמקום הזה' : 'להתחיל את הקריירה'}
+          {tone === 'setback' ? 'להתחיל מהמקום הזה' : 'להתחיל את הקריירה'}
         </button>
       </div>
     </article>
@@ -84,21 +130,27 @@ export function RetrialCard({
   const accepted = trial.accepted;
 
   return (
-    <article className={`card origin-card${accepted ? '' : ' is-setback'}`}>
-      <div className="stack">
-        <div className="kicker">מבחנים חוזרים במכבי חיפה</div>
+    <article className={`origin origin-${accepted ? 'accepted' : 'setback'}`}>
+      <div className="origin-chapter">
+        <span className="origin-chapter-label">מבחנים חוזרים</span>
+        <span className="origin-chapter-season">
+          <Ltr>{seasonLabel(trial.season)}</Ltr>
+        </span>
+      </div>
+
+      <div className="origin-body">
+        <div className="kicker">מכבי חיפה</div>
         <div className="origin-icon" aria-hidden>
           {trial.icon}
         </div>
-        <h2 className="card-title" style={{ textAlign: 'center' }}>
-          {trial.title}
-        </h2>
-        <p className="card-body" style={{ textAlign: 'center' }}>
-          {trial.description}
-        </p>
-        <div className="row" style={{ justifyContent: 'center' }}>
+        <h2 className="origin-title">{trial.title}</h2>
+        <p className="origin-text">{trial.description}</p>
+        <div className="origin-facts">
           <Chip tone="plain">
             ניסיון <Ltr>{trial.attempt}</Ltr>
+          </Chip>
+          <Chip tone="plain">
+            בן <Ltr>{career.age}</Ltr>
           </Chip>
         </div>
         <button type="button" className="btn btn-primary" onClick={onContinue}>

@@ -3396,3 +3396,174 @@ p {
   flex-direction: column;
   gap: var(--space-2);
 }
+
+/* =========================================================================
+   ORIGIN / THE TRIALS (v0.4.5.1)
+   The first screen of the game. Three treatments, one language.
+   Before this, .origin-card and .origin-icon existed only in the JSX.
+   ========================================================================= */
+
+.origin {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/* "פרק ראשון" — a chapter heading, so a rejection reads as a beginning. */
+.origin-chapter {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.origin-chapter-label {
+  font-size: var(--text-micro);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+}
+
+.origin-chapter-season {
+  font-size: var(--text-micro);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.origin-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  text-align: center;
+}
+
+/*
+  The icon sits in a lit disc rather than floating as a bare emoji. The glow is the only thing
+  that differs between the three tones, which is enough - the copy does the rest.
+*/
+.origin-icon {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-pill);
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  line-height: 1;
+  border: 1px solid var(--line-strong);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.origin-title {
+  margin: 0;
+  font-size: var(--text-h1);
+  font-weight: 900;
+  line-height: 1.15;
+  color: var(--white);
+  text-wrap: balance;
+}
+
+.origin-text {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+.origin-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.origin-premise-note {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-normal);
+  color: var(--text-tertiary);
+}
+
+.origin .btn-primary {
+  width: 100%;
+  margin-top: var(--space-1);
+}
+
+/* ---------- they came to you ---------- */
+
+.origin-prodigy {
+  border-color: rgba(240, 197, 78, 0.4);
+}
+
+.origin-prodigy .origin-icon {
+  border-color: rgba(240, 197, 78, 0.6);
+  background: radial-gradient(circle at 50% 35%, rgba(240, 197, 78, 0.3), rgba(0, 0, 0, 0.35));
+  box-shadow: 0 0 0 6px rgba(240, 197, 78, 0.09);
+}
+
+.origin-prodigy .origin-chapter {
+  background: linear-gradient(90deg, rgba(240, 197, 78, 0.16), transparent);
+}
+
+/* ---------- you got through the door ---------- */
+
+.origin-accepted {
+  border-color: rgba(15, 166, 74, 0.42);
+}
+
+.origin-accepted .origin-icon {
+  border-color: var(--green-primary);
+  background: radial-gradient(circle at 50% 35%, rgba(15, 166, 74, 0.34), rgba(0, 0, 0, 0.35));
+  box-shadow: 0 0 0 6px rgba(15, 166, 74, 0.1);
+}
+
+.origin-accepted .origin-chapter {
+  background: linear-gradient(90deg, rgba(15, 166, 74, 0.18), transparent);
+}
+
+/* ---------- the door shut ---------- */
+
+.origin-setback {
+  border-color: rgba(184, 106, 42, 0.4);
+}
+
+.origin-setback .origin-icon {
+  border-color: rgba(184, 106, 42, 0.6);
+  background: radial-gradient(circle at 50% 35%, rgba(184, 106, 42, 0.26), rgba(0, 0, 0, 0.4));
+}
+
+.origin-setback .origin-chapter {
+  background: linear-gradient(90deg, rgba(184, 106, 42, 0.16), transparent);
+}
+
+.origin-setback .origin-title {
+  /* Not red. He was not beaten, he was told to come back later. */
+  color: var(--white);
+}
+
+/*
+  The question the version is built around. Framed rather than shouted - it is the thesis of the
+  game, and it should read as the thing he takes with him rather than as a taunt.
+*/
+.origin-premise {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line-strong);
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.origin-premise-question {
+  margin: 0;
+  font-size: var(--text-h3);
+  font-weight: 800;
+  color: var(--green-bright);
+}

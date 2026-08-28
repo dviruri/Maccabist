@@ -9,6 +9,8 @@ import {
   SamiOferHeader,
 } from '../components/MaccabiCards';
 import { CareerTimeline } from '../components/CareerTimeline';
+import { OriginReveal } from '../components/OriginReveal';
+import { resolveOrigin } from '../game/originEngine';
 import { NewCareerPage } from '../pages/NewCareerPage';
 import { PlayerHub } from '../components/PlayerHub';
 import { SeasonResultCard } from '../components/SeasonCards';
@@ -20,7 +22,7 @@ import { resolveEventChoice } from '../game/eventEngine';
 import { createRng } from '../game/random';
 import { generateOffers } from '../game/transferEngine';
 import { recordMaccabiSeason } from '../game/worldEngine';
-import type { Career, SeasonRecord } from '../types';
+import type { Career, CareerOrigin, SeasonRecord } from '../types';
 
 /**
  * A component gallery, for looking at screens (v0.4.5).
@@ -299,6 +301,32 @@ const rejectedAsAChild = (): Career => {
 };
 
 /* ------------------------------------------------------------------ */
+/* The three openings (v0.4.5.1)                                       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Run the real origin engine and keep the first seed that produces each opening, rather than
+ * hand-building three Career objects. The gallery then shows exactly what a player gets - real
+ * trial copy, real club, real chapter season - and a change to the engine's wording shows up here
+ * instead of silently diverging from a fixture.
+ */
+function firstOriginOf(origin: CareerOrigin): Career {
+  for (let seed = 1; seed <= 400; seed += 1) {
+    const career = resolveOrigin(
+      createCareer({ playerName: 'דויד', position: 'CM', seed }),
+      createRng(seed),
+    );
+    if (career.origin === origin) return career;
+  }
+  // Every origin is reachable well inside 400 seeds; this is only here so the type is honest.
+  return createCareer({ playerName: 'דויד', position: 'CM', seed: 1 });
+}
+
+const originScouted = (): Career => firstOriginOf('scouted');
+const originAccepted = (): Career => firstOriginOf('trial_accepted');
+const originRejected = (): Career => firstOriginOf('trial_rejected');
+
+/* ------------------------------------------------------------------ */
 /* Frame                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -361,6 +389,9 @@ export function Gallery(): JSX.Element {
 
   const screens: Array<[string, JSX.Element]> = [
     ['new-career', <NewCareerPage onCreate={noop} onBack={noop} />],
+    ['origin-prodigy', <OriginReveal career={originScouted()} onContinue={noop} />],
+    ['origin-accepted', <OriginReveal career={originAccepted()} onContinue={noop} />],
+    ['origin-rejected', <OriginReveal career={originRejected()} onContinue={noop} />],
     ['hub-senior', <PlayerHub career={senior} />],
     ['hub-academy', <PlayerHub career={academyBoy()} />],
     ['hub-loan', <PlayerHub career={abroadOnLoan()} />],

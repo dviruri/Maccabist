@@ -43,21 +43,26 @@ export function trialScore(career: Career, rng: Rng): number {
   );
 }
 
-const ACCEPTED_COPY = {
+/*
+ * The opening copy lives here rather than in the component. OriginReveal used to carry its own
+ * copy of the scouted text, which meant two strings that had to be kept in step by hand and
+ * silently diverged the moment either was edited.
+ */
+export const ACCEPTED_COPY = {
   title: 'התקבלת למכבי חיפה',
   description:
     'שלושה אימוני מבחן, ואז שיחה קצרה עם מנהל המחלקה. "נתראה באוגוסט." זה כל מה שהוא אמר, וזה הספיק.',
   icon: '💚',
 };
 
-const REJECTED_COPY = {
+export const REJECTED_COPY = {
   title: 'הפעם זה לא הספיק',
   description:
     'המאמן אומר את זה בעדינות, וזה עדיין נחתך. הדרך למכבי תהיה קצת יותר ארוכה - היא לא נסגרה.',
   icon: '🚪',
 };
 
-const SCOUTED_COPY = {
+export const SCOUTED_COPY = {
   title: 'אותרת על ידי מכבי',
   description:
     'סקאוט של מכבי חיפה ראה אותך בטורניר ילדים והזמין אותך ישר למחלקה, בלי מבחנים. זה קורה למעטים.',
