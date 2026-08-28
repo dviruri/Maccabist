@@ -664,8 +664,55 @@ export const SEASON = {
    */
   roleCeilingBase: 52,
   roleCeilingPerPoint: 1.9,
+  /**
+   * How far above the base a player can be carried by being better than his club (v0.4.6).
+   *
+   * The ceiling used to be linear in that edge and clamped at 100, so anyone 25+ points above
+   * his club's level was *pinned at the top rung* - and a pinned value cannot respond to form,
+   * age or a bad season. Measured: 97.8% of seasons at weak clubs were `star`, mean unbroken
+   * star run 7.15 seasons, and only 9.4% of season-to-season transitions were downgrades.
+   *
+   * The span stops short of the clamp on purpose. Gravity can then always act, which is what
+   * lets a role fall as well as rise.
+   */
+  roleCeilingSpan: 40,
+  /** Edge, in ability points, at which roughly 63% of the span has been earned. */
+  roleCeilingScale: 16,
+  /**
+   * How high a squad role the club itself can support (v0.4.6).
+   *
+   * The ladder was purely relative, and that is the actual defect. Relative to his club, a good
+   * player at a bad club is its best player by a mile - so the model called him a star, and 97.8%
+   * of seasons at clubs below quality 50 came out at the top rung. Making the ceiling concave
+   * changed that by 0.1 points, because the ceiling was never the binding constraint.
+   *
+   * Nobody calls the best player at a struggling second-division side a star. He is that team's
+   * key player. `star` should mean *a standout at a club that matters*, so the club's own
+   * standing caps the rung its best player can reach: below roughly quality 50 the ceiling lands
+   * under the star threshold and the honest answer is `key`.
+   *
+   * cap = base + span * (quality - floor) / range
+   */
+  /*
+   * The cap is an attractor, not a hard lid: standing settles roughly ten points above it,
+   * because performance keeps pushing while gravity pulls. So the base is set ten points lower
+   * than the rung it is meant to enforce - at 64 the weak-club equilibrium still landed on
+   * `star` for 56.7% of seasons.
+   */
+  roleClubCapBase: 56,
+  roleClubCapSpan: 36,
+  roleClubCapFloor: 30,
+  roleClubCapRange: 50,
   /** How hard standing is dragged back when it is above where he belongs, per half-season. */
-  roleCeilingPull: 0.45,
+  /**
+   * How hard standing is pulled back to the ceiling each half-season (v0.4.6: 0.45 -> 0.6).
+   *
+   * With the redundant edge push removed, gravity is the only thing acting against performance,
+   * and 0.45 left a player converging on a ceiling twenty points below him at under a point per
+   * half-season. 0.6 gets him there inside a season and a half, which is how quickly a squad
+   * actually reorganises around a player who has dropped a level.
+   */
+  roleCeilingPull: 0.6,
   /** Academy and youth teams rotate everyone - nobody is a total spectator there. */
   youthMinutesFloor: 0.3,
   /** Role contributes to the fight for minutes on top of raw ability. */

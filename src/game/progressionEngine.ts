@@ -664,7 +664,18 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
   const performance = (stats.rating - expectedRatingForLevel(level.quality)) / 40;
   const exposure = 0.35 + minutesShare;
   let roleChange = performance * SEASON.roleMoveMax * exposure + trophyPoints * 2;
-  roleChange += clamp((next.ability - level.quality) * 0.35, -6, 6);
+  /*
+   * v0.4.6: the ability-vs-level term used to live here as well as in the ceiling below.
+   *
+   * That was double counting, and it is why capping the ceiling changed almost nothing. Being
+   * better than your club pushed standing up by as much as +6 a half-season *and* set the
+   * ceiling, so the upward push very nearly cancelled the ceiling's own gravity: a player at
+   * 100 with a ceiling of 71 drifted down by under a point a half-season and would have needed
+   * about eighteen seasons to get there.
+   *
+   * The edge belongs in the ceiling, which is a statement about where he should settle. What
+   * moves him is performance, trophies and the coach.
+   */
   roleChange += (next.coachTrust - 50) * COACH_TRUST.roleInfluence * 0.25;
   if (career.age >= 33) roleChange -= (career.age - 32) * 0.9;
 
@@ -683,7 +694,36 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
    * him back - which is what makes a genuinely exceptional season feel like one.
    */
   const edge = next.ability - level.quality;
-  const ceiling = clamp(SEASON.roleCeilingBase + edge * SEASON.roleCeilingPerPoint, 20, 100);
+  /*
+   * Concave above the club's level, linear below it (v0.4.6).
+   *
+   * Being better than your club makes you its best player, and the tenth point of that edge
+   * matters far less than the first - the difference between "clearly our best" and "clearly our
+   * best by even more" is not a difference in squad role. The old linear form said otherwise and
+   * clamped at 100, which pinned every good player at a weak club to the top rung permanently.
+   *
+   * Below the level it stays linear and steep: a player out of his depth should drop quickly,
+   * and there is no reason to soften that.
+   */
+  const relative =
+    edge <= 0
+      ? clamp(SEASON.roleCeilingBase + edge * SEASON.roleCeilingPerPoint, 20, 100)
+      : SEASON.roleCeilingBase +
+        SEASON.roleCeilingSpan * (1 - Math.exp(-edge / SEASON.roleCeilingScale));
+
+  /*
+   * ...and capped by what the club itself can support (v0.4.6).
+   *
+   * Without this the ladder is purely relative, which is the defect: relative to a bad club, a
+   * good player is its best by a mile, so the model called him a star. `star` should mean a
+   * standout at a club that matters. Below roughly quality 50 this cap lands under the star
+   * threshold, and the honest answer for the best player there is `key`.
+   */
+  const clubCap =
+    SEASON.roleClubCapBase +
+    SEASON.roleClubCapSpan *
+      clamp((level.quality - SEASON.roleClubCapFloor) / SEASON.roleClubCapRange, 0, 1);
+  const ceiling = Math.min(relative, clubCap);
   const overshoot = next.roleValue - ceiling;
   if (overshoot > 0) roleChange -= overshoot * SEASON.roleCeilingPull;
 
