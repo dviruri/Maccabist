@@ -351,6 +351,8 @@ export type ClubSeasonOutcome =
   | 'struggled';
 
 export interface ClubSeasonResult {
+  /** Where the club actually finished (v0.4.6). Optional: pre-v0.4.6 results have no table. */
+  finalPosition?: number;
   season: number;
   clubId: string;
   leagueId: string;
@@ -367,7 +369,107 @@ export interface ClubSeasonResult {
  * Deliberately sparse: only clubs that have actually moved division are recorded, and only the
  * player's own club seasons are kept. There is no attempt to run every league.
  */
+/* ------------------------------------------------------------------ */
+/* Live league state (v0.4.6)                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Where the season has got to, for table purposes.
+ *
+ * Deliberately the existing `SeasonSlot` plus a terminal `end`, rather than a new six-phase
+ * model. The event planner already works in early/mid/late slots, and a table phase that does
+ * not line up with the slot an event was planned for would reintroduce exactly the mismatch
+ * v0.4.6 exists to remove.
+ */
+export type SeasonPhase = SeasonSlot | 'end';
+
+/** One line of a league table. */
+export interface TableRow {
+  clubId: string;
+  /** Carried on the row so filler clubs need no Club record. */
+  name: string;
+  position: number;
+  played: number;
+  points: number;
+  goalDifference: number;
+}
+
+export interface LeagueTable {
+  leagueId: string;
+  season: number;
+  phase: SeasonPhase;
+  rows: TableRow[];
+}
+
+/**
+ * A club's whole season, decided at preseason.
+ *
+ * This is the change that makes v0.4.6 possible. The season outcome used to be drawn at season
+ * *end*, while `planSeason` picks every event for the year at preseason - so a late-slot
+ * title-decider was chosen months before anyone knew the club would finish eleventh. Deciding
+ * the shape of the season up front means event eligibility can be gated on it.
+ *
+ * The path is stored rather than the tables: a table is a pure function of the projection, so
+ * saves stay small and a reloaded season reproduces exactly the same table.
+ */
+export interface SeasonProjection {
+  season: number;
+  clubId: string;
+  leagueId: string;
+  /** Size of the division this season, so position reads correctly against it. */
+  leagueSize: number;
+  /** Where the club ends up, 1-based. */
+  finalPosition: number;
+  /** The outcome category that position corresponds to. */
+  finalOutcome: ClubSeasonOutcome;
+  /** Position at each phase, converging on finalPosition. */
+  path: Record<SeasonPhase, number>;
+  /** Seed for deriving the rest of the table deterministically. */
+  tableSeed: number;
+}
+
+/**
+ * What the club is actually fighting for, derived from the projection.
+ *
+ * This is the authoritative world state that events gate on. Nothing may claim a title race,
+ * a relegation battle or a promotion push except by asking this.
+ */
+export interface LeagueContext {
+  leagueId: string;
+  phase: SeasonPhase;
+  position: number;
+  leagueSize: number;
+  points: number;
+  played: number;
+  /** Points behind the leader; 0 when top. */
+  pointsFromTop: number;
+  /** Points to the European places, or null where the league has none modelled. */
+  pointsFromEurope: number | null;
+  /** Points above the relegation zone, or null where the league has none. */
+  pointsFromSafety: number | null;
+  /** Points to the promotion places, or null in a top division. */
+  pointsFromPromotion: number | null;
+  titleRace: boolean;
+  europeRace: boolean;
+  midTable: boolean;
+  relegationBattle: boolean;
+  promotionRace: boolean;
+  championClinched: boolean;
+  promotionClinched: boolean;
+  relegationConfirmed: boolean;
+  /** Doing clearly better, or worse, than the squad's quality implies. */
+  overperforming: boolean;
+  underperforming: boolean;
+}
+
 export interface WorldState {
+  /**
+   * The player's club's season, decided at preseason (v0.4.6). Optional: v0.4.5.1 saves have
+   * none, and `hydrateCareer` projects one deterministically rather than leaving it null.
+   */
+  projection?: SeasonProjection | null;
+  /** Maccabi's own season, tracked in parallel so it has a table wherever the player is. */
+  maccabiProjection?: SeasonProjection | null;
   /**
    * Maccabi's own seasons while the player was elsewhere (v0.4.1).
    *

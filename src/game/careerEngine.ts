@@ -45,9 +45,11 @@ import {
   emptyWorld,
   isGoodSeason,
   leagueOf,
+  clubResultFromProjection,
+  openWorldSeason,
   recordClubSeason,
   recordMaccabiSeason,
-  simulateClubSeason,
+  settleWorldProjection,
 } from './worldEngine';
 import { ageAt } from './cohort';
 import { eligibleForRetrial, resolveOrigin, resolveRetrial } from './originEngine';
@@ -495,7 +497,18 @@ function advanceSeasonFlow(career: Career): Career {
      * contribution can shape the outcome.
      */
     if (!isInAcademy(next)) {
-      const clubResult = simulateClubSeason(next, next.lastSeasonRecord, rng);
+      /*
+       * v0.4.6: the outcome is no longer drawn here.
+       *
+       * It was decided at preseason by `projectSeason`, because `planSeason` picks every event
+       * for the year at preseason too - and an outcome drawn after the events were chosen is
+       * exactly how a club that finished eleventh ended up with a late title-decider. What
+       * happens now is that the player's *actual* season settles his club's final position
+       * within the band the projection already committed to, and the recorded result is read off
+       * that position. Table and outcome cannot disagree, because one is derived from the other.
+       */
+      next.world = settleWorldProjection(next, rng);
+      const clubResult = clubResultFromProjection(next, rng);
       next.world = recordClubSeason(next, clubResult);
       next = recordWorldMemories(next, clubResult);
 
@@ -531,6 +544,13 @@ export function beginSeason(career: Career): Career {
 
     next = snapshotOpening(next);
     next.newCoachThisSeason = coach.changed;
+    /*
+     * The world's season is decided before the player's is planned (v0.4.6). Order matters
+     * here and nowhere else: `planSeason` gates events on `leagueContext`, which reads the
+     * projection, so projecting afterwards would leave every world-state condition looking at
+     * last season's table.
+     */
+    next.world = openWorldSeason(next, rng);
     next.plannedEvents = planSeason(next, rng);
     next.lastEventResult = null;
     next.lastAchievements = [];

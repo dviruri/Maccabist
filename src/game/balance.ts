@@ -103,6 +103,18 @@ export const WORLD = {
    * tightened: the point was to make the outlier *possible*, not common.
    */
   seasonVariance: 1.15,
+  /**
+   * How far a club's finish strays from its preseason projection, in *table positions*, as a
+   * fraction of the division's size (v0.4.6).
+   *
+   * The old `seasonVariance` is expressed in outcome rungs, and rescaling it to a table produced
+   * a league far too orderly: promotion fell to 5.4% of second-division seasons, against 17.7%
+   * in v0.4.5.1 and roughly 12-15% in real football, because reaching the top two from a
+   * mid-table projection needed a 2.3-sigma season. Real tables are much less obedient than
+   * squad strength implies - 0.2 puts the standard deviation at about three places in a
+   * fourteen-club division, which is what actually happens.
+   */
+  tableVariance: 0.2,
 
   /** A player below this share of the club's games does not move the needle at all. */
   impactMinShare: 0.25,

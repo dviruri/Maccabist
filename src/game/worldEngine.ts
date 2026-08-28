@@ -13,6 +13,7 @@
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { defaultLeagueFor, getLeague, type League } from '../data/leagues';
 import type { Career, ClubSeasonOutcome, ClubSeasonResult, SeasonRecord, WorldState } from '../types';
+import { projectSeason, settleProjection } from './leagueEngine';
 import { WORLD } from './balance';
 import { clamp, type Rng } from './random';
 
@@ -337,4 +338,94 @@ export function maccabiInCrisis(career: Career): boolean {
   const last = lastMaccabiSeason(career);
   if (!last) return false;
   return isBadSeason(last.outcome) || leagueOf(career.world, MACCABI_ID).tier >= 2;
+}
+
+/* ------------------------------------------------------------------ */
+/* The season, opened and settled (v0.4.6)                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Projects the player's club season, and Maccabi's, at preseason.
+ *
+ * Both are drawn here so that everything downstream - event eligibility, the table UI, the
+ * Maccabi side panel - reads one committed answer rather than deriving its own. Youth football
+ * gets no projection: an age group is not a league campaign, and `leagueShape` has no table for
+ * it, so `projectSeason` returns null and every world-state condition simply fails to match.
+ */
+export function openWorldSeason(career: Career, rng: Rng): WorldState {
+  const projection = projectSeason(
+    career.world,
+    career.currentClubId,
+    career.currentSeason,
+    career.lastSeasonRecord,
+    career,
+    rng,
+  );
+
+  /*
+   * Maccabi's own season, whether the player is there or not. When he *is* there the two are the
+   * same campaign, so the parallel projection is dropped rather than drawn twice - two draws
+   * would let the side panel disagree with the main table about the club he plays for.
+   */
+  const maccabi =
+    career.currentClubId === MACCABI_ID
+      ? null
+      : projectSeason(career.world, MACCABI_ID, career.currentSeason, null, null, rng);
+
+  return { ...career.world, projection, maccabiProjection: maccabi };
+}
+
+/**
+ * Lets the player's actual season move his club, then freezes the result.
+ *
+ * The move is bounded to the outcome band the projection committed to at preseason - see
+ * `settleProjection`. He can be the reason they finished second rather than fourth; he cannot be
+ * the reason a title race turned into mid-table after the events for it were already planned.
+ */
+export function settleWorldProjection(career: Career, rng: Rng): WorldState {
+  const projection = career.world.projection;
+  if (!projection || projection.season !== career.currentSeason) {
+    /*
+     * No projection: a save from before v0.4.6, or a club whose league has no table. Draw one now
+     * so the season still records a result, rather than skipping the club season entirely.
+     */
+    const fresh = projectSeason(
+      career.world,
+      career.currentClubId,
+      career.currentSeason,
+      career.lastSeasonRecord,
+      career,
+      rng,
+    );
+    return { ...career.world, projection: fresh };
+  }
+
+  return {
+    ...career.world,
+    projection: settleProjection(projection, career, career.lastSeasonRecord),
+  };
+}
+
+/**
+ * The club season result, read off the settled projection.
+ *
+ * Falls back to the old draw only for a club in a league with no modelled table, which in
+ * practice means nothing - every senior league has a shape - but keeps the function total.
+ */
+export function clubResultFromProjection(career: Career, rng: Rng): ClubSeasonResult {
+  const projection = career.world.projection;
+  if (!projection || projection.season !== career.currentSeason) {
+    return simulateClubSeason(career, career.lastSeasonRecord, rng);
+  }
+
+  return {
+    season: projection.season,
+    clubId: projection.clubId,
+    leagueId: projection.leagueId,
+    outcome: projection.finalOutcome,
+    label: OUTCOME_LABELS[projection.finalOutcome],
+    playerImpact: Math.round(playerImpact(career, career.lastSeasonRecord) * 100) / 100,
+    // v0.4.6: where the table actually finished, so the summary can say "4th" and not just "upper table".
+    finalPosition: projection.finalPosition,
+  };
 }
