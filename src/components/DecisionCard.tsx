@@ -10,6 +10,8 @@ import { CHOICE_RISK_LABELS } from '../ui/format';
 import { currentTeamDisplay } from '../game/identity';
 import { playerLeague } from '../game/worldEngine';
 import { eventVisual, isMatchMoment, maccabiPresentation, matchMinute } from '../ui/eventVisuals';
+import { currentLeagueContext } from '../game/leagueEngine';
+import { matchContext, requirementOf } from '../game/matchEngine';
 import { AmbientNewsHeader, MaccabiBanner, SamiOferHeader } from './MaccabiCards';
 import { Ltr } from './primitives';
 import type {
@@ -17,6 +19,7 @@ import type {
   DecisionDistribution,
   DecisionOutcomeView,
   GameEvent,
+  MatchContext,
   OutcomeValence,
 } from '../types';
 
@@ -200,6 +203,16 @@ function MatchStrip({ career, event }: { career: Career; event: GameEvent }): JS
   const minute = matchMinute(event);
   const team = currentTeamDisplay(career);
   const league = playerLeague(career);
+  /*
+   * v0.4.6: there is now a real fixture behind the moment.
+   *
+   * The strip used to name the player's own club and the league and stop there, which meant a
+   * "biggest match of the season" was being played against nobody in particular. The opponent,
+   * both table positions and the gap between them come from `matchContext`, so a match that
+   * looks like a decider is one - and a match that is not one cannot be dressed as it.
+   */
+  const match = matchContext(career, undefined, requirementOf(event));
+  const own = currentLeagueContext(career);
 
   return (
     <div className="match-strip">
@@ -208,9 +221,62 @@ function MatchStrip({ career, event }: { career: Career; event: GameEvent }): JS
         <span aria-hidden>׳</span>
       </div>
       <div className="match-teams">
-        <div className="match-home">{team.club}</div>
-        <div className="match-comp">{league.name}</div>
+        <div className="match-home">
+          {team.club}
+          {own && (
+            <span className="match-pos">
+              {' · מקום '}
+              <Ltr>{own.position}</Ltr>
+            </span>
+          )}
+        </div>
+        {match ? (
+          <div className="match-away">
+            {match.opponentName}
+            {match.opponentPosition !== null && (
+              <span className="match-pos">
+                {' · מקום '}
+                <Ltr>{match.opponentPosition}</Ltr>
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="match-comp">{league.name}</div>
+        )}
+        {match && <MatchStakes match={match} /> }
       </div>
+    </div>
+  );
+}
+
+/**
+ * Why this fixture matters, in one line.
+ *
+ * Only ever states what the context supports. The label and the gap are the same fact the event
+ * was gated on, so a player reading "3 נקודות מפרידות ביניהן" is reading the number that decided
+ * he was allowed to see this event at all.
+ */
+function MatchStakes({ match }: { match: MatchContext }): JSX.Element | null {
+  const label = match.titleDecider
+    ? 'משחק על האליפות'
+    : match.promotionDecider
+      ? 'משחק על העלייה'
+      : match.relegationSixPointer
+        ? 'קרב תחתית'
+        : match.isDerby
+          ? (match.rivalryName ?? 'דרבי')
+          : match.rivalryName;
+
+  if (!label && match.pointsGap === null) return null;
+
+  return (
+    <div className="match-stakes">
+      {label && <span className="match-stakes-label">{label}</span>}
+      {match.pointsGap !== null && match.pointsGap <= 8 && (
+        <span className="match-gap">
+          <Ltr>{match.pointsGap}</Ltr> נקודות מפרידות ביניהן
+        </span>
+      )}
     </div>
   );
 }

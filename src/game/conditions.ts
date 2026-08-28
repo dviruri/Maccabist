@@ -304,7 +304,11 @@ function matchesMatchContext(career: Career, c: EventConditions, phase: SeasonPh
     c.vsFormerClub !== undefined;
   if (!needsFixture) return true;
 
-  const match = matchContext(career, phase);
+  const match = matchContext(career, phase, {
+    derby: c.requiresDerby === true,
+    maccabi: c.vsMaccabi === true,
+    formerClub: c.vsFormerClub === true,
+  });
   if (!match) return false;
 
   if (c.matchImportance && !c.matchImportance.includes(match.importance)) return false;

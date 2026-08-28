@@ -573,6 +573,16 @@ export type MemoryKind =
   | 'suffered_relegation'
   | 'survived_relegation_battle'
   | 'won_title_outside_maccabi'
+  /*
+   * v0.4.6: the near misses.
+   *
+   * A season spent in a title race that ended without the title, or a promotion push that fell
+   * short, is one of the most callback-able things that can happen to a career - and until the
+   * live table existed the game had no way to know it had happened, because an outcome
+   * category was only drawn at the final whistle.
+   */
+  | 'fought_for_title'
+  | 'missed_promotion'
   | 'breakout_at_small_club'
   | 'moved_up_a_level'
   | 'moved_down_a_level'

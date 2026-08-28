@@ -397,6 +397,17 @@ function recordWorldMemories(career: Career, result: ClubSeasonResult): Career {
     });
   }
 
+  /*
+   * The near misses (v0.4.6).
+   *
+   * A season spent in a title race that ended without the title, or a promotion push that fell
+   * short, is among the most callback-able things a career can carry. The game could not record
+   * it before, because the season's shape only existed as an outcome category drawn at the final
+   * whistle - there was no "we were in it" to remember.
+   */
+  if (result.outcome === 'title_challenge') remember('fought_for_title');
+  if (result.outcome === 'promotion_challenge') remember('missed_promotion');
+
   // Carrying a small club to something it had no business achieving.
   if (result.playerImpact >= WORLD.breakoutImpact && isGoodSeason(result.outcome)) {
     const league = leagueOf(next.world, result.clubId);

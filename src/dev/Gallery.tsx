@@ -476,7 +476,12 @@ export function Gallery(): JSX.Element {
   const senior = seniorAtMaccabi();
   const euro = inEurope();
   const decisionEvent = EVENTS_BY_ID.sen_derby_moment;
-  const decisionCareer = { ...senior, seasonSlot: 'late' as const };
+  /*
+   * v0.4.6: a decision fixture needs a live projection, otherwise the match strip has no
+   * opponent to name and correctly falls back to the league name - which looks like the old
+   * behaviour rather than the new one.
+   */
+  const decisionCareer = { ...tableCareer(MACCABI_ID, 3), seasonSlot: 'late' as const };
 
   const revealOutcomes =
     decisionEvent && decisionEvent.choices[0]

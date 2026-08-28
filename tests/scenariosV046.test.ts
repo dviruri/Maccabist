@@ -120,6 +120,33 @@ describe('C. a club with a derby rival plays it against the right club', () => {
     expect(derbyRival(MACCABI_ID)).toBe('hapoel_haifa');
   });
 
+  it('names the derby rival when an event declares a derby', () => {
+    /*
+     * Found by looking at a screenshot rather than by a test. `sen_derby_moment` was correctly
+     * gated on `requiresDerby` and the strip beside its text named Hapoel Jerusalem, because the
+     * opponent was drawn independently of what the event had declared. Gating on one fact and
+     * displaying another is the same incoherence this version exists to remove - it had simply
+     * moved into the new code.
+     */
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const career = seniorAt(MACCABI_ID, 'title_challenge', seed);
+      const match = matchContext(career, undefined, { derby: true });
+      if (!match) continue;
+      expect(match.opponentClubId, `seed ${seed}`).toBe('hapoel_haifa');
+      expect(match.isDerby).toBe(true);
+    }
+  });
+
+  it('names Maccabi when an event declares the opponent is Maccabi', () => {
+    for (let seed = 1; seed <= 30; seed += 1) {
+      const career = seniorAt('hapoel_tel_aviv', 'upper_table', seed);
+      const match = matchContext(career, undefined, { maccabi: true });
+      if (!match) continue;
+      expect(match.opponentClubId, `seed ${seed}`).toBe(MACCABI_ID);
+      expect(match.vsMaccabi).toBe(true);
+    }
+  });
+
   it('never marks a fixture as a derby against a club with no rivalry', () => {
     for (let seed = 1; seed <= 40; seed += 1) {
       const career = seniorAt(MACCABI_ID, 'european_places', seed);

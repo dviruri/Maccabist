@@ -42,13 +42,42 @@ import { leagueOf } from './worldEngine';
  * Rivals are weighted up. Over a season a club plays its derby opponent twice out of thirty-odd
  * matches, but the matches a career *remembers* are not drawn uniformly from the fixture list.
  */
-function pickOpponent(career: Career, phase: SeasonPhase): { clubId: string; name: string } | null {
+function pickOpponent(
+  career: Career,
+  phase: SeasonPhase,
+  require?: MatchRequirement,
+): { clubId: string; name: string } | null {
   const projection = currentProjection(career);
   if (!projection) return null;
 
   const table = buildTable(career.world, projection, phase, career.world.maccabiProjection);
-  const others = table.rows.filter((r) => r.clubId !== career.currentClubId);
+  let others = table.rows.filter((r) => r.clubId !== career.currentClubId);
   if (others.length === 0) return null;
+
+  /*
+   * If the event says this is a derby, the opponent is the derby rival (v0.4.6).
+   *
+   * Found by looking at a screenshot: `sen_derby_moment` was correctly gated on `requiresDerby`
+   * and the strip beside its text named Hapoel Jerusalem, because the opponent was drawn
+   * independently of what the event had declared. Gating an event on a fact and then displaying
+   * a different fact is the same class of incoherence this version exists to remove - it had
+   * simply moved into the new code.
+   */
+  if (require?.derby) {
+    const rival = derbyRival(rivalryClubOf(career.currentClubId));
+    const row = rival ? others.find((r) => r.clubId === rival) : undefined;
+    if (row) return { clubId: row.clubId, name: row.name };
+    // The rival is not in this division this season, so there is no derby to describe.
+    return null;
+  }
+  if (require?.maccabi) {
+    const row = others.find((r) => r.clubId === MACCABI_ID);
+    return row ? { clubId: row.clubId, name: row.name } : null;
+  }
+  if (require?.formerClub) {
+    const former = others.filter((r) => playedForBefore(career, r.clubId));
+    others = former.length > 0 ? former : others;
+  }
 
   const rng = createRng((projection.tableSeed ^ 0x9e3779b9 ^ phaseKey(phase)) >>> 0);
   const weighted = others.map((row) => ({
@@ -70,6 +99,28 @@ function phaseKey(phase: SeasonPhase): number {
   return { early: 0x51, mid: 0x52, late: 0x53, end: 0x54 }[phase];
 }
 
+/**
+ * What the event has already declared about this fixture.
+ *
+ * The opponent must satisfy it, otherwise the card is gated on one fact and displays another.
+ */
+export interface MatchRequirement {
+  derby?: boolean;
+  maccabi?: boolean;
+  formerClub?: boolean;
+}
+
+/** The requirement implied by an event's own conditions. */
+export function requirementOf(event: {
+  conditions?: { requiresDerby?: boolean; vsMaccabi?: boolean; vsFormerClub?: boolean };
+}): MatchRequirement {
+  return {
+    derby: event.conditions?.requiresDerby === true,
+    maccabi: event.conditions?.vsMaccabi === true,
+    formerClub: event.conditions?.vsFormerClub === true,
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* The context                                                         */
 /* ------------------------------------------------------------------ */
@@ -81,12 +132,16 @@ function phaseKey(phase: SeasonPhase): number {
  * but it does not play a fixture with a league position on either side, and an event that wants
  * to talk about one has no business firing there.
  */
-export function matchContext(career: Career, phaseOverride?: SeasonPhase): MatchContext | null {
+export function matchContext(
+  career: Career,
+  phaseOverride?: SeasonPhase,
+  require?: MatchRequirement,
+): MatchContext | null {
   const phase = phaseOverride ?? currentPhase(career);
   const league = currentLeagueContext(career);
   if (!league) return null;
 
-  const opponent = pickOpponent(career, phase);
+  const opponent = pickOpponent(career, phase, require);
   if (!opponent) return null;
 
   const projection = currentProjection(career);
