@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 import { EVENTS_BY_ID } from '../data/events';
 import { MACCABI_ACADEMY_ID, MACCABI_ID } from '../data/clubs';
 import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
@@ -352,8 +354,77 @@ export function isGalleryRequested(): boolean {
   return new URLSearchParams(window.location.search).get('gallery') === '1';
 }
 
+/**
+ * Overflow probe (v0.4.5.1, Phase 19).
+ *
+ * With `?probe=1`, measures every rendered element against the viewport and writes the result to
+ * `data-probe` on <html>, where a headless --dump-dom run can read it. Asking the page itself
+ * beats inferring overflow from a screenshot: in v0.4.5 that inference produced a false positive,
+ * because headless Chrome's --window-size is not the CSS viewport and an RTL document anchors
+ * right, so a correct layout looked clipped.
+ *
+ * Note that the gallery pins html/body with `overflow-x: hidden`, so document.scrollWidth cannot
+ * see the problem. Element rects can.
+ */
+/**
+ * True when some ancestor clips this element horizontally.
+ *
+ * The walk stops at `.gallery-app`, which is the screenshot harness rather than app layout: it
+ * sets `overflow-x: hidden` to pin the document to an exact phone width. Treating it as a
+ * clipping ancestor made every element on the page look safely clipped, and the probe reported a
+ * clean sweep at every width - including for a deliberately injected 600px element inside a 320px
+ * layout, which is how the fault was caught.
+ */
+function isClipped(el: Element): boolean {
+  let parent = el.parentElement;
+  while (parent && parent !== document.body && !parent.classList.contains('gallery-app')) {
+    if (getComputedStyle(parent).overflowX !== 'visible') return true;
+    parent = parent.parentElement;
+  }
+  return false;
+}
+
+function useOverflowProbe(enabled: boolean, pinnedWidth: string | null): void {
+  useEffect(() => {
+    if (!enabled) return;
+    const measure = (): void => {
+      /*
+       * Measure against the *pinned* width when there is one, not clientWidth. Headless Chrome
+       * reports a clientWidth of its own choosing regardless of --window-size (504 in practice),
+       * so comparing against it silently checked the wrong number and reported every layout clean.
+       */
+      const vw = pinnedWidth ? Number(pinnedWidth) : document.documentElement.clientWidth;
+      const over = new Set<string>();
+      for (const el of Array.from(document.querySelectorAll('*'))) {
+        // html/body are the headless viewport itself, which is wider than the pinned width by
+        // construction. Reporting them buries every real finding under the same two rows.
+        if (el === document.documentElement || el === document.body) continue;
+        // Clipped by an ancestor, so it cannot scroll the page. getBoundingClientRect returns
+        // unclipped geometry, which made every decorative glow (.sami-lights, .poster-glow -
+        // both deliberately inset-inline: -20% inside an overflow:hidden parent) look like a
+        // layout bug. Without this the probe is noise.
+        if (isClipped(el)) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) continue;
+        const past = Math.max(Math.round(r.right - vw), Math.round(-r.left));
+        if (past > 1) {
+          const name = typeof el.className === 'string' && el.className ? el.className : el.tagName;
+          over.add(`${name.split(' ')[0]}+${past}`);
+        }
+      }
+      document.documentElement.dataset.probe = `vw=${vw} over=${over.size} ${[...over]
+        .slice(0, 6)
+        .join(' ')}`;
+    };
+    // After fonts settle, since a fallback font can change wrapping and therefore widths.
+    const id = window.setTimeout(measure, 300);
+    return () => window.clearTimeout(id);
+  }, [enabled, pinnedWidth]);
+}
+
 export function Gallery(): JSX.Element {
   const params = new URLSearchParams(window.location.search);
+  useOverflowProbe(params.get('probe') === '1', params.get('w'));
   const only = params.get('only');
   /*
    * An explicit width, because headless Chrome's --window-size does not reliably become the CSS
@@ -390,6 +461,12 @@ export function Gallery(): JSX.Element {
 
   const screens: Array<[string, JSX.Element]> = [
     ['new-career', <NewCareerPage onCreate={noop} onBack={noop} />],
+    /*
+      Deliberately 600px wide, so `?probe=1` can be re-validated on demand. A clean overflow
+      sweep only means something if the probe can still fail - this one reported all 25 scenes
+      clean at every width while silently skipping every element on the page.
+    */
+    ['probe-canary', <div className="canary" style={{ width: 600, height: 8 }} />],
     ['ladder-senior', <StageLadder from="u19" to="senior" />],
     ['ladder-normal', <StageLadder from="children_b" to="children_a" />],
     ['ladder-early', <StageLadder from="children_a" to="youth_b" />],

@@ -24,7 +24,14 @@
 
   --text-primary: #f2f6f3;
   --text-secondary: #9fb0a5;
-  --text-tertiary: #6d7f74;
+  /*
+     v0.4.5.1: was #6d7f74, which measured 3.78:1 against --surface-light and 4.11:1 against
+     --surface - below the 4.5:1 AA floor for normal text, and this token is what carries the
+     11px labels (hub ring captions, timeline seasons, hints) where legibility matters most.
+     #82958a measures 5.07:1 at worst and is still clearly a step below --text-secondary at
+     7.07:1, so the hierarchy survives.
+  */
+  --text-tertiary: #82958a;
 
   /* Contextual accents. Each one means something. */
   --gold: #ffc94a;          /* legendary only - achievements, retirement */
