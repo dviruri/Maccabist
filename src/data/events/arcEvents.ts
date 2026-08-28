@@ -44,6 +44,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'redeemed',
             baseWeight: 42,
             tone: 'good',
+            preview: 'הפעם הגוף עומד בזה, ואותו מאמן רואה אותך עומד',
             text: 'הפעם הגוף עומד בזה והראש כבר מכיר את הקצב. אותו מאמן שראה אותך נשבר רואה אותך עומד.',
             effects: {
               ability: 2.6,
@@ -70,6 +71,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'same_again',
             baseWeight: 58,
             tone: 'bad',
+            preview: 'אותו סיפור - ומתחילים לדבר על זה במחלקה',
             text: 'אותו סיפור. אתה עוד לא שם פיזית, וזה מתחיל להיות משהו שמדברים עליו במחלקה.',
             effects: {
               confidence: -7,
@@ -199,6 +201,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'responded',
             baseWeight: 58,
             tone: 'good',
+            preview: 'לא תענה מילה, ותהיה הראשון להגיע - והוא ישים לב',
             text: 'לא ענית מילה. בשבועיים הבאים היית הראשון להגיע, והוא שם לב לזה בלי להגיד.',
             effects: {
               coachTrust: 7,
@@ -217,6 +220,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'went_quiet',
             baseWeight: 42,
             tone: 'bad',
+            preview: 'תגיד שאתה מבין ובפנים תיסגר',
             text: 'אמרת שאתה מבין, ובפנים נסגרת. באימונים הבאים אתה שם, אבל לא באמת.',
             effects: {
               confidence: -6,
@@ -254,6 +258,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'blew_up',
             baseWeight: 68,
             tone: 'bad',
+            preview: 'זה ייצא חזק מדי, והוא פשוט ילך',
             text: 'זה יצא חזק מדי. הוא לא ענה, פשוט הלך - וזה הרבה יותר גרוע מוויכוח.',
             effects: {
               coachTrust: -12,
@@ -296,6 +301,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'earned_chance',
             baseWeight: 50,
             tone: 'good',
+            preview: 'שלושה שבועות בלי תלונה, וכשמישהו נפצע השם שלך ראשון',
             text: 'שלושה שבועות בלי מילה אחת של תלונה. כשנפצע מישהו, השם שלך היה הראשון שעלה.',
             effects: {
               coachTrust: 6,
@@ -312,6 +318,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'forgotten',
             baseWeight: 50,
             tone: 'bad',
+            preview: 'שישה שבועות ואתה עדיין מחמם - יש שחקנים שנעלמים ככה',
             text: 'עברו שישה שבועות ואתה עדיין מחמם. יש שחקנים שנעלמים ככה, בלי שאף אחד מחליט.',
             effects: {
               minutesModifier: 0.6,
@@ -333,6 +340,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'move_on',
             baseWeight: 60,
             tone: 'neutral',
+            preview: 'תגיד שאתה צריך לשחק, ובמועדון לא יתווכחו',
             text: 'אמרת שאתה צריך לשחק. במועדון לא התווכחו, וזה בעצמו אמר משהו.',
             effects: {
               transferChance: 0.4,
@@ -345,6 +353,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'refused',
             baseWeight: 40,
             tone: 'bad',
+            preview: 'הם יאמרו לא, וכולם ידעו שביקשת ללכת',
             text: 'הם אמרו לא, ועכשיו כולם יודעים שביקשת ללכת. זה לא נמחק.',
             effects: {
               coachTrust: -7,
@@ -626,6 +635,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'ahead',
             baseWeight: 45,
             tone: 'good',
+            preview: 'שבועיים בלי לוותר על כדור, ואתה בהרכב',
             text: 'שבועיים שבהם לא ויתרת על כדור אחד. במשחק הראשון אתה בהרכב והוא על הספסל.',
             effects: {
               coachTrust: 7,
@@ -644,6 +654,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'behind',
             baseWeight: 55,
             tone: 'bad',
+            preview: 'הוא מתחיל טוב יותר, והמאמן פשוט כותב את שמו',
             text: 'הוא פשוט התחיל טוב יותר. המאמן לא הסביר, פשוט כתב את השם שלו.',
             effects: {
               roleValue: -6,
@@ -700,6 +711,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'won',
             baseWeight: 48,
             tone: 'good',
+            preview: 'החולצה שלך, וזה כבר לא נושא לדיון',
             text: 'החולצה שלך, וזה כבר לא נושא לדיון. הוא יושב, ואתה יודע בדיוק איך זה מרגיש.',
             effects: {
               roleValue: 10,
@@ -718,6 +730,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'lost',
             baseWeight: 52,
             tone: 'bad',
+            preview: 'הוא מקבל את החולצה, ואתה שחקן טוב שיושב',
             text: 'הוא קיבל את החולצה. אתה נשאר שחקן טוב שיושב, וזו עמדה קשה מאוד לצאת ממנה.',
             effects: {
               roleValue: -9,
@@ -741,6 +754,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'useful_everywhere',
             baseWeight: 62,
             tone: 'good',
+            preview: 'תאבד את העמדה ותרוויח מקום בהרכב',
             text: 'המאמן אוהב שחקנים שהוא יכול להזיז. אתה מאבד את העמדה ומרוויח מקום בהרכב.',
             effects: {
               coachTrust: 8,
@@ -756,6 +770,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'neither_position',
             baseWeight: 38,
             tone: 'bad',
+            preview: 'רב-תכליתי זה לפעמים מילה יפה לשחקן ספסל',
             text: 'בסוף אתה לא באמת שחקן של אף עמדה. שחקן רב-תכליתי זה לפעמים מילה יפה לשחקן ספסל.',
             effects: {
               roleValue: -6,
@@ -1110,6 +1125,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'statement',
             baseWeight: 44,
             tone: 'good',
+            preview: 'המשחק של העונה מולם, ושואלים למה בכלל שחררו אותך',
             text: 'שיחקת את המשחק של העונה מולם. ביציע הירוק היו כאלה ששאלו למה בכלל שחררו אותך.',
             effects: {
               reputation: 10,
@@ -1133,6 +1149,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'tried_too_hard',
             baseWeight: 56,
             tone: 'bad',
+            preview: 'תרצה את זה יותר מדי, והחלפה בדקה 65',
             text: 'רצית את זה יותר מדי. משחק עצבני, מסירות ממהרות, והחלפה בדקה 65.',
             effects: { confidence: -7, form: -4, pressure: 7 },
           },

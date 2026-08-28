@@ -279,9 +279,18 @@ describe('the odds respond to who the player is', () => {
       const b = calculateOutcomeDistribution(high, event, choice, 'early');
       if (a.outcomes.some((o, i) => o.percent !== b.outcomes[i]?.percent)) differing += 1;
 
-      // Whatever the odds, nothing in what the player sees may name the hidden value.
+      /*
+       * Whatever the odds, nothing in what the player sees may name the hidden value.
+       *
+       * v0.4.6: this used to reject any two-digit number, which was a proxy for "a stat leaked"
+       * and became a false positive the moment previews started describing football - "החלפה
+       * בדקה 65" is a substitution minute, not an attribute. The check is now what it always
+       * meant: the word itself, and this player's actual hidden number.
+       */
       for (const view of b.outcomes) {
-        expect(view.label).not.toMatch(/potential|פוטנציאל|\d\d\b/);
+        expect(view.label).not.toMatch(/potential|פוטנציאל/i);
+        expect(view.label).not.toContain(String(high.hidden.potential));
+        expect(view.label).not.toContain(String(low.hidden.potential));
       }
     }
     expect(differing).toBeGreaterThan(0);

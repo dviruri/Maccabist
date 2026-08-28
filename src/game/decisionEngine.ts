@@ -130,7 +130,7 @@ export function calculateOutcomeDistribution(
     const valence = outcomeValence(choice, w.outcome as never);
     return {
       id: w.outcome.id,
-      label: outcomeLabelOf(w.outcome.id, valence),
+      label: outcomeLabelOf(w.outcome.id, valence, w.outcome.preview),
       valence,
       probability: w.weight / total,
       percent: percents[i] as number,
@@ -294,8 +294,30 @@ const VALENCE_LABELS: Record<OutcomeValence, string> = {
   majorNegative: 'כישלון כבד',
 };
 
-export function outcomeLabelOf(id: string, valence: OutcomeValence): string {
-  return OUTCOME_LABELS[id] ?? VALENCE_LABELS[valence];
+/**
+ * What to show for an outcome before the player chooses.
+ *
+ * Three tiers, best first (v0.4.6):
+ *
+ *   1. the outcome's own `preview` - concrete, written for this situation
+ *   2. a shared label for a recognisable outcome id, e.g. `breakthrough`
+ *   3. the valence, which is the "תוצאה טובה / תוצאה רעה" fallback this version is replacing
+ *
+ * Tier 3 still exists because an event with no preview must render *something*, but it is now
+ * the failure case rather than the default. `scripts/previewCoverage.ts` reports how much of the
+ * catalogue still lands there.
+ */
+export function outcomeLabelOf(
+  id: string,
+  valence: OutcomeValence,
+  preview?: string,
+): string {
+  return preview ?? OUTCOME_LABELS[id] ?? VALENCE_LABELS[valence];
+}
+
+/** True when this outcome would fall through to a bare valence label. */
+export function isGenericLabel(id: string, preview?: string): boolean {
+  return preview === undefined && OUTCOME_LABELS[id] === undefined;
 }
 
 /* ------------------------------------------------------------------ */

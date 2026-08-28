@@ -992,6 +992,19 @@ export interface EventOutcome {
   traitModifiers?: TraitModifier[];
   memoryModifiers?: MemoryModifier[];
   tone: Tone;
+  /**
+   * What this outcome would mean, shown *before* the player chooses (v0.4.6).
+   *
+   * Without one, the preview falls back to a global label table and then to the valence, which
+   * is how a player ended up being offered "תוצאה טובה 30% / תוצאה רעה 30%". That tells him
+   * nothing he could not have guessed - the whole point of showing odds is to show odds *on
+   * something specific*.
+   *
+   * Deliberately separate from `text`. `text` is the resolution and is written in the past
+   * tense; showing it before the roll would both spoil the result and read as though it had
+   * already happened. This is the possibility, short and in the present or future.
+   */
+  preview?: string;
   /** Short Hebrew narrative - the story comes first, numbers second. */
   text: string;
   effects: EventEffects;

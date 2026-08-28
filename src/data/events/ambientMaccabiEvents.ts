@@ -69,6 +69,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             id: 'fuel',
             baseWeight: 55,
             tone: 'good',
+            preview: 'זה צורב, ואתה לוקח את זה לאימון',
             text: 'זה צורב, ואתה לוקח את זה לאימון. לפעמים הכי טוב שיקרה לך זה להרגיש שפספסת משהו.',
             effects: {
               form: 6,
@@ -82,6 +83,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             id: 'sour',
             baseWeight: 45,
             tone: 'bad',
+            preview: 'תחשוב על זה יותר משכדאי, ושבוע שלם ילך',
             text: 'אתה חושב על זה יותר משכדאי. שבוע שלם עובר עליך רע.',
             effects: {
               form: -5,
