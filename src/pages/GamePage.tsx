@@ -22,6 +22,7 @@ import { Timeline } from '../components/Timeline';
 import { Chip, Logo, Ltr } from '../components/primitives';
 import { EVENTS_BY_ID } from '../data/events';
 import { getLeague } from '../data/leagues';
+import { clubDisplayName } from '../game/identity';
 import { currentTable } from '../game/leagueEngine';
 import type { GameActions } from '../state/useGame';
 import type { Career } from '../types';
@@ -242,6 +243,8 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
           offers={career.pendingOffers}
           onAccept={actions.takeOffer}
           onDecline={actions.refuseOffers}
+          /* Through the identity module, so it reads as the club rather than as a club id. */
+          fromClub={clubDisplayName(career.currentClubId)}
         />
       );
 

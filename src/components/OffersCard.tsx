@@ -1,11 +1,20 @@
 import { EXPECTED_ROLE_LABELS } from '../game/marketEngine';
 import type { MoveDirection, TransferOffer } from '../types';
+import { ClubCrest } from './ClubCrest';
 import { Chip } from './primitives';
 
 interface Props {
   offers: TransferOffer[];
   onAccept: (offerId: string) => void;
   onDecline: () => void;
+  /**
+   * The club he would be leaving, for a loan (v0.4.7, Phase 29).
+   *
+   * Optional, because a transfer does not need it - the destination is the whole story there. A
+   * loan is a direction, and the club he stays contracted to is the half of it the offer was not
+   * saying.
+   */
+  fromClub?: string;
 }
 
 const KIND_LABEL: Record<TransferOffer['kind'], string> = {
@@ -44,7 +53,7 @@ export const DIRECTION_TONES: Record<MoveDirection, 'gold' | 'green' | 'warn' | 
   major_down: 'warn',
 };
 
-export function OffersCard({ offers, onAccept, onDecline }: Props): JSX.Element {
+export function OffersCard({ offers, onAccept, onDecline, fromClub }: Props): JSX.Element {
   const mandatory = offers.some((offer) => offer.mandatory);
 
   return (
@@ -62,11 +71,38 @@ export function OffersCard({ offers, onAccept, onDecline }: Props): JSX.Element 
             style={{ animationDelay: `${i * 90}ms` }}
           >
             <div className="stack-sm">
-              <div className="offer-meta">
-                {KIND_LABEL[offer.kind]} · {offer.country} · {offer.league}
+              {/*
+                Crest, club, where, and what he would be signing to be - in one header row
+                (v0.4.7, Phase 28). The card used to open with a five-line paragraph before the
+                player reached anything he could act on, which on a phone is a wall between him
+                and the decision. The prose is still here; it is one tap down.
+              */}
+              <div className="offer-head">
+                <ClubCrest clubId={offer.clubId} name={offer.clubName} size="medium" />
+                <div className="offer-head-lines">
+                  <div className="offer-club">
+                    {/*
+                      A loan says where he is leaving from as well as where he is going (Phase 29).
+                      "Kfar Saba" alone is a destination; "Maccabi → Kfar Saba" is a decision, and
+                      it is the direction that makes it one.
+                    */}
+                    {offer.kind === 'loan' && fromClub && (
+                      <span className="offer-from">
+                        {fromClub}
+                        <span className="offer-arrow" aria-hidden>
+                          {' → '}
+                        </span>
+                      </span>
+                    )}
+                    {offer.clubName}
+                  </div>
+                  <div className="offer-meta">
+                    {KIND_LABEL[offer.kind]} · {offer.country} · {offer.league}
+                  </div>
+                </div>
               </div>
+
               <div className="offer-title">{offer.title}</div>
-              <p className="card-body">{offer.description}</p>
 
               {/*
                 What he would be signing to be, and a few qualitative notes (v0.4). Never a
@@ -92,6 +128,17 @@ export function OffersCard({ offers, onAccept, onDecline }: Props): JSX.Element 
                   ))}
                 </ul>
               )}
+
+              {/*
+                The prose, one tap down (Phase 28). It is the part that makes a move feel like a
+                move - a stadium, a language, a squad - and it is also the part a player does not
+                need in order to weigh role against level. `details` is a native disclosure, so it
+                is keyboard-accessible and needs no state.
+              */}
+              <details className="offer-more">
+                <summary>עוד על המועדון</summary>
+                <p className="card-body">{offer.description}</p>
+              </details>
 
               <button
                 type="button"
