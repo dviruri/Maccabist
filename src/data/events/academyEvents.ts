@@ -34,6 +34,7 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             id: 'thrived',
             baseWeight: 22,
             tone: 'good',
+            preview: 'תוך שלושה אימונים תפסיק להיות "הקטן"',
             text: 'תוך שלושה אימונים הפסיקו להתייחס אליך כאל הקטן. אתה פשוט אחד מהם עכשיו.',
             effects: {
               ability: 2.5,
@@ -888,6 +889,7 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             id: 'respected',
             baseWeight: 45,
             tone: 'neutral',
+            preview: 'המאמן ירים גבה ויכבד את זה',
             text: 'המאמן הרים גבה אבל כיבד את זה. נשארת איפה שאתה מרגיש בבית.',
             effects: { confidence: 3, coachTrust: -3 },
             modifiers: [{ attribute: 'coachTrust', above: 70, multiplier: 1.5 }],
@@ -1030,6 +1032,7 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             id: 'froze',
             baseWeight: 25,
             tone: 'bad',
+            preview: 'רגליים כבדות מהרגע הראשון, והחלפה בהפסקה',
             text: 'הרגליים היו כבדות מהרגע הראשון. הוחלפת בהפסקה.',
             effects: { confidence: -9, coachTrust: -5, form: -6, pressure: 7 },
             modifiers: [

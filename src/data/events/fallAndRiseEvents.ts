@@ -145,6 +145,7 @@ export const FALL_AND_RISE_EVENTS: GameEvent[] = [
             id: 'wore_down',
             baseWeight: 34,
             tone: 'bad',
+            preview: 'תישחק מלשחק ברמה שכל השאר לא נמצאים בה',
             text: 'אי אפשר לשחק ברמה אחת כשכל השאר ברמה אחרת. אתה נשחק, ומתחיל להיפצע.',
             effects: { form: -5, injuryRisk: 5, confidence: -4, advanceArc: 'fall_and_rise' },
           },
@@ -259,6 +260,7 @@ export const FALL_AND_RISE_EVENTS: GameEvent[] = [
             id: 'no_one_called',
             baseWeight: 36,
             tone: 'bad',
+            preview: 'הטלפון לא יצלצל - שנתיים בליגה השנייה עשו את שלהן',
             text: 'הטלפון לא מצלצל. שנתיים בליגה השנייה עשו את שלהן גם לשם שלך.',
             effects: {
               confidence: -7,

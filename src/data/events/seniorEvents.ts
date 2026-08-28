@@ -37,6 +37,7 @@ export const SENIOR_EVENTS: GameEvent[] = [
             id: 'scored',
             baseWeight: 40,
             tone: 'good',
+            preview: 'הכדור נכנס בחיבורים, והאצטדיון מתפוצץ',
             text: 'הכדור נכנס בחיבורים. האצטדיון מתפוצץ ואתה רץ לפינה בלי לדעת מה אתה עושה.',
             effects: {
               reputation: 9,
@@ -64,6 +65,7 @@ export const SENIOR_EVENTS: GameEvent[] = [
             id: 'missed',
             baseWeight: 60,
             tone: 'bad',
+            preview: 'מעל המשקוף, והחזרה לחדר ההלבשה ארוכה מאוד',
             text: 'מעל המשקוף. שריקת הסיום, והחזרה לחדר ההלבשה ארוכה מאוד.',
             effects: { confidence: -7, pressure: 6, coachTrust: -2, remember: 'big_mistake' },
           },
@@ -399,6 +401,7 @@ export const SENIOR_EVENTS: GameEvent[] = [
             id: 'scored',
             baseWeight: 60,
             tone: 'good',
+            preview: 'תניח אותו בפינה, וחצי מהיציע ירד למגרש',
             text: 'הנחת אותו בפינה. חצי מהיציע ירד למגרש. יש דברים שלא שוכחים בעיר הזאת.',
             effects: {
               maccabism: 12,
@@ -988,6 +991,7 @@ export const SENIOR_EVENTS: GameEvent[] = [
             id: 'delivered',
             baseWeight: 42,
             tone: 'good',
+            preview: 'במשחקים שבהם צריך, אתה הטוב במגרש',
             text: 'במשחקים שבהם צריך, אתה הטוב במגרש. אלה העונות שאחר כך זוכרים בשמך.',
             effects: {
               reputation: 8,
@@ -1007,6 +1011,7 @@ export const SENIOR_EVENTS: GameEvent[] = [
             id: 'froze',
             baseWeight: 58,
             tone: 'bad',
+            preview: 'רגליים כבדות בדיוק כשצריך שיהיו קלות',
             text: 'הרגליים כבדות בדיוק כשצריך שיהיו קלות. אתם מפסידים את זה בשתי נקודות, ואתה יודע איפה.',
             effects: { confidence: -9, pressure: 10, roleValue: -4, form: -5 },
           },

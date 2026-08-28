@@ -553,6 +553,19 @@ export function Gallery(): JSX.Element {
         <div />
       ),
     ],
+    [
+      'odds',
+      decisionEvent ? (
+        <DecisionCard
+          career={decisionCareer}
+          event={decisionEvent}
+          onChoose={noop}
+          defaultExpanded={decisionEvent.choices[0]?.id}
+        />
+      ) : (
+        <div />
+      ),
+    ],
     ['reveal', <OutcomeReveal outcomes={revealOutcomes} onDone={noop} />],
     [
       'outcome',

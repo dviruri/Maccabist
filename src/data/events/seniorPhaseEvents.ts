@@ -617,6 +617,7 @@ export const SENIOR_PHASE_EVENTS: GameEvent[] = [
             id: 'galvanised',
             baseWeight: 48,
             tone: 'good',
+            preview: 'שתי דקות בלי לצעוק, והקבוצה תיראה אחרת בשבת',
             text: 'דיברת שתי דקות בלי לצעוק. בשבת הבאה הקבוצה נראתה כמו קבוצה אחרת.',
             effects: {
               leadership: 12,

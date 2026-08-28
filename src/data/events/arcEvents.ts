@@ -808,6 +808,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'settled',
             baseWeight: 55,
             tone: 'good',
+            preview: 'חצי שנה, ואתה צוחק איתם בשפה שלהם',
             text: 'אחרי חצי שנה אתה צוחק עם החבר׳ה בשפה שלהם. פתאום גם על המגרש הכול מסתדר.',
             effects: {
               confidence: 8,

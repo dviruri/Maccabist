@@ -289,10 +289,20 @@ interface DecisionCardProps {
   career: Career;
   event: GameEvent;
   onChoose: (choiceId: string) => void;
+  /**
+   * Which choice's odds start open. Gallery only (v0.4.6) - the odds are the thing v0.4.6
+   * changed most and there was no way to screenshot them, which is how a screen goes unchecked.
+   */
+  defaultExpanded?: string;
 }
 
-export function DecisionCard({ career, event, onChoose }: DecisionCardProps): JSX.Element {
-  const [expanded, setExpanded] = useState<string | null>(null);
+export function DecisionCard({
+  career,
+  event,
+  onChoose,
+  defaultExpanded,
+}: DecisionCardProps): JSX.Element {
+  const [expanded, setExpanded] = useState<string | null>(defaultExpanded ?? null);
   const [committed, setCommitted] = useState<string | null>(null);
 
   const visual = eventVisual(event, career);

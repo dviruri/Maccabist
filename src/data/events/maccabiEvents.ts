@@ -73,6 +73,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             id: 'professional',
             baseWeight: 62,
             tone: 'neutral',
+            preview: 'תמשיך לרוץ - זה משחק, ואתה בו בשביל מישהו אחר',
             text: 'אתה ממשיך לרוץ. זה משחק, ואתה משוחק בו בשביל מישהו אחר עכשיו.',
             effects: { form: 3, remember: ['played_against_maccabi', 'applauded_at_sami_ofer'] },
             traitModifiers: [{ trait: 'professional', multiplier: 1.5 }],
@@ -81,6 +82,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             id: 'cost_him',
             baseWeight: 38,
             tone: 'bad',
+            preview: 'לא תסתכל למעלה, והראש בכל זאת יהיה שם',
             text: 'אתה לא מסתכל למעלה, והראש בכל זאת שם. הפתיחה שלך במשחק איטית.',
             effects: { form: -4, confidence: -3 },
           },
@@ -133,6 +135,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             id: 'swallowed',
             baseWeight: 55,
             tone: 'bad',
+            preview: 'הרעש ייכנס לך לראש, והחלפה בהפסקה',
             text: 'הרעש נכנס לך לראש. שתי מסירות רעות, והמאמן מוציא אותך בהפסקה.',
             effects: {
               form: -8,
@@ -214,6 +217,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             id: 'adopted',
             baseWeight: 55,
             tone: 'good',
+            preview: 'תחליק על הברכיים מול היציע האורח, והם יאמצו אותך',
             text: 'אתה רץ ליציע האורח ומחליק על הברכיים. הקהל שלך מאמץ אותך סופית הערב.',
             effects: {
               roleValue: 8,
@@ -227,6 +231,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             id: 'burned',
             baseWeight: 45,
             tone: 'bad',
+            preview: 'החגיגה תרוץ בלולאה בכל מהדורה, ובחיפה ידברו עליה',
             text: 'החגיגה שלך רצה בלולאה בכל מהדורה. בחיפה מדברים על זה הרבה יותר מאשר על הגול.',
             effects: {
               reputation: 3,
@@ -409,6 +414,7 @@ export const MACCABI_EVENTS: GameEvent[] = [
             id: 'worse',
             baseWeight: 70,
             tone: 'bad',
+            preview: 'זה ייקרא כהתנצלות של מי שלא באמת מצטער',
             text: 'זה נקרא כמו התנצלות של מי שלא באמת מצטער. שני הצדדים כועסים עליך עכשיו.',
             effects: { maccabism: -4, reputation: -4, pressure: 5 },
           },
