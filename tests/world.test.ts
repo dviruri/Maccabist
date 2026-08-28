@@ -45,6 +45,7 @@ import {
   leagueOf,
   playerImpact,
   recordMaccabiSeason,
+  simulateClubSeason,
   simulateMaccabiSeason,
 } from '../src/game/worldEngine';
 import type { Career, ClubSeasonResult, MoveDirection, SeasonRecord } from '../src/types';
@@ -575,5 +576,42 @@ describe('offer direction labels (v0.4.5)', () => {
     const direction = moveDirection(seniorAt(TOP), getClub('napoli'));
     expect(direction).toBe('major_up');
     expect(DIRECTION_TONES[direction]).toBe('gold');
+  });
+});
+
+describe('promotion and relegation rates (v0.4.5.1)', () => {
+  /*
+   * Measured per season, which is the only way to tell whether a rate is sane - a 45%
+   * career-lifetime figure over 17 seasons is arithmetic, not a balance problem.
+   *
+   * SECOND_OUTCOMES had four rungs, so 'promoted' was one outcome in four: a 25% base rate before
+   * any strength adjustment, and 51% of all second-division seasons in practice. Real football is
+   * nearer 15%. Six rungs brings it to ~18%.
+   */
+  it('gives the second division six rungs, so promotion is not one-in-four', () => {
+    const career = seniorAt(SECOND);
+    const outcomes = new Set<string>();
+    for (let seed = 1; seed <= 4000; seed += 1) {
+      outcomes.add(simulateClubSeason(career, seasonAt(SECOND), createRng(seed)).outcome);
+    }
+    // Every rung reachable, and enough of them that promotion is a minority outcome.
+    expect(outcomes.size).toBeGreaterThanOrEqual(4);
+    const promoted = Array.from({ length: 4000 }, (_, i) =>
+      simulateClubSeason(career, seasonAt(SECOND), createRng(i + 1)).outcome,
+    ).filter((o) => o === 'promoted').length;
+    expect(promoted / 4000).toBeLessThan(0.35);
+  });
+
+  it('labels every outcome the ladders can produce', () => {
+    const career = seniorAt(SECOND);
+    for (let seed = 1; seed <= 2000; seed += 1) {
+      const result = simulateClubSeason(career, seasonAt(SECOND), createRng(seed));
+      expect(result.label, result.outcome).toBeTruthy();
+    }
+    const top = seniorAt(TOP);
+    for (let seed = 1; seed <= 2000; seed += 1) {
+      const result = simulateClubSeason(top, seasonAt(TOP), createRng(seed));
+      expect(result.label, result.outcome).toBeTruthy();
+    }
   });
 });

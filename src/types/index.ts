@@ -345,7 +345,9 @@ export type ClubSeasonOutcome =
   // second divisions
   | 'promoted'
   | 'promotion_challenge'
+  | 'second_upper_half'
   | 'second_mid_table'
+  | 'second_lower_half'
   | 'struggled';
 
 export interface ClubSeasonResult {

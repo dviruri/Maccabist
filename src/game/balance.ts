@@ -672,7 +672,14 @@ export const SEASON = {
   ratingFormWeight: 0.16,
   ratingConfidenceWeight: 0.07,
   ratingOutputWeight: 16,
-  ratingNoise: 7,
+  /**
+   * Season-to-season variance in performance, as a true standard deviation (v0.4.5.1).
+   *
+   * Read literally now that this feeds `rng.normal`. Under the old bounded `gaussian` the same
+   * number produced sd 2.33 and could never exceed +/-6.9, so this is a smaller nominal value
+   * that delivers a slightly *larger* central spread and, for the first time, real tails.
+   */
+  ratingNoise: 3.4,
   reputationGainMax: 12,
   reputationDecayNoMinutes: 3,
   maccabismPerSeasonAtMaccabi: 2.2,

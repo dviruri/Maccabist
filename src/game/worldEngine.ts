@@ -101,9 +101,22 @@ const TOP_OUTCOMES: readonly ClubSeasonOutcome[] = [
   'champion',
 ];
 
+/*
+ * Six rungs, not four (v0.4.5.1).
+ *
+ * With four, 'promoted' was one outcome in four - a 25% base rate before any strength adjustment -
+ * and measurement put **51% of all second-division seasons** in promotion. Real football is nearer
+ * 15%: three clubs of roughly twenty go up. The second division was a revolving door by
+ * construction, and no amount of variance tuning could fix a ladder that short.
+ *
+ * Deliberately still shorter than the top flight's eight, because a second division has less
+ * distance between "nearly went up" and "nearly went down" in a career's terms.
+ */
 const SECOND_OUTCOMES: readonly ClubSeasonOutcome[] = [
   'struggled',
+  'second_lower_half',
   'second_mid_table',
+  'second_upper_half',
   'promotion_challenge',
   'promoted',
 ];
@@ -119,7 +132,9 @@ const OUTCOME_LABELS: Record<ClubSeasonOutcome, string> = {
   relegated: 'ירידה ליגה',
   promoted: 'עלייה ליגה',
   promotion_challenge: 'מאבק על עלייה',
+  second_upper_half: 'חצי טבלה עליון',
   second_mid_table: 'אמצע הטבלה',
+  second_lower_half: 'חצי טבלה תחתון',
   struggled: 'עונה קשה',
 };
 

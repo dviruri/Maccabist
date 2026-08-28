@@ -86,8 +86,21 @@ export function simulateHalfStats(career: Career, rng: Rng, games: number): Simu
 
   const expectedGoals = appearances * config.goalRate * scale;
   const expectedAssists = appearances * config.assistRate * scale;
-  const goals = Math.max(0, Math.round(rng.gaussian(expectedGoals, expectedGoals * 0.55 + 0.9)));
-  const assists = Math.max(0, Math.round(rng.gaussian(expectedAssists, expectedAssists * 0.55 + 0.8)));
+  /*
+   * Output uses a real normal (v0.4.5.1), so a striker can have the season nobody saw coming.
+   *
+   * `rng.gaussian` is the sum of three uniforms: it delivers about a third of its nominal spread
+   * as standard deviation and is hard-capped at +/- that spread. With an expectation of 10 goals
+   * it could not produce fewer than 4 or more than 16, ever - no freak seasons in either
+   * direction.
+   *
+   * The multiplier matches the OLD *effective* spread, not the old nominal one. Bounded `gaussian`
+   * delivers roughly a third of its parameter as standard deviation, so 0.55 there was about 0.18
+   * in practice; carrying 0.55 across to a true normal tripled the variance and produced 103-goal
+   * seasons. 0.2 reproduces the old central spread and adds the tail that was missing.
+   */
+  const goals = Math.max(0, Math.round(rng.normal(expectedGoals, expectedGoals * 0.2 + 0.6)));
+  const assists = Math.max(0, Math.round(rng.normal(expectedAssists, expectedAssists * 0.2 + 0.5)));
 
   const cleanSheetBase = config.cleanSheetRate * (0.5 + level.quality / 140);
   const cleanSheets =
@@ -141,7 +154,13 @@ export function simulateHalfStats(career: Career, rng: Rng, games: number): Simu
   // The bigger the stage, the better some players get.
   if (hasTrait(career, 'big_game') && level.prestige >= 55) rating += TRAITS.bigGameRating;
 
-  rating += rng.gaussian(0, SEASON.ratingNoise);
+  /*
+   * A real normal (v0.4.5.1). The bounded `gaussian` turned SEASON.ratingNoise = 7 into an actual
+   * standard deviation of 2.33 with a hard cap at +/-6.9, so a season could never land more than
+   * seven rating points away from what ability, form and confidence already predicted. There were
+   * no breakthrough seasons and no collapses - only the state, plus a small wobble.
+   */
+  rating += rng.normal(0, SEASON.ratingNoise);
   rating = clamp(rating, 20, 99) as number;
 
   return {
