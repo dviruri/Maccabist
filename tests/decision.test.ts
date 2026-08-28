@@ -403,7 +403,7 @@ describe('impossible choices', () => {
   });
 });
 
-describe('the debug bug report (v0.4.1)', () => {
+describe('the debug bug report', () => {
   it('captures everything needed to reproduce what the tester saw', () => {
     const career = simulateCareer({ playerName: 'ל', position: 'CM', seed: 17, policy: balancedPolicy });
     const report = buildBugReport(career);
@@ -441,7 +441,14 @@ describe('the debug bug report (v0.4.1)', () => {
   it('serialises to text without throwing', () => {
     const career = simulateCareer({ playerName: 'ל', position: 'GK', seed: 21, policy: balancedPolicy });
     const text = formatBugReport(career, 'הכותרת אמרה מחלקת ילדים');
-    expect(text).toContain('MACCABIST v0.4.1');
+    // The report is stamped with the version that produced it; v0.4.6 added the world snapshot.
+    expect(text).toContain('MACCABIST v0.4.6');
+    /*
+     * v0.4.6: the report has to carry the world state an event was judged against. Without it a
+     * tester can say what happened but not why it was allowed to, which is the harder half.
+     */
+    expect(text).toContain('finalProjection');
+    expect(text).toContain('leaguePosition');
     expect(text).toContain('הכותרת אמרה מחלקת ילדים');
     expect(() => JSON.parse(text.split('```json')[1]!.split('```')[0]!)).not.toThrow();
   });
