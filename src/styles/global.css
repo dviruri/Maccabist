@@ -1865,7 +1865,15 @@ p {
   text-align: center;
 }
 
-.promotion-card.tone-stay,
+/*
+  The outcomes that are not a promotion.
+
+  This targeted `.tone-stay`, which no longer exists - `verdictToProgression` produces
+  'released', 'cohort_caught_up' or 'senior'. The result was that a player kept in נוער for
+  another year got the celebratory green treatment meant for reaching בוגרים, because his kind
+  matched no rule. Inside a youth verdict, cohort_caught_up means "another year here".
+*/
+.promotion-card.tone-cohort_caught_up,
 .promotion-card.tone-released {
   border-color: rgba(255, 255, 255, 0.14);
   background: linear-gradient(160deg, #2a1d1b 0%, var(--ink) 68%);
@@ -3566,4 +3574,109 @@ p {
   font-size: var(--text-h3);
   font-weight: 800;
   color: var(--green-bright);
+}
+
+/* =========================================================================
+   ACADEMY LADDER (v0.4.5.1)
+   Shown inside a career moment when the step is an age-group transition.
+   ========================================================================= */
+
+.ladder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 320px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+/* Runs in reading order, so in RTL it fills from the right - towards בוגרים. */
+.ladder-rungs {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+}
+
+.ladder-rung {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  transition: background 0.2s ease;
+}
+
+/* Where he already was. */
+.ladder-rung.is-behind {
+  background: var(--green-deep);
+}
+
+/* The rung (or two) he covered this season. */
+.ladder-rung.is-ahead {
+  background: var(--line);
+}
+
+.ladder-rung.is-gained {
+  background: var(--green-bright);
+  box-shadow: 0 0 8px rgba(41, 217, 106, 0.5);
+}
+
+.ladder-rung.is-here {
+  height: 10px;
+  margin-block: -2px;
+}
+
+/* בוגרים is the end of the ladder, and looks like it even when it is still far away. */
+.ladder-rung.is-senior {
+  flex: 0 0 10px;
+  border-radius: var(--radius-pill);
+}
+
+.ladder-ends {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-small);
+  font-weight: 800;
+}
+
+.ladder-from {
+  color: var(--text-tertiary);
+}
+
+/* The arrow points in the direction of travel, which in RTL is leftwards on screen. */
+.ladder-arrow {
+  color: var(--text-tertiary);
+  transform: scaleX(-1);
+}
+
+.ladder-to {
+  color: var(--white);
+}
+
+.ladder-remaining {
+  font-size: var(--text-micro);
+  color: var(--text-tertiary);
+}
+
+.ladder-remaining-n {
+  color: var(--green-bright);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ladder-band {
+  font-size: var(--text-micro);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--green-bright);
+}
+
+/* The ladder inside a youth verdict, which is centred rather than left-aligned. */
+.promotion-ladder {
+  display: flex;
+  justify-content: center;
 }

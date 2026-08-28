@@ -10,6 +10,7 @@ import {
 } from '../components/MaccabiCards';
 import { CareerTimeline } from '../components/CareerTimeline';
 import { OriginReveal } from '../components/OriginReveal';
+import { StageLadder } from '../components/StageLadder';
 import { resolveOrigin } from '../game/originEngine';
 import { NewCareerPage } from '../pages/NewCareerPage';
 import { PlayerHub } from '../components/PlayerHub';
@@ -389,6 +390,10 @@ export function Gallery(): JSX.Element {
 
   const screens: Array<[string, JSX.Element]> = [
     ['new-career', <NewCareerPage onCreate={noop} onBack={noop} />],
+    ['ladder-senior', <StageLadder from="u19" to="senior" />],
+    ['ladder-normal', <StageLadder from="children_b" to="children_a" />],
+    ['ladder-early', <StageLadder from="children_a" to="youth_b" />],
+    ['ladder-u19', <StageLadder from="youth_a" to="u19" />],
     ['origin-prodigy', <OriginReveal career={originScouted()} onContinue={noop} />],
     ['origin-accepted', <OriginReveal career={originAccepted()} onContinue={noop} />],
     ['origin-rejected', <OriginReveal career={originRejected()} onContinue={noop} />],

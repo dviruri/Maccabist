@@ -6,6 +6,7 @@ import { teamDisplayFor, teamDisplayLine } from '../game/identity';
 import { clubSeasonFor, isBadSeason, isGoodSeason } from '../game/worldEngine';
 import { headlineTitle, roleTextOf, seasonLabel } from '../ui/format';
 import { Chip, DeltaList, Ltr, NumberBox } from './primitives';
+import { StageLadder } from './StageLadder';
 
 /** Which numbers matter depends on where you play. */
 function StatBoxes({
@@ -241,6 +242,18 @@ export function YouthTransitionCard({ career, onChoose }: YouthProps): JSX.Eleme
           <h2 className="promotion-title">{verdict.title}</h2>
         </div>
         <p className="card-body">{verdict.detail}</p>
+
+        {/*
+          The ladder, one last time. Reaching בוגרים lights every rung including the one at the
+          end, which is the payoff for ten seasons of climbing; another year in נוער shows him
+          still one rung short, which is the honest version of the same picture. A released
+          player gets no ladder - the road stopped, and drawing it would be cruel and wrong.
+        */}
+        {verdict.kind !== 'released' && (
+          <div className="promotion-ladder">
+            <StageLadder from={verdict.fromStage} to={verdict.toStage} />
+          </div>
+        )}
 
         {offers.length > 0 ? (
           <div className="stack-sm">

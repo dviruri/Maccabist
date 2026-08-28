@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react';
 
 import { ACHIEVEMENTS_BY_ID } from '../data/achievements';
-import type { Achievement, ProgressionResult } from '../types';
+import type { AcademyStage, Achievement, ProgressionResult } from '../types';
+import { StageLadder } from './StageLadder';
 
 interface CelebrationItem {
   key: string;
   icon: string;
   title: string;
   description: string;
+  /**
+   * Set only for an academy transition (v0.4.5.1). The moment then draws the step on the ladder
+   * underneath the copy, so an early promotion reads as a jump rather than as a sentence.
+   */
+  ladder?: { from: AcademyStage; to: AcademyStage };
 }
 
 /**
@@ -33,6 +39,7 @@ export function Celebration({
         icon: progression.icon,
         title: progression.title,
         description: progression.detail,
+        ladder: { from: progression.fromStage, to: progression.toStage },
       });
     }
 
@@ -68,6 +75,9 @@ export function Celebration({
         </div>
         <h2 className="moment-title">{current.title}</h2>
         <p className="moment-desc">{current.description}</p>
+        {current.ladder && (
+          <StageLadder from={current.ladder.from} to={current.ladder.to} />
+        )}
         {queue.length > 1 && (
           <div className="moment-count" aria-hidden>
             {queue.length - 1} עוד
