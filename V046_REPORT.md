@@ -218,10 +218,18 @@ reported 92.3%; looking at the reveal screenshot showed why that flatters, so it
 tiers and the test counts only written previews.
 
 ```
-AS SEEN        written preview  88.0%     shared label 5.0%     bare valence 6.9%
-CATALOGUE      written preview  171/313   54.6%
-                                          (0% written before this version)
+AS SEEN        written preview  91.6%     shared label 0.0%     bare valence 8.4%
+CATALOGUE      written preview  213/325   65.5%
+                                          (0 written previews before this version)
 ```
+
+That first figure went through three honest revisions, and the story is the point. The initial
+measurement counted a shared label like 'הצלחה גדולה' as concrete and reported **92.3%**; looking
+at the reveal screenshot showed why that flatters, so it became three tiers. But the *work queue*
+was still built from the flattering definition — so `sen_derby_moment`, the showcase derby, was
+still offering "הצלחה גדולה 63% / החטאת 37%" while the report claimed 88%. Measuring honestly is
+not enough if the task list is built from the dishonest measure. 30 more previews later the
+shared-label tier is gone entirely.
 
 **Phase 13** is now tested as object identity, not just equal probabilities: the label a player was
 shown must belong to the outcome that can actually be drawn. Also pinned — percentages sum to
@@ -278,13 +286,127 @@ to senior football.
 
 ## 8. Coherence metrics
 
-*(filled from the run in §9)*
+6,000 careers, 100,000+ senior club seasons. The brief requires these to be zero and they are:
+
+```
+club season with no table position                 0
+final position outside the division                0
+outcome the final position does not produce        0
+```
+
+**And the other direction**, which is easy to forget: gating an event into oblivion is not a fix.
+Every event v0.4.6 tightened is still reachable —
+
+```
+sen_derby_moment       29.4% of careers      wrl_title_race          21.0%
+youth_derby_youth      17.5%                 wrl_relegation_battle   18.9%
+vt_final_derby          3.3%                 wrl_promotion_race      13.9%
+rare_derby_legend       0.7%                 spon_last_minute        16.8%   (was unreachable)
+sen_title_run_in        5.2%                 sen_title_penalty        1.7%
+gk_derby_save          40.7% of GK careers   gk_form_slump           82.7% of GK careers
+```
+
+Mean finish by league, as a sanity check on the shape of the world (the player's own club, so it
+sits above mid-table because careers gravitate to clubs where they can play):
+
+```
+ליגת העל        5.3 of 14      הפרמייר ליג     10.6 of 20
+הליגה הלאומית   6.5 of 16      לה ליגה          8.7 of 20
+```
+
+### 8.1 Outcome previews
+
+```
+AS SEEN        written preview  91.6%     shared label 0.0%     bare valence 8.4%
+CATALOGUE      written preview  213/325   65.5%
+```
+
+The shared-label tier is effectively gone: 0.0% of what players see. That tier was the one my
+first measurement counted as "concrete" and reported 92.3% on — see §6.
+
+### 8.2 Role distribution (Phase 38)
+
+```
+per senior season   squad 5.7   rotation 12.9   starter 16.5   key 38.8   star 26.0
+by club level       strong 29.8% star    mid 37.4%    weak 13.4% (71.9% key)
+careers ever star   62.5%       mean unbroken run 4.09 seasons
+role transitions    16.6% up    14.3% down    69.1% unchanged
+```
+
+Weak clubs produce **fewer** stars than strong ones, which is the semantic the rung is supposed to
+carry and the exact inversion of v0.4.5.1's 97.8%.
+
+### 8.3 Legacy is untouched
+
+```
+per club tenure   none 55.2%   fan_favourite 34.0%   icon 8.8%   legend 2.0%
+careers reaching icon or legend anywhere            33.3%   (33.7% in v0.4.5.1)
+squad role `icon` per senior season                  0.0%
+```
+
+Legacy is derived from tenure, so a squad-role rebalance leaves it alone. That is the v0.4.5.1
+separation working, confirmed rather than assumed.
 
 ---
 
 ## 9. Simulation
 
-*(filled from the run)*
+84,000 careers (14,000 × 6 strategies) plus an 18,000-career matched-seed comparison
+(3,000 seeds × 6). Balanced policy, with v0.4.5.1 alongside — because the point of this section
+is that a world overhaul did **not** move the career statistics:
+
+| | v0.4.5.1 | v0.4.6 |
+|---|---|---|
+| INVALID natural-stage repeats | 0 | **0** |
+| reached Maccabi senior team | 67.0% | 67.8% |
+| academy graduate (נוער → בוגרים) | 64.6% | 64.9% |
+| early academy promotion | 16.9% | 16.6% |
+| played / trained with older group | 24.1% | 23.7% |
+| became captain | 15.0% | 14.3% |
+| played abroad | 38.5% | 37.7% |
+| returned to Maccabi | 20.8% | 21.6% |
+| avg peak ability | 81.3 | 81.4 |
+| avg / median Legend Score | 43.6 / 38.0 | 44.3 / 40.0 |
+| median retirement age, outfield | 35 | 35 |
+| median retirement age, goalkeeper | 37 | 37 |
+
+The road back, which the role rebalance briefly closed and §7.1 describes:
+
+```
+of the 22.0% rejected at nine:   later invited back 36.3%   later joined Maccabi 30.1%
+                                 reached senior football 100%   played for Maccabi seniors 50.3%
+```
+
+**Acceptance criterion, all six strategies:** `INVALID natural-stage repeats = 0`.
+
+### 9.1 Strategy separation
+
+Matched-seed, so each row is the same 3,000 careers played differently:
+
+```
+  strategy        mean  median     sd   seniors  beats base  vs base
+  ------------------------------------------------------------------
+  loyalist        46.7    29.0   32.3     55.2%       76.7%     19.2
+  balanced        43.8    39.5   25.4     66.7%       76.0%     16.2
+  bold            34.1    29.0   19.9     70.8%       62.8%      6.6
+  ambitious       28.7    24.0   17.9     65.5%       54.6%      1.2
+  random          27.5    21.0   21.3     54.7%        0.0%      0.0
+  riskTaker       18.6    16.0   13.2     63.4%       28.8%     -9.0
+```
+
+The three readings that matter, unchanged in character from v0.4.5.1:
+
+- **Loyalty is the high-variance path, not the dominant one.** Highest mean (46.7) and the *lowest*
+  median (29.0 against balanced's 39.5), the largest standard deviation by a wide margin, and the
+  lowest rate of reaching senior football at all. Staying at Maccabi is the only route to the very
+  top and also the route that most often ends without a senior career.
+- **Risk is a trap.** `riskTaker` differs from `random` only by *preferring* `risky` over
+  `opportunity`, and beats it on **28.8%** of matched seeds.
+- **Decisions outweigh luck.** Seed-driven spread 21.27; decision-driven spread **47.14**. How a
+  career is played matters more than twice as much as which career it is.
+
+Luck validation: same seed reproduces (PASS), different seeds diverge (PASS), 96 distinct Legend
+Scores over 400 seeds, 14 distinct endings, range 1–99.
 
 ---
 
@@ -308,13 +430,13 @@ to senior football.
 | 14 | external careers feel like club careers | table, match strip, crests |
 | 15 | crests make the world richer | §4 |
 | 16–17 | events know *why* they are eligible, and debug can say so | §5, Phase 29 |
-| 18–19 | concrete consequences, not good/bad/neutral | §6 — 88.0% written |
+| 18–19 | concrete consequences, not good/bad/neutral | §6 — 91.6% written, 0% shared |
 | 20 | displayed odds are the resolver's odds | `tests/outcomePreviews.test.ts`, object identity |
 | 21–22 | narrative first, numbers second | verified, not rebuilt — §6 |
-| 23–24 | star inflation reduced, star still meaningful | §7 — 64.8% → 25.9% |
+| 23–24 | star inflation reduced, star still meaningful | §7 — 64.8% → 26.0% |
 | 25 | goalkeeper events position-coherent | §5.0, scenario J |
 | 26–28 | academy rules, Maccabi relationship, visual identity intact | 0 invalid repeats; suite green |
-| 29–31 | tests, build, large simulation | §1, §9 |
+| 29–31 | tests, build, large simulation | §1, §9 — 554 tests, 84,000 careers |
 
 ---
 
@@ -336,8 +458,8 @@ honest rather than wrong — the dataset models one or two clubs per European le
 nobody to have a rivalry *with* — but it does mean an external career is missing one of the things
 that makes a club career feel like one.
 
-**37% of the catalogue still has no written preview.** Weighted by what players see it is 12%
-(§6), and the remainder is the long tail of rare and narrow events. The tail is genuinely less
+**34% of the catalogue still has no written preview.** Weighted by what players actually see it is
+8.4%, and the remainder is the long tail of rare and narrow events. The tail is genuinely less
 valuable, but it is not zero.
 
 **The second division has no modelled derby.** Same cause as above.
