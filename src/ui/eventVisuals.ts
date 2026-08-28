@@ -26,6 +26,24 @@ export type EventVariant =
   | 'media'
   | 'career';
 
+/**
+ * Every variant, for coverage auditing (v0.4.5.1). The variant system is what keeps 128 events
+ * feeling like one game rather than 128 cards, and that only holds if the mapping is exhaustive -
+ * so `tests/eventVisuals.test.ts` walks the real catalogue against this list.
+ */
+export const VARIANTS: readonly EventVariant[] = [
+  'coach',
+  'match',
+  'development',
+  'transfer',
+  'club',
+  'europe',
+  'maccabi',
+  'crisis',
+  'media',
+  'career',
+];
+
 /** How much room an event deserves. Most are ordinary; a few are turning points. */
 export type EventImportance = 'normal' | 'important' | 'major';
 
