@@ -540,3 +540,16 @@
   flex-basis: 100%;
   margin-top: 0;
 }
+
+/* ---------- crest sizing (v0.4.7, Phase 19) ---------- */
+
+/*
+  A real crest asset shares the generated badge's bounding box and is contained inside it, never
+  stretched. Official crests vary from wide banners to tall shields, and letting each one set its
+  own aspect ratio is what makes a table of them look broken.
+*/
+.crest-asset {
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}

@@ -1,4 +1,6 @@
-import { clubVisual } from '../data/clubVisuals';
+import { useState } from 'react';
+
+import { clubVisual, getClubCrest } from '../data/clubVisuals';
 
 /**
  * A club badge (v0.4.6).
@@ -11,9 +13,19 @@ import { clubVisual } from '../data/clubVisuals';
  * `size` is a token rather than a number so that fourteen of these in a league table are all
  * exactly the same size, which is most of what makes a table look like a table.
  */
-export type CrestSize = 'small' | 'medium' | 'large';
+export type CrestSize = 'xs' | 'small' | 'medium' | 'large';
 
-const DIMENSIONS: Record<CrestSize, number> = { small: 18, medium: 26, large: 44 };
+/**
+ * One bounding box per size, so fourteen crests in a table are all exactly the same size (Phase
+ * 19). A real asset gets `object-fit: contain` inside the same box, which is what stops a wide
+ * badge and a tall one from distorting to match each other.
+ *
+ *   xs      dense list rows
+ *   small   table rows, match strip, season strip
+ *   medium  player hub, transfer offer
+ *   large   career moments, retirement
+ */
+const DIMENSIONS: Record<CrestSize, number> = { xs: 14, small: 18, medium: 26, large: 44 };
 
 export function ClubCrest({
   clubId,
@@ -29,6 +41,32 @@ export function ClubCrest({
 }): JSX.Element {
   const visual = clubVisual(clubId, name);
   const px = DIMENSIONS[size];
+  const asset = getClubCrest(clubId);
+  /*
+   * Whether the asset failed to load (Phase 17).
+   *
+   * The first version of this replaced the <img> with an HTML comment on error, which is not a
+   * fallback - it is a hole where the crest was. Tracking the failure in state and re-rendering
+   * the generated badge means a wrong path, a file that failed to deploy and an asset that was
+   * deliberately removed all end up showing a working crest. There is no third state and there is
+   * never a broken-image icon.
+   */
+  const [assetFailed, setAssetFailed] = useState(false);
+
+  if (asset && !assetFailed) {
+    return (
+      <img
+        className={`crest crest-${size} crest-asset${className ? ` ${className}` : ''}`}
+        src={asset}
+        width={px}
+        height={px}
+        alt={name ?? clubId}
+        loading="lazy"
+        decoding="async"
+        onError={() => setAssetFailed(true)}
+      />
+    );
+  }
 
   return (
     <svg

@@ -22,8 +22,15 @@ export interface ClubVisual {
   /** One or two characters. Hebrew initials read better than a transliteration. */
   initials: string;
   /**
-   * Where a licensed or original crest image would go, if one is ever added. Nothing reads this
-   * yet; it exists so that adding artwork later is a data edit rather than a component rewrite.
+   * A real crest image, if one is ever added (v0.4.7).
+   *
+   * Still empty for every club, and CLUB_CRESTS.md records why: Israeli club crests are pictorial
+   * works hosted on Wikipedia under `Template:Non-free logo` with fair-use rationales that
+   * explicitly exclude icon use, they are absent from Commons, and they are trademarks besides.
+   * None of that is a licence to bundle them in a game.
+   *
+   * `getClubCrest` reads this field, so dropping a file in and adding a path here is the whole
+   * integration - no component changes.
    */
   asset?: string;
 }
@@ -55,6 +62,28 @@ export const CLUB_VISUALS: Record<string, ClubVisual> = {
   sektzia_nes_tziona: { primary: '#1b4f9c', secondary: '#ffffff', initials: 'נ״צ' },
   hapoel_umm_al_fahm: { primary: '#3aa655', secondary: '#1b1b1b', initials: 'או״פ' },
   maccabi_kabilio_jaffa: { primary: '#e07b28', secondary: '#1b1b1b', initials: 'מ״י' },
+
+  /*
+   * The European clubs the transfer engine actually sends players to (v0.4.7).
+   *
+   * These were falling through to the hash palette, so a career abroad had a badge whose colour
+   * meant nothing. Club colours are facts about a club, used the same way its name is; the shield
+   * they are drawn into is this project's. Latin initials, because that is how these clubs are
+   * abbreviated and a Hebrew transliteration of "PAOK" helps nobody.
+   */
+  sturm_graz: { primary: '#000000', secondary: '#ffffff', initials: 'STU' },
+  union_sg: { primary: '#f4d03f', secondary: '#1b4f9c', initials: 'USG' },
+  az_alkmaar: { primary: '#c8102e', secondary: '#ffffff', initials: 'AZ' },
+  paok: { primary: '#1b1b1b', secondary: '#ffffff', initials: 'PAOK' },
+  werder_bremen: { primary: '#1d8f4e', secondary: '#ffffff', initials: 'SVW' },
+  dortmund: { primary: '#f4d03f', secondary: '#1b1b1b', initials: 'BVB' },
+  getafe: { primary: '#1b4f9c', secondary: '#ffffff', initials: 'GET' },
+  atletico: { primary: '#c8102e', secondary: '#ffffff', initials: 'ATM' },
+  bologna: { primary: '#8f2a24', secondary: '#1b4f9c', initials: 'BOL' },
+  napoli: { primary: '#12a0d7', secondary: '#ffffff', initials: 'NAP' },
+  brighton: { primary: '#1b4f9c', secondary: '#ffffff', initials: 'BHA' },
+  tottenham: { primary: '#ffffff', secondary: '#1b2c5b', initials: 'TOT' },
+  benfica: { primary: '#c8102e', secondary: '#ffffff', initials: 'SLB' },
 };
 
 /**
@@ -114,4 +143,38 @@ export function clubVisual(clubId: string, name?: string): ClubVisual {
     secondary: '#ffffff',
     initials: initialsFor(label),
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* The one place a crest file is named (v0.4.7, Phase 16)              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The crest image for a club, or null when there is none.
+ *
+ * Centralised on purpose. A file path scattered across the table, the transfer card, the match
+ * strip and the hub is four places to forget when an asset is added or removed - and removability
+ * matters here, because CLUB_CRESTS.md records that the real crests are non-free and trademarked.
+ * If an asset ever has to come out, it comes out of one record.
+ *
+ * Returns a repo-local path only. Nothing here may return an external URL: hotlinking a crest
+ * would make the game's appearance depend on someone else's server and licence.
+ */
+export function getClubCrest(clubId: string): string | null {
+  const asset = CLUB_VISUALS[clubId]?.asset;
+  if (!asset) return null;
+  if (/^https?:/i.test(asset)) {
+    /*
+     * Fail closed rather than render it. An external URL in this field is a mistake, and falling
+     * back to the generated badge is strictly better than shipping a hotlink.
+     */
+    return null;
+  }
+  // Vite serves public/ from BASE_URL, which is /Maccabist/ on Pages and / in dev.
+  return `${import.meta.env.BASE_URL}${asset.replace(/^\//, '')}`;
+}
+
+/** True when a club has a real crest asset. Used by tests and by the coverage report. */
+export function hasRealCrest(clubId: string): boolean {
+  return getClubCrest(clubId) !== null;
 }
