@@ -4,7 +4,15 @@
  */
 
 import { stageBand } from '../data/academy';
-import type { Career, ClubScope, EventConditions, SeasonPhase, SeasonSlot } from '../types';
+import type {
+  AgentArchetypeId,
+  Career,
+  ClubScope,
+  EventConditions,
+  ManagerArchetypeId,
+  SeasonPhase,
+  SeasonSlot,
+} from '../types';
 import {
   allowsExceptionalSeniorContact,
   allowsSeniorContact,
@@ -29,6 +37,7 @@ import { leagueContextAt } from './leagueEngine';
 import { hasRivalryOfType, matchContext } from './matchEngine';
 import { isAtMaccabi, isAtMaccabiSenior, isOnLoan, isPlayingAbroad } from './rules';
 import { canBeOnField, canHaveStarted } from './participation';
+import { agentEligible } from './peopleEngine';
 import { isDerbyEligible } from './worldPredicates';
 import {
   clubStrengthVsLeague,
@@ -136,6 +145,9 @@ export function matchesConditions(
   if (c.clubScope && !matchesClubScope(career, c.clubScope)) return false;
   if (c.isCaptain !== undefined && career.captain !== c.isCaptain) return false;
   if (c.hasLeftMaccabi !== undefined && career.maccabi.everLeft !== c.hasLeftMaccabi) return false;
+
+  /* ---------- v0.5: people ---------- */
+  if (!matchesPeople(career, c)) return false;
 
   /* ---------- v0.4: standing with Maccabi ---------- */
   // Derived, never stored, so these stay correct for saves made before the system existed.
@@ -245,6 +257,58 @@ export function matchesConditions(
  * point: an event about a title race asking a question the world cannot answer must not be
  * allowed through on the grounds that nothing said no.
  */
+/* ------------------------------------------------------------------ */
+/* People (v0.5)                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Person-relationship gates.
+ *
+ * Everything fails closed, the standing rule since v0.4.6: a career with no people state (which
+ * cannot happen after migration, but a gate that assumes is a gate that lies) matches none of the
+ * person conditions rather than all of them. So an agent-conflict event can never reach a player
+ * with no agent, and a goalkeeper-coach breakthrough can never reach a striker - by construction,
+ * not by authors remembering.
+ */
+function matchesPeople(career: Career, c: EventConditions): boolean {
+  const people = career.people;
+  const agent = people?.agent ?? null;
+  const coach = people?.personalCoach ?? null;
+
+  if (c.requiresAgent === true && !agent) return false;
+  if (c.forbidsAgent === true && agent) return false;
+  if (c.agentEligibleStage === true && !agentEligible(career)) return false;
+  if (c.agentArchetypes) {
+    if (!agent) return false;
+    if (!c.agentArchetypes.includes(agent.person.archetypeId as AgentArchetypeId)) return false;
+  }
+  if (c.minAgentRelationship !== undefined || c.maxAgentRelationship !== undefined) {
+    if (!agent) return false;
+    if (!between(agent.relationship, c.minAgentRelationship, c.maxAgentRelationship)) return false;
+  }
+
+  if (c.managerArchetypes) {
+    const archetype = people?.manager?.person.archetypeId;
+    if (!archetype) return false;
+    if (!c.managerArchetypes.includes(archetype as ManagerArchetypeId)) return false;
+  }
+  if (c.managerGaveDebut !== undefined) {
+    if ((people?.manager?.gaveDebut === true) !== c.managerGaveDebut) return false;
+  }
+
+  if (c.requiresPersonalCoach === true && !coach) return false;
+  if (c.forbidsPersonalCoach === true && coach) return false;
+  if (c.personalCoachSpecialties) {
+    if (!coach) return false;
+    if (!c.personalCoachSpecialties.includes(coach.specialty)) return false;
+  }
+  if (c.minCoachSeasonsTogether !== undefined) {
+    if (!coach || coach.seasonsTogether < c.minCoachSeasonsTogether) return false;
+  }
+
+  return true;
+}
+
 function matchesWorldState(career: Career, c: EventConditions, phase: SeasonPhase): boolean {
   const wants =
     c.titleRace !== undefined ||

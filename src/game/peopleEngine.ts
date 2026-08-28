@@ -36,6 +36,7 @@ import { stageOrder } from '../data/academy';
 import { createRng, type Rng } from './random';
 import type {
   AgentArchetypeId,
+  ExpectedRole,
   AgentBond,
   Career,
   Club,
@@ -413,19 +414,18 @@ export function agentLoanFactor(career: Career): number {
 export function negotiateExpectedRole(
   career: Career,
   club: Club,
-  offered: 'star' | 'starter' | 'rotation' | 'squad',
+  offered: ExpectedRole,
   rng: Rng,
-): 'star' | 'starter' | 'rotation' | 'squad' {
+): ExpectedRole {
   const archetype = agentArchetypeOf(career);
-  if (!archetype || offered === 'star') return offered;
+  if (!archetype) return offered;
+  // Only the middle of the ladder is negotiable. A project is a plan, not a role, and key/star
+  // status is earned on the pitch - no meeting talks a backup into a star's shirt.
+  if (offered !== 'backup' && offered !== 'rotation') return offered;
   const plausible = career.ability >= club.quality - 4;
   if (!plausible) return offered;
   if (!rng.chance(archetype.negotiation)) return offered;
-  const ladder: Array<'squad' | 'rotation' | 'starter' | 'star'> = ['squad', 'rotation', 'starter', 'star'];
-  const idx = ladder.indexOf(offered);
-  // One step only, and never into 'star' - stardom is earned on the pitch, not in a meeting.
-  const bumped = ladder[Math.min(idx + 1, ladder.length - 2)];
-  return bumped ?? offered;
+  return offered === 'backup' ? 'rotation' : 'starter';
 }
 
 /* ------------------------------------------------------------------ */

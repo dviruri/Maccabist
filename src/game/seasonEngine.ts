@@ -11,7 +11,7 @@ import { clubDisplayName, currentTeamDisplay } from './identity';
 import { TROPHY_DEFS } from '../data/trophies';
 import type { Career, SeasonRecord, SeasonStats, Trophy } from '../types';
 import { POSITIONS, SEASON, TRAITS } from './balance';
-import { hasTrait } from './memory';
+import { hasTrait, recordMemory } from './memory';
 import { managerMinutesFactor } from './peopleEngine';
 import { creditParticipation, needsAppearanceReconciliation } from './participation';
 import { checkMilestones } from './milestones';
@@ -456,6 +456,25 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   };
 
   next = cloneCareer(next);
+  /*
+   * v0.5, Phase 20: the man who gave the debut. Detected at the moment the record is written -
+   * the first senior season with actual football in it - and stamped on the manager's tenure,
+   * with a memory carrying his personId. Years later, whoever is in charge, "X נתן לך את הופעת
+   * הבכורה" stays true because it points at the person, not at the chair.
+   */
+  const isSeniorDebut =
+    career.academyStage === 'senior' &&
+    full.appearances > 0 &&
+    !career.seasonHistory.some((s) => s.academyStage === 'senior' && s.stats.appearances > 0);
+  if (isSeniorDebut && next.people?.manager) {
+    const tenure = { ...next.people.manager, gaveDebut: true };
+    next.people = {
+      ...next.people,
+      manager: tenure,
+      clubManagers: { ...next.people.clubManagers, [tenure.clubId]: tenure.person },
+    };
+    next.memories = recordMemory(next, 'manager_gave_debut', tenure.person.name, tenure.person.id);
+  }
   next.seasonHistory.push(record);
   next.lastSeasonRecord = record;
   next.firstHalfStats = null;

@@ -6,6 +6,7 @@
  * chances without ever guaranteeing a specific club.
  */
 
+import { agentLoanFactor, agentOfferFactor, negotiateExpectedRole } from './peopleEngine';
 import { stageOrder } from '../data/academy';
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import type {
@@ -74,7 +75,12 @@ function offerChance(career: Career): number {
     (lastRating - 58) * TRANSFERS.ratingWeight -
     Math.abs(career.age - TRANSFERS.peakAge) * TRANSFERS.ageFalloff +
     career.hidden.transferBoost;
-  return clamp(raw, 0, 0.95) as number;
+  /*
+   * v0.5, Phase 8: the agent's phone. A dealmaker generates more conversations, a family agent
+   * fewer - a multiplier on the probability an offer arrives, applied to a chance the world's
+   * own rules already computed. No agent, no change: the market as it always was.
+   */
+  return clamp(raw * agentOfferFactor(career), 0, 0.95) as number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -159,13 +165,20 @@ export function leavingContext(career: Career, club: Club): {
   };
 }
 
-function transferOffer(club: Club, career: Career): TransferOffer {
+function transferOffer(club: Club, career: Career, rng?: Rng): TransferOffer {
   const abroad = club.country !== 'ישראל';
   const leaving = leavingContext(career, club);
   const atMaccabi = isAtMaccabiSenior(career);
 
   const league = leagueOf(career.world, club.id);
-  const role = expectedRoleAt(career, club, career.currentSeason);
+  /*
+   * v0.5, Phase 8.2: the agent may talk one step up the middle of the ladder - backup to
+   * rotation, rotation to starter - and only when the player's ability makes the promise
+   * keepable. What the club offers is still `expectedRoleAt`; negotiation adjusts the deal,
+   * never the player's actual standing once he arrives and has to earn it.
+   */
+  const offered = expectedRoleAt(career, club, career.currentSeason);
+  const role = rng ? negotiateExpectedRole(career, club, offered, rng) : offered;
   const direction = moveDirection(career, club);
   const roleLabel = EXPECTED_ROLE_LABELS[role];
 
@@ -658,7 +671,15 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
     career.age >= TRANSFERS.loanMinAge &&
     career.age <= TRANSFERS.loanMaxAge &&
     lastApps <= TRANSFERS.loanMaxAppearances;
-  if (loanEligible && rng.chance(TRANSFERS.loanChance + career.hidden.transferBoost * 0.5)) {
+  /*
+   * v0.5, Phase 35: a networker's speciality is knowing where a young player would actually
+   * play. The agent factor multiplies the chance the loan conversation happens; eligibility
+   * above stays exactly the world's own rule.
+   */
+  if (
+    loanEligible &&
+    rng.chance((TRANSFERS.loanChance + career.hidden.transferBoost * 0.5) * agentLoanFactor(career))
+  ) {
     offers.push(...buildLoanOffers(career, rng));
   }
 
@@ -709,7 +730,7 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
   if (!isOnLoan(career)) {
     if (rng.chance(offerChance(career))) {
       const up = drawDestination(career, rng, (c) => !isDownwardMove(moveDirection(career, c)));
-      if (up) offers.push(transferOffer(up, career));
+      if (up) offers.push(transferOffer(up, career, rng));
     }
 
     // Not playing, or going backwards: clubs lower down come calling.
@@ -717,7 +738,7 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
     if (fading && rng.chance(TRANSFERS.stepDownChance)) {
       const down = drawDestination(career, rng, (c) => isDownwardMove(moveDirection(career, c)));
       if (down && !offers.some((o) => o.clubId === down.id)) {
-        offers.push(transferOffer(down, career));
+        offers.push(transferOffer(down, career, rng));
       }
     }
   }

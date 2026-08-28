@@ -9,6 +9,7 @@
  * near the player's, so a good season improves the odds without ever guaranteeing a club.
  */
 
+import { agentMarketFactor, clubManagerArchetype } from './peopleEngine';
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import { getLeague, leagueLevel, type League } from '../data/leagues';
 import type {
@@ -231,7 +232,17 @@ export function drawDestination(
 ): Club | null {
   const pool = filter ? marketClubs(career).filter(filter) : marketClubs(career);
   if (pool.length === 0) return null;
-  return rng.weighted(pool, (club) => clubInterest(career, club, career.currentSeason));
+  /*
+   * v0.5, Phase 8: the agent's markets tilt WHICH eligible door opens, after eligibility has
+   * already been decided by the pool above. A Europe specialist makes his Dutch and Belgian
+   * contacts likelier and a domestic step less so; he never adds a club the world's own rules
+   * did not offer, and no factor is ever zero - a poorly connected market is unlikely, not
+   * closed. That is the whole Phase 8 contract in one line.
+   */
+  return rng.weighted(
+    pool,
+    (club) => clubInterest(career, club, career.currentSeason) * agentMarketFactor(career, club),
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -258,6 +269,18 @@ export function offerHints(career: Career, club: Club, role: ExpectedRole, seaso
   if (club.development >= MARKET.goodDevelopment) hints.push('מועדון עם פיתוח צעירים טוב');
   if (league.visibility >= MARKET.highVisibility) hints.push('חלון ראווה לאירופה');
   if (need >= MARKET.strongNeed) hints.push('המועדון מחפש בדיוק את העמדה שלך');
+
+  /*
+   * v0.5, Phase 33: what kind of manager is waiting there - the concise version, no hidden
+   * coefficients. Reads `clubManagerArchetype`, the same pure function `installManager` reads,
+   * so the hint and the man who greets the player on arrival cannot disagree. Only shown when
+   * the archetype would actually matter to this player's decision.
+   */
+  const archetype = clubManagerArchetype(career, club.id);
+  if (archetype === 'youth_believer' && career.age < 21) hints.push('מאמן: מאמין בצעירים');
+  else if (archetype === 'star_driven' && career.reputation < 55) hints.push('מאמן: מעדיף שחקנים מוכחים');
+  else if (archetype === 'conservative') hints.push('מאמן: אמון נבנה אצלו לאט');
+  else if (archetype === 'rotation') hints.push('מאמן: מסובב את הסגל');
 
   return hints;
 }

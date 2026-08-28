@@ -15,6 +15,7 @@ import { isPlayingAbroad } from '../game/rules';
  */
 
 export type EventVariant =
+  | 'people'
   | 'coach'
   | 'match'
   | 'development'
@@ -57,6 +58,7 @@ export interface EventVisual {
 
 const VARIANT_META: Record<EventVariant, { icon: string; label: string }> = {
   coach: { icon: '📋', label: 'המאמן' },
+  people: { icon: '🤝', label: 'האנשים שלך' },
   match: { icon: '⚽', label: 'רגע במשחק' },
   development: { icon: '📈', label: 'התפתחות' },
   transfer: { icon: '🔄', label: 'העברות' },
@@ -71,6 +73,7 @@ const VARIANT_META: Record<EventVariant, { icon: string; label: string }> = {
 /** The base mapping from the gameplay category. Context can still override it below. */
 const CATEGORY_VARIANT: Record<EventCategory, EventVariant> = {
   coach: 'coach',
+  people: 'people',
   match_moment: 'match',
   competition: 'match',
   development: 'development',

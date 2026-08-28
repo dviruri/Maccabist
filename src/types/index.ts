@@ -250,7 +250,9 @@ export type EventCategory =
   | 'transfer'
   | 'family'
   | 'random'
-  | 'rare';
+  | 'rare'
+  /** v0.5: agents, managers, personal coaches - the recurring humans. */
+  | 'people';
 
 /** Which part of the season an event can appear in. */
 export type SeasonSlot = 'early' | 'mid' | 'late';
@@ -1121,6 +1123,29 @@ export interface EventConditions {
   vsMaccabi?: boolean;
   /** The opponent is a club he used to play for. */
   vsFormerClub?: boolean;
+
+  /* ---------- v0.5: people ---------- */
+  /** The player must have (or must not have) representation. */
+  requiresAgent?: boolean;
+  forbidsAgent?: boolean;
+  /** Only when the player's stage makes representation plausible (Phase 6). */
+  agentEligibleStage?: boolean;
+  /** The current agent must be one of these styles. */
+  agentArchetypes?: AgentArchetypeId[];
+  /** Bounds on the agent relationship - a conflict event needs a strained one. */
+  minAgentRelationship?: number;
+  maxAgentRelationship?: number;
+  /** The current manager must be one of these kinds of manager. */
+  managerArchetypes?: ManagerArchetypeId[];
+  /** The current manager handed the player his senior debut - callback material. */
+  managerGaveDebut?: boolean;
+  /** A specialist is (or is not) currently working with the player. */
+  requiresPersonalCoach?: boolean;
+  forbidsPersonalCoach?: boolean;
+  /** ...of one of these specialties. */
+  personalCoachSpecialties?: CoachSpecialtyId[];
+  /** Seasons with the current specialist - a breakthrough needs history behind it. */
+  minCoachSeasonsTogether?: number;
 }
 
 /**
@@ -1226,6 +1251,20 @@ export interface EventEffects {
   leadership?: number;
   /** Put a beat on the career timeline. */
   milestone?: { id: string; icon: string; text: string; major?: boolean };
+
+  /* ---------- v0.5: people ---------- */
+  /** Sign with an agent of this style. Ends the previous bond honestly if one exists. */
+  signAgent?: AgentArchetypeId;
+  /** Part ways with the current agent, without a successor. */
+  dropAgent?: boolean;
+  /** Move the agent relationship. Separate from Maccabism and from Coach Trust. */
+  agentRelationship?: number;
+  /** Record that the player followed / ignored the agent's advice, for later callbacks. */
+  agentAdvice?: 'followed' | 'rejected';
+  /** Start working with a personal specialist. Position fit is validated fail-closed. */
+  startPersonalCoach?: CoachSpecialtyId;
+  /** Stop the personal-coach work. */
+  endPersonalCoach?: boolean;
 }
 
 export interface EventOutcome {

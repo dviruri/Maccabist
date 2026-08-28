@@ -140,6 +140,20 @@ export function selectionWeight(
 
   if (usedCategories.includes(event.category)) weight *= EVENTS.sameCategoryPenalty;
   if (recent.includes(event.category)) weight *= EVENTS.recentCategoryPenalty;
+
+  /*
+   * v0.5, Phase 42: people must not hijack the season. Two rules, one hard and one soft. A
+   * season never plans a second people event (zero, not a penalty - the fallback path in
+   * `pickEventForSlot` cannot resurrect it because that path only runs when every candidate is
+   * zeroed, and a mixed pool always has football left in it). And a people event in the season
+   * right after one fired is halved, so agent-manager-agent-coach runs cannot form. Football
+   * remains the main story.
+   */
+  if (event.category === 'people') {
+    if (usedCategories.includes('people')) return 0;
+    const last = career.people?.lastPeopleEventSeason;
+    if (last !== undefined && career.currentSeason - last <= 1) weight *= 0.5;
+  }
   return weight;
 }
 
@@ -351,6 +365,11 @@ export function resolveEventChoice(
 
   next = cloneCareer(next);
   next.pendingEventIds = next.pendingEventIds.filter((id) => id !== eventId);
+
+  // v0.5, Phase 42: the pacing rule reads this - one people event a season, and a soft cooldown.
+  if (event.category === 'people' && next.people) {
+    next.people = { ...next.people, lastPeopleEventSeason: next.currentSeason };
+  }
 
   const result: CareerEventResult = {
     eventId,

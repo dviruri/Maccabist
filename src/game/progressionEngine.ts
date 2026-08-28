@@ -17,9 +17,15 @@ import { getClub, MACCABI_ID, isMaccabiSenior } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
 import { guardedMaccabismDelta } from './truth';
 import {
+  adjustAgentRelationship,
+  dropAgent,
   endManagerTenure,
+  endPersonalCoach,
   installManager,
   managerBaselineDelta,
+  recordAdvice,
+  signAgent,
+  startPersonalCoach,
   personalCoachDevBonus,
   personalCoachInjuryRelief,
   personalCoachRecoveryBonus,
@@ -414,6 +420,37 @@ export function applyEffects(
 
   if (effects.captain !== undefined) next.captain = effects.captain;
   if (effects.leadership) next.hidden.leadership = clamp(next.hidden.leadership + effects.leadership);
+
+  /* ---------- v0.5: people ---------- */
+  /*
+   * All of these route through peopleEngine, which owns the rules - position fit for a
+   * specialist is validated fail-closed there, an agent signing closes the previous bond
+   * honestly, and none of it can touch Maccabism, Potential, or any football fact.
+   */
+  if (effects.signAgent) {
+    const previous = next.people?.agent?.person;
+    next = { ...signAgent(next, effects.signAgent) };
+    const signed = next.people?.agent?.person;
+    if (signed) {
+      next.memories = recordMemory(
+        next,
+        previous ? 'changed_agent' : 'signed_with_agent',
+        signed.name,
+        signed.id,
+      );
+    }
+  }
+  if (effects.dropAgent) next = { ...dropAgent(next) };
+  if (effects.agentRelationship) next = { ...adjustAgentRelationship(next, effects.agentRelationship) };
+  if (effects.agentAdvice) next = { ...recordAdvice(next, effects.agentAdvice === 'followed') };
+  if (effects.startPersonalCoach) {
+    next = { ...startPersonalCoach(next, effects.startPersonalCoach) };
+    const coach = next.people?.personalCoach?.person;
+    if (coach && coach.createdSeason === next.currentSeason) {
+      next.memories = recordMemory(next, 'personal_coach_started', coach.name, coach.id);
+    }
+  }
+  if (effects.endPersonalCoach) next = { ...endPersonalCoach(next) };
 
   /* ---------- v0.3: memory, arcs, traits, timeline ---------- */
   if (effects.remember) {
