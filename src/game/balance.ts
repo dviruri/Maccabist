@@ -713,6 +713,8 @@ export const SEASON = {
    * actually reorganises around a player who has dropped a level.
    */
   roleCeilingPull: 0.6,
+  /** The v0.4.5 value, kept for the academy - see the model split in progressionEngine. */
+  roleCeilingPullAcademy: 0.45,
   /** Academy and youth teams rotate everyone - nobody is a total spectator there. */
   youthMinutesFloor: 0.3,
   /** Role contributes to the fight for minutes on top of raw ability. */

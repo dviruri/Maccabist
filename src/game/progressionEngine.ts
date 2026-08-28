@@ -664,18 +664,6 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
   const performance = (stats.rating - expectedRatingForLevel(level.quality)) / 40;
   const exposure = 0.35 + minutesShare;
   let roleChange = performance * SEASON.roleMoveMax * exposure + trophyPoints * 2;
-  /*
-   * v0.4.6: the ability-vs-level term used to live here as well as in the ceiling below.
-   *
-   * That was double counting, and it is why capping the ceiling changed almost nothing. Being
-   * better than your club pushed standing up by as much as +6 a half-season *and* set the
-   * ceiling, so the upward push very nearly cancelled the ceiling's own gravity: a player at
-   * 100 with a ceiling of 71 drifted down by under a point a half-season and would have needed
-   * about eighteen seasons to get there.
-   *
-   * The edge belongs in the ceiling, which is a statement about where he should settle. What
-   * moves him is performance, trophies and the coach.
-   */
   roleChange += (next.coachTrust - 50) * COACH_TRUST.roleInfluence * 0.25;
   if (career.age >= 33) roleChange -= (career.age - 32) * 0.9;
 
@@ -684,48 +672,65 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
    *
    * Without this, roleChange accumulated every half-season with nothing pulling it back: a player
    * even slightly better than his club gained standing indefinitely, so roleValue ratcheted to
-   * the clamp. Measured before the fix: median final roleValue 100, and 67% of all senior seasons
-   * were played at the `icon` tier - which then fed a 99% appearance share and ~576 career
-   * appearances. Being the best player at your club is supposed to be an achievement, not the
+   * the clamp. Being the best player at your club is supposed to be an achievement, not the
    * default resting state of anyone competent.
-   *
-   * The ceiling is where he belongs: comfortably clear of the level makes him a star, at the level
-   * a starter, below it a squad player. He can exceed it briefly on a great run, but gravity pulls
-   * him back - which is what makes a genuinely exceptional season feel like one.
    */
   const edge = next.ability - level.quality;
-  /*
-   * Concave above the club's level, linear below it (v0.4.6).
-   *
-   * Being better than your club makes you its best player, and the tenth point of that edge
-   * matters far less than the first - the difference between "clearly our best" and "clearly our
-   * best by even more" is not a difference in squad role. The old linear form said otherwise and
-   * clamped at 100, which pinned every good player at a weak club to the top rung permanently.
-   *
-   * Below the level it stays linear and steep: a player out of his depth should drop quickly,
-   * and there is no reason to soften that.
-   */
-  const relative =
-    edge <= 0
-      ? clamp(SEASON.roleCeilingBase + edge * SEASON.roleCeilingPerPoint, 20, 100)
-      : SEASON.roleCeilingBase +
-        SEASON.roleCeilingSpan * (1 - Math.exp(-edge / SEASON.roleCeilingScale));
 
   /*
-   * ...and capped by what the club itself can support (v0.4.6).
+   * SENIOR AND ACADEMY ARE DIFFERENT MODELS (v0.4.6).
    *
-   * Without this the ladder is purely relative, which is the defect: relative to a bad club, a
-   * good player is its best by a mile, so the model called him a star. `star` should mean a
-   * standout at a club that matters. Below roughly quality 50 this cap lands under the star
-   * threshold, and the honest answer for the best player there is `key`.
+   * The defect this version fixed is a senior-football one: the ladder was purely relative, so a
+   * good player at a bad club came out a `star`, 97.8% of the time. The fix was a concave
+   * ceiling, the removal of a double-counted edge push, stronger gravity and a cap set by the
+   * club's own standing.
+   *
+   * Applying all of that to the academy as well was a mistake, and the simulation caught it:
+   * academy standing fell by roughly thirteen points, and because two other systems read
+   * roleValue as an absolute quantity the knock-on was severe -
+   *
+   *   early academy promotion            16.9%  ->  7.1% of careers
+   *   rejected boys invited back          39.0%  -> 12.7% of that group
+   *
+   * The second is the road back for a boy Maccabi turned away, which is the question this whole
+   * version of the game is built around. Rescaling the two thresholds did not recover it either,
+   * because retrial eligibility is a *gate* on role being `starter` or better, not a score.
+   *
+   * An age group is not a club in a professional pyramid. Being the outstanding boy in נערים א׳
+   * is exactly what the game is about, and nothing about the level diminishes it. So the academy
+   * keeps the v0.4.5 model that was calibrated for it, and the new model applies where the defect
+   * actually was.
    */
-  const clubCap =
-    SEASON.roleClubCapBase +
-    SEASON.roleClubCapSpan *
-      clamp((level.quality - SEASON.roleClubCapFloor) / SEASON.roleClubCapRange, 0, 1);
-  const ceiling = Math.min(relative, clubCap);
-  const overshoot = next.roleValue - ceiling;
-  if (overshoot > 0) roleChange -= overshoot * SEASON.roleCeilingPull;
+  if (level.isAcademy) {
+    roleChange += clamp(edge * 0.35, -6, 6);
+    const ceiling = clamp(SEASON.roleCeilingBase + edge * SEASON.roleCeilingPerPoint, 20, 100);
+    const overshoot = next.roleValue - ceiling;
+    if (overshoot > 0) roleChange -= overshoot * SEASON.roleCeilingPullAcademy;
+  } else {
+    /*
+     * Concave above the club's level, linear below it. The tenth point of edge matters far less
+     * than the first - "clearly our best" and "clearly our best by even more" are not different
+     * squad roles - and the old linear form clamped at 100, pinning every good player at a weak
+     * club to the top rung permanently.
+     */
+    const relative =
+      edge <= 0
+        ? clamp(SEASON.roleCeilingBase + edge * SEASON.roleCeilingPerPoint, 20, 100)
+        : SEASON.roleCeilingBase +
+          SEASON.roleCeilingSpan * (1 - Math.exp(-edge / SEASON.roleCeilingScale));
+
+    // ...and capped by what the club itself can support. `star` means a standout at a club that
+    // matters; below roughly quality 50 this lands under the star threshold, and the honest
+    // answer for the best player there is `key`.
+    const clubCap =
+      SEASON.roleClubCapBase +
+      SEASON.roleClubCapSpan *
+        clamp((level.quality - SEASON.roleClubCapFloor) / SEASON.roleClubCapRange, 0, 1);
+
+    const ceiling = Math.min(relative, clubCap);
+    const overshoot = next.roleValue - ceiling;
+    if (overshoot > 0) roleChange -= overshoot * SEASON.roleCeilingPull;
+  }
 
   next.roleValue = clamp(next.roleValue + roleChange * fraction * 2, 2, 100);
   next.role = roleFromValue(next.roleValue);
