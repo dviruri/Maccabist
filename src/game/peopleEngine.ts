@@ -586,3 +586,34 @@ export function migratePeople(career: Career): Career {
   const withState = { ...career, people: emptyPeopleState() };
   return installManager(withState);
 }
+
+/* ------------------------------------------------------------------ */
+/* Who is this event about? (Phase 30)                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The person at the centre of a people event, resolved from career state by event-id family.
+ *
+ * This is how a recurring character stays recognisable: the event TEXT says "הסוכן שלך", and the
+ * header names him - from the one place his name lives. Returns null when the event is about
+ * someone the player does not have yet (the first-representation approaches), because a header
+ * naming a person who does not exist would be the UI inventing a fact.
+ */
+export function eventPerson(
+  career: Career,
+  eventId: string,
+): { person: PersonIdentity; role: 'manager' | 'agent' | 'personal_coach' } | null {
+  if (!eventId.startsWith('ppl_')) return null;
+  const people = career.people;
+  if (!people) return null;
+
+  if (eventId.startsWith('ppl_mgr_')) {
+    return people.manager ? { person: people.manager.person, role: 'manager' } : null;
+  }
+  if (eventId.startsWith('ppl_pc_') || eventId.startsWith('ppl_cross_pc')) {
+    return people.personalCoach
+      ? { person: people.personalCoach.person, role: 'personal_coach' }
+      : null;
+  }
+  return people.agent ? { person: people.agent.person, role: 'agent' } : null;
+}

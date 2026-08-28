@@ -7,6 +7,7 @@ import { autoStep, retire } from '../game/careerEngine';
 import { cohortLead, isPlayingUpACohort, naturalStage, relativeAgeBonus } from '../game/cohort';
 import { matchesClubScope } from '../game/conditions';
 import { validateCareerIntegrity } from '../game/integrity';
+import { agentLoanFactor, agentOfferFactor, managerMinutesFactor } from '../game/peopleEngine';
 import {
   appearanceBreakdown,
   cupWins,
@@ -539,6 +540,53 @@ function IntegrityBlock({ career }: { career: Career }): JSX.Element {
         where the headroom taper is doing its work - shown separately so the taper is visible
         rather than looking like a rounding error.
       */}
+      {/*
+        People (v0.5, Phase 52). The current people, their archetypes, and where each
+        relationship stands - plus the trust-ownership fact the validator asserts: coachTrust
+        belongs to THIS manager at THIS club.
+      */}
+      <div className="debug-integrity-head">people</div>
+      <Row
+        label="manager"
+        value={
+          career.people?.manager
+            ? `${career.people.manager.person.name} [${career.people.manager.person.archetypeId}] @${career.people.manager.clubId} trust=${career.coachTrust.toFixed(0)}${career.people.manager.gaveDebut ? ' · debut' : ''}`
+            : 'none'
+        }
+      />
+      <Row
+        label="agent"
+        value={
+          career.people?.agent
+            ? `${career.people.agent.person.name} [${career.people.agent.person.archetypeId}] rel=${career.people.agent.relationship.toFixed(0)} ✓${career.people.agent.advicesFollowed} ✗${career.people.agent.advicesRejected}`
+            : 'none'
+        }
+      />
+      <Row
+        label="personalCoach"
+        value={
+          career.people?.personalCoach
+            ? `${career.people.personalCoach.person.name} [${career.people.personalCoach.specialty}] seasons=${career.people.personalCoach.seasonsTogether}`
+            : 'none'
+        }
+      />
+      <Row
+        label="mgr history"
+        value={
+          (career.people?.managerHistory.length ?? 0) === 0
+            ? 'none'
+            : career.people!.managerHistory
+                .slice(-4)
+                .map((t) => `${t.person.shortName}@${t.clubId} ${t.fromSeason}-${t.toSeason} t=${t.finalTrust}`)
+                .join(' | ')
+        }
+      />
+      <Row label="mgr minutesFactor" value={managerMinutesFactor(career).toFixed(3)} />
+      <Row
+        label="agent factors"
+        value={`offer x${agentOfferFactor(career).toFixed(2)} loan x${agentLoanFactor(career).toFixed(2)}`}
+      />
+
       <div className="debug-integrity-head">מכביסטיות — למה השתנתה</div>
       {(career.maccabismTrace ?? []).length === 0 ? (
         <div className="debug-integrity-row">לא השתנתה עדיין</div>

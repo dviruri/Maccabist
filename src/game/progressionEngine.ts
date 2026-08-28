@@ -128,6 +128,22 @@ export function diffCareer(before: Career, after: Career): AttributeDelta[] {
     const to = field.read(after);
     if (from !== to) deltas.push({ key: field.key, label: field.label, from, to });
   }
+
+  /*
+   * v0.5, Phase 31: the agent relationship, shown only when the SAME bond moved. Signing or
+   * changing agents opens a new relationship at its own starting point - printing that as
+   * "0 → 62" would be a delta between two different people, which is not a delta at all.
+   */
+  const beforeAgent = before.people?.agent;
+  const afterAgent = after.people?.agent;
+  if (beforeAgent && afterAgent && beforeAgent.person.id === afterAgent.person.id) {
+    const from = Math.round(beforeAgent.relationship);
+    const to = Math.round(afterAgent.relationship);
+    if (from !== to) {
+      deltas.push({ key: 'agentRelationship', label: 'היחסים עם הסוכן', from, to });
+    }
+  }
+
   return deltas;
 }
 

@@ -11,6 +11,9 @@ import { currentTeamDisplay } from '../game/identity';
 import { playerLeague } from '../game/worldEngine';
 import { eventVisual, isMatchMoment, maccabiPresentation, matchMinute } from '../ui/eventVisuals';
 import { matchContext, requirementOf } from '../game/matchEngine';
+import { eventPerson } from '../game/peopleEngine';
+import { PersonAvatar } from './PeopleCard';
+import { getClub } from '../data/clubs';
 import { ClubCrest } from './ClubCrest';
 import { AmbientNewsHeader, MaccabiBanner, SamiOferHeader } from './MaccabiCards';
 import { Ltr } from './primitives';
@@ -222,6 +225,43 @@ function ChoiceBlock({
 }
 
 /* ------------------------------------------------------------------ */
+/* The person at the centre (v0.5)                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * ערן לביא / מאמן · מכבי חיפה - the compact person header (v0.5, Phase 30).
+ */
+function PersonHeader({ career, eventId }: { career: Career; eventId: string }): JSX.Element | null {
+  const central = eventPerson(career, eventId);
+  if (!central) return null;
+
+  const roleLine =
+    central.role === 'manager'
+      ? `מאמן · ${safeClubName(career.currentClubId)}`
+      : central.role === 'agent'
+        ? 'הסוכן שלך'
+        : 'המאמן האישי שלך';
+
+  return (
+    <div className="person-header">
+      <PersonAvatar person={central.person} />
+      <div>
+        <div className="person-header-name">{central.person.name}</div>
+        <div className="person-header-role">{roleLine}</div>
+      </div>
+    </div>
+  );
+}
+
+function safeClubName(clubId: string): string {
+  try {
+    return getClub(clubId).name;
+  } catch {
+    return '';
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Match moment                                                        */
 /* ------------------------------------------------------------------ */
 
@@ -234,6 +274,7 @@ function ChoiceBlock({
  * problem the last two versions were about. What it *can* honestly do is make the moment feel
  * like it is happening in a match rather than in a paragraph.
  */
+
 function MatchStrip({ career, event }: { career: Career; event: GameEvent }): JSX.Element {
   const minute = matchMinute(event);
   const team = currentTeamDisplay(career);
@@ -378,6 +419,13 @@ export function DecisionCard({
         {maccabi === 'relationship' && <MaccabiBanner career={career} />}
 
         {asMatch && maccabi !== 'sami_ofer' && <MatchStrip career={career} event={event} />}
+
+        {/*
+          v0.5, Phase 30: when a person is central to the event, name them. The header reads
+          career state - the one place the name lives - so a recurring character is always the
+          same person here, whatever this file says about him.
+        */}
+        {event.category === 'people' && <PersonHeader career={career} eventId={event.id} />}
 
         {event.kicker && <div className="kicker">{event.kicker}</div>}
         <h2 className="card-title">{event.title}</h2>

@@ -5,6 +5,7 @@ import { CompactHub } from '../components/CompactHub';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { Sheet } from '../components/Sheet';
+import { PeopleCard } from '../components/PeopleCard';
 import { Celebration } from '../components/Celebration';
 import { DebugPanel } from '../components/DebugPanel';
 import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
@@ -40,7 +41,7 @@ interface Props {
  * A plain union rather than three booleans: only one sheet can be open at a time, and encoding
  * that in the type means it cannot get into a state where two are.
  */
-type SheetId = 'table' | 'timeline' | 'history' | null;
+type SheetId = 'table' | 'timeline' | 'history' | 'people' | null;
 
 export function GamePage({ career, actions, onExit }: Props): JSX.Element {
   const [sheet, setSheet] = useState<SheetId>(null);
@@ -104,6 +105,9 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         <button type="button" className="play-nav-btn" onClick={() => setSheet('history')}>
           הקריירה
         </button>
+        <button type="button" className="play-nav-btn" onClick={() => setSheet('people')}>
+          האנשים שלי
+        </button>
       </nav>
 
       {/*
@@ -117,6 +121,11 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         onClose={close}
       >
         <LeagueTableCard career={career} defaultOpen inSheet />
+      </Sheet>
+
+      {/* v0.5, Phase 27: the people screen - one tap away, never above the active event. */}
+      <Sheet open={sheet === 'people'} title="האנשים שלי" onClose={close}>
+        <PeopleCard career={career} />
       </Sheet>
 
       <Sheet open={sheet === 'timeline'} title="סיפור הקריירה" onClose={close}>

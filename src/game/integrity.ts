@@ -15,6 +15,7 @@
  */
 
 import { getClub, MACCABI_ID } from '../data/clubs';
+import { AGENT_ARCHETYPES, COACH_SPECIALTIES, MANAGER_ARCHETYPES, specialtiesFor } from '../data/people';
 import { leagueShape } from '../data/leagueShape';
 import { outcomeForPosition } from './leagueEngine';
 import {
@@ -51,7 +52,22 @@ export type IntegrityCode =
   /** a cup trophy stored with a league trophy id, or vice versa. */
   | 'trophy_kind_confusion'
   /** a stored career counter disagrees with the trophy list it is derived from. */
-  | 'counter_disagrees_with_trophies';
+  | 'counter_disagrees_with_trophies'
+  /* ---------- v0.5: people ---------- */
+  /** an active (non-retired) career has people state but no current manager. */
+  | 'missing_current_manager'
+  /** the current manager belongs to a different club than the player. */
+  | 'manager_club_mismatch'
+  /** a manager history entry is still open - history must be closed relationships. */
+  | 'open_manager_history'
+  /** two people share one id. */
+  | 'duplicate_person_id'
+  /** a person carries an archetype the game does not define. */
+  | 'unknown_person_archetype'
+  /** the personal coach's specialty does not fit the player's position. */
+  | 'coach_position_mismatch'
+  /** a memory references a personId that no known person carries. */
+  | 'memory_unknown_person';
 
 export interface IntegrityViolation {
   code: IntegrityCode;
@@ -269,7 +285,98 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
     }
   }
 
+  /* ---------------- people (v0.5, Phase 51) ---------------- */
+  validatePeople(career, push);
+
   return out;
+}
+
+/**
+ * The people invariants (v0.5).
+ *
+ * The central one is trust ownership: `career.coachTrust` IS the current manager relationship,
+ * so the structural check is that the current manager actually manages the current club - a
+ * mismatch would mean the number belongs to a man who is not there, which is v0.5's version of
+ * two systems holding one fact.
+ */
+function validatePeople(
+  career: Career,
+  push: (code: IntegrityCode, detail: string, season?: number) => void,
+): void {
+  const people = career.people;
+  if (!people) return; // a pre-migration career object; hydrateCareer builds this.
+
+  if (!career.retired && !people.manager) {
+    push('missing_current_manager', 'an active career with people state has no current manager');
+  }
+  if (people.manager && people.manager.clubId !== career.currentClubId) {
+    push(
+      'manager_club_mismatch',
+      `coachTrust is owned by the manager of ${people.manager.clubId} while the player is at ${career.currentClubId}`,
+    );
+  }
+  for (const tenure of people.managerHistory) {
+    if (tenure.toSeason === undefined) {
+      push('open_manager_history', `historical tenure at ${tenure.clubId} was never closed`);
+    }
+  }
+
+  /* every person, everywhere, exactly once per id */
+  const everyone = [
+    ...(people.manager ? [people.manager.person] : []),
+    ...people.managerHistory.map((t) => t.person),
+    ...(people.agent ? [people.agent.person] : []),
+    ...people.agentHistory.map((b) => b.person),
+    ...(people.personalCoach ? [people.personalCoach.person] : []),
+    ...people.personalCoachHistory.map((b) => b.person),
+    ...Object.values(people.clubManagers),
+  ];
+  const ids = new Set<string>();
+  const seen = new Set<string>();
+  for (const person of everyone) {
+    // The same person may legitimately appear twice (current manager + clubManagers map);
+    // what may not happen is two DIFFERENT people sharing an id.
+    if (seen.has(person.id)) continue;
+    seen.add(person.id);
+    ids.add(person.id);
+  }
+  const byId = new Map<string, string>();
+  for (const person of everyone) {
+    const existing = byId.get(person.id);
+    if (existing !== undefined && existing !== person.name) {
+      push('duplicate_person_id', `id ${person.id} names both "${existing}" and "${person.name}"`);
+    }
+    byId.set(person.id, person.name);
+  }
+
+  for (const person of everyone) {
+    const known =
+      person.type === 'club_manager'
+        ? person.archetypeId in MANAGER_ARCHETYPES
+        : person.type === 'agent'
+          ? person.archetypeId in AGENT_ARCHETYPES
+          : person.archetypeId in COACH_SPECIALTIES;
+    if (!known) {
+      push('unknown_person_archetype', `${person.type} ${person.id} carries archetype "${person.archetypeId}"`);
+    }
+  }
+
+  const coach = people.personalCoach;
+  if (coach) {
+    const fits = specialtiesFor(career.position).some((sp) => sp.id === coach.specialty);
+    if (!fits) {
+      push(
+        'coach_position_mismatch',
+        `a ${coach.specialty} specialist is coaching a ${career.position}`,
+      );
+    }
+  }
+
+  for (const memory of career.memories) {
+    if (memory.personId && !ids.has(memory.personId)) {
+      push('memory_unknown_person', `memory ${memory.kind} references unknown person ${memory.personId}`);
+    }
+  }
 }
 
 /** True when nothing in the career contradicts anything else. */
