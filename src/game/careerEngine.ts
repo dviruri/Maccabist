@@ -54,6 +54,7 @@ import {
 import { ageAt } from './cohort';
 import { eligibleForRetrial, resolveOrigin, resolveRetrial } from './originEngine';
 import { planSeason, resolveEventChoice } from './eventEngine';
+import { projectSeason } from './leagueEngine';
 import { computeLegendScore } from './legendEngine';
 import { hasTrait, recordMemory } from './memory';
 import {
@@ -126,6 +127,44 @@ export function hydrateCareer(career: Career): Career {
    */
   if (!hasCoherentIdentity(next) && next.academyStage === 'senior') {
     next = { ...next, currentClubId: MACCABI_ID };
+  }
+
+  /*
+   * Give a pre-v0.4.6 save a live league table (v0.4.6).
+   *
+   * Saves written before this version have no `world.projection`, so a career loaded mid-season
+   * would have no table, no league position and no world-state conditions - the game would work,
+   * but the season would be blank until the next preseason. Projecting one here fills that in.
+   *
+   * Seeded from the career's own `rngState` and season rather than from a fresh random, so
+   * loading the same save twice produces the same table. The career's rngState is deliberately
+   * *not* advanced: consuming a draw here would change every subsequent event in a save made
+   * before this code existed, which is a much worse thing to do to someone's career than a
+   * missing table.
+   */
+  if (!next.world.projection && !isInAcademy(next) && !next.retired) {
+    const migrated = projectSeason(
+      next.world,
+      next.currentClubId,
+      next.currentSeason,
+      next.lastSeasonRecord,
+      next,
+      createRng((next.rngState ^ (next.currentSeason * 2654435761)) >>> 0),
+    );
+    if (migrated) {
+      const maccabi =
+        next.currentClubId === MACCABI_ID
+          ? null
+          : projectSeason(
+              next.world,
+              MACCABI_ID,
+              next.currentSeason,
+              null,
+              null,
+              createRng((next.rngState ^ 0x4d414343 ^ next.currentSeason) >>> 0),
+            );
+      next = { ...next, world: { ...next.world, projection: migrated, maccabiProjection: maccabi } };
+    }
   }
 
   return next;

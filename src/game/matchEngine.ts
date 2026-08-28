@@ -46,7 +46,7 @@ function pickOpponent(career: Career, phase: SeasonPhase): { clubId: string; nam
   const projection = currentProjection(career);
   if (!projection) return null;
 
-  const table = buildTable(career.world, projection, phase);
+  const table = buildTable(career.world, projection, phase, career.world.maccabiProjection);
   const others = table.rows.filter((r) => r.clubId !== career.currentClubId);
   if (others.length === 0) return null;
 
@@ -90,7 +90,9 @@ export function matchContext(career: Career, phaseOverride?: SeasonPhase): Match
   if (!opponent) return null;
 
   const projection = currentProjection(career);
-  const table = projection ? buildTable(career.world, projection, phase) : null;
+  const table = projection
+    ? buildTable(career.world, projection, phase, career.world.maccabiProjection)
+    : null;
   const opponentRow = table?.rows.find((r) => r.clubId === opponent.clubId) ?? null;
   const opponentPosition = opponentRow?.position ?? null;
 

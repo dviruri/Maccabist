@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { CareerTimeline } from '../components/CareerTimeline';
+import { LeagueTableCard } from '../components/LeagueTableCard';
 import { Celebration } from '../components/Celebration';
 import { DebugPanel } from '../components/DebugPanel';
 import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
@@ -45,6 +46,13 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
       <div className="game-layout">
         <aside className="stack">
           <PlayerHub career={career} />
+          {/*
+            מצב הליגה, directly under the hub (v0.4.6).
+            Above the timeline deliberately: the timeline is what already happened, and this is
+            the thing the player needs while deciding - what the club is fighting for right now,
+            and where Maccabi are. Renders nothing in youth football, which has no table.
+          */}
+          <LeagueTableCard career={career} />
           <CareerTimeline career={career} />
           {career.seasonHistory.length > 0 && (
             <section className="card-flat">

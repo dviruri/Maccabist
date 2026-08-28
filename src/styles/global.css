@@ -3718,3 +3718,213 @@ p {
   font-size: 13px;
   line-height: 1.4;
 }
+
+/* =========================================================================
+   CLUB CREST (v0.4.6)
+   Drawn, never loaded. No official crest is reproduced and nothing is fetched,
+   so a badge can never be broken or missing.
+   ========================================================================= */
+
+.crest {
+  flex-shrink: 0;
+  display: block;
+}
+
+/* =========================================================================
+   LEAGUE TABLE (v0.4.6)
+   ========================================================================= */
+
+.table-card {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.table-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.table-league {
+  margin: 2px 0 0;
+  font-size: var(--text-h3);
+  font-weight: 800;
+  color: var(--white);
+}
+
+.table-played {
+  font-size: var(--text-micro);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The one line that says why this season matters. */
+.table-situation {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.28);
+  border-inline-start: 3px solid var(--green-primary);
+}
+
+.table-position {
+  font-size: var(--text-h3);
+  font-weight: 900;
+  color: var(--white);
+  white-space: nowrap;
+}
+
+.table-situation-text {
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+}
+
+.table-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.table-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+  line-height: 1.2;
+}
+
+/* A jump in the numbers means rows were skipped, and should look like it. */
+.table-row.has-gap {
+  margin-block-start: var(--space-2);
+  border-block-start: 1px dashed var(--line);
+  padding-block-start: 10px;
+}
+
+.table-pos {
+  width: 20px;
+  text-align: center;
+  font-size: var(--text-micro);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.table-club {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.table-pts {
+  width: 28px;
+  text-align: end;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/*
+  Zone labels. The word carries the meaning and the colour reinforces it - a table that says
+  "going down" only by being red says nothing to a player who cannot see red.
+*/
+.table-zone {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.zone-title .table-zone,
+.zone-promotion .table-zone {
+  background: rgba(240, 197, 78, 0.16);
+  color: var(--gold);
+}
+
+.zone-europe .table-zone {
+  background: rgba(107, 168, 255, 0.14);
+  color: var(--europe);
+}
+
+.zone-relegation .table-zone {
+  background: rgba(255, 95, 82, 0.14);
+  color: var(--danger);
+}
+
+/* The player's own club. The row he looks for first. */
+.table-row.is-player {
+  background: rgba(15, 166, 74, 0.16);
+  border-inline-start: 3px solid var(--green-bright);
+  padding-inline-start: 5px;
+}
+
+.table-row.is-player .table-club {
+  color: var(--white);
+  font-weight: 800;
+}
+
+/* Maccabi, when he is somewhere else. Marked, but not louder than his own club. */
+.table-row.is-maccabi .table-club {
+  color: var(--green-bright);
+  font-weight: 700;
+}
+
+.table-more {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  font-size: var(--text-micro);
+  font-weight: 700;
+  color: var(--green-bright);
+  cursor: pointer;
+}
+
+/*
+  Maccabi's own position, for a player who is elsewhere. A footnote by design: the current club
+  owns the live narrative, and putting these level with each other would say otherwise.
+*/
+.maccabi-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--line);
+  font-size: var(--text-micro);
+}
+
+.maccabi-status-name {
+  font-weight: 800;
+  color: var(--green-bright);
+}
+
+.maccabi-status-league {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+}
+
+.maccabi-status-pos {
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}

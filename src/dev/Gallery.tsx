@@ -13,7 +13,10 @@ import {
 import { CareerTimeline } from '../components/CareerTimeline';
 import { OriginReveal } from '../components/OriginReveal';
 import { StageLadder } from '../components/StageLadder';
+import { LeagueTableCard } from '../components/LeagueTableCard';
+import { ClubCrest } from '../components/ClubCrest';
 import { resolveOrigin } from '../game/originEngine';
+import { projectSeason } from '../game/leagueEngine';
 import { NewCareerPage } from '../pages/NewCareerPage';
 import { PlayerHub } from '../components/PlayerHub';
 import { SeasonResultCard } from '../components/SeasonCards';
@@ -339,6 +342,28 @@ const memorableSeason = (): Career => {
   };
 };
 
+/*
+ * A senior career with a live projection, for the table scenes. Runs the real projector rather
+ * than hand-building a table, so the gallery shows what the game actually generates.
+ */
+const tableCareer = (clubId: string, seed: number): Career => {
+  const base = seniorAtMaccabi();
+  const career: Career = {
+    ...base,
+    currentClubId: clubId,
+    academyStage: 'senior',
+    currentSeason: 2044,
+    seasonPoint: 'preseason',
+    seasonSlot: 'mid',
+  };
+  const projection = projectSeason(career.world, clubId, 2044, null, null, createRng(seed));
+  const maccabi =
+    clubId === MACCABI_ID
+      ? null
+      : projectSeason(career.world, MACCABI_ID, 2044, null, null, createRng(seed + 91));
+  return { ...career, world: { ...career.world, projection, maccabiProjection: maccabi } };
+};
+
 const originScouted = (): Career => firstOriginOf('scouted');
 const originAccepted = (): Career => firstOriginOf('trial_accepted');
 const originRejected = (): Career => firstOriginOf('trial_rejected');
@@ -481,6 +506,17 @@ export function Gallery(): JSX.Element {
       clean at every width while silently skipping every element on the page.
     */
     ['probe-canary', <div className="canary" style={{ width: 600, height: 8 }} />],
+    ['crests', <div className="row row-wrap" style={{ gap: 10 }}>
+      {['maccabi_haifa','hapoel_haifa','maccabi_tel_aviv','hapoel_tel_aviv','hapoel_beer_sheva',
+        'beitar_jerusalem','maccabi_netanya','bnei_sakhnin','ironi_kiryat_shmona','hapoel_hadera',
+        'maccabi_herzliya','hapoel_kfar_saba','filler_x_a','filler_x_b'].map((id) => (
+        <ClubCrest key={id} clubId={id} name={id} size="large" />
+      ))}
+    </div>],
+    ['table-maccabi', <LeagueTableCard career={tableCareer(MACCABI_ID, 3)} />],
+    ['table-full', <LeagueTableCard career={tableCareer(MACCABI_ID, 3)} defaultOpen />],
+    ['table-away', <LeagueTableCard career={tableCareer('hapoel_hadera', 11)} />],
+    ['table-second', <LeagueTableCard career={tableCareer('hapoel_petah_tikva', 5)} />],
     ['ladder-senior', <StageLadder from="u19" to="senior" />],
     ['ladder-normal', <StageLadder from="children_b" to="children_a" />],
     ['ladder-early', <StageLadder from="children_a" to="youth_b" />],

@@ -282,6 +282,15 @@ export function buildTable(
   world: WorldState,
   projection: SeasonProjection,
   phase: SeasonPhase,
+  /**
+   * Another club whose position is also decided elsewhere (v0.4.6).
+   *
+   * Maccabi is projected in parallel so it has a season wherever the player is. When the player
+   * happens to be in Maccabi's division, that parallel projection and this table were two
+   * separate answers to the same question - the panel said Maccabi were top while the table above
+   * it showed them third. Pinning both projections into one table makes them the same answer.
+   */
+  alsoPin?: SeasonProjection | null,
 ): LeagueTable {
   const shape = leagueShape(projection.leagueId);
   if (!shape) return { leagueId: projection.leagueId, season: projection.season, phase, rows: [] };
@@ -289,17 +298,41 @@ export function buildTable(
   const clubs = membership(world, projection.leagueId, shape);
   const rng = createRng((projection.tableSeed ^ phaseSalt(phase)) >>> 0);
 
+  const pins = new Map<number, string>();
+  const place = (clubId: string, position: number): void => {
+    let slot = clamp(position, 1, shape.size);
+    // Two projections can want the same place; the second takes the nearest free one.
+    for (let step = 0; step <= shape.size; step += 1) {
+      const down = slot + step;
+      const up = slot - step;
+      if (down <= shape.size && !pins.has(down)) { slot = down; break; }
+      if (up >= 1 && !pins.has(up)) { slot = up; break; }
+    }
+    if (!pins.has(slot)) pins.set(slot, clubId);
+  };
+
+  place(projection.clubId, projection.path[phase] ?? projection.finalPosition);
+  if (
+    alsoPin &&
+    alsoPin.clubId !== projection.clubId &&
+    alsoPin.leagueId === projection.leagueId &&
+    clubs.some((c) => c.clubId === alsoPin.clubId)
+  ) {
+    place(alsoPin.clubId, alsoPin.path[phase] ?? alsoPin.finalPosition);
+  }
+
+  const pinned = new Set(pins.values());
   const others = clubs
-    .filter((c) => c.clubId !== projection.clubId)
+    .filter((c) => !pinned.has(c.clubId))
     .map((c) => ({ ...c, sortKey: c.quality + rng.normal(0, 6) }))
     .sort((a, b) => b.sortKey - a.sortKey);
 
-  const target = clamp(projection.path[phase] ?? projection.finalPosition, 1, shape.size);
   const ordered: Array<{ clubId: string; name: string }> = [];
   for (let position = 1; position <= shape.size; position += 1) {
-    if (position === target) {
-      const self = clubs.find((c) => c.clubId === projection.clubId);
-      ordered.push(self ?? { clubId: projection.clubId, name: getClub(projection.clubId).name });
+    const pinnedId = pins.get(position);
+    if (pinnedId) {
+      const club = clubs.find((c) => c.clubId === pinnedId);
+      ordered.push(club ?? { clubId: pinnedId, name: getClub(pinnedId).name });
     } else {
       const next = others.shift();
       if (next) ordered.push(next);
@@ -379,9 +412,15 @@ export function leagueContextFrom(
   world: WorldState,
   projection: SeasonProjection,
   phase: SeasonPhase,
+  /*
+   * The same pin `buildTable` takes, and for the same reason. Without it the context computed
+   * its gaps from an *unpinned* table while the UI drew a pinned one, so the panel could say
+   * "four points off Europe" above a table where the gap was three. One table, one answer.
+   */
+  alsoPin?: SeasonProjection | null,
 ): LeagueContext {
   const shape = leagueShape(projection.leagueId);
-  const table = buildTable(world, projection, phase);
+  const table = buildTable(world, projection, phase, alsoPin);
   const size = shape?.size ?? projection.leagueSize;
   const position = clamp(projection.path[phase] ?? projection.finalPosition, 1, size);
   const row = table.rows[position - 1];
@@ -487,7 +526,7 @@ export function currentProjection(career: Career): SeasonProjection | null {
 export function leagueContextAt(career: Career, phase: SeasonPhase): LeagueContext | null {
   const projection = currentProjection(career);
   if (!projection) return null;
-  return leagueContextFrom(career.world, projection, phase);
+  return leagueContextFrom(career.world, projection, phase, career.world.maccabiProjection);
 }
 
 /** What the player's club is fighting for right now, or null in youth football. */
@@ -499,7 +538,7 @@ export function currentLeagueContext(career: Career): LeagueContext | null {
 export function currentTable(career: Career): LeagueTable | null {
   const projection = currentProjection(career);
   if (!projection) return null;
-  return buildTable(career.world, projection, currentPhase(career));
+  return buildTable(career.world, projection, currentPhase(career), career.world.maccabiProjection);
 }
 
 /** Maccabi's own projection, which exists whether or not the player is there. */
@@ -509,9 +548,31 @@ export function maccabiProjection(career: Career): SeasonProjection | null {
   return projection && projection.season === career.currentSeason ? projection : null;
 }
 
-/** Where Maccabi stands right now, for the side panel and the ambient events. */
+/**
+ * Where Maccabi stands right now, for the side panel and the ambient events.
+ *
+ * When Maccabi share the player's division the answer is read off *his* table rather than from
+ * their own projection, because the pinning above may have had to nudge them a place to avoid a
+ * collision. Reading the projection instead would put the footnote and the table it sits under
+ * one row apart, which is the same contradiction in miniature.
+ */
 export function maccabiLeagueContext(career: Career): LeagueContext | null {
   const projection = maccabiProjection(career);
   if (!projection) return null;
+
+  const own = currentProjection(career);
+  if (own && own.leagueId === projection.leagueId && own.clubId !== MACCABI_ID) {
+    const table = currentTable(career);
+    const row = table?.rows.find((r) => r.clubId === MACCABI_ID);
+    if (row) {
+      return {
+        ...leagueContextFrom(career.world, projection, currentPhase(career), own),
+        position: row.position,
+        points: row.points,
+        played: row.played,
+      };
+    }
+  }
+
   return leagueContextFrom(career.world, projection, currentPhase(career));
 }
