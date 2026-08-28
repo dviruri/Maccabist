@@ -25,6 +25,8 @@ export const MACCABI_EVENTS: GameEvent[] = [
       'אתה יוצא לחימום בחולצה של הקבוצה השנייה. היציע המערבי מזהה אותך, ומתחיל למחוא כפיים.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       bands: ['senior'],
       clubScope: 'formerMaccabi',
       canFaceMaccabi: true,
@@ -99,6 +101,8 @@ export const MACCABI_EVENTS: GameEvent[] = [
       'הנגיעה הראשונה שלך בכדור מלווה בשריקות מכל האצטדיון. הם לא שכחו לאיזו חולצה הלכת.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       bands: ['senior'],
       clubScope: 'formerMaccabi',
       canFaceMaccabi: true,
@@ -172,6 +176,8 @@ export const MACCABI_EVENTS: GameEvent[] = [
       'הכדור עובר את הקו, והאצטדיון משתתק. הפינה שלך פתוחה, והחברים לקבוצה כבר רצים לחגוג.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       bands: ['senior'],
       clubScope: 'formerMaccabi',
       canFaceMaccabi: true,

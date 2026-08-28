@@ -55,6 +55,7 @@ import { ageAt } from './cohort';
 import { eligibleForRetrial, resolveOrigin, resolveRetrial } from './originEngine';
 import { planSeason, resolveEventChoice } from './eventEngine';
 import { projectSeason } from './leagueEngine';
+import { mayDeliverOnField, openParticipation } from './participation';
 import { computeLegendScore } from './legendEngine';
 import { hasTrait, recordMemory } from './memory';
 import {
@@ -464,7 +465,22 @@ function snapshotOpening(career: Career): Career {
 function loadSlotEvents(career: Career, slot: SeasonSlot): Career {
   const next = cloneCareer(career);
   next.seasonSlot = slot;
-  next.pendingEventIds = next.plannedEvents.filter((p) => p.slot === slot).map((p) => p.eventId);
+  /*
+   * The hard participation gate (v0.4.8, Phase 3.3).
+   *
+   * Planning happens at preseason on a noise-free projection, because nothing has been played yet.
+   * By the time a mid- or late-slot event is *delivered* the first half is a fact, so an event
+   * that puts the player on the pitch is dropped here if it turns out he is not on it. This is
+   * what makes "zero appearances means zero on-field moments" true rather than intended.
+   */
+  next.pendingEventIds = next.plannedEvents
+    .filter((p) => p.slot === slot)
+    .filter((p) => {
+      const event = EVENTS_BY_ID[p.eventId];
+      if (event?.conditions?.requiresAppearance !== true) return true;
+      return mayDeliverOnField(next);
+    })
+    .map((p) => p.eventId);
   next.plannedEvents = next.plannedEvents.filter((p) => p.slot !== slot);
   return next;
 }
@@ -606,6 +622,11 @@ export function beginSeason(career: Career): Career {
     next.lastAchievements = [];
     next.lastProgression = null;
     next.firstHalfStats = null;
+    /*
+     * A fresh participation ledger (v0.4.8). Nothing has been played, so on-field events for the
+     * early slot are judged on the noise-free projection rather than on last season's football.
+     */
+    next.seasonParticipation = openParticipation(next.currentSeason);
     next = loadSlotEvents(next, 'early');
     return next;
   });

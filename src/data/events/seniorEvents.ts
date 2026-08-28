@@ -19,6 +19,8 @@ export const SENIOR_EVENTS: GameEvent[] = [
      * `gk_derby_save` instead - a derby is a derby for them too, it is just a different moment.
      */
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       bands: ['senior'],
       atMaccabiSenior: true,
       minRoleValue: 40,
@@ -111,6 +113,8 @@ export const SENIOR_EVENTS: GameEvent[] = [
       'זה מתחיל בפינה אחת של היציע ותוך דקה כל האצטדיון עושה את זה. השם שלך.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       bands: ['senior'],
       atMaccabiSenior: true,
       minRoleValue: 55,
@@ -383,6 +387,8 @@ export const SENIOR_EVENTS: GameEvent[] = [
      * not a thing.
      */
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       bands: ['senior'],
       atMaccabiSenior: true,
       minRoleValue: 55,
@@ -602,7 +608,11 @@ export const SENIOR_EVENTS: GameEvent[] = [
     title: 'הלילה הגדול באירופה',
     description: 'אצטדיון מלא, המנון שכולם מכירים, ואתה בהרכב.',
     category: 'match_moment',
-    conditions: { abroad: true, minAbility: 76, minReputation: 60 },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      abroad: true, minAbility: 76, minReputation: 60,
+    },
     weight: 7,
     cooldownSeasons: 3,
     choices: [
@@ -881,7 +891,11 @@ export const SENIOR_EVENTS: GameEvent[] = [
     description:
       'המועדון מארגן לך ערב פרידה. שלטים ביציעים, המשפחה על הדשא, ועשרות אלפי אנשים ששרים שיר אחד.',
     category: 'match_moment',
-    conditions: { minAge: 34, atMaccabiSenior: true, minMaccabism: 60 },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      minAge: 34, atMaccabiSenior: true, minMaccabism: 60,
+    },
     weight: 9,
     oncePerCareer: true,
     choices: [
@@ -1396,7 +1410,11 @@ export const SENIOR_EVENTS: GameEvent[] = [
     description:
       'אצטדיון מלא, חצי ירוק. יש קריירות שנזכרות בזכות ערב אחד כזה, ויש כאלה שנזכרות בזכות ההחמצה בו.',
     category: 'match_moment',
-    conditions: { bands: ['senior'], minRoleValue: 45, minAge: 20 },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      bands: ['senior'], minRoleValue: 45, minAge: 20,
+    },
     weight: 7,
     rarity: 'uncommon',
     cooldownSeasons: 4,

@@ -6,11 +6,13 @@
  * matches - a half is generated from position, ability, role, coach trust, level and luck.
  */
 
+import { getClub } from '../data/clubs';
 import { clubDisplayName, currentTeamDisplay } from './identity';
 import { TROPHY_DEFS } from '../data/trophies';
 import type { Career, SeasonRecord, SeasonStats, Trophy } from '../types';
 import { POSITIONS, SEASON, TRAITS } from './balance';
 import { hasTrait } from './memory';
+import { creditParticipation, needsAppearanceReconciliation } from './participation';
 import { checkMilestones } from './milestones';
 import { checkTraitReveals } from './traitReveal';
 import {
@@ -200,6 +202,20 @@ export function mergeStats(a: SeasonStats, b: SeasonStats): SeasonStats {
 /* Trophies                                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Did the club win its league this season, according to the only system that decides that?
+ *
+ * Reads the season projection, which v0.4.6 commits at preseason and derives from the final table
+ * position. Returns false when there is no projection at all, which is the right answer: a club
+ * whose league has no modelled table cannot be its champion.
+ */
+function wonLeagueThisSeason(career: Career): boolean {
+  const projection = career.world.projection;
+  if (!projection || projection.season !== career.currentSeason) return false;
+  if (projection.clubId !== career.currentClubId) return false;
+  return projection.finalOutcome === 'champion';
+}
+
 function rollTrophies(career: Career, stats: SeasonStats, rng: Rng): Trophy[] {
   const level = levelContext(career);
   const club = career.currentClubId;
@@ -221,10 +237,42 @@ function rollTrophies(career: Career, stats: SeasonStats, rng: Rng): Trophy[] {
     });
   };
 
-  const isIsraeli = level.isAcademy || level.league.includes('ליג');
-  if (rng.chance(level.titleChance * contribution)) {
-    add(level.isAcademy ? 'youth_championship' : isIsraeli ? 'championship' : 'foreign_championship');
+  /*
+   * v0.4.8: Israeli-or-not comes from the club's country, not from the league's Hebrew name.
+   *
+   * This was `level.league.includes('ליג')`, which is a substring test on a display string. It is
+   * the same class of mistake that made the retirement screen count academy seasons as European
+   * football, and it decided whether a trophy was an Israeli championship or a foreign one.
+   */
+  const isIsraeli = level.isAcademy || getClub(club).country === 'ישראל';
+
+  /*
+   * THE LEAGUE TITLE IS NOT ROLLED (v0.4.8).
+   *
+   * It was: `rng.chance(level.titleChance * contribution)`, where titleChance is a fixed number
+   * on the club record. That is a second opinion about a fact the league table already owns, and
+   * the two disagreed - a Maccabi Herzliya career finished 5th in Liga Leumit and was handed a
+   * championship celebration.
+   *
+   * The season's outcome is committed at preseason by `projectSeason` and cannot leave its band,
+   * so `finalOutcome` here is the outcome that will be recorded. One source, read rather than
+   * re-rolled.
+   *
+   * Age-group football keeps a roll, because an age group has no league table to read - and its
+   * trophy is a `youth_championship`, which is a different competition rather than the same one
+   * decided differently.
+   */
+  if (level.isAcademy) {
+    if (rng.chance(level.titleChance * contribution)) add('youth_championship');
+  } else if (wonLeagueThisSeason(career)) {
+    add(isIsraeli ? 'championship' : 'foreign_championship');
   }
+
+  /*
+   * The cup stays a roll, and that is deliberate: no cup competition is modelled, so there is no
+   * authoritative table to read it from. What matters is that it keeps its own identity - a cup is
+   * never labelled אליפות.
+   */
   if (rng.chance(level.cupChance * contribution)) {
     add(level.isAcademy ? 'youth_cup' : isIsraeli ? 'cup' : 'foreign_cup');
   }
@@ -272,6 +320,11 @@ export function playFirstHalf(career: Career, rng: Rng): Career {
   );
   next = cloneCareer(next);
   next.firstHalfStats = half.stats;
+  /*
+   * The participation ledger (v0.4.8). From here on, the mid and late slots can ask a factual
+   * question instead of a projected one: did he actually play?
+   */
+  next.seasonParticipation = creditParticipation(next, half.stats.appearances, half.stats.starts);
   return next;
 }
 
@@ -286,12 +339,34 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   const games = level.seasonGames - Math.round(level.seasonGames / 2);
   const half = simulateHalfStats(career, rng, games);
   const first = career.firstHalfStats ?? EMPTY_STATS;
-  const full = mergeStats(first, half.stats);
+  let full = mergeStats(first, half.stats);
+
+  /*
+   * Reconciliation (v0.4.8, Phase 3.4).
+   *
+   * If an on-field event fired this season, the player has already been told he was on the pitch.
+   * When the statistics then come out at zero the statistics are the thing that is wrong, and the
+   * season is credited with the appearance the event described rather than settling into a
+   * summary that contradicts what he just read.
+   *
+   * The gate makes this rare - it should only happen when the noise-free projection said "he will
+   * play" and the noisy roll disagreed - but rare is not never, and a contradiction a player can
+   * see is worth one appearance.
+   */
+  if (needsAppearanceReconciliation(career, full.appearances)) {
+    full = { ...full, appearances: 1, starts: Math.max(full.starts, 0) };
+  }
 
   const trophies = rollTrophies(career, full, rng);
   const trophyPoints = trophies.reduce((sum, t) => sum + t.weight, 0);
 
   let next = accumulateCareerTotals(career, half.stats);
+  // The ledger closes on the full season's football, reconciliation included.
+  next.seasonParticipation = {
+    ...creditParticipation(next, half.stats.appearances, half.stats.starts),
+    appearances: full.appearances,
+    starts: full.starts,
+  };
   next.trophies.push(...trophies);
 
   /* ---------------- Maccabi legacy (season level) ---------------- */

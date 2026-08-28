@@ -28,6 +28,7 @@ import {
 import { leagueContextAt } from './leagueEngine';
 import { hasRivalryOfType, matchContext } from './matchEngine';
 import { isAtMaccabi, isAtMaccabiSenior, isOnLoan, isPlayingAbroad } from './rules';
+import { canBeOnField, canHaveStarted } from './participation';
 import { isDerbyEligible } from './worldPredicates';
 import {
   clubStrengthVsLeague,
@@ -171,6 +172,16 @@ export function matchesConditions(
     const strength = clubStrengthVsLeague(career.world, career.currentClubId);
     if (!between(strength, c.minClubStrength, c.maxClubStrength)) return false;
   }
+
+  /*
+   * ---------- v0.4.8: did he actually play? ----------
+   *
+   * An event that puts the player on the pitch requires him to be on it. This used to be gated on
+   * `minRoleValue` - standing in the squad, not playing - so a backup could receive "minute 88,
+   * the ball reaches you" in a season he finished with zero appearances.
+   */
+  if (c.requiresAppearance === true && !canBeOnField(career)) return false;
+  if (c.requiresStart === true && !canHaveStarted(career)) return false;
 
   /* ---------- v0.4.6: the live table, and the fixture ---------- */
   if (!matchesWorldState(career, c, ctx.phase)) return false;

@@ -989,6 +989,8 @@ export const ACADEMY_EVENTS: GameEvent[] = [
      * models as Maccabi Haifa's local derby, and gated on it.
      */
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       bands: ['teens', 'u19'],
       minRoleValue: 42,
       clubScope: 'maccabi',

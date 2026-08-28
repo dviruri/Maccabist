@@ -31,6 +31,8 @@ export const POSITION_EVENTS: GameEvent[] = [
       'שוויון בדרבי, והם מגיעים בהתקפה אחרונה. הכנף שלהם חופשי בצד, והרחבה מתמלאת.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       positions: ['GK'],
       bands: ['senior'],
       minRoleValue: 40,
@@ -212,7 +214,11 @@ export const POSITION_EVENTS: GameEvent[] = [
     description:
       'השופט מצביע על הנקודה הלבנה. אתה הולך לקו, מנקה את היד בגרביים, ומסתכל על הבעיטה שתחליט את המשחק.',
     category: 'match_moment',
-    conditions: { positions: ['GK'], minAge: 12, minRoleValue: 25 },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      positions: ['GK'], minAge: 12, minRoleValue: 25,
+    },
     weight: 8,
     cooldownSeasons: 3,
     choices: [
@@ -418,7 +424,11 @@ export const POSITION_EVENTS: GameEvent[] = [
     description:
       'המאמן מקרין וידאו של החלוץ הכי טוב בליגה, ואז מסתכל עליך. "הוא שלך. כל המשחק. אל תיתן לו לנשום."',
     category: 'match_moment',
-    conditions: { positions: ['CB'], minAge: 13, minRoleValue: 25 },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      positions: ['CB'], minAge: 13, minRoleValue: 25,
+    },
     weight: 9,
     cooldownSeasons: 2,
     choices: [
@@ -744,7 +754,11 @@ export const POSITION_EVENTS: GameEvent[] = [
     description:
       'הכדור אצלך, המגן מולך, והקו הלבן קורא. היציע מתחיל לקום עוד לפני שעשית משהו.',
     category: 'match_moment',
-    conditions: { positions: ['WG'], minAge: 12 },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      positions: ['WG'], minAge: 12,
+    },
     weight: 9,
     cooldownSeasons: 2,
     choices: [

@@ -496,6 +496,32 @@ export interface MatchContext {
   pointsGap: number | null;
 }
 
+/**
+ * What the player has actually played this season (v0.4.8).
+ *
+ * The authoritative participation record, and the thing every on-field event is gated on. Before
+ * this, `match_moment` events gated on `roleValue` - which is standing in the squad, not playing -
+ * so a backup with a decent reputation could be handed "minute 88, the ball reaches you" in a
+ * season he finished with zero appearances. Nought of twenty-one match events checked.
+ *
+ * Written by the season engine as each half is played, reset at preseason. Optional because
+ * v0.4.7 saves have none; `hydrateCareer` rebuilds it from the last season record.
+ */
+export interface SeasonParticipation {
+  /** The season this ledger describes. A stale season means "nothing played yet". */
+  season: number;
+  appearances: number;
+  starts: number;
+  /**
+   * Set when an on-field event has been delivered this season.
+   *
+   * The reconciliation flag. If an event told the player he was on the pitch, the season cannot
+   * settle with zero appearances - the event is evidence, and settlement honours it rather than
+   * contradicting it.
+   */
+  onFieldEventFired?: boolean;
+}
+
 export interface WorldState {
   /**
    * The player's club's season, decided at preseason (v0.4.6). Optional: v0.4.5.1 saves have
@@ -699,6 +725,30 @@ export interface Milestone {
  * every author remembering `atMaccabi: true`, the scope is explicit and the event-audit test
  * checks that anything mentioning Maccabi in its text declares one.
  */
+/**
+ * How an outcome relates to Maccabi, for the Maccabism guard (v0.4.8).
+ *
+ * Deliberately narrow. "The player is currently at Maccabi" is *not* on this list: training hard
+ * at Maccabi is training hard, and it should not make a man more of a Maccabist by itself. What
+ * moves the number is a decision about the club - its identity, its supporters, its people, or
+ * leaving and coming back.
+ */
+export type MaccabiRelevance =
+  /** Not about Maccabi. May not change Maccabism. */
+  | 'none'
+  /** The club's identity, colours, history - what it means to wear the shirt. */
+  | 'identity'
+  /** The supporters, at Sami Ofer or anywhere else. */
+  | 'fans'
+  /** Former teammates, coaches, people from the club. */
+  | 'people'
+  /** Leaving Maccabi, or being asked to. */
+  | 'leaving'
+  /** Coming back, or being asked to. */
+  | 'return'
+  /** Facing them. */
+  | 'opponent';
+
 export type ClubScope =
   /** Only while actually at Maccabi Haifa (academy or senior). */
   | 'maccabi'
@@ -861,6 +911,21 @@ export interface EventConditions {
   /** The event needs a modelled league table to exist at all. */
   requiresLeagueTable?: boolean;
 
+  /* ---------- v0.4.8: participation ---------- */
+  /**
+   * The event puts the player on the pitch, so he must actually be playing (Phase 3.2).
+   *
+   * Checked against the participation ledger once a half has been played, and against a
+   * noise-free minutes projection before that - because `planSeason` chooses the whole season at
+   * preseason, when nothing has been played and the ledger is empty by definition.
+   *
+   * Everything a player can receive while *not* playing - training, a conversation with the
+   * coach, frustration on the bench, media, a loan discussion - is unaffected.
+   */
+  requiresAppearance?: boolean;
+  /** Stronger: he has to have been in the starting eleven, not a substitute. */
+  requiresStart?: boolean;
+
   /* ---------- v0.4.6: the fixture ---------- */
   /**
    * The event describes a derby.
@@ -993,6 +1058,17 @@ export interface EventEffects {
 
 export interface EventOutcome {
   id: string;
+  /**
+   * Why this outcome is allowed to move Maccabism (v0.4.8).
+   *
+   * Maccabism is what the player feels about one club, and it was drifting because of events at
+   * other clubs entirely. An outcome that declares a non-zero `maccabism` effect must say what
+   * about Maccabi happened; `eventValidation` fails the build otherwise, and the runtime guard
+   * zeroes the delta if it somehow gets through.
+   *
+   * `'none'` is the default and means the outcome may not touch Maccabism at all.
+   */
+  maccabiRelevance?: MaccabiRelevance;
   /** Weight before modifiers. Relative to the other outcomes of the same choice. */
   baseWeight: number;
   /** Outcome is impossible unless these hold. */
@@ -1359,6 +1435,13 @@ export interface Career {
 
   /** Stats accumulated in the first half of the season in progress. */
   firstHalfStats: SeasonStats | null;
+  /**
+   * What he has actually played this season (v0.4.8).
+   *
+   * The authoritative participation record. Optional so v0.4.7 saves load; `hydrateCareer`
+   * rebuilds it rather than leaving on-field events ungated.
+   */
+  seasonParticipation?: SeasonParticipation;
   seasonOpening: SeasonOpening | null;
   lastSeasonRecord: SeasonRecord | null;
   lastSeasonDeltas: AttributeDelta[];

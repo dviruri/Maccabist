@@ -546,6 +546,8 @@ export const ARC_EVENTS: GameEvent[] = [
       'שבע דקות בפנים, וכדור חצי-חצי מתגלגל בינך לבין המגן שלהם. הרגל שנפצעה היא זו שקרובה יותר לכדור.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       requiresArc: { id: 'injury_comeback', minStage: 1 },
     },
     weight: 20,
@@ -964,6 +966,8 @@ export const ARC_EVENTS: GameEvent[] = [
       'השופט מצביע על הנקודה. אתה זוכר בדיוק איפה עמדת בפעם הקודמת, ואיך זה נגמר. הכדור אצלך ביד.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       requiresMemory: ['penalty_miss'],
       memoryMinSeasonsAgo: 1,
       minRoleValue: 40,
@@ -1109,6 +1113,8 @@ export const ARC_EVENTS: GameEvent[] = [
       'אותו מגרש אימונים שגדלת בו, אותם צבעים - רק שהפעם אתה בצד השני של המנהרה.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       requiresMemory: ['released_by_maccabi'],
       memoryMinSeasonsAgo: 1,
       atMaccabi: false,

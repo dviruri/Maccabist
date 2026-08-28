@@ -24,7 +24,11 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
     description:
       'מי שפותח בעמדה שלך נפצע בחימום. המאמן סורק את חדר ההלבשה, עוצר עליך ואומר: "אתה מתחיל."',
     category: 'match_moment',
-    conditions: { bands: ['teens', 'u19', 'senior'], maxRoleValue: 70 },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      bands: ['teens', 'u19', 'senior'], maxRoleValue: 70,
+    },
     weight: 9,
     slots: ['mid', 'late'],
     cooldownSeasons: 4,
@@ -304,7 +308,11 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
       'שוויון, המשחק נגמר עוד רגע, והכדור נופל אליך בדיוק בקצה הרחב. היציע כבר על הרגליים.',
     category: 'match_moment',
     // v0.4.6: a ball falling to you at the far edge in the 88th minute is not a keeper's moment.
-    conditions: { bands: ['teens', 'u19', 'senior'], minRoleValue: 38, notPositions: ['GK'] },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      bands: ['teens', 'u19', 'senior'], minRoleValue: 38, notPositions: ['GK'],
+    },
     weight: 8,
     slots: ['late'],
     cooldownSeasons: 2,

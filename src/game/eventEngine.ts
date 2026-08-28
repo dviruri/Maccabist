@@ -21,6 +21,7 @@ import { EVENTS } from './balance';
 // conditionContext moved to conditions.ts (v0.4.1) so decisionEngine can use it without a
 // cycle through this file. Re-exported because callers and tests already import it from here.
 import { conditionContext, matchesConditions } from './conditions';
+import { markOnFieldEvent } from './participation';
 import { calculateOutcomeDistribution, resolveFromDistribution } from './decisionEngine';
 
 export { conditionContext };
@@ -288,6 +289,19 @@ export function resolveEventChoice(
   const before = career;
   let next = career;
   const achievements: Achievement[] = [];
+
+  /*
+   * Record that an on-field event was delivered (v0.4.8).
+   *
+   * The gate in `matchesConditions` should already have prevented this event reaching a player
+   * who is not playing, but the gate at the early slot is a projection rather than a fact - and a
+   * projection can be wrong. Marking it here lets settlement reconcile in the event's favour: the
+   * player has been told he was on the pitch, so the season may not close saying he played
+   * nothing.
+   */
+  if (event.conditions?.requiresAppearance === true) {
+    next = { ...next, seasonParticipation: markOnFieldEvent(next) };
+  }
 
   /*
    * The distribution is computed FIRST, on the untouched career (v0.4.1).

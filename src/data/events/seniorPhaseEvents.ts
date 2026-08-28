@@ -422,7 +422,11 @@ export const SENIOR_PHASE_EVENTS: GameEvent[] = [
     description:
       'שוויון מהמשחק הראשון, אצטדיון מלא, ומי שינצח ממשיך לשלב הבתים. אלה הערבים שזוכרים בעיר.',
     category: 'match_moment',
-    conditions: { seniorPhases: ['established', 'prime'], atMaccabiSenior: true, minRoleValue: 45 },
+    conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
+      seniorPhases: ['established', 'prime'], atMaccabiSenior: true, minRoleValue: 45,
+    },
     weight: 9,
     cooldownSeasons: 3,
     choices: [
@@ -1015,6 +1019,8 @@ export const SENIOR_PHASE_EVENTS: GameEvent[] = [
       'ידעת שזה האחרון עוד לפני שהודעת. בחימום הסתכלת על היציע קצת יותר מדי זמן.',
     category: 'match_moment',
     conditions: {
+      // v0.4.8: on the pitch, so he has to be playing.
+      requiresAppearance: true,
       seniorPhases: ['veteran'],
       atMaccabiSenior: true,
       minAge: 33,
