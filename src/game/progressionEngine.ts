@@ -15,6 +15,7 @@ import {
 import { ACHIEVEMENT_DEFS } from '../data/achievements';
 import { getClub, MACCABI_ID, isMaccabiSenior } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
+import { guardedMaccabismDelta } from './truth';
 import { EXTERNAL_YOUTH_CLUBS } from '../data/youthClubs';
 import type {
   AcademyStage,
@@ -25,6 +26,7 @@ import type {
   Club,
   EventEffects,
   ExpectedRole,
+  MaccabiRelevance,
   MemoryKind,
   ProgressionResult,
   SeasonStats,
@@ -294,14 +296,27 @@ function resolveDestination(target: string, rng: Rng): string | null {
   return target;
 }
 
-/** Applies a set of event/outcome/offer effects and reports the visible deltas. */
-export function applyEffects(career: Career, effects: EventEffects, rng: Rng): EffectsResult {
+/**
+ * Applies a set of event/outcome/offer effects and reports the visible deltas.
+ *
+ * `maccabiRelevance` is what licenses a Maccabism change (v0.4.8). Omitted means "not about
+ * Maccabi", and the delta is dropped - see `guardedMaccabismDelta`. Defaulting to *permissive*
+ * here would leave every existing and future caller free to move the number by accident, which is
+ * exactly how it came to drift in the first place.
+ */
+export function applyEffects(
+  career: Career,
+  effects: EventEffects,
+  rng: Rng,
+  maccabiRelevance?: MaccabiRelevance,
+): EffectsResult {
   const before = career;
   let next = cloneCareer(career);
 
   if (effects.ability) next.ability = clamp(next.ability + effects.ability);
   if (effects.potential) next.hidden.potential = clamp(next.hidden.potential + effects.potential);
-  if (effects.maccabism) next.maccabism = clamp(next.maccabism + effects.maccabism);
+  const maccabismDelta = guardedMaccabismDelta(effects.maccabism, maccabiRelevance);
+  if (maccabismDelta) next.maccabism = clamp(next.maccabism + maccabismDelta);
   if (effects.reputation) next.reputation = clamp(next.reputation + effects.reputation);
   if (effects.coachTrust) next.coachTrust = clamp(next.coachTrust + effects.coachTrust);
   if (effects.roleValue) next.roleValue = clamp(next.roleValue + effects.roleValue);
@@ -636,19 +651,21 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
   if (next.reputation > repCeiling) repChange -= (next.reputation - repCeiling) * 0.22 * fraction * 2;
   next.reputation = clamp(next.reputation + repChange);
 
-  /* ---------- maccabism ---------- */
-  const club = getClub(next.currentClubId);
-  let maccabismChange: number;
-  if (club.isMaccabi) {
-    maccabismChange = SEASON.maccabismPerSeasonAtMaccabi * (0.6 + minutesShare);
-    if (trophyPoints > 0) maccabismChange += trophyPoints * 1.5;
-  } else if (club.country !== 'ישראל') {
-    maccabismChange = SEASON.maccabismPerSeasonAbroad;
-  } else {
-    maccabismChange = SEASON.maccabismPerSeasonOtherIsraeli;
-  }
-  if (career.parentClubId !== null) maccabismChange *= SEASON.maccabismLoanSoftening;
-  next.maccabism = clamp(next.maccabism + maccabismChange * fraction * 2);
+  /*
+   * ---------- maccabism ----------
+   *
+   * REMOVED IN v0.4.8. Maccabism no longer drifts passively.
+   *
+   * This block ran every half-season and changed the number from nothing but which club the
+   * player happened to be at: up at Maccabi, down abroad, sideways at another Israeli club, and
+   * softened on loan. So a career at Maccabi Herzliya accumulated Maccabism for playing well at
+   * Maccabi Herzliya, and a career at Utrecht lost it for existing.
+   *
+   * Maccabism is what the player feels about ONE club, and it is his to spend. Only an explicit
+   * decision about that club may move it - see `maccabismDelta` in outcomeEffects, where an
+   * outcome has to declare *what about Maccabi happened* before its delta is applied. Playing
+   * abroad does not make a man less of a Maccabist; leaving does, and only if he chose to.
+   */
 
   /* ---------- role inside the team ---------- */
   /*

@@ -1,5 +1,6 @@
 import { CareerTimeline } from '../components/CareerTimeline';
 import { Timeline } from '../components/Timeline';
+import { appearanceBreakdown } from '../game/truth';
 import { Chip, Logo, Ltr, NumberBox } from '../components/primitives';
 import { TRAITS_BY_ID } from '../data/traits';
 import { careerStory } from '../game/storyEngine';
@@ -28,10 +29,22 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
   const legend = career.legend;
   const m = career.maccabi;
   const isKeeper = career.position === 'GK';
-  const europeSeasons = career.seasonHistory.filter(
-    (s) => s.league !== 'ליגת העל' && s.league !== 'ליגה לאומית' && s.stats.appearances > 0,
-  );
-  const europeApps = europeSeasons.reduce((sum, s) => sum + s.stats.appearances, 0);
+  /*
+   * v0.4.8: through the domain, not through a string comparison.
+   *
+   * This was `s.league !== 'ליגת העל' && s.league !== 'ליגה לאומית'`, which is football logic
+   * living in a React component and expressed as a test on a Hebrew display name. It had two
+   * bugs at once: every academy season failed the comparison and was counted as European
+   * football, and so did every second-division season, because the filter said 'ליגה לאומית'
+   * and the league is called 'הליגה הלאומית'. A career that never left Israel finished with
+   * "עונות באירופה".
+   *
+   * `appearanceBreakdown` reads the club's country, which is data. The UI does not decide what
+   * counts as abroad.
+   */
+  const breakdown = appearanceBreakdown(career);
+  const europeSeasonCount = breakdown.foreignSeasonsPlayed;
+  const europeApps = breakdown.foreign;
 
   const score = legend?.score ?? 0;
   /*
@@ -104,7 +117,7 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
           )}
           {europeApps > 0 && (
             <div>
-              <Ltr>{europeSeasons.length}</Ltr> עונות באירופה
+              <Ltr>{europeSeasonCount}</Ltr> עונות באירופה
             </div>
           )}
           {/* Never leave the poster empty: a career that never reached Maccabi still had one. */}

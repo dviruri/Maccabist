@@ -339,7 +339,12 @@ export function resolveEventChoice(
       choice.risk === 'risky' && outcome.tone === 'good'
         ? amplifyUpside(outcome.effects, EVENTS.riskyUpsideGain)
         : outcome.effects;
-    const applied = applyEffects(next, effects, rng);
+    /*
+     * The outcome's own Maccabi relevance travels with its effects (v0.4.8). Without it the guard
+     * drops the delta, which is the correct default: an outcome that does not say what about
+     * Maccabi happened may not move how the player feels about Maccabi.
+     */
+    const applied = applyEffects(next, effects, rng, outcome.maccabiRelevance);
     next = applied.career;
     achievements.push(...applied.achievements);
   }

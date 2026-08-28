@@ -8,7 +8,14 @@
 
 import { stageOrder } from '../data/academy';
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
-import type { Career, Club, HomecomingKind, ProgressionResult, TransferOffer } from '../types';
+import type {
+  Career,
+  Club,
+  HomecomingKind,
+  MaccabiRelevance,
+  ProgressionResult,
+  TransferOffer,
+} from '../types';
 import { HOMECOMING, LEAVING, TRANSFERS, YOUTH_TO_SENIOR } from './balance';
 import { nextNaturalStage } from './cohort';
 import {
@@ -90,7 +97,18 @@ export function leavingContext(career: Career, club: Club): {
   note: string;
 } {
   if (!isAtMaccabiSenior(career)) {
-    // Leaving the academy or a loan spell is not a betrayal of anything.
+    /*
+     * Leaving the academy or a loan spell is not a betrayal of anything.
+     *
+     * v0.4.8: and leaving a club that is not Maccabi is not a Maccabi event at all. This returned
+     * -4 or -2 unconditionally, so a rejected boy moving from Hapoel Afula to Hapoel Kfar Saba -
+     * two clubs with nothing to do with Maccabi - lost Maccabism for it. The penalty now applies
+     * only when the club he is leaving actually is Maccabi's.
+     */
+    const leavingMaccabi = getClub(career.currentClubId).isMaccabi === true;
+    if (!leavingMaccabi) {
+      return { maccabism: 0, betrayal: false, memory: null, note: '' };
+    }
     const abroad = club.country !== 'ישראל';
     return {
       maccabism: abroad ? -4 : -2,
@@ -751,7 +769,12 @@ export function acceptOffer(career: Career, offerId: string, rng: Rng): Career {
   const offer = career.pendingOffers.find((o) => o.id === offerId);
   if (!offer) return career;
 
-  let next = applyEffects(career, offer.acceptEffects, rng).career;
+  /*
+   * An accepted offer is a decision about leaving or coming back, so its Maccabism effect is
+   * licensed (v0.4.8). `leavingContext` returns zero when the club being left is not Maccabi's,
+   * so declaring relevance here cannot smuggle a delta into an unrelated move.
+   */
+  let next = applyEffects(career, offer.acceptEffects, rng, offerRelevance(offer)).career;
   const cameFromAcademy = isInAcademy(career);
 
   if (offer.kind === 'loan') {
@@ -792,7 +815,7 @@ export function declineAllOffers(career: Career, rng: Rng): Career {
   let next = career;
   for (const offer of career.pendingOffers) {
     if (offer.mandatory) continue;
-    next = applyEffects(next, offer.declineEffects, rng).career;
+    next = applyEffects(next, offer.declineEffects, rng, offerRelevance(offer)).career;
   }
   next = cloneCareer(next);
   next.pendingOffers = [];
@@ -844,4 +867,15 @@ export function verdictToProgression(
     icon: verdict.icon,
     major: true,
   };
+}
+
+/**
+ * What a transfer offer is, in Maccabism terms (v0.4.8).
+ *
+ * A return-home offer is a decision about coming back; everything else that carries a Maccabism
+ * effect is a decision about leaving. The guard needs one of the two, and `leavingContext` has
+ * already zeroed the delta for moves that do not involve Maccabi at all.
+ */
+function offerRelevance(offer: TransferOffer): MaccabiRelevance {
+  return offer.kind === 'return_home' ? 'return' : 'leaving';
 }

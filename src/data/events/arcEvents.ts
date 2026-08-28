@@ -345,7 +345,6 @@ export const ARC_EVENTS: GameEvent[] = [
             text: 'אמרת שאתה צריך לשחק. במועדון לא התווכחו, וזה בעצמו אמר משהו.',
             effects: {
               transferChance: 0.4,
-              maccabism: -5,
               completeArc: 'coach_relationship',
               remember: 'forced_transfer',
             },
@@ -830,6 +829,7 @@ export const ARC_EVENTS: GameEvent[] = [
             baseWeight: 45,
             tone: 'bad',
             text: 'אתה מדבר עם הבית כל יום ולא מצליח להרגיש שייך. במגרש זה נראה בדיוק ככה.',
+            maccabiRelevance: 'return',
             effects: {
               confidence: -8,
               form: -6,
@@ -851,6 +851,7 @@ export const ARC_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'neutral',
             text: 'אימון, בית, אימון. לא מאושר ולא אומלל - פשוט עובד.',
+            maccabiRelevance: 'return',
             effects: {
               ability: 1,
               maccabism: 3,
@@ -942,6 +943,7 @@ export const ARC_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'neutral',
             text: 'ההרפתקה נגמרה מוקדם. יש כאלה שיגידו שנשברת, ויש כאלה שיגידו שהיית מספיק חכם.',
+            maccabiRelevance: 'return',
             effects: {
               transferChance: 0.55,
               maccabism: 8,
@@ -1173,6 +1175,7 @@ export const ARC_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'neutral',
             text: 'שיחקת בלי רגש מיותר, ואחרי המשחק לחצת יד למאמן שלא רצה אותך. גדלת.',
+            maccabiRelevance: 'opponent',
             effects: { maccabism: 4, discipline: 4, confidence: 3, leadership: 3 },
           },
         ],

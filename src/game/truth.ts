@@ -38,7 +38,13 @@
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { leagueShape } from '../data/leagueShape';
 import { outcomeForPosition } from './leagueEngine';
-import type { Career, ClubSeasonResult, SeasonRecord, Trophy } from '../types';
+import type {
+  Career,
+  ClubSeasonResult,
+  MaccabiRelevance,
+  SeasonRecord,
+  Trophy,
+} from '../types';
 
 /* ------------------------------------------------------------------ */
 /* Competition truth                                                   */
@@ -246,3 +252,47 @@ export const LEAGUE_TROPHY_IDS: readonly string[] = [
 ];
 
 export const CUP_TROPHY_IDS: readonly string[] = ['cup', 'foreign_cup', 'youth_cup'];
+
+/* ------------------------------------------------------------------ */
+/* Maccabism truth (v0.4.8, Phase 7.3)                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The central guard on Maccabism.
+ *
+ * Maccabism is what the player feels about ONE club. It was moving because of a national-team
+ * call-up, a cup final at another club, a dressing-room speech, a contract negotiation, and every
+ * half-season simply for being somewhere - 27 of the events that changed it carried no Maccabi
+ * scope whatsoever, and `applyHalfProgression` changed it passively on top.
+ *
+ * So no delta reaches the career unless the thing that caused it says **what about Maccabi
+ * happened**. `'none'` and `undefined` both mean "not about Maccabi", and both return zero.
+ *
+ * Deliberately a guard rather than a convention. Phase 7.3 is explicit that event authors
+ * remembering the rule is not a mechanism, and this is the one door every path goes through -
+ * events, transfer offers, and anything added later.
+ */
+export function guardedMaccabismDelta(
+  requested: number | undefined,
+  relevance: MaccabiRelevance | undefined,
+): number {
+  if (!requested) return 0;
+  if (relevance === undefined || relevance === 'none') return 0;
+  return requested;
+}
+
+/**
+ * Why a Maccabism change was allowed, for the debug trace (Phase 24).
+ *
+ * A delta with no reason is a validator error, so this never returns an empty string for a delta
+ * that was actually applied.
+ */
+export const MACCABI_RELEVANCE_REASONS: Record<MaccabiRelevance, string> = {
+  none: 'לא קשור למכבי',
+  identity: 'זהות המועדון - החולצה, הסמל, הסרט',
+  fans: 'הקהל',
+  people: 'אנשים מהמועדון',
+  leaving: 'עזיבת מכבי',
+  return: 'חזרה למכבי',
+  opponent: 'משחק מול מכבי',
+};

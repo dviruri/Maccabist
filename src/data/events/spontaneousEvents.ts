@@ -333,7 +333,6 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
               coachTrust: 6,
               roleValue: 6,
               reputation: 5,
-              maccabism: 4,
               form: 7,
             },
             modifiers: [
@@ -363,7 +362,7 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
             tone: 'good',
             preview: 'מסירה מושלמת, וכולם יודעים של מי הכדור',
             text: 'מסירה מושלמת, והוא לא מחטיא. בחדר ההלבשה כולם יודעים של מי הכדור הזה.',
-            effects: { coachTrust: 6, roleValue: 4, confidence: 5, maccabism: 3 },
+            effects: { coachTrust: 6, roleValue: 4, confidence: 5 },
           },
           {
             id: 'wasted',
@@ -620,6 +619,7 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
             baseWeight: 45,
             tone: 'good',
             text: 'הכנסת אותו. המחלקה ירדה למגרש. את המשחק הזה יזכירו לך עוד שנים.',
+            maccabiRelevance: 'identity',
             effects: {
               confidence: 14,
               coachTrust: 10,
@@ -654,6 +654,7 @@ export const SPONTANEOUS_EVENTS: GameEvent[] = [
             baseWeight: 55,
             tone: 'good',
             text: 'העברת, והוא סיים. לא השם שלך בכותרת - אבל הניצחון שלך גם.',
+            maccabiRelevance: 'identity',
             effects: { coachTrust: 7, maccabism: 5, roleValue: 4, confidence: 4 },
           },
           {

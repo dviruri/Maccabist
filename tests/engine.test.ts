@@ -122,16 +122,36 @@ describe('career creation', () => {
 describe('effects', () => {
   it('applies attribute changes and reports deltas', () => {
     const career = newCareer();
-    const result = applyEffects(career, { ability: 5, maccabism: -10, reputation: 3 }, createRng(1));
+    /*
+     * The relevance argument is what licenses the maccabism delta (v0.4.8). Without it the guard
+     * drops it, which is the whole point - this call used to change how the player felt about
+     * Maccabi without saying what about Maccabi had happened.
+     */
+    const result = applyEffects(
+      career,
+      { ability: 5, maccabism: -10, reputation: 3 },
+      createRng(1),
+      'leaving',
+    );
     expect(result.career.ability).toBe(career.ability + 5);
     expect(result.career.maccabism).toBe(career.maccabism - 10);
     expect(result.deltas.map((d) => d.key)).toContain('ability');
     expect(result.deltas.map((d) => d.key)).toContain('maccabism');
   });
 
+  it('drops a maccabism change that does not say what about Maccabi happened', () => {
+    const career = newCareer();
+    for (const relevance of [undefined, 'none' as const]) {
+      const result = applyEffects(career, { ability: 5, maccabism: -10 }, createRng(1), relevance);
+      expect(result.career.maccabism, String(relevance)).toBe(career.maccabism);
+      // ...and nothing else is affected by the guard.
+      expect(result.career.ability).toBe(career.ability + 5);
+    }
+  });
+
   it('clamps visible attributes to 0-100', () => {
     const career = newCareer();
-    const high = applyEffects(career, { ability: 500, maccabism: 500 }, createRng(2)).career;
+    const high = applyEffects(career, { ability: 500, maccabism: 500 }, createRng(2), 'identity').career;
     expect(high.ability).toBe(100);
     expect(high.maccabism).toBe(100);
     const low = applyEffects(career, { ability: -500, reputation: -500 }, createRng(2)).career;
@@ -414,15 +434,24 @@ describe('development', () => {
     expect(upGrowth).toBeGreaterThan(flatGrowth);
   });
 
-  it('gains maccabism at Maccabi and loses it abroad', () => {
-    const atHome = applyHalfProgression(seniorCareer({ maccabism: 60 }), halfContext(), createRng(61));
-    const abroad = applyHalfProgression(
-      seniorCareer({ maccabism: 60, currentClubId: 'benfica' }),
-      halfContext(),
-      createRng(61),
-    );
-    expect(atHome.maccabism).toBeGreaterThan(60);
-    expect(abroad.maccabism).toBeLessThan(60);
+  it('never moves maccabism passively, wherever the player is', () => {
+    /*
+     * This test asserted the opposite until v0.4.8: maccabism up at Maccabi, down abroad, every
+     * half-season, from nothing but which club the player was at. That is the bug - a career at
+     * Maccabi Herzliya accumulated Maccabism for playing well at Maccabi Herzliya, and a career at
+     * Benfica lost it for existing.
+     *
+     * Maccabism is what the player feels about ONE club and it is his to spend. Only an explicit
+     * decision about that club may move it, which is now enforced by `guardedMaccabismDelta`.
+     */
+    for (const clubId of ['maccabi_haifa', 'benfica', 'maccabi_herzliya', 'hapoel_hadera']) {
+      const after = applyHalfProgression(
+        seniorCareer({ maccabism: 60, currentClubId: clubId }),
+        halfContext(),
+        createRng(61),
+      );
+      expect(after.maccabism, clubId).toBe(60);
+    }
   });
 });
 

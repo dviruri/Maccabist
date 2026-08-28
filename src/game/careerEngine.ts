@@ -879,7 +879,12 @@ export function decideRetirement(career: Career, decision: RetirementDecision): 
   if (decision === 'retire') return retire(career);
   return withRng(career, (rng) => {
     const next = cloneCareer(
-      applyEffects(career, { form: 4, maccabism: 2, injuryRisk: 6, confidence: 3 }, rng).career,
+      /*
+       * v0.4.8: the `maccabism: 2` that used to be here is gone. Deciding to play one more season
+       * is a decision about your own body and your own hunger; it is not a statement about
+       * Maccabi, and it fired wherever the player happened to be.
+       */
+      applyEffects(career, { form: 4, injuryRisk: 6, confidence: 3 }, rng).career,
     );
     next.phase = 'preseason';
     return next;

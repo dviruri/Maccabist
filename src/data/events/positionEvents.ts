@@ -52,6 +52,7 @@ export const POSITION_EVENTS: GameEvent[] = [
             tone: 'good',
             preview: 'תצא בזמן ותאסוף את ההרמה מעל שלושה ראשים',
             text: 'יצאת ברגע הנכון ואספת את ההרמה מעל שלושה ראשים. שריקת הסיום, והיציע שר את השם שלך.',
+            maccabiRelevance: 'identity',
             effects: {
               reputation: 8,
               maccabism: 7,
@@ -344,7 +345,7 @@ export const POSITION_EVENTS: GameEvent[] = [
             tone: 'neutral',
             preview: 'במועדון מבינים - משחקים בגיל הזה שווים יותר מאימונים',
             text: 'במועדון מבינים. משחקים בגיל הזה שווים יותר מאימונים, וזה נרשם כמי שיודע מה הוא צריך.',
-            effects: { transferChance: 0.3, confidence: 3, maccabism: -3 },
+            effects: { transferChance: 0.3, confidence: 3 },
           },
           {
             id: 'taken_badly',

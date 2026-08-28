@@ -211,8 +211,20 @@ describe('D-F. bold play: success, collapse, and recovery', () => {
   });
 
   it('E. produces collapses too', () => {
-    const collapsed = careers.filter((c) => (c.legend?.score ?? 0) < 10);
+    /*
+     * The threshold was `< 10` and is now `< 15`, because v0.4.8 removed passive Maccabism drift.
+     * A career that went abroad used to bleed Maccabism every half-season simply for being there,
+     * which dragged the bottom of the Legend Score distribution below ten. That drift was the bug;
+     * the floor moving is its consequence, not a regression.
+     *
+     * The property being tested is unchanged: bold play can end badly. Measured over the same 400
+     * careers - min 10, 4 under 15, 48 under 20, max 98.
+     */
+    const collapsed = careers.filter((c) => (c.legend?.score ?? 0) < 15);
     expect(collapsed.length).toBeGreaterThan(0);
+    // And the spread is still real, which is what "collapse" is relative to.
+    const best = Math.max(...careers.map((c) => c.legend?.score ?? 0));
+    expect(best).toBeGreaterThan(70);
   });
 
   it('F. produces careers that dropped a level and climbed back', () => {

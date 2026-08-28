@@ -52,6 +52,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'good',
             text: 'שלושה מהם עונים תוך דקה. אתה לא שם, ואתה כן שם.',
+            maccabiRelevance: 'people',
             effects: {
               maccabism: 8,
               confidence: 3,
@@ -71,6 +72,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             tone: 'good',
             preview: 'זה צורב, ואתה לוקח את זה לאימון',
             text: 'זה צורב, ואתה לוקח את זה לאימון. לפעמים הכי טוב שיקרה לך זה להרגיש שפספסת משהו.',
+            maccabiRelevance: 'people',
             effects: {
               form: 6,
               confidence: 4,
@@ -127,6 +129,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'neutral',
             text: 'אתה לא מבטיח כלום, והם לא מציעים כלום. אבל שני הצדדים יודעים עכשיו איפה הם עומדים.',
+            maccabiRelevance: 'return',
             effects: {
               maccabism: 9,
               transferChance: 0.12,
@@ -145,6 +148,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'good',
             text: 'אתה סוגר את השיחה ומתמקד במה שיש לך. המאמן שלך היה מאשר.',
+            maccabiRelevance: 'return',
             effects: { coachTrust: 4, form: 3, maccabism: -3 },
             traitModifiers: [{ trait: 'professional', multiplier: 1.4 }],
           },
@@ -180,6 +184,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 72,
             tone: 'good',
             text: 'הפוסט שלך מתגלגל בכל האתרים. בחיפה זוכרים מי דיבר כשהיה קשה.',
+            maccabiRelevance: 'people',
             effects: {
               maccabism: 12,
               reputation: 3,
@@ -192,6 +197,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 28,
             tone: 'bad',
             text: 'חלק קוראים את זה כרחמים. "איפה היית כשהיינו צריכים אותך?"',
+            maccabiRelevance: 'people',
             effects: { maccabism: 4, pressure: 4, remember: 'maccabi_relegated_while_away' },
           },
         ],
@@ -206,6 +212,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'good',
             text: 'שתי הודעות פרטיות, בלי מצלמות. שני האנשים שקיבלו אותן לא ישכחו.',
+            maccabiRelevance: 'people',
             effects: {
               maccabism: 8,
               flags: ['loyalty_moment'],
@@ -248,6 +255,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'neutral',
             text: 'הסוכן עושה טלפון אחד. עכשיו זה תלוי בהם.',
+            maccabiRelevance: 'return',
             effects: { maccabism: 6, transferChance: 0.2, remember: 'maccabi_asked_about_me' },
           },
         ],
