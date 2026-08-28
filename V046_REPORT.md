@@ -133,6 +133,10 @@ Excluding him was necessary and not sufficient, so keepers now have **`gk_derby_
 is a derby for a goalkeeper too; it is a different moment, and the memory it leaves is a save
 rather than a goal.
 
+Excluding keepers from `spon_form_slump` left the same kind of hole — a keeper's form goes for
+exactly the same reasons and looks nothing like a striker's — so **`gk_form_slump`** was written
+too. Both are reachable: `gk_derby_save` in 40.7% of goalkeeper careers, `gk_form_slump` in 82.7%.
+
 ### 5.1 The rule, stated once
 
 `src/game/eventClaims.ts` scans each event's **presented** text — kicker, title, description — for
@@ -326,10 +330,6 @@ red row means nothing to someone who cannot see red.
 ---
 
 ## 11. Known issues
-
-**`spon_form_slump` no longer reaches goalkeepers, and nothing replaced it.** Excluding them was
-right — "לא נכנס לך כלום" is a scoring drought — but a keeper's bad run is a real thing and there
-is now no event for it. `gk_derby_save` covers the derby gap; this one is open.
 
 **Rivalries are Israeli only.** Six pairs, all in ליגת העל. A player abroad has no derby, which is
 honest rather than wrong — the dataset models one or two clubs per European league, so there is

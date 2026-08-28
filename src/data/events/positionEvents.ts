@@ -123,6 +123,88 @@ export const POSITION_EVENTS: GameEvent[] = [
       },
     ],
   },
+  /*
+   * A goalkeeper's bad run (v0.4.6).
+   *
+   * `spon_form_slump` is a scoring drought - "לא נכנס לך כלום", and the choices are about
+   * shooting - so v0.4.6 excluded goalkeepers from it. That was right and it left a hole: a
+   * keeper's form goes for exactly the same reasons and looks nothing like a striker's.
+   */
+  {
+    id: 'gk_form_slump',
+    kicker: 'שלושה משחקים, שישה ספיגות',
+    title: 'הכדורים נכנסים',
+    description:
+      'אף אחת מהן לא הייתה טעות ברורה, וזה חלק מהבעיה. אתה מתחיל לחשוב לפני שאתה זז.',
+    category: 'competition',
+    conditions: { positions: ['GK'], bands: ['u19', 'senior'], maxForm: 48, minRoleValue: 35 },
+    weight: 9,
+    cooldownSeasons: 2,
+    choices: [
+      {
+        id: 'video',
+        label: 'לשבת שעות על הווידאו',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'found_it',
+            baseWeight: 45,
+            tone: 'good',
+            preview: 'תמצא צעד אחד שאתה עושה מאוחר מדי, ותתקן אותו',
+            text: 'מצאת את זה: צעד ראשון מאוחר בחצי שנייה. שבועיים של תיקון, ואתה שוב מגיע לכדורים.',
+            effects: { form: 12, confidence: 8, coachTrust: 4, ability: 0.4 },
+          },
+          {
+            id: 'overthinking',
+            baseWeight: 32,
+            tone: 'bad',
+            preview: 'תראה יותר מדי, ותתחיל לחשוב במקום לזוז',
+            text: 'ראית יותר מדי. עכשיו אתה חושב על העמידה במקום פשוט לעמוד, וזה איטי יותר.',
+            effects: { confidence: -10, form: -6 },
+          },
+          {
+            id: 'nothing_wrong',
+            baseWeight: 23,
+            tone: 'neutral',
+            preview: 'תגלה שלא עשית שום דבר רע - וזה לא מנחם',
+            text: 'מאמן השוערים אמר שלא עשית כלום רע. זה נכון, וזה לא מנחם במיוחד.',
+            effects: { confidence: 2 },
+          },
+        ],
+      },
+      {
+        id: 'talk_defence',
+        label: 'לדבר עם הבלמים',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'line_holds',
+            baseWeight: 48,
+            tone: 'good',
+            preview: 'הקו יעלה עשרה מטרים, ופתאום אתה מגן על פחות',
+            text: 'העליתם את הקו עשרה מטרים. פתאום אתה מגן על שטח קטן יותר, והספיגות נפסקות.',
+            effects: { form: 10, coachTrust: 7, roleValue: 4, confidence: 6 },
+          },
+          {
+            id: 'blamed',
+            baseWeight: 30,
+            tone: 'bad',
+            preview: 'הם ישמעו שאתה מאשים אותם',
+            text: 'הם שמעו את זה כהאשמה. בחדר ההלבשה נהיה שקט שלוקח חודש להיעלם.',
+            effects: { coachTrust: -6, confidence: -6, roleValue: -4 },
+          },
+          {
+            id: 'no_change',
+            baseWeight: 22,
+            tone: 'neutral',
+            preview: 'כולם יסכימו, ואף אחד לא ישנה כלום',
+            text: 'כולם הסכימו איתך, ואז שיחקו בדיוק אותו הדבר בשבת.',
+            effects: {},
+          },
+        ],
+      },
+    ],
+  },
   {
     id: 'gk_penalty_save',
     kicker: 'דקה 90, 1:1',
