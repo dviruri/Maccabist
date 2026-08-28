@@ -17,6 +17,8 @@ import { LeagueTableCard } from '../components/LeagueTableCard';
 import { MidSeasonCard } from '../components/SeasonCards';
 import { GamePage } from '../pages/GamePage';
 import { Sheet } from '../components/Sheet';
+import { endManagerTenure, installManager, signAgent, startPersonalCoach } from '../game/peopleEngine';
+import { PeopleCard } from '../components/PeopleCard';
 import type { GameActions } from '../state/useGame';
 import { ClubCrest } from '../components/ClubCrest';
 import { resolveOrigin } from '../game/originEngine';
@@ -107,6 +109,33 @@ const seniorAtMaccabi = (): Career => {
     maccabi: { ...career.maccabi, appearances: 96, seasons: 3, academyGraduate: true, academySeasons: 9 },
   };
 };
+/** A career with every kind of person attached, for the people-screen scene (v0.5). */
+const peopleCareer = (): Career => {
+  let career = seniorAtMaccabi();
+  career = installManager(endManagerTenure(career, true));
+  career = signAgent(career, 'israel_networker');
+  career = startPersonalCoach(career, 'technical');
+  if (career.people?.manager) {
+    career = {
+      ...career,
+      people: {
+        ...career.people,
+        manager: { ...career.people.manager, gaveDebut: true },
+        managerHistory: [
+          {
+            person: { id: 'px_mgr', type: 'club_manager', name: 'דורון אזולאי', shortName: 'אזולאי', archetypeId: 'conservative', createdSeason: 2040, country: 'ישראל' },
+            clubId: 'hapoel_haifa',
+            fromSeason: 2040,
+            toSeason: 2043,
+            finalTrust: 58,
+          },
+        ],
+      },
+    };
+  }
+  return career;
+};
+
 
 /** A boy in the academy. */
 const academyBoy = (): Career =>
@@ -640,6 +669,10 @@ export function Gallery(): JSX.Element {
     ['loan-offer', <OffersCard offers={loanOffers()} onAccept={noop} onDecline={noop} fromClub="מכבי חיפה" />],
     ['sheet-table', <Sheet open title="ליגת העל" subtitle="מחזור 13" onClose={noop}>
       <LeagueTableCard career={tableCareer(MACCABI_ID, 3)} defaultOpen inSheet />
+    </Sheet>],
+    /* v0.5: the people screen, with every relationship populated so the layout is stressed. */
+    ['sheet-people', <Sheet open title="האנשים שלי" onClose={noop}>
+      <PeopleCard career={peopleCareer()} />
     </Sheet>],
     ['sheet-timeline', <Sheet open title="סיפור הקריירה" onClose={noop}>
       <CareerTimeline career={retiredLegend()} defaultOpen />
