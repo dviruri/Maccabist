@@ -396,6 +396,44 @@ describe('real careers do not contradict themselves', () => {
     expect(violations.slice(0, 5)).toEqual([]);
   });
 
+  /*
+   * The two bugs the 50,000-career scan found and 20,000 did not. Both are pinned by their own
+   * seed, because a population test that only samples 150 careers is exactly what missed them.
+   */
+  it('counts a title won on loan at Maccabi (seed 3119)', () => {
+    /*
+     * The counters were incremented inside the countsForMaccabiLegacy branch, which requires
+     * parentClubId === null - so a title won on loan at Maccabi awarded a trophy with
+     * clubId maccabi_haifa and counted nothing. They are recomputed from the trophy list now.
+     */
+    const career = simulateCareer({ playerName: 'ת', position: 'ST', seed: 3119, policy: balancedPolicy });
+    const titles = career.trophies.filter(
+      (t) => t.clubId === MACCABI_ID && t.id === 'championship',
+    ).length;
+    expect(titles).toBeGreaterThan(0);
+    expect(career.maccabi.championships).toBe(titles);
+  });
+
+  it('does not fire an on-field event into a settled empty season (seed 44241)', () => {
+    /*
+     * playSecondHalf settles the season at the end of the MID slot; the late slot loads after it.
+     * firstHalfStats is null for that whole slot, so the gate concluded the season had not been
+     * played and fell back to the projection.
+     */
+    const career = simulateCareer({ playerName: 'ת', position: 'CM', seed: 44241, policy: balancedPolicy });
+    expect(validateCareerIntegrity(career)).toEqual([]);
+  });
+
+  it('keeps the maccabi counters equal to the trophy list across a population', () => {
+    for (let seed = 1; seed <= 200; seed += 1) {
+      const career = simulateCareer({ playerName: 'ת', position: 'ST', seed, policy: balancedPolicy });
+      const titles = career.trophies.filter(
+        (t) => t.clubId === MACCABI_ID && t.id === 'championship',
+      ).length;
+      expect(career.maccabi.championships, `seed ${seed}`).toBe(titles);
+    }
+  });
+
   it('never records a league title in a season the club did not win', () => {
     for (let seed = 1; seed <= 150; seed += 1) {
       const career = simulateCareer({ playerName: 'ת', position: 'ST', seed, policy: balancedPolicy });
