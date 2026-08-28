@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { MACCABI_ID } from '../src/data/clubs';
-import { hydrateCareer } from '../src/game/careerEngine';
+import { hydrateCareer, SCHEMA_VERSION } from '../src/game/careerEngine';
 import {
   buildTable,
   currentLeagueContext,
@@ -139,6 +139,45 @@ describe('a save from before v0.4.6', () => {
   it('does not project a season for a retired career', () => {
     const done = { ...oldSave(6), retired: true };
     expect(roundTrip(done).world.projection ?? null).toBeNull();
+  });
+});
+
+describe('the save schema did not break', () => {
+  it('is still version 4, so v0.4.5.1 saves are migrated and not discarded', () => {
+    /*
+     * This matters more than it looks. `loadCareer` treats a save whose schemaVersion differs
+     * from SCHEMA_VERSION as *stale* and deletes it. Everything v0.4.6 added is optional -
+     * world.projection, world.maccabiProjection, ClubSeasonResult.finalPosition,
+     * EventOutcome.preview, two MemoryKinds - so a bump would have thrown away every existing
+     * career for no reason at all.
+     */
+    expect(SCHEMA_VERSION).toBe(4);
+  });
+
+  it('loads a save that predates every v0.4.6 field', () => {
+    const career = seniorSave(11);
+    const world = { ...career.world };
+    delete (world as { projection?: unknown }).projection;
+    delete (world as { maccabiProjection?: unknown }).maccabiProjection;
+    const stripped: Career = {
+      ...career,
+      world: {
+        ...world,
+        // Pre-v0.4.6 club seasons carry no finishing position.
+        clubSeasons: world.clubSeasons.map((s) => {
+          const copy = { ...s };
+          delete (copy as { finalPosition?: unknown }).finalPosition;
+          return copy;
+        }),
+      },
+    };
+
+    const loaded = roundTrip(stripped);
+    expect(loaded.seasonHistory).toEqual(stripped.seasonHistory);
+    expect(loaded.memories).toEqual(stripped.memories);
+    // The old results keep their outcome; only new seasons get a position.
+    expect(loaded.world.clubSeasons.every((s) => s.outcome !== undefined)).toBe(true);
+    expect(loaded.world.projection).toBeTruthy();
   });
 });
 
