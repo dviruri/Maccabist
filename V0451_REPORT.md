@@ -264,20 +264,41 @@ balanced 0    loyalist 0    ambitious 0    bold 0    riskTaker 0    random 0
 
 Zero invalid natural-stage repeats across all 84,000 careers.
 
-**Strategy separation.** Average Legend Score by policy:
+**Strategy separation.** Matched-seed comparison, 3,000 seeds run through all six policies, so
+each row is the same 3,000 careers played differently:
 
 ```
-loyalist    46.7      playing for the badge is the best strategy in the game
-balanced    43.6
-bold        34.0
-ambitious   28.9      chasing every move is not free
-random      28.2
-riskTaker   18.7      the deliberate worst case: preferring `risky` over `opportunity`
+  strategy        mean  median     sd   seniors  beats base  vs base
+  ------------------------------------------------------------------
+  loyalist        46.2    29.0   32.2     54.6%       75.8%     18.6
+  balanced        43.1    37.0   25.6     65.9%       74.5%     15.5
+  bold            33.8    29.0   19.3     70.9%       63.0%      6.3
+  ambitious       28.7    23.0   17.7     65.5%       54.9%      1.2
+  random          27.6    21.0   21.2     55.0%        0.0%      0.0
+  riskTaker       18.5    16.0   13.3     62.2%       28.2%     -9.1
 ```
 
-The ordering is the one the design intends. `riskTaker` sitting well below `random` is the
-important one — it confirms that risky choices are a genuine trap rather than a bonus, since
-`riskTaker` differs from `random` only by *preferring* them.
+Three things in that table are worth reading carefully, and the first corrects a claim that the
+averages alone would support:
+
+**Loyalty is not simply the best strategy — it is the high-variance one.** It has the highest mean
+(46.2) and by that measure looks dominant, but its median is 29.0 against balanced's 37.0, its
+standard deviation is the largest in the table by a wide margin (32.2), and it reaches senior
+football least often of all six (54.6%). Staying at Maccabi is the only route to the very top and
+it is also the route that most often ends without a senior career at all. A typical loyal career
+is worse than a typical balanced one; an exceptional loyal career is the best thing in the game.
+That is a better design outcome than "loyalty wins", and it is only visible seed-by-seed.
+
+**Risky choices are a genuine trap.** `riskTaker` differs from `random` only by *preferring*
+`risky` options over `opportunity` ones, and it beats random on just **28.2%** of matched seeds —
+so on nearly three seeds in four, actively seeking risk is worse than choosing at random.
+
+**Decisions outweigh luck.** Seed-driven spread (one strategy across seeds) is 21.23; decision-
+driven spread (one seed across strategies) is **46.65**. How the career is played matters more
+than twice as much as which career it is.
+
+Luck validation: same seed reproduces the career (PASS), different seeds diverge (PASS), 93
+distinct Legend Scores over 400 seeds, full 1–100 range, 13 distinct endings reached.
 
 ## 9. What this version did not finish
 
