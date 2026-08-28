@@ -12,6 +12,7 @@ import { EVENT_POOL } from '../src/data/events';
 import { getClub, MACCABI_ID } from '../src/data/clubs';
 import { leagueShape } from '../src/data/leagueShape';
 import { createCareer, hydrateCareer } from '../src/game/careerEngine';
+import { isEventEligible } from '../src/game/eventEngine';
 import { validateCareerIntegrity } from '../src/game/integrity';
 import { outcomeForPosition, positionsForOutcome, projectSeason } from '../src/game/leagueEngine';
 import { applyEffects } from '../src/game/progressionEngine';
@@ -400,6 +401,118 @@ describe('the decision reveal can lock onto the resolved outcome', () => {
       const a = simulateCareer({ playerName: 'ת', position: 'ST', seed, policy: balancedPolicy });
       const b = simulateCareer({ playerName: 'ת', position: 'ST', seed, policy: balancedPolicy });
       expect(a.eventsHistory.map((e) => e.outcomeId)).toEqual(b.eventsHistory.map((e) => e.outcomeId));
+    }
+  });
+});
+
+describe('A. a Maccabi senior with zero appearances', () => {
+  /*
+   * The reported bug. A player signed a senior contract at Maccabi, received live on-field match
+   * events - "minute 88, the ball reaches you" - and finished the season with 0 appearances,
+   * because match moments gated on roleValue rather than on playing.
+   */
+  function backupWithNoFootball(): Career {
+    const base = createCareer({ playerName: 'ס', position: 'CM', seed: 8 });
+    return {
+      ...base,
+      academyStage: 'senior',
+      currentClubId: MACCABI_ID,
+      age: 19,
+      // Signed, but nowhere near the team: well below the level, no trust, no minutes.
+      ability: 42,
+      roleValue: 30,
+      coachTrust: 22,
+      currentSeason: 2040,
+      seasonPoint: 'midseason',
+      seasonSlot: 'mid',
+      // The first half has been played and produced nothing.
+      firstHalfStats: {
+        appearances: 0,
+        starts: 0,
+        goals: 0,
+        assists: 0,
+        cleanSheets: 0,
+        goalsConceded: 0,
+        rating: 0,
+        injuredGames: 0,
+      },
+      seasonParticipation: { season: 2040, appearances: 0, starts: 0 },
+    };
+  }
+
+  it('is offered no on-field event at all', () => {
+    const career = backupWithNoFootball();
+    for (const slot of ['early', 'mid', 'late'] as const) {
+      const onField = EVENT_POOL.filter(
+        (e) => e.conditions?.requiresAppearance === true && isEventEligible(e, career, slot),
+      ).map((e) => e.id);
+      expect(onField, slot).toEqual([]);
+    }
+  });
+
+  it('is still offered the things that happen off the pitch', () => {
+    /*
+     * The gate must not silence him. Training, the coach, the bench, the media and a loan
+     * discussion are exactly what a season like this is made of.
+     */
+    const career = backupWithNoFootball();
+    const offered = new Set(
+      (['early', 'mid', 'late'] as const).flatMap((slot) =>
+        EVENT_POOL.filter((e) => isEventEligible(e, career, slot)).map((e) => e.id),
+      ),
+    );
+    expect(offered.size).toBeGreaterThan(5);
+    // And none of what he is offered puts him on the pitch.
+    for (const id of offered) {
+      const event = EVENT_POOL.find((e) => e.id === id);
+      expect(event?.conditions?.requiresAppearance, id).not.toBe(true);
+    }
+  });
+
+  it('lets a player who is actually playing have them', () => {
+    // The converse, so the gate is not simply switched off for everyone.
+    const playing: Career = {
+      ...backupWithNoFootball(),
+      ability: 78,
+      roleValue: 72,
+      coachTrust: 70,
+      firstHalfStats: {
+        appearances: 14,
+        starts: 12,
+        goals: 3,
+        assists: 2,
+        cleanSheets: 0,
+        goalsConceded: 0,
+        rating: 72,
+        injuredGames: 0,
+      },
+      seasonParticipation: { season: 2040, appearances: 14, starts: 12 },
+    };
+    const onField = EVENT_POOL.filter(
+      (e) => e.conditions?.requiresAppearance === true && isEventEligible(e, playing, 'mid'),
+    );
+    expect(onField.length).toBeGreaterThan(0);
+  });
+
+  it('never records an on-field event in a season with no appearances, across real careers', () => {
+    /*
+     * B, the reconciliation direction. If a match moment did fire, settlement credits the
+     * appearance rather than closing a season that contradicts what the player just read.
+     */
+    for (let seed = 1; seed <= 200; seed += 1) {
+      const career = simulateCareer({ playerName: 'ס', position: 'CM', seed, policy: balancedPolicy });
+      const onFieldIds = new Set(
+        EVENT_POOL.filter((e) => e.conditions?.requiresAppearance === true).map((e) => e.id),
+      );
+      for (const entry of career.eventsHistory) {
+        if (!onFieldIds.has(entry.eventId)) continue;
+        const record = career.seasonHistory.find((r) => r.season === entry.season);
+        if (!record) continue;
+        expect(
+          record.stats.appearances,
+          `seed ${seed}: ${entry.eventId} in ${entry.season}`,
+        ).toBeGreaterThan(0);
+      }
     }
   });
 });
