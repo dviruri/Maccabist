@@ -32,10 +32,10 @@ export const PEOPLE_EVENTS: GameEvent[] = [
     description:
       'איש בשנות החמישים שלו, בלי כרטיס ביקור מבריק. הוא מכיר את אבא שלך מהעבודה, והוא מלווה שני שחקנים צעירים בליגה. "אני לא מבטיח לך אירופה. אני מבטיח שיהיה מישהו שעונה לטלפון."',
     category: 'people',
-    conditions: { agentEligibleStage: true, forbidsAgent: true, maxReputation: 40 },
+    conditions: { agentEligibleStage: true, forbidsAgent: true, maxReputation: 30 },
     slots: ['early', 'mid'],
-    weight: 7,
-    oncePerCareer: true,
+    weight: 16,
+    cooldownSeasons: 3,
     choices: [
       {
         id: 'sign',
@@ -78,8 +78,8 @@ export const PEOPLE_EVENTS: GameEvent[] = [
     category: 'people',
     conditions: { agentEligibleStage: true, forbidsAgent: true, minReputation: 18 },
     slots: ['early', 'mid'],
-    weight: 5,
-    oncePerCareer: true,
+    weight: 18,
+    cooldownSeasons: 3,
     choices: [
       {
         id: 'sign',
@@ -123,8 +123,8 @@ export const PEOPLE_EVENTS: GameEvent[] = [
     category: 'people',
     conditions: { agentEligibleStage: true, forbidsAgent: true, minReputation: 26 },
     slots: ['early', 'mid'],
-    weight: 4,
-    oncePerCareer: true,
+    weight: 16,
+    cooldownSeasons: 3,
     choices: [
       {
         id: 'sign',
@@ -173,7 +173,7 @@ export const PEOPLE_EVENTS: GameEvent[] = [
       abroad: false,
     },
     slots: ['early'],
-    weight: 3,
+    weight: 9,
     oncePerCareer: true,
     choices: [
       {

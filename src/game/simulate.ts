@@ -76,6 +76,22 @@ function callsItADay(career: Career, threshold: number): RetirementDecision {
   return retirementChance(career) >= threshold ? 'retire' : 'continue';
 }
 
+/**
+ * v0.5: representation when it knocks (probabilistically - waiting lets a better fit approach).
+ *
+ * Shared by every persona that models a real player, because having an agent is not a
+ * personality trait: the bold and the loyal both sign, they just want different things from him.
+ * The stress-test personas (random, riskTaker) stay agnostic on purpose.
+ */
+function takeRepresentation(event: GameEvent, career: Career, rng: Rng): string | null {
+  if (career.people?.agent) return null;
+  const approach = event.choices.find((c) =>
+    c.outcomes.some((o) => o.effects?.signAgent !== undefined),
+  );
+  if (approach && rng.chance(0.55)) return approach.id;
+  return null;
+}
+
 export const randomPolicy: CareerPolicy = {
   pickChoice: (event, _career, rng) => rng.pick(event.choices).id,
   pickOffer: (offers, _career, rng) => {
@@ -95,6 +111,8 @@ export const randomPolicy: CareerPolicy = {
  */
 export const ambitiousPolicy: CareerPolicy = {
   pickChoice: (event, career, rng) => {
+    const representation = takeRepresentation(event, career, rng);
+    if (representation) return representation;
     const chances = event.choices.filter((c) => c.risk === 'opportunity');
     if (chances.length > 0) return rng.pick(chances).id;
 
@@ -124,6 +142,15 @@ export const balancedPolicy: CareerPolicy = {
     const byRisk = (risk: ChoiceRisk): EventChoice[] => event.choices.filter((c) => c.risk === risk);
     const struggling = career.hidden.confidence < 42 || career.hidden.form < 42;
     const developing = career.age <= 17;
+
+    /*
+     * v0.5: a sensible player takes representation when it knocks - measured, 911 of 1019
+     * approaches arrive during a rough patch, and declining because things are hard is
+     * backwards. Probabilistic, so the earliest knock (the family agent) does not foreclose
+     * every later, better-fitting one.
+     */
+    const representation = takeRepresentation(event, career, rng);
+    if (representation) return representation;
 
     // In a bad spell, steady the ship rather than gamble on top of a gamble.
     const preferred = struggling
@@ -201,6 +228,8 @@ export const riskTakerPolicy: CareerPolicy = {
  */
 export const boldPolicy: CareerPolicy = {
   pickChoice: (event, career, rng) => {
+    const representation = takeRepresentation(event, career, rng);
+    if (representation) return representation;
     // The best upside available, weighing how likely it actually is.
     const scored = event.choices.map((choice) => {
       const dist = calculateOutcomeDistribution(career, event, choice, career.seasonSlot);
@@ -235,7 +264,9 @@ export const boldPolicy: CareerPolicy = {
 
 /** A one-club man: takes the safe road and never leaves willingly. */
 export const loyalPolicy: CareerPolicy = {
-  pickChoice: (event, _career, rng) => {
+  pickChoice: (event, career, rng) => {
+    const representation = takeRepresentation(event, career, rng);
+    if (representation) return representation;
     const safe = event.choices.filter((c) => c.risk === 'safe' || c.risk === 'balanced');
     return safe.length > 0 ? rng.pick(safe).id : rng.pick(event.choices).id;
   },

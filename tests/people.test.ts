@@ -224,7 +224,6 @@ describe('F. aggressive agent', () => {
   it('cannot negotiate a backup into a star, or an implausible player into anything', () => {
     const career = signAgent(seniorAt(MACCABI_ID), 'super_agent');
     const club = getClub('az_alkmaar');
-    const rng = createRng(1);
 
     // The middle of the ladder can move one step - and only when ability is close.
     const plausible = { ...career, ability: club.quality + 2 };

@@ -153,6 +153,15 @@ export function selectionWeight(
     if (usedCategories.includes('people')) return 0;
     const last = career.people?.lastPeopleEventSeason;
     if (last !== undefined && career.currentSeason - last <= 1) weight *= 0.5;
+    /*
+     * Representation seeks out the unrepresented (v0.5, Phase 6). The approach events are
+     * oncePerCareer and gated on having no agent, yet at flat weight they compete with every
+     * manager and coach event for the single people slot - measured at 13-20% of careers ever
+     * signing, against the brief's "formal representation becomes normal around נוער". Tripling
+     * them WHILE the player is unrepresented models the real asymmetry: agents chase rising
+     * players far harder than any other person in football chases anyone.
+     */
+    if (event.conditions.forbidsAgent === true && !career.people?.agent) weight *= 3;
   }
   return weight;
 }
