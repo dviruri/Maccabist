@@ -305,6 +305,9 @@ function matchesPeople(career: Career, c: EventConditions): boolean {
   if (c.minCoachSeasonsTogether !== undefined) {
     if (!coach || coach.seasonsTogether < c.minCoachSeasonsTogether) return false;
   }
+  if (c.newManagerThisSeason !== undefined) {
+    if (career.newCoachThisSeason !== c.newManagerThisSeason) return false;
+  }
 
   return true;
 }

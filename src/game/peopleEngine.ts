@@ -254,9 +254,16 @@ export function managerArchetypeOf(career: Career): ManagerArchetype {
 /* Manager influence (Phases 16, 18)                                   */
 /* ------------------------------------------------------------------ */
 
-/** True while the manager would still call him a young player. */
+/**
+ * True while the manager would still call him a young player - IN PROFESSIONAL FOOTBALL.
+ *
+ * Inside the academy the youth modifiers are deliberately inert: every boy in ילדים ב׳ is a
+ * youth, so "prefers youth" would collapse into a flat per-seed bonus handed out by the archetype
+ * hash - a whole childhood of extra minutes decided by luck, discriminating between nobody.
+ * Archetype starts meaning something when there are grown men to be picked ahead of.
+ */
 function isYouthToManager(career: Career): boolean {
-  return career.age < 21;
+  return career.academyStage === 'senior' && career.age < 21;
 }
 
 /**
@@ -267,6 +274,8 @@ function isYouthToManager(career: Career): boolean {
  * rather than deciding.
  */
 export function managerBaselineDelta(career: Career): number {
+  // Academy coaches are coaching children; the professional archetypes stay out of it.
+  if (career.academyStage !== 'senior') return 0;
   const archetype = managerArchetypeOf(career);
   const youth = isYouthToManager(career) ? archetype.youthTrustDelta : 0;
   const reputation = (career.reputation - 50) * archetype.reputationBias;
@@ -278,6 +287,7 @@ export function managerBaselineDelta(career: Career): number {
  * directions; a conservative dampens the climb. Applied to the movement, never to the level.
  */
 export function scaleTrustMove(career: Career, move: number): number {
+  if (career.academyStage !== 'senior') return move;
   const archetype = managerArchetypeOf(career);
   return move * (move >= 0 ? archetype.trustGainFactor : archetype.trustLossFactor);
 }
@@ -287,6 +297,8 @@ export function scaleTrustMove(career: Career, move: number): number {
  * already weighs - it must never dictate selection, so the range is deliberately narrow.
  */
 export function managerMinutesFactor(career: Career): number {
+  // See `isYouthToManager`: inside the academy the archetype has nobody to prefer anyone over.
+  if (career.academyStage !== 'senior') return 1;
   const archetype = managerArchetypeOf(career);
   let factor = 1;
   if (isYouthToManager(career)) factor *= archetype.youthMinutesFactor;

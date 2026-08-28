@@ -33,6 +33,7 @@ export type EventVariant =
  * so `tests/eventVisuals.test.ts` walks the real catalogue against this list.
  */
 export const VARIANTS: readonly EventVariant[] = [
+  'people',
   'coach',
   'match',
   'development',

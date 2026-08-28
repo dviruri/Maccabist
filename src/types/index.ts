@@ -1146,6 +1146,8 @@ export interface EventConditions {
   personalCoachSpecialties?: CoachSpecialtyId[];
   /** Seasons with the current specialist - a breakthrough needs history behind it. */
   minCoachSeasonsTogether?: number;
+  /** The club changed manager this season - the "new page" events key on this. */
+  newManagerThisSeason?: boolean;
 }
 
 /**
