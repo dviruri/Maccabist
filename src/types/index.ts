@@ -899,14 +899,29 @@ export interface PeopleState {
   personalCoach: PersonalCoachBond | null;
   personalCoachHistory: PersonalCoachBond[];
   /**
-   * Last-known manager at clubs the player has left, so a return can plausibly find the same
-   * man - or discover he has moved on. Not a world simulation: only clubs the player knew.
+   * Last-known manager at clubs the player has met, with the dates that make continuity
+   * decidable (v0.5.1). Not a world simulation - only clubs the player knew, and the question
+   * is only ever asked when he comes back.
    */
-  clubManagers: Record<string, PersonIdentity>;
+  clubManagers: Record<string, ClubManagerRecord>;
   /** Monotonic sequence for person ids, so they never collide. */
   personSeq: number;
   /** Season a people-family event last fired, for anti-spam pacing (Phase 42). */
   lastPeopleEventSeason?: number;
+}
+
+/**
+ * A club's last-known manager, and when the player last saw him (v0.5.1).
+ *
+ * `lastSeenSeason` is what makes off-screen continuity honest: a player who leaves for one
+ * season should usually find the same man, and one who leaves for a decade should not. Storing
+ * the date rather than a precomputed answer means the question is asked when it matters, from
+ * the club's own history rather than from the player's memory of it.
+ */
+export interface ClubManagerRecord {
+  person: PersonIdentity;
+  installedSeason: number;
+  lastSeenSeason: number;
 }
 
 /** One recorded Maccabism change (v0.4.8, Phase 24). */

@@ -16,13 +16,22 @@ import { ACHIEVEMENT_DEFS } from '../data/achievements';
 import { getClub, MACCABI_ID, isMaccabiSenior } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
 import { guardedMaccabismDelta } from './truth';
+/*
+ * v0.5.1: `coachTrustBaseline` moved to peopleEngine - it reads the current manager's archetype,
+ * which makes it manager-scoped trust logic rather than general progression, and keeping it here
+ * meant peopleEngine could not derive a new manager's opening opinion without an import cycle.
+ * Re-exported so every existing caller is unaffected.
+ */
+export { coachTrustBaseline } from './peopleEngine';
 import {
   adjustAgentRelationship,
+  coachTrustBaseline,
   dropAgent,
+  initialManagerTrust,
+  rngFor,
   endManagerTenure,
   endPersonalCoach,
   installManager,
-  managerBaselineDelta,
   recordAdvice,
   signAgent,
   startPersonalCoach,
@@ -193,6 +202,21 @@ export function moveToClub(career: Career, clubId: string, options: MoveOptions 
   // Leaving the academy structure for any senior club means the youth ladder is over.
   if (target.isSenior) next.academyStage = 'senior';
 
+  /*
+   * v0.5.1: the new club's manager is installed HERE - before arrival trust is computed, not
+   * after it.
+   *
+   * v0.5 had this the wrong way round and rationalised it in a comment ("so the number the
+   * tenure opens under is the one the new staff actually hold"), which inspected closely says
+   * nothing: the new staff IS this manager, so his archetype has to be present when his opinion
+   * is formed. With the order corrected, a youth believer at the new club genuinely greets a
+   * teenager more warmly than a conservative would, and `installManager` also gets to decide
+   * whether the man the player remembers is even still there.
+   */
+  if (clubId !== career.currentClubId) {
+    next.people = installManager(next).people;
+  }
+
   const permanent = !options.loan;
   if (permanent) {
     if (wasMaccabiSenior && clubId !== MACCABI_ID) {
@@ -235,32 +259,27 @@ export function moveToClub(career: Career, clubId: string, options: MoveOptions 
    *
    * Career memory keeps "there was a conflict with a coach"; the new coach does not inherit it.
    */
-  const arrivingReputation = (career.reputation - 40) * COACH_TRUST.transferReputationWeight;
-  const levelFit = (career.ability - target.quality) * COACH_TRUST.transferLevelWeight;
-  // Coming home carries some goodwill that an ordinary signing does not.
-  const homecomingGoodwill =
-    target.id === MACCABI_ID && wasAwayFromMaccabiFor(career)
-      ? COACH_TRUST.homecomingGoodwill
-      : 0;
-  next.coachTrust = clamp(
-    COACH_TRUST.transferBaseline +
-      levelFit +
-      arrivingReputation +
-      homecomingGoodwill +
-      (career.coachTrust - 50) * COACH_TRUST.transferCarryover,
-  );
-  next.olderGroup = 'none';
-  if (target.id !== MACCABI_ID) next.captain = false;
-
   /*
-   * v0.5: the new club's manager becomes the current relationship. Installed after arrival trust
-   * is computed, so the number the tenure opens under is the one the new staff actually hold. The
-   * archetype-aware baseline then shapes where trust drifts from here - the same man the transfer
-   * screen's hint described, because both read `clubManagerArchetype`.
+   * v0.5.1: one function derives every new manager's opening opinion, whether the manager
+   * changed or the player did. `initialManagerTrust` reads the manager who is now installed
+   * above, so the archetype in the number is his.
+   *
+   * `transferCarryover` is passed explicitly because arriving somewhere new carries less of the
+   * old relationship than staying put through a change of manager does - the dressing room that
+   * rated him is a different dressing room.
    */
   if (clubId !== career.currentClubId) {
-    next.people = installManager(next).people;
+    const homecomingGoodwill =
+      target.id === MACCABI_ID && wasAwayFromMaccabiFor(career)
+        ? COACH_TRUST.homecomingGoodwill
+        : 0;
+    next.coachTrust = initialManagerTrust(next, rngFor(next, `arrive:${clubId}`), {
+      goodwill: homecomingGoodwill,
+      carryover: COACH_TRUST.transferCarryover,
+    });
   }
+  next.olderGroup = 'none';
+  if (target.id !== MACCABI_ID) next.captain = false;
 
   return rememberTheMove(career, next, target, options);
 }
@@ -941,30 +960,6 @@ export function applyHalfProgression(career: Career, ctx: HalfContext, rng: Rng)
 /* Recovery (v0.3)                                                     */
 /* ------------------------------------------------------------------ */
 
-/**
- * The trust level a coach would land on for this player if he had no history with him:
- * driven by how good he actually is for the level, plus a little credit for years served.
- *
- * This is what stops the trust spiral. Previously a bad spell cut minutes, which cut
- * development, which cut trust again, with no floor - a single bad run could quietly end a
- * career. Now a genuinely good player pulls back towards where he belongs.
- */
-export function coachTrustBaseline(career: Career): number {
-  const level = levelContext(career);
-  const edge = career.ability - level.quality;
-  const seasons = Math.min(career.maccabi.seasons, RECOVERY.baselineSeasonsCap);
-  /*
-   * v0.5, Phase 16: the current manager's archetype tilts where trust settles - a youth believer
-   * anchors a teenager higher, a star-driven manager reads reputation into everything. A tilt on
-   * the equilibrium the existing terms already compute, never a replacement for them.
-   */
-  return clamp(
-    RECOVERY.baselineAnchor +
-      edge * RECOVERY.baselineAbilityWeight +
-      seasons * RECOVERY.baselineSeasonsWeight +
-      managerBaselineDelta(career),
-  );
-}
 
 /**
  * Applied at the start of every season. Deliberately partial - a player who lost the
@@ -979,14 +974,21 @@ export function driftTrustTowardsBaseline(career: Career, strength: number): Car
 }
 
 /**
- * The club changes coach. The single most useful thing that can happen to a player stuck
- * behind one bad relationship - and a real risk to a player who was the last coach's favourite.
+ * Does the club change manager this season? (v0.5.1)
+ *
+ * A decision, and nothing else. It used to drift trust toward baseline here as well - a "fresh
+ * look" for a player buried by one bad relationship - but baseline reads the CURRENT manager's
+ * archetype, and at this instant that is still the man being replaced. So the successor's
+ * opening opinion was shaped by his predecessor's personality, and the drifted number was then
+ * filed as the predecessor's final trust.
+ *
+ * Everything that follows from a "yes" now lives in `replaceManager`, in the order the facts
+ * actually depend on each other. The fresh look survives - it just happens after the new man
+ * exists to have an opinion.
  */
 export function maybeChangeCoach(career: Career, rng: Rng): { career: Career; changed: boolean } {
   if (!rng.chance(RECOVERY.coachChangeChance)) return { career, changed: false };
-
-  let next = driftTrustTowardsBaseline(career, RECOVERY.coachChangeDrift);
-  next = cloneCareer(next);
+  const next = cloneCareer(career);
   // A new man in charge does not inherit the old man's favourites.
   next.flags = next.flags.filter((f) => f !== 'coach_favourite');
   return { career: next, changed: true };

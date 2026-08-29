@@ -33,6 +33,7 @@ import {
   revealTrait,
 } from '../src/game/progressionEngine';
 import { createRng } from '../src/game/random';
+import { installManager, replaceManager } from '../src/game/peopleEngine';
 import { findRecoveries } from '../src/game/simulate';
 import { careerArchetype, careerHeadline, careerStory } from '../src/game/storyEngine';
 import { checkTraitReveals, revealRemainingTraits } from '../src/game/traitReveal';
@@ -372,18 +373,28 @@ describe('recovery mechanics', () => {
   });
 
   it('a new coach pulls a frozen-out player much closer to the baseline', () => {
-    const career = senior({ ability: 84, coachTrust: 8 });
+    /*
+     * v0.5.1: the fresh look moved. `maybeChangeCoach` now only DECIDES whether the club changes
+     * manager - it drifted trust before, using a baseline that reads the current manager's
+     * archetype, which at that instant was still the man being replaced. `replaceManager` owns
+     * everything that follows, in the order the facts depend on each other.
+     *
+     * The behaviour this test protects is unchanged and is what it still asserts: a genuinely
+     * good player frozen out by one relationship gets a real hearing from the next man.
+     */
+    const career = installManager(senior({ ability: 84, coachTrust: 8 }));
     let changed = false;
-    let best = career.coachTrust;
+    let fresh = career.coachTrust;
     for (let seed = 1; seed <= 200 && !changed; seed += 1) {
-      const result = maybeChangeCoach(career, createRng(seed));
+      const rng = createRng(seed);
+      const result = maybeChangeCoach(career, rng);
       if (result.changed) {
         changed = true;
-        best = result.career.coachTrust;
+        fresh = replaceManager(result.career, rng).coachTrust;
       }
     }
     expect(changed).toBe(true);
-    expect(best).toBeGreaterThan(career.coachTrust);
+    expect(fresh).toBeGreaterThan(career.coachTrust + 15);
   });
 
   it('a new coach drops the previous coach favourite tag', () => {

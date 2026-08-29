@@ -33,9 +33,12 @@ import {
   specialtiesFor,
 } from '../data/people';
 import { stageOrder } from '../data/academy';
-import { createRng, type Rng } from './random';
+import { clamp, createRng, type Rng } from './random';
+import { RECOVERY } from './balance';
+import { levelContext } from './rules';
 import type {
   AgentArchetypeId,
+  ClubManagerRecord,
   ExpectedRole,
   AgentBond,
   Career,
@@ -67,6 +70,18 @@ function hashString(s: string): number {
 function personRng(career: Career, salt: string): Rng {
   const seq = career.people?.personSeq ?? 0;
   return createRng((career.seed ^ hashString(salt)) + seq * 7919 + career.currentSeason);
+}
+
+/**
+ * A derived rng for callers that need seeded randomness but have no rng in hand (v0.5.1).
+ *
+ * `moveToClub` is the reason this is exported: it is pure over (career, clubId) with no rng
+ * parameter, and threading one through every call site would touch half the engine. Derived
+ * from stable state, so the same save always produces the same answer, and it never advances
+ * `rngState` - nothing downstream shifts because a manager's opinion was computed.
+ */
+export function rngFor(career: Career, salt: string): Rng {
+  return personRng(career, salt);
 }
 
 /* ------------------------------------------------------------------ */
@@ -117,7 +132,7 @@ function withNewPerson(people: PeopleState): PeopleState {
  */
 export function clubManagerArchetype(career: Career, clubId: string): ManagerArchetypeId {
   const stored = career.people?.clubManagers[clubId];
-  if (stored) return stored.archetypeId as ManagerArchetypeId;
+  if (stored) return stored.person.archetypeId as ManagerArchetypeId;
 
   const club = safeClub(clubId);
   const big = (club?.quality ?? 50) >= 72;
@@ -138,6 +153,51 @@ function safeClub(clubId: string): Club | null {
   }
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Tenure helpers (v0.5.1)                                             */
+/* ------------------------------------------------------------------ */
+
+function openTenure(person: PersonIdentity, clubId: string, season: number): ManagerTenure {
+  return { person, clubId, fromSeason: season };
+}
+
+function seenNow(
+  person: PersonIdentity,
+  installedSeason: number,
+  season: number,
+): ClubManagerRecord {
+  return { person, installedSeason, lastSeenSeason: season };
+}
+
+/**
+ * Is the manager the player remembers still at that club? (v0.5.1, Priority 2)
+ *
+ * Clubs the player has left keep managing themselves. v0.5 stored the last-known manager and
+ * handed him back unconditionally, so a player who left at 20 and returned at 33 was greeted by
+ * the same man thirteen years later - which nobody who has watched football would believe.
+ *
+ * A survival curve rather than a simulation: each season away is an independent chance the club
+ * moved on. 0.74 gives roughly three-quarters continuity after one season, half after two, and
+ * under 5% after a decade - close to real managerial tenure, and it answers the brief's two
+ * anchors exactly. Deterministic: hashed from (seed, club, season), never the career stream, so
+ * the same save always finds the same man on the touchline.
+ */
+const MANAGER_SEASON_SURVIVAL = 0.74;
+
+export function managerStillThere(
+  career: Career,
+  record: ClubManagerRecord,
+  season: number,
+): boolean {
+  const elapsed = season - record.lastSeenSeason;
+  if (elapsed <= 0) return true; // same season - a loan return, not an absence
+  const rng = createRng(
+    (career.seed ^ hashString(`turnover:${record.person.id}:${record.lastSeenSeason}`)) + season,
+  );
+  return rng.chance(MANAGER_SEASON_SURVIVAL ** elapsed);
+}
+
 /* ------------------------------------------------------------------ */
 /* Manager lifecycle (Phases 12, 15-17, 45)                            */
 /* ------------------------------------------------------------------ */
@@ -152,30 +212,60 @@ function safeClub(clubId: string): Club | null {
 export function installManager(career: Career): Career {
   const people = career.people ?? emptyPeopleState();
   const clubId = career.currentClubId;
+  const season = career.currentSeason;
 
+  /*
+   * v0.5.1: the club he remembers may have moved on while he was away. `managerStillThere`
+   * decides from how long the absence actually was; a fresh man is generated when it did not
+   * survive. The player's own history with the old manager is untouched either way - it lives
+   * in `managerHistory`, and this map is only ever "who was there last time I looked".
+   */
   const known = people.clubManagers[clubId];
+  const kept = known && managerStillThere(career, known, season) ? known : null;
+
+  /*
+   * Three cases, and they are genuinely different:
+   *
+   *   never been here      -> `clubManagerArchetype`, the stable (seed, club) fact the transfer
+   *                           screen's hint already showed the player. These must agree.
+   *   been here, he stayed -> the same man, same id, same name.
+   *   been here, he went   -> a successor, whose archetype must NOT come from the stable
+   *                           function, or the "new" manager would be the same kind of manager
+   *                           and the turnover would be invisible.
+   */
   const person =
-    known ??
+    kept?.person ??
     generatePerson(
       career,
       'club_manager',
-      clubManagerArchetype(career, clubId),
+      known ? freshArchetypeFor(career, clubId, season) : clubManagerArchetype(career, clubId),
       safeClub(clubId)?.country ?? DEFAULT_NAME_COUNTRY,
-      `mgr:${clubId}`,
+      known ? `mgr-succ:${clubId}:${season}` : `mgr:${clubId}`,
     );
 
-  const tenure: ManagerTenure = {
-    person,
-    clubId,
-    fromSeason: career.currentSeason,
-  };
-
   const nextPeople: PeopleState = {
-    ...(known ? people : withNewPerson(people)),
-    manager: tenure,
-    clubManagers: { ...people.clubManagers, [clubId]: person },
+    ...(kept ? people : withNewPerson(people)),
+    manager: openTenure(person, clubId, season),
+    clubManagers: {
+      ...people.clubManagers,
+      [clubId]: seenNow(person, kept ? kept.installedSeason : season, season),
+    },
   };
   return { ...career, people: nextPeople };
+}
+
+/**
+ * The archetype of a manager who replaced someone off-screen (v0.5.1).
+ *
+ * Deliberately not `clubManagerArchetype` - that is a stable function of (seed, club), so a
+ * successor generated from it would be the same *kind* of manager as the man he replaced, and
+ * the turnover would be invisible. Mixing the season in makes the new man genuinely new while
+ * staying deterministic.
+ */
+function freshArchetypeFor(career: Career, clubId: string, season: number): ManagerArchetypeId {
+  const all = Object.keys(MANAGER_ARCHETYPES) as ManagerArchetypeId[];
+  const idx = hashString(`${career.seed}:${clubId}:${season}:succ`) % all.length;
+  return all[idx] ?? 'disciplinarian';
 }
 
 /**
@@ -209,11 +299,78 @@ export function endManagerTenure(career: Career, managerStays: boolean): Career 
 }
 
 /**
- * The club replaces its manager (Phase 17). A successor is generated with a fresh archetype -
- * biased away from the outgoing one, because boards hire the opposite of what just failed.
+ * The trust level a coach would land on for this player if he had no history with him:
+ * driven by how good he actually is for the level, plus a little credit for years served.
+ *
+ * This is what stops the trust spiral. Previously a bad spell cut minutes, which cut
+ * development, which cut trust again, with no floor - a single bad run could quietly end a
+ * career. Now a genuinely good player pulls back towards where he belongs.
+ */
+export function coachTrustBaseline(career: Career): number {
+  const level = levelContext(career);
+  const edge = career.ability - level.quality;
+  const seasons = Math.min(career.maccabi.seasons, RECOVERY.baselineSeasonsCap);
+  /*
+   * v0.5, Phase 16: the current manager's archetype tilts where trust settles - a youth believer
+   * anchors a teenager higher, a star-driven manager reads reputation into everything. A tilt on
+   * the equilibrium the existing terms already compute, never a replacement for them.
+   */
+  return clamp(
+    RECOVERY.baselineAnchor +
+      edge * RECOVERY.baselineAbilityWeight +
+      seasons * RECOVERY.baselineSeasonsWeight +
+      managerBaselineDelta(career),
+  );
+}
+
+/**
+ * Open a brand-new manager relationship (v0.5.1).
+ *
+ * THE ORDER IS THE POINT. This is called only after the successor is installed, so
+ * `coachTrustBaseline` reads HIS archetype rather than his predecessor's - which is the bug this
+ * function exists to make impossible. v0.5 drifted trust toward "baseline" while the outgoing
+ * manager was still the current one, so a conservative successor inherited a youth believer's
+ * generosity, and the drifted number was then filed as the OLD manager's final trust.
+ *
+ * What a manager who has never worked with this player can actually see on day one: how good he
+ * is for this level, what the dressing room says his standing is, the name that arrived with
+ * him, whether he is playing well - and his own temperament. Plus a little uncertainty, because
+ * two managers looking at the same player do not land on the same number.
+ *
+ * Never returns exactly 50, never returns the old value, and never consults the old archetype.
+ */
+export function initialManagerTrust(
+  career: Career,
+  rng: Rng,
+  options: { goodwill?: number; carryover?: number } = {},
+): number {
+  const t = RECOVERY.trustInit;
+  const baseline = coachTrustBaseline(career);
+  const role = (career.roleValue - 50) * t.roleWeight;
+  const reputation = (career.reputation - 45) * t.reputationWeight;
+  const form = (career.hidden.form - 55) * t.formWeight;
+  const carried = (career.coachTrust - 50) * (options.carryover ?? t.carryover);
+  const noise = rng.gaussian(0, t.uncertainty);
+  return clamp(baseline + role + reputation + form + carried + (options.goodwill ?? 0) + noise);
+}
+
+/**
+ * The club replaces its manager (Phases 17, v0.5.1 Priority 1).
+ *
+ * The required flow, in order, because every step depends on the one before:
+ *
+ *   1. capture the outgoing trust BEFORE anything recalculates
+ *   2. close the old relationship with exactly that value
+ *   3. install the successor (a different archetype - boards hire the opposite of what failed)
+ *   4. only NOW derive the new opinion, with the new man in the chair
+ *
+ * `maybeChangeCoach` deliberately no longer touches trust at all: it decides whether the club
+ * changes manager, and this owns everything that follows from the answer.
  */
 export function replaceManager(career: Career, rng: Rng): Career {
   const outgoingArchetype = career.people?.manager?.person.archetypeId;
+
+  // (1) + (2): endManagerTenure snapshots career.coachTrust, which nothing has disturbed.
   let next = endManagerTenure(career, false);
 
   const all = Object.keys(MANAGER_ARCHETYPES) as ManagerArchetypeId[];
@@ -228,20 +385,20 @@ export function replaceManager(career: Career, rng: Rng): Career {
     safeClub(next.currentClubId)?.country ?? DEFAULT_NAME_COUNTRY,
     `mgr-new:${next.currentClubId}:${next.currentSeason}`,
   );
-  const tenure: ManagerTenure = {
-    person,
-    clubId: next.currentClubId,
-    fromSeason: next.currentSeason,
-  };
+  // (3)
   next = {
     ...next,
     people: {
       ...withNewPerson(people),
-      manager: tenure,
-      clubManagers: { ...people.clubManagers, [next.currentClubId]: person },
+      manager: openTenure(person, next.currentClubId, next.currentSeason),
+      clubManagers: {
+        ...people.clubManagers,
+        [next.currentClubId]: seenNow(person, next.currentSeason, next.currentSeason),
+      },
     },
   };
-  return next;
+  // (4) - the successor's own read, computed with the successor installed.
+  return { ...next, coachTrust: initialManagerTrust(next, rng) };
 }
 
 /** The current manager's archetype, defaulting to the least opinionated profile. */
@@ -582,7 +739,7 @@ export function emptyPeopleState(): PeopleState {
  * Deterministic: person generation hashes from the seed, and nothing rolls.
  */
 export function migratePeople(career: Career): Career {
-  if (career.people) return career;
+  if (career.people) return migrateClubManagerRecords(career);
   const withState = { ...career, people: emptyPeopleState() };
   return installManager(withState);
 }
@@ -616,4 +773,38 @@ export function eventPerson(
       : null;
   }
   return people.agent ? { person: people.agent.person, role: 'agent' } : null;
+}
+
+/**
+ * v0.5 stored `clubManagers` as bare `PersonIdentity`; v0.5.1 needs the dates that make
+ * off-screen continuity decidable. A v0.5 save is upgraded in place on load.
+ *
+ * `createdSeason` is the honest stand-in for both dates: it is when that person came into
+ * existence, which for a club manager is when the player met him. Erring toward "recently seen"
+ * is the conservative choice - it makes the first post-migration return slightly more likely to
+ * find the same man, rather than retiring managers the save never said had left.
+ */
+function migrateClubManagerRecords(career: Career): Career {
+  const people = career.people;
+  if (!people) return career;
+
+  const entries = Object.entries(people.clubManagers);
+  const stale = entries.filter(([, v]) => (v as { person?: unknown }).person === undefined);
+  if (stale.length === 0) return career;
+
+  const clubManagers: Record<string, ClubManagerRecord> = {};
+  for (const [clubId, value] of entries) {
+    const asRecord = value as unknown as ClubManagerRecord;
+    if (asRecord.person !== undefined) {
+      clubManagers[clubId] = asRecord;
+      continue;
+    }
+    const person = value as unknown as PersonIdentity;
+    clubManagers[clubId] = {
+      person,
+      installedSeason: person.createdSeason,
+      lastSeenSeason: person.createdSeason,
+    };
+  }
+  return { ...career, people: { ...people, clubManagers } };
 }

@@ -329,7 +329,7 @@ function validatePeople(
     ...people.agentHistory.map((b) => b.person),
     ...(people.personalCoach ? [people.personalCoach.person] : []),
     ...people.personalCoachHistory.map((b) => b.person),
-    ...Object.values(people.clubManagers),
+    ...Object.values(people.clubManagers).map((r) => r.person),
   ];
   const ids = new Set<string>();
   const seen = new Set<string>();

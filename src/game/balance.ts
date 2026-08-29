@@ -941,6 +941,31 @@ export const RECOVERY = {
    * actually is for the level. Deliberately partial - history still matters.
    */
   seasonDriftToBaseline: 0.3,
+  /*
+   * How a manager who has never worked with this player forms his first opinion (v0.5.1).
+   *
+   * Anchored on `coachTrustBaseline` - which already carries ability-for-level, service, and
+   * the NEW manager's archetype tilt - plus what else he can actually see on day one.
+   */
+  trustInit: {
+    /** Squad standing: a first-choice player is not an unknown quantity. */
+    roleWeight: 0.12,
+    /** A name that travels ahead of the player. */
+    reputationWeight: 0.1,
+    /** Whether he is playing well right now. */
+    formWeight: 0.06,
+    /*
+     * How much of the previous relationship survives (deliberately small).
+     *
+     * This is NOT archetype inheritance - the new manager's own profile is already in the
+     * baseline. It is the dressing room talking: a player everyone rated does not arrive a
+     * stranger, and one who lost the last manager arrives with a question mark. Small enough
+     * that the new man's own read dominates, non-zero because football is not amnesia.
+     */
+    carryover: 0.18,
+    /** Managers are people; two of them would not land on the same number. */
+    uncertainty: 4.5,
+  },
   /** The baseline itself, before the ability-for-level adjustment. */
   baselineAnchor: 48,
   /** How much being better (or worse) than the level moves the baseline. */
@@ -952,7 +977,18 @@ export const RECOVERY = {
   /** Chance per season that the club changes coach, giving a stuck player a clean-ish slate. */
   coachChangeChance: 0.16,
   /** How far a new coach pulls trust back towards the baseline. */
-  coachChangeDrift: 0.65,
+  /*
+   * v0.5.1: `coachChangeDrift` is GONE, and this comment is its headstone.
+   *
+   * It drifted trust toward baseline at the moment the club changed coach - a good idea
+   * implemented one step too early. `coachTrustBaseline` reads the CURRENT manager's archetype,
+   * and at that moment the current manager was still the outgoing one, so the incoming man's
+   * opening opinion was computed from his predecessor's personality. The drifted value was then
+   * snapshotted as the OLD manager's `finalTrust`, so the history was wrong too.
+   *
+   * A new relationship is now opened by `initialManagerTrust` AFTER the successor is installed.
+   * See TRUST_INIT below.
+   */
 
   /** A run of good form rebuilds trust faster than the normal drift. */
   formRecoveryRating: 68,

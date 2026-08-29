@@ -24,6 +24,7 @@ import {
   agentOfferFactor,
   clubManagerArchetype,
   endManagerTenure,
+  initialManagerTrust,
   installManager,
   managerBaselineDelta,
   managerMinutesFactor,
@@ -55,6 +56,12 @@ function seniorAt(clubId: string, seed = 7): Career {
   };
   // Re-seat the manager at the club we just teleported to - tests bypass moveToClub on purpose.
   return installManager(endManagerTenure(career, true));
+}
+
+/** Install a successor of a named archetype, for the archetype-leakage comparison. */
+function installNamedSuccessor(career: Career, archetypeId: ManagerArchetypeId): Career {
+  const closed = endManagerTenure(career, false);
+  return withManagerArchetype(installManager(closed), archetypeId);
 }
 
 function withManagerArchetype(career: Career, archetypeId: ManagerArchetypeId): Career {
@@ -415,6 +422,139 @@ describe('L. save/load preserves people exactly', () => {
     });
     expect(runs[0]!.people?.manager?.person.name).toBe(runs[1]!.people?.manager?.person.name);
     expect(runs[0]!.people?.agent?.person.name ?? null).toBe(runs[1]!.people?.agent?.person.name ?? null);
+  });
+});
+
+
+/* ------------------------------------------------------------------ */
+/* v0.5.1 Scenario A: the manager-change trust flow                    */
+/* ------------------------------------------------------------------ */
+
+describe('v0.5.1 A. manager change: trust belongs to the man in the chair', () => {
+  /** Youth believer, trust 82, replaced by whoever the seed produces. */
+  function frozen(seed: number): Career {
+    const base = withManagerArchetype(seniorAt(MACCABI_ID, seed), 'youth_believer');
+    return { ...base, coachTrust: 82, ability: 70, reputation: 48 };
+  }
+
+  it('stores the outgoing final trust EXACTLY, undisturbed by the successor', () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const before = frozen(seed);
+      const after = replaceManager(before, createRng(seed));
+      const closed = after.people?.managerHistory.at(-1);
+      expect(closed?.finalTrust, `seed ${seed}`).toBe(82);
+      expect(closed?.person.archetypeId).toBe('youth_believer');
+    }
+  });
+
+  it('derives the new trust from the NEW archetype, not the old one', () => {
+    /*
+     * The bug this pins: v0.5 drifted trust toward `coachTrustBaseline` inside
+     * `maybeChangeCoach`, before the successor was installed - so the baseline read the
+     * OUTGOING manager's archetype. A conservative successor inherited a youth believer's
+     * generosity, and the drifted number was then filed as the outgoing manager's final trust.
+     *
+     * Same player, same seed, same everything except who takes over. If the old archetype were
+     * still leaking in, these two would be identical.
+     */
+    const base = { ...frozen(9), age: 19 };
+    const believerNext = { ...base };
+    const conservativeNext = { ...base };
+
+    const withBeliever = installNamedSuccessor(believerNext, 'youth_believer');
+    const withConservative = installNamedSuccessor(conservativeNext, 'conservative');
+
+    const a = initialManagerTrust(withBeliever, createRng(5));
+    const b = initialManagerTrust(withConservative, createRng(5));
+    expect(a).toBeGreaterThan(b);
+  });
+
+  it('neither copies 82 nor resets to a constant 50', () => {
+    /*
+     * "Not 50" is a distributional claim, not a per-seed one - a continuous derivation is
+     * allowed to pass through any particular value, and one seed in sixty rounding to 50 is a
+     * coincidence rather than a reset. What must not happen is a CONSTANT.
+     */
+    const results = new Set<number>();
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const trust = replaceManager(frozen(seed), createRng(seed)).coachTrust;
+      expect(trust, `seed ${seed}`).not.toBe(82);
+      results.add(Math.round(trust));
+    }
+    expect(results.size).toBeGreaterThan(8);
+    const atFifty = [...results].filter((v) => v === 50).length;
+    expect(atFifty).toBeLessThan(3);
+  });
+
+  it('is deterministic for the same seed and state', () => {
+    const a = replaceManager(frozen(11), createRng(11));
+    const b = replaceManager(frozen(11), createRng(11));
+    expect(b.coachTrust).toBe(a.coachTrust);
+    expect(b.people?.manager?.person.id).toBe(a.people?.manager?.person.id);
+    expect(b.people?.manager?.person.name).toBe(a.people?.manager?.person.name);
+  });
+
+  it('keeps coachTrust the single authoritative value - no second copy on the tenure', () => {
+    const after = replaceManager(frozen(3), createRng(3));
+    const tenure = after.people?.manager as unknown as Record<string, unknown>;
+    // The open tenure must carry no trust field at all; the career owns it.
+    expect(tenure?.['trust']).toBeUndefined();
+    expect(tenure?.['finalTrust']).toBeUndefined();
+    expect(validateCareerIntegrity(after)).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* v0.5.1 Scenarios B & C: off-screen manager continuity               */
+/* ------------------------------------------------------------------ */
+
+describe('v0.5.1 B/C. clubs manage themselves while the player is away', () => {
+  function continuityRate(gap: number): number {
+    let same = 0;
+    const runs = 400;
+    for (let seed = 1; seed <= runs; seed += 1) {
+      const career = seniorAt(MACCABI_ID, seed);
+      const original = career.people!.manager!.person.id;
+      const away = moveToClub(career, 'az_alkmaar');
+      const later = { ...away, currentSeason: away.currentSeason + gap };
+      const back = moveToClub(later, MACCABI_ID);
+      if (back.people?.manager?.person.id === original) same += 1;
+    }
+    return same / runs;
+  }
+
+  it('B. usually finds the same man after one season away', () => {
+    const rate = continuityRate(1);
+    expect(rate).toBeGreaterThan(0.6);
+    expect(rate).toBeLessThan(0.95); // "often", not "always"
+  });
+
+  it('C. rarely finds him after a decade', () => {
+    expect(continuityRate(10)).toBeLessThan(0.15);
+  });
+
+  it('decays monotonically with the length of the absence', () => {
+    const short = continuityRate(1);
+    const medium = continuityRate(4);
+    const long = continuityRate(10);
+    expect(short).toBeGreaterThan(medium);
+    expect(medium).toBeGreaterThan(long);
+  });
+
+  it('is deterministic, and preserves the old manager historically', () => {
+    const career = seniorAt(MACCABI_ID, 21);
+    const original = career.people!.manager!.person;
+    const away = moveToClub(career, 'az_alkmaar');
+    const later = { ...away, currentSeason: away.currentSeason + 10 };
+
+    const a = moveToClub(later, MACCABI_ID);
+    const b = moveToClub(later, MACCABI_ID);
+    expect(b.people?.manager?.person.id).toBe(a.people?.manager?.person.id);
+
+    // Whoever is in the chair now, the spell the player actually lived is still on record.
+    const historical = a.people?.managerHistory.find((t) => t.person.id === original.id);
+    expect(historical?.person.name).toBe(original.name);
+    expect(historical?.toSeason).toBeDefined();
   });
 });
 

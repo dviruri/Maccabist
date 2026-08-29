@@ -9,7 +9,7 @@
  * Pure functions over a Career plus an Rng. No React, no side effects.
  */
 
-import { endManagerTenure, installManager } from './peopleEngine';
+import { endManagerTenure, initialManagerTrust, installManager, rngFor } from './peopleEngine';
 import { MACCABI_ACADEMY_ID } from '../data/clubs';
 import { stageConfig } from '../data/academy';
 import { EXTERNAL_YOUTH_CLUBS } from '../data/youthClubs';
@@ -245,7 +245,13 @@ export function resolveRetrial(career: Career, rng: Rng): RetrialOutcome {
     text: `הצטרפת למכבי חיפה בגיל ${next.age}`,
     major: true,
   });
-  // A new academy, a new coach: the relationship starts fresh.
-  next.coachTrust = 48;
+  /*
+   * A new academy, a new coach: the relationship starts fresh (v0.5.1 - through the same helper
+   * every other new-manager moment uses, rather than a hardcoded 48, so an academy coach's
+   * opening view of a boy reads his actual situation and not a constant).
+   */
+  next.coachTrust = initialManagerTrust(next, rngFor(next, 'academy-arrival'), {
+    carryover: 0.1,
+  });
   return { career: next, accepted, trial };
 }

@@ -471,7 +471,17 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
     next.people = {
       ...next.people,
       manager: tenure,
-      clubManagers: { ...next.people.clubManagers, [tenure.clubId]: tenure.person },
+      clubManagers: {
+        ...next.people.clubManagers,
+        [tenure.clubId]: {
+          ...(next.people.clubManagers[tenure.clubId] ?? {
+            installedSeason: tenure.fromSeason,
+            lastSeenSeason: next.currentSeason,
+          }),
+          person: tenure.person,
+          lastSeenSeason: next.currentSeason,
+        },
+      },
     };
     next.memories = recordMemory(next, 'manager_gave_debut', tenure.person.name, tenure.person.id);
   }
