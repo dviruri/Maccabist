@@ -7,7 +7,15 @@ import { autoStep, retire } from '../game/careerEngine';
 import { cohortLead, isPlayingUpACohort, naturalStage, relativeAgeBonus } from '../game/cohort';
 import { matchesClubScope } from '../game/conditions';
 import { validateCareerIntegrity } from '../game/integrity';
-import { agentLoanFactor, agentOfferFactor, managerMinutesFactor } from '../game/peopleEngine';
+import {
+  agentLoanFactor,
+  agentOfferFactor,
+  managerMinutesFactor,
+  resolveClubManager,
+} from '../game/peopleEngine';
+
+/** A representative spread for the destination-manager trace: home, domestic, abroad. */
+const DEBUG_CLUBS = ['maccabi_haifa', 'hapoel_haifa', 'maccabi_tel_aviv', 'az_alkmaar', 'union_sg'];
 import {
   appearanceBreakdown,
   cupWins,
@@ -582,6 +590,27 @@ function IntegrityBlock({ career }: { career: Career }): JSX.Element {
         }
       />
       <Row label="mgr minutesFactor" value={managerMinutesFactor(career).toFixed(3)} />
+      {/*
+        Destination manager resolution (v0.5.2). The exact question the transfer preview asks,
+        for a handful of representative clubs: who would be there, why, and how the continuity
+        draw fell. This is what makes a future "the offer promised X and I got Y" report a
+        five-second diagnosis instead of an afternoon.
+      */}
+      <div className="debug-integrity-head">destination managers</div>
+      {DEBUG_CLUBS.filter((id) => id !== career.currentClubId).map((clubId) => {
+        const r = resolveClubManager(career, clubId, career.currentSeason);
+        return (
+          <Row
+            key={clubId}
+            label={clubId}
+            value={`${r.person.name} [${r.person.archetypeId}] ${r.source}${
+              r.turnoverOccurred ? ' ⟲' : ''
+            } gap=${r.elapsedSeasons} p=${r.continuityChance.toFixed(2)}${
+              r.previousManagerId ? ` prev=${r.previousManagerId}` : ''
+            }`}
+          />
+        );
+      })}
       <Row
         label="agent factors"
         value={`offer x${agentOfferFactor(career).toFixed(2)} loan x${agentLoanFactor(career).toFixed(2)}`}
