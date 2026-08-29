@@ -36,7 +36,18 @@ export const ENDINGS: EndingDefinition[] = [
     subtitle: 'קפטן. שנים. בלי לוותר.',
     description:
       'אף פעם לא היית הכי מוכשר בליגה, אבל היית שם בכל עונה, בכל קרב, עם הסרט על הזרוע. במכבי חיפה זוכרים אותך כאיש שהחזיק את המועדון.',
-    icon: '🅲',
+    /*
+     * v0.5.1: was U+1F172 - the NEGATIVE SQUARED LATIN CAPITAL LETTER C, presumably chosen as
+     * "C for captain". Every major emoji font renders it as a RED tile, so the most Maccabi
+     * ending in the game wore the one colour Maccabi's identity does not use, and did it with a
+     * Latin letter under a Hebrew title. A shield instead - the same emblem the `one_club_icon`
+     * archetype already uses for this exact title, so the two agree.
+     *
+     * (Only this ending's `description` reaches the poster today - the displayed icon comes from
+     * `ARCHETYPES` - but a red glyph left sitting in the data is a red glyph waiting to be
+     * rendered by whatever reads this next.)
+     */
+    icon: '💚',
     priority: 90,
     matches: (c, score) => c.maccabi.captainSeasons >= 4 && c.maccabi.seasons >= 8 && score >= 62,
   },

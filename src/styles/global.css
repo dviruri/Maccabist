@@ -2923,9 +2923,39 @@ p {
   margin-top: var(--space-2);
 }
 
+/*
+ * The legacy emblem (v0.5.1).
+ *
+ * The red-badge bug had a root cause worth designing against: the emblem's colour was whatever
+ * the platform's emoji font decided, and one glyph (U+1F172, a red tile) put red at the centre
+ * of the most Maccabi moment in the game. A frame the stylesheet owns means the badge reads
+ * green-and-gold whatever the glyph inside it does - so brand identity stops depending on Apple
+ * and Google agreeing with us.
+ *
+ * Deliberately a frame, not a redesign: the poster's layout is untouched.
+ */
 .poster-ending-icon {
-  font-size: 46px;
+  font-size: 40px;
   line-height: 1;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, var(--green-wash), transparent 72%),
+    var(--surface-dark);
+  border: 2px solid var(--green-deep);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Gold trim is reserved for the endings that earned it. */
+.poster-legend .poster-ending-icon {
+  border-color: var(--gold-deep);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 201, 74, 0.22),
+    0 0 22px var(--green-glow);
 }
 
 .poster-ending-title {

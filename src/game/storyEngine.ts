@@ -50,7 +50,13 @@ export const ARCHETYPES: readonly ArchetypeRule[] = [
     id: 'one_club_icon',
     title: 'הסמל',
     subtitle: 'מועדון אחד, קריירה שלמה',
-    icon: '🛡️',
+    /*
+     * v0.5.1: was U+1F6E1, the shield - which Segoe UI Emoji renders RED, so on Windows the
+     * most Maccabi ending in the game wore the one colour this club's identity refuses. The
+     * green heart is green in every emoji font there is, which is the whole point: an emblem
+     * that means "one club, a whole career" should not depend on Apple and Microsoft agreeing.
+     */
+    icon: '💚',
     priority: 92,
     matches: (c) => !m(c).everLeft && m(c).appearances >= 220 && m(c).academyGraduate,
   },
@@ -58,7 +64,9 @@ export const ARCHETYPES: readonly ArchetypeRule[] = [
     id: 'prodigal_son',
     title: 'הבן האובד',
     subtitle: 'יצאת, ראית עולם, וחזרת הביתה',
-    icon: '💚',
+    // Freed up for `one_club_icon` above; the house is what "came home" actually looks like,
+    // and it is what this ending's counterpart in endings.ts already used.
+    icon: '🏠',
     priority: 88,
     matches: (c) => m(c).returned && m(c).seasonsAfterReturn >= 3 && m(c).appearances >= 120,
   },
@@ -171,7 +179,9 @@ export const ARCHETYPES: readonly ArchetypeRule[] = [
     id: 'never_made_it',
     title: 'הדרך האחרת',
     subtitle: 'לא הגעת לשם, אבל שיחקת כדורגל',
-    icon: '🚏',
+    // v0.5.1: shared the bus stop with `other_path`. The door is this game's own image - the
+    // career began at Maccabi's door, and this is the ending where it never opened.
+    icon: '🚪',
     priority: 20,
     matches: (c) => m(c).appearances < 20,
   },

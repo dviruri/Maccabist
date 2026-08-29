@@ -150,7 +150,13 @@ function FormerPeople({ career }: { career: Career }): JSX.Element | null {
 
   const managers = people.managerHistory.slice(-4).reverse();
   const agents = people.agentHistory.slice(-2).reverse();
-  if (managers.length === 0 && agents.length === 0) return null;
+  /*
+   * v0.5.1: former personal coaches belong here too. A specialist the player worked with for
+   * four seasons and then moved on from was simply vanishing from the story - the brief's
+   * "where did my old personal coach disappear to?".
+   */
+  const coaches = people.personalCoachHistory.slice(-2).reverse();
+  if (managers.length === 0 && agents.length === 0 && coaches.length === 0) return null;
 
   return (
     <section className="card-flat people-section">
@@ -170,6 +176,15 @@ function FormerPeople({ career }: { career: Career }): JSX.Element | null {
           <span className="people-former-name">{bond.person.name}</span>
           {' · '}
           {agentStyle(bond.person)}
+          {' · '}
+          {bond.sinceSeason}–{bond.endedSeason ?? ''}
+        </div>
+      ))}
+      {coaches.map((bond, i) => (
+        <div key={`${bond.person.id}-${i}`} className="people-former">
+          <span className="people-former-name">{bond.person.name}</span>
+          {' · '}
+          {specialtyLabel(bond.specialty)}
           {' · '}
           {bond.sinceSeason}–{bond.endedSeason ?? ''}
         </div>
