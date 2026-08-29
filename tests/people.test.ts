@@ -21,6 +21,7 @@ import { drawDestination, marketClubs } from '../src/game/marketEngine';
 import { generateOffers } from '../src/game/transferEngine';
 import {
   agentEligible,
+  archetypeAvailable,
   agentMarketFactor,
   agentOfferFactor,
   clubManagerArchetype,
@@ -685,6 +686,74 @@ describe('v0.5.1 people events name the right person', () => {
   it('names nobody when the person does not exist yet', () => {
     const career = seniorAt(MACCABI_ID, 34); // no agent signed
     expect(eventPerson(career, 'ppl_first_agent_family')).toBeNull();
+  });
+});
+
+
+/* ------------------------------------------------------------------ */
+/* v0.5.1 Scenarios F & G: agent progression, and earned super-agents  */
+/* ------------------------------------------------------------------ */
+
+describe('v0.5.1 F/G. who may approach, and when', () => {
+  const SWITCH_EVENTS = [
+    'ppl_agent_outgrown',
+    'ppl_agent_sustained_europe',
+    'ppl_agent_strategy_pitch',
+  ];
+
+  it('F. offers a Europe specialist to a grown career, with staying always on the card', () => {
+    for (const id of SWITCH_EVENTS) {
+      const event = PEOPLE_EVENTS.find((e) => e.id === id);
+      expect(event, id).toBeDefined();
+      expect(event!.choices.length, id).toBeGreaterThanOrEqual(2);
+
+      // One path leaves, one path stays - and staying is never written as a punishment.
+      const switches = event!.choices.filter((c) =>
+        c.outcomes.some((o) => o.effects?.signAgent !== undefined),
+      );
+      const stays = event!.choices.filter((c) =>
+        c.outcomes.every((o) => o.effects?.signAgent === undefined),
+      );
+      expect(switches.length, `${id} offers no switch`).toBeGreaterThan(0);
+      expect(stays.length, `${id} offers no way to stay`).toBeGreaterThan(0);
+    }
+  });
+
+  it('F. never offers a switch to a player who has no agent yet', () => {
+    for (const id of SWITCH_EVENTS) {
+      const event = PEOPLE_EVENTS.find((e) => e.id === id)!;
+      expect(event.conditions.requiresAgent, id).toBe(true);
+    }
+  });
+
+  it('G. keeps the super-agent reputation-gated and rare', () => {
+    // The archetype's own threshold...
+    expect(AGENT_ARCHETYPES.super_agent.reputationThreshold).toBeGreaterThanOrEqual(60);
+
+    // ...and no event may hand him to a player below it.
+    for (const event of PEOPLE_EVENTS) {
+      const offersSuper = event.choices.some((c) =>
+        c.outcomes.some((o) => o.effects?.signAgent === 'super_agent'),
+      );
+      if (!offersSuper) continue;
+      expect(event.conditions.minReputation ?? 0, `${event.id}`).toBeGreaterThanOrEqual(
+        AGENT_ARCHETYPES.super_agent.reputationThreshold,
+      );
+    }
+  });
+
+  it('G. refuses a super-agent to a mediocre youth player, through the eligibility gate', () => {
+    const youngster = createCareer({ playerName: 'ת', position: 'CM', seed: 44 });
+    expect(archetypeAvailable(youngster, 'super_agent')).toBe(false);
+    expect(archetypeAvailable({ ...youngster, academyStage: 'youth_a' }, 'super_agent')).toBe(false);
+
+    // Earned, not given: stage AND reputation together.
+    const established = {
+      ...youngster,
+      academyStage: 'senior' as const,
+      reputation: 78,
+    };
+    expect(archetypeAvailable(established, 'super_agent')).toBe(true);
   });
 });
 
