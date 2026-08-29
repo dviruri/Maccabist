@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ALL_CLUBS, MACCABI_ID } from '../src/data/clubs';
+import { CREST_MANIFEST } from '../src/data/clubCrests.generated';
 import { CLUB_VISUALS, clubVisual, getClubCrest, hasRealCrest, initialsFor } from '../src/data/clubVisuals';
 import { defaultLeagueFor } from '../src/data/leagues';
 import { LEAGUE_SHAPES } from '../src/data/leagueShape';
@@ -95,14 +96,22 @@ describe('the fallback badge never fails', () => {
 });
 
 describe('no crest is ever loaded from someone else’s server', () => {
-  it('ships no real crest assets at all', () => {
+  it('ships real crest assets only through the provenanced manifest', () => {
     /*
-     * The current state, asserted so it is a deliberate decision rather than a drift. If this
-     * fails, someone added an asset - which is fine, and CLUB_CRESTS.md §3 must be updated with
-     * its source and licence in the same change.
+     * v0.4.7 asserted zero real assets, with a comment saying a failure means someone added one
+     * and must document it. v0.6.3 did exactly that: assets now exist, ingested by the importer
+     * under the PD/CC0-only licence gate and documented in CLUB_ASSETS.md. The deliberate state
+     * asserted now is: no HAND-declared asset on any ClubVisual - every real crest arrives via
+     * the generated manifest, where its provenance lives. crestPipeline.test.ts validates the
+     * manifest itself.
      */
-    const withAssets = Object.keys(CLUB_VISUALS).filter((id) => hasRealCrest(id));
-    expect(withAssets).toEqual([]);
+    const handDeclared = Object.entries(CLUB_VISUALS).filter(([, v]) => v.asset !== undefined);
+    expect(handDeclared.map(([id]) => id)).toEqual([]);
+
+    // And every asset-bearing club is manifest-backed, not scattered.
+    for (const id of Object.keys(CLUB_VISUALS).filter((clubId) => hasRealCrest(clubId))) {
+      expect(CREST_MANIFEST[id], `${id} has an asset with no manifest entry`).toBeDefined();
+    }
   });
 
   it('never resolves an external URL, even if one is put in the field', () => {

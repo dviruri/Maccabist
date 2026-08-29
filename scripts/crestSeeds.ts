@@ -88,7 +88,7 @@ export const CREST_SEEDS: readonly CrestSeed[] = [
   { clubId: 'barcelona', english: 'FC Barcelona', aliases: ['Barcelona'], country: 'spain' },
   { clubId: 'sevilla', english: 'Sevilla FC', aliases: ['Sevilla'], country: 'spain' },
   { clubId: 'real_sociedad', english: 'Real Sociedad', country: 'spain' },
-  { clubId: 'athletic_bilbao', english: 'Athletic Bilbao', aliases: ['Athletic Club'], country: 'spain' },
+  { clubId: 'athletic_bilbao', english: 'Athletic Bilbao', aliases: ['Athletic Club'], country: 'spain', wikidata: 'Q8687' /* reviewed 2026-08-29: men's club; search also surfaced Athletic Bilbao B */ },
   { clubId: 'villarreal', english: 'Villarreal CF', aliases: ['Villarreal'], country: 'spain' },
   { clubId: 'real_betis', english: 'Real Betis', aliases: ['Real Betis Balompié'], country: 'spain' },
   { clubId: 'valencia', english: 'Valencia CF', aliases: ['Valencia'], country: 'spain' },
@@ -130,21 +130,28 @@ export const CREST_SEEDS: readonly CrestSeed[] = [
   /* ---------------- Germany ---------------- */
   { clubId: 'bayern_munich', english: 'FC Bayern Munich', aliases: ['Bayern Munich', 'Bayern München'], country: 'germany' },
   { clubId: 'leverkusen', english: 'Bayer 04 Leverkusen', aliases: ['Bayer Leverkusen'], country: 'germany' },
+  /*
+   * rb_leipzig and porto: reviewed 2026-08-29 and deliberately NOT resolved. Both searches were
+   * ambiguous, and on inspection the men's-club entities carry unusable P154 data - Leipzig's
+   * "logo" is a match photograph, Porto's a derived JPG crop. Image safety (no photos, no
+   * low-quality raster logo crops) rules both out regardless of licence, so they keep the
+   * generated badge and stay listed under known-missing.
+   */
   { clubId: 'rb_leipzig', english: 'RB Leipzig', country: 'germany' },
   { clubId: 'stuttgart', english: 'VfB Stuttgart', country: 'germany' },
   { clubId: 'eintracht_frankfurt', english: 'Eintracht Frankfurt', country: 'germany' },
   { clubId: 'freiburg', english: 'SC Freiburg', country: 'germany' },
   { clubId: 'mainz', english: '1. FSV Mainz 05', aliases: ['Mainz 05'], country: 'germany' },
-  { clubId: 'gladbach', english: 'Borussia Mönchengladbach', aliases: ['Borussia Monchengladbach', 'Gladbach'], country: 'germany' },
+  { clubId: 'gladbach', english: 'Borussia Mönchengladbach', aliases: ['Borussia Monchengladbach', 'Gladbach'], country: 'germany', wikidata: 'Q101959' /* reviewed 2026-08-29: men's club; search also surfaced the women's team */ },
   { clubId: 'union_berlin', english: '1. FC Union Berlin', aliases: ['Union Berlin'], country: 'germany' },
-  { clubId: 'wolfsburg', english: 'VfL Wolfsburg', country: 'germany' },
+  { clubId: 'wolfsburg', english: 'VfL Wolfsburg', country: 'germany', wikidata: 'Q101859' /* reviewed 2026-08-29: football club; search also surfaced the parent sports club */ },
   { clubId: 'hoffenheim', english: 'TSG 1899 Hoffenheim', aliases: ['TSG Hoffenheim', 'Hoffenheim'], country: 'germany' },
   { clubId: 'hamburg', english: 'Hamburger SV', aliases: ['Hamburg', 'HSV'], country: 'germany' },
   { clubId: 'augsburg', english: 'FC Augsburg', country: 'germany' },
   { clubId: 'koln', english: '1. FC Köln', aliases: ['1. FC Koln', 'FC Cologne'], country: 'germany' },
   { clubId: 'st_pauli', english: 'FC St. Pauli', aliases: ['St. Pauli'], country: 'germany' },
   { clubId: 'heidenheim', english: '1. FC Heidenheim', aliases: ['Heidenheim'], country: 'germany' },
-  { clubId: 'dortmund', english: 'Borussia Dortmund', country: 'germany' },
+  { clubId: 'dortmund', english: 'Borussia Dortmund', country: 'germany', wikidata: 'Q41420' /* reviewed 2026-08-29: the club; search also surfaced the women's team */ },
   { clubId: 'werder_bremen', english: 'SV Werder Bremen', aliases: ['Werder Bremen'], country: 'germany' },
 
   /* ---------------- Netherlands ---------------- */
@@ -158,7 +165,7 @@ export const CREST_SEEDS: readonly CrestSeed[] = [
   { clubId: 'fc_groningen', english: 'FC Groningen', country: 'netherlands' },
   { clubId: 'heerenveen', english: 'SC Heerenveen', country: 'netherlands' },
   { clubId: 'go_ahead_eagles', english: 'Go Ahead Eagles', country: 'netherlands' },
-  { clubId: 'fortuna_sittard', english: 'Fortuna Sittard', country: 'netherlands' },
+  { clubId: 'fortuna_sittard', english: 'Fortuna Sittard', country: 'netherlands', wikidata: 'Q854167' /* reviewed 2026-08-29: men's club; search also surfaced Fortuna Sittard Vrouwen */ },
   { clubId: 'nac_breda', english: 'NAC Breda', country: 'netherlands' },
   { clubId: 'pec_zwolle', english: 'PEC Zwolle', country: 'netherlands' },
   { clubId: 'heracles', english: 'Heracles Almelo', country: 'netherlands' },
@@ -197,7 +204,7 @@ export const CREST_SEEDS: readonly CrestSeed[] = [
   { clubId: 'blau_weiss_linz', english: 'FC Blau-Weiß Linz', aliases: ['Blau-Weiss Linz'], country: 'austria' },
   { clubId: 'altach', english: 'SCR Altach', aliases: ['SC Rheindorf Altach'], country: 'austria' },
   { clubId: 'sv_ried', english: 'SV Ried', country: 'austria' },
-  { clubId: 'sturm_graz', english: 'SK Sturm Graz', aliases: ['Sturm Graz'], country: 'austria' },
+  { clubId: 'sturm_graz', english: 'SK Sturm Graz', aliases: ['Sturm Graz'], country: 'austria', wikidata: 'Q124007617' /* reviewed 2026-08-29: men's club; search also surfaced SK Sturm Graz Women */ },
 
   /* ---------------- Greece ---------------- */
   { clubId: 'olympiacos', english: 'Olympiacos FC', aliases: ['Olympiacos', 'Olympiakos'], country: 'greece' },
@@ -221,7 +228,7 @@ export const CREST_SEEDS: readonly CrestSeed[] = [
   { clubId: 'aek_larnaca', english: 'AEK Larnaca FC', aliases: ['AEK Larnaca'], country: 'cyprus' },
   { clubId: 'omonia_nicosia', english: 'AC Omonia', aliases: ['Omonia Nicosia', 'Omonoia'], country: 'cyprus' },
   { clubId: 'apollon_limassol', english: 'Apollon Limassol', country: 'cyprus' },
-  { clubId: 'aris_limassol', english: 'Aris Limassol', country: 'cyprus' },
+  { clubId: 'aris_limassol', english: 'Aris Limassol', country: 'cyprus', wikidata: 'Q367788' /* reviewed 2026-08-29: the football club; search also surfaced the multi-sport club */ },
   { clubId: 'ael_limassol', english: 'AEL Limassol', country: 'cyprus' },
   { clubId: 'anorthosis', english: 'Anorthosis Famagusta FC', aliases: ['Anorthosis Famagusta', 'Anorthosis'], country: 'cyprus' },
   { clubId: 'nea_salamina', english: 'Nea Salamis Famagusta FC', aliases: ['Nea Salamina'], country: 'cyprus' },
@@ -242,7 +249,7 @@ export const CREST_SEEDS: readonly CrestSeed[] = [
   { clubId: 'moreirense', english: 'Moreirense FC', aliases: ['Moreirense'], country: 'portugal' },
   { clubId: 'casa_pia', english: 'Casa Pia AC', aliases: ['Casa Pia'], country: 'portugal' },
   { clubId: 'rio_ave', english: 'Rio Ave FC', aliases: ['Rio Ave'], country: 'portugal' },
-  { clubId: 'nacional', english: 'CD Nacional', aliases: ['Nacional da Madeira'], country: 'portugal' },
+  { clubId: 'nacional', english: 'CD Nacional', aliases: ['Nacional da Madeira'], country: 'portugal', wikidata: 'Q216459' /* reviewed 2026-08-29: the football club; search also surfaced the sports club */ },
   { clubId: 'estrela_amadora', english: 'CF Estrela da Amadora', aliases: ['Estrela da Amadora'], country: 'portugal' },
   { clubId: 'avs', english: 'AVS Futebol SAD', aliases: ['AVS'], country: 'portugal' },
   { clubId: 'tondela', english: 'CD Tondela', aliases: ['Tondela'], country: 'portugal' },

@@ -1,4 +1,0 @@
-
-> maccabist@0.1.0 simulate
-> vite-node scripts/simulate.ts -- --careers=30000 --policy=balanced
-

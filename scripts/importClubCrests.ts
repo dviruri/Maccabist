@@ -42,7 +42,7 @@ import * as path from 'node:path';
 import { CREST_SEEDS, COUNTRY_QIDS, type CrestSeed } from './crestSeeds';
 import { ALL_CLUBS } from '../src/data/clubs';
 import { defaultLeagueFor } from '../src/data/leagues';
-import { tableClubById, tableClubLeague } from '../src/data/worldClubs';
+import { tableClubLeague } from '../src/data/worldClubs';
 
 /* ------------------------------------------------------------------ */
 /* Configuration                                                       */

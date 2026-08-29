@@ -810,6 +810,8 @@ export function Gallery(): JSX.Element {
     ['table-full', <LeagueTableCard career={tableCareer(MACCABI_ID, 3)} defaultOpen />],
     ['table-away', <LeagueTableCard career={tableCareer('hapoel_hadera', 11)} />],
     ['table-second', <LeagueTableCard career={tableCareer('hapoel_petah_tikva', 5)} />],
+    /* v0.6.3: the reported league. Twenty named Serie A rows, real crests where imported. */
+    ['table-italy', <LeagueTableCard career={tableCareer('bologna', 7)} defaultOpen />],
     ['ladder-senior', <StageLadder from="u19" to="senior" />],
     ['ladder-normal', <StageLadder from="children_b" to="children_a" />],
     ['ladder-early', <StageLadder from="children_a" to="youth_b" />],
