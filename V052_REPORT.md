@@ -211,7 +211,11 @@ than validating it after the fact. The 23 existing codes from v0.4.8 / v0.5 / v0
 active.
 
 ```
-PLACEHOLDER_INT
+v0.5.2 INTEGRITY SCAN — 30,000 careers, balanced policy
+
+clean careers   30,000 / 30,000   100.00%
+
+No violations in any category.
 ```
 
 ## 15. Simulation
@@ -238,7 +242,29 @@ That is what a coherence patch should look like. The small movement comes from t
 sources: departing managers no longer receive a preseason drift, and manager identities are now
 derived differently, so trajectories differ slightly at the margin.
 
-`PLACEHOLDER_METRICS`
+People metrics, 2,500 careers, against v0.5.1:
+
+```
+                                  v0.5.1    v0.5.2
+manager tenures observed          23,219    23,312
+average manager tenure (seasons)    3.83      3.81
+agented careers                    93.8%     93.4%
+offered a credible alternative     21.0%     20.7%
+  ...of qualifying careers         70.7%     68.6%
+agent switches                       329       332
+personal coach changes                57        61
+
+agent archetype distribution      v0.5.1    v0.5.2
+  family                            2083      2072
+  israel_networker                   124       118
+  europe_specialist                   61        70
+  dealmaker                           62        61
+  super_agent                         14        14
+```
+
+Manager turnover frequency, agent distribution and Coach Trust behaviour are all unchanged
+within sampling noise — the resolver changed *who* a manager is in some careers, not *how often*
+managers change or how trust behaves.
 
 ## 17. A pre-existing false test, found while fixing
 
