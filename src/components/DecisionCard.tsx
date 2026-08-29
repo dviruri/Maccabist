@@ -9,6 +9,8 @@ import {
 import { CHOICE_RISK_LABELS } from '../ui/format';
 import { currentTeamDisplay } from '../game/identity';
 import { playerLeague } from '../game/worldEngine';
+import { cupFinalOpponent } from '../game/cupEngine';
+import { clubDisplayName } from '../game/identity';
 import { eventVisual, isMatchMoment, maccabiPresentation, matchMinute } from '../ui/eventVisuals';
 import { matchContext, requirementOf } from '../game/matchEngine';
 import { eventPerson } from '../game/peopleEngine';
@@ -378,6 +380,27 @@ interface DecisionCardProps {
   defaultExpanded?: string;
 }
 
+/** Both cup finalists, equally. Renders nothing when the cup state has no final. */
+function CupFinalStrip({ career }: { career: Career }): JSX.Element | null {
+  const opponentId = cupFinalOpponent(career);
+  if (!opponentId) return null;
+  return (
+    <div className="cup-final-strip">
+      <div className="match-side">
+        <ClubCrest clubId={career.currentClubId} size="small" />
+        <span className="match-side-name">{clubDisplayName(career.currentClubId)}</span>
+      </div>
+      <span className="cup-final-vs" aria-hidden>
+        🏆
+      </span>
+      <div className="match-side">
+        <ClubCrest clubId={opponentId} name={clubDisplayName(opponentId)} size="small" />
+        <span className="match-side-name">{clubDisplayName(opponentId)}</span>
+      </div>
+    </div>
+  );
+}
+
 export function DecisionCard({
   career,
   event,
@@ -419,6 +442,14 @@ export function DecisionCard({
         {maccabi === 'relationship' && <MaccabiBanner career={career} />}
 
         {asMatch && maccabi !== 'sami_ofer' && <MatchStrip career={career} event={event} />}
+
+        {/*
+          v0.6.3, D5: a cup final shows both finalists. The opponent comes from the authoritative
+          cup state - the same fact the event was gated on - so the strip can never name a club
+          that is not actually in the final. Neutral by design: two crests, two names, no home
+          side, matching the event's competition-owned gold treatment.
+        */}
+        {event.conditions.cupFinal !== undefined && <CupFinalStrip career={career} />}
 
         {/*
           v0.5, Phase 30: when a person is central to the event, name them. The header reads

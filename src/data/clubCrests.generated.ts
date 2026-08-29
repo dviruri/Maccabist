@@ -21,8 +21,17 @@ export interface CrestManifestEntry {
   /** Licence short-name recorded from the source at retrieval time. */
   license: string;
 }
-
-export const CREST_MANIFEST: Record<string, CrestManifestEntry> = {};
+export const CREST_MANIFEST: Record<string, CrestManifestEntry> = {
+  ac_milan: { asset: 'club-crests/ac_milan.svg', provider: 'wikimedia', license: "Public domain" },
+  as_roma: { asset: 'club-crests/as_roma.svg', provider: 'wikimedia', license: "Public domain" },
+  como: { asset: 'club-crests/como.svg', provider: 'wikimedia', license: "Public domain" },
+  fiorentina: { asset: 'club-crests/fiorentina.svg', provider: 'wikimedia', license: "Public domain" },
+  inter_milan: { asset: 'club-crests/inter_milan.svg', provider: 'wikimedia', license: "Public domain" },
+  juventus: { asset: 'club-crests/juventus.svg', provider: 'wikimedia', license: "Public domain" },
+  lazio: { asset: 'club-crests/lazio.svg', provider: 'wikimedia', license: "Public domain" },
+  pisa: { asset: 'club-crests/pisa.svg', provider: 'wikimedia', license: "Public domain" },
+  udinese: { asset: 'club-crests/udinese.svg', provider: 'wikimedia', license: "Public domain" },
+};
 
 /** The local asset path for a club's imported crest, or null when it has none. */
 export function importedCrestAsset(clubId: string): string | null {

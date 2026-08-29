@@ -1176,3 +1176,36 @@
 .event-final .kicker {
   color: var(--gold);
 }
+
+/* ------------------------------------------------------------------ */
+/* Cup final strip (v0.6.3, D5)                                        */
+/* ------------------------------------------------------------------ */
+
+/*
+  Both finalists, equally. Reuses .match-side for each club so names truncate the same way the
+  match strip's do, with the trophy - not either club - in the middle. Neutral by design: a final
+  belongs to the competition, so the strip takes the .event-final gold accent from its parent
+  card rather than declaring a colour of its own.
+*/
+.cup-final-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gold, #c9a227) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold, #c9a227) 35%, transparent);
+}
+
+.cup-final-strip .match-side {
+  flex: 1;
+}
+
+.cup-final-strip .match-side:last-child {
+  justify-content: flex-end;
+}
+
+.cup-final-vs {
+  flex-shrink: 0;
+  font-size: 13px;
+}

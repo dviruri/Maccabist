@@ -1,0 +1,92 @@
+{
+  "ac_milan": {
+    "asset": "club-crests/ac_milan.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q1543",
+    "sourceFile": "Logo of AC Milan.svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_of_AC_Milan.svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "as_roma": {
+    "asset": "club-crests/as_roma.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q2739",
+    "sourceFile": "AS ROMA Text Logo 2020 - 2021 .svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:AS_ROMA_Text_Logo_2020_-_2021_.svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "como": {
+    "asset": "club-crests/como.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q1120838",
+    "sourceFile": "Calcio Como - logo (Italy, 2019-).svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Calcio_Como_-_logo_(Italy,_2019-).svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "fiorentina": {
+    "asset": "club-crests/fiorentina.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q2052",
+    "sourceFile": "ACF Fiorentina - logo (Italy, 2022).svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:ACF_Fiorentina_-_logo_(Italy,_2022).svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "inter_milan": {
+    "asset": "club-crests/inter_milan.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q631",
+    "sourceFile": "FC Internazionale Milano 2021.svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:FC_Internazionale_Milano_2021.svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "juventus": {
+    "asset": "club-crests/juventus.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q1422",
+    "sourceFile": "Juventus FC - logo black (Italy, 2020).svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Juventus_FC_-_logo_black_(Italy,_2020).svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "lazio": {
+    "asset": "club-crests/lazio.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q2609",
+    "sourceFile": "S.S. Lazio logo.svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:S.S._Lazio_logo.svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "pisa": {
+    "asset": "club-crests/pisa.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q289613",
+    "sourceFile": "Logo Pisa Sporting Club.svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_Pisa_Sporting_Club.svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "udinese": {
+    "asset": "club-crests/udinese.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q2798",
+    "sourceFile": "Udinese Calcio 2010.svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Udinese_Calcio_2010.svg",
+    "license": "Public domain",
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  }
+}

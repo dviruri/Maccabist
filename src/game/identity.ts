@@ -21,6 +21,7 @@
  */
 
 import { stageBand, stageLabel } from '../data/academy';
+import { tableClubById } from '../data/worldClubs';
 import { getClub, MACCABI_ACADEMY_ID, MACCABI_ID } from '../data/clubs';
 import type { AcademyStage, Career, TeamDisplay, TeamUnit } from '../types';
 
@@ -61,6 +62,10 @@ export function isFirstTeam(career: Career): boolean {
  */
 export function clubDisplayName(clubId: string): string {
   if (clubId === MACCABI_ACADEMY_ID || clubId === 'maccabi_youth') return getClub(MACCABI_ID).name;
+  // v0.6.3: a table club - a named division member outside ALL_CLUBS - is a real club with a
+  // real name. Cup finalists in particular can be either kind.
+  const table = tableClubById(clubId);
+  if (table) return table.name;
   return getClub(clubId).name;
 }
 

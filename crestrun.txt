@@ -1,0 +1,39 @@
+
+> maccabist@0.1.0 crests:missing
+> vite-node scripts/importClubCrests.ts -- --missing-only
+
+crest importer: 159 clubs
+  imported         atalanta               Public domain
+  no_logo          torino                 
+  no_logo          genoa                  
+  no_logo          sassuolo               
+  imported         parma                  Public domain
+  no_logo          cagliari               
+  no_logo          lecce                  
+  no_logo          hellas_verona          
+  no_logo          cremonese              
+  error            napoli                 Error: gave up (last status 429) on https://www.wikidata.org
+  imported         bologna                Public domain
+  no_logo          real_madrid            
+  unmatched        barcelona              
+  error            sevilla                Error: gave up (last status 429) on https://www.wikidata.org
+  no_logo          real_sociedad          
+  ambiguous        athletic_bilbao        Q8687,Q794970
+  no_logo          villarreal             
+  no_logo          real_betis             
+  no_logo          valencia               
+  error            celta_vigo             Error: gave up (last status 429) on https://www.wikidata.org
+  error            girona                 Error: gave up (last status 429) on https://www.wikidata.org
+  no_logo          rayo_vallecano         
+  no_logo          osasuna                
+  no_logo          mallorca               
+  no_logo          espanyol               
+  no_logo          alaves                 
+  error            elche                  Error: gave up (last status 429) on https://www.wikidata.org
+  error            levante                Error: gave up (last status 429) on https://www.wikidata.org
+  no_logo          real_oviedo            
+  no_logo          atletico               
+  license_blocked  getafe                 CC BY-SA 4.0
+  no_logo          man_city               
+  error            liverpool              Error: gave up (last status 429) on https://www.wikidata.org
+  error            arsenal                Error: gave up (last status 429) on https://www.wikidata.org

@@ -14,7 +14,10 @@
     "simulate": "vite-node scripts/simulate.ts --",
     "simulate:large": "vite-node scripts/simulate.ts -- --careers=20000",
     "cup-metrics": "vite-node scripts/cupMetrics.ts --",
-    "world:validate": "vitest run tests/worldData.test.ts"
+    "world:validate": "vitest run tests/worldData.test.ts",
+    "crests:dry-run": "vite-node scripts/importClubCrests.ts -- --dry-run",
+    "crests:import": "vite-node scripts/importClubCrests.ts --",
+    "crests:missing": "vite-node scripts/importClubCrests.ts -- --missing-only"
   },
   "dependencies": {
     "react": "^18.3.1",

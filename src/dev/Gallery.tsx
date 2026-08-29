@@ -717,6 +717,26 @@ export function Gallery(): JSX.Element {
    */
   const decisionCareer = { ...tableCareer(MACCABI_ID, 3), seasonSlot: 'late' as const };
 
+  /*
+   * A cup final with the strip showing both finalists (v0.6.3, D5). The opponent is set in the
+   * authoritative cup state - the same fact the strip reads - so this fixture goes blank if the
+   * strip ever stops reading it.
+   */
+  const cupFinalEvent = EVENTS_BY_ID.sen_cup_final_won;
+  const cupFinalCareer: Career = {
+    ...decisionCareer,
+    world: {
+      ...decisionCareer.world,
+      cup: {
+        season: decisionCareer.currentSeason,
+        clubId: decisionCareer.currentClubId,
+        trophyId: 'cup' as const,
+        run: 'winners' as const,
+        finalOpponentId: 'maccabi_tel_aviv',
+      },
+    },
+  };
+
   const revealOutcomes =
     decisionEvent && decisionEvent.choices[0]
       ? calculateOutcomeDistribution(decisionCareer, decisionEvent, decisionEvent.choices[0], 'late')
@@ -805,6 +825,14 @@ export function Gallery(): JSX.Element {
       'decision',
       decisionEvent ? (
         <DecisionCard career={decisionCareer} event={decisionEvent} onChoose={noop} />
+      ) : (
+        <div />
+      ),
+    ],
+    [
+      'decision-cup-final',
+      cupFinalEvent ? (
+        <DecisionCard career={cupFinalCareer} event={cupFinalEvent} onChoose={noop} />
       ) : (
         <div />
       ),
