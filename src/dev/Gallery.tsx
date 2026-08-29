@@ -129,6 +129,23 @@ const peopleCareer = (): Career => {
             toSeason: 2043,
             finalTrust: 58,
           },
+          /* v0.5.1: a deliberately long foreign name, to stress the row at 320px. */
+          {
+            person: { id: 'px_mgr2', type: 'club_manager', name: 'כריסטוס פפאדופולוס־ניקולאידיס', shortName: 'פפאדופולוס', archetypeId: 'star_driven', createdSeason: 2044, country: 'יוון' },
+            clubId: 'union_sg',
+            fromSeason: 2044,
+            toSeason: 2047,
+            finalTrust: 71,
+          },
+        ],
+        personalCoachHistory: [
+          {
+            person: { id: 'px_pc', type: 'personal_coach', name: 'מוטי בן־חיים', shortName: 'בן־חיים', archetypeId: 'goalkeeping', createdSeason: 2041, country: 'ישראל' },
+            specialty: 'goalkeeping',
+            sinceSeason: 2041,
+            endedSeason: 2045,
+            seasonsTogether: 4,
+          },
         ],
       },
     };

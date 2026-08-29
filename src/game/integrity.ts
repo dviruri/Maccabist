@@ -17,6 +17,7 @@
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { AGENT_ARCHETYPES, COACH_SPECIALTIES, MANAGER_ARCHETYPES, specialtiesFor } from '../data/people';
 import { leagueShape } from '../data/leagueShape';
+import { stageOrder } from '../data/academy';
 import { outcomeForPosition } from './leagueEngine';
 import {
   appearanceBreakdown,
@@ -67,7 +68,16 @@ export type IntegrityCode =
   /** the personal coach's specialty does not fit the player's position. */
   | 'coach_position_mismatch'
   /** a memory references a personId that no known person carries. */
-  | 'memory_unknown_person';
+  | 'memory_unknown_person'
+  /* ---------- v0.5.1 ---------- */
+  /** a bond in a history list was never closed - history is closed relationships. */
+  | 'open_bond_history'
+  /** representation exists at a stage that cannot have it. */
+  | 'agent_before_eligible_stage'
+  /** the current manager's tenure opens after the current season. */
+  | 'manager_tenure_from_future'
+  /** a club-manager record claims to have been seen in a season yet to happen. */
+  | 'club_manager_seen_in_future';
 
 export interface IntegrityViolation {
   code: IntegrityCode;
@@ -375,6 +385,51 @@ function validatePeople(
   for (const memory of career.memories) {
     if (memory.personId && !ids.has(memory.personId)) {
       push('memory_unknown_person', `memory ${memory.kind} references unknown person ${memory.personId}`);
+    }
+  }
+
+  /* ---------------- v0.5.1 ---------------- */
+
+  /*
+   * Every history list holds ENDED relationships. An open bond sitting in history means a
+   * closing path forgot to stamp it, which is how a person quietly exists twice.
+   */
+  for (const bond of people.agentHistory) {
+    if (bond.endedSeason === undefined) {
+      push('open_bond_history', `agent ${bond.person.id} sits in history without an end season`);
+    }
+  }
+  for (const bond of people.personalCoachHistory) {
+    if (bond.endedSeason === undefined) {
+      push('open_bond_history', `coach ${bond.person.id} sits in history without an end season`);
+    }
+  }
+
+  /*
+   * Representation is stage-gated (v0.5 Phase 6), so an agent on a child is an eligibility
+   * violation rather than merely odd. Checked against the stage the bond STARTED at where that
+   * is knowable - a senior player who signed at נערים א׳ is correct, not a violation.
+   */
+  if (people.agent && stageOrder(career.academyStage) < stageOrder('youth_a')) {
+    push(
+      'agent_before_eligible_stage',
+      `an agent exists at ${career.academyStage}, below the נערים א׳ eligibility floor`,
+    );
+  }
+
+  // Time only runs forwards.
+  if (people.manager && people.manager.fromSeason > career.currentSeason) {
+    push(
+      'manager_tenure_from_future',
+      `the current tenure opens in ${people.manager.fromSeason}, after ${career.currentSeason}`,
+    );
+  }
+  for (const [clubId, record] of Object.entries(people.clubManagers)) {
+    if (record.lastSeenSeason > career.currentSeason) {
+      push(
+        'club_manager_seen_in_future',
+        `${clubId}'s manager was last seen in ${record.lastSeenSeason}, after ${career.currentSeason}`,
+      );
     }
   }
 }

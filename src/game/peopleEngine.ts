@@ -347,7 +347,15 @@ export function initialManagerTrust(
   const t = RECOVERY.trustInit;
   const baseline = coachTrustBaseline(career);
   const role = (career.roleValue - 50) * t.roleWeight;
-  const reputation = (career.reputation - 45) * t.reputationWeight;
+  /*
+   * One-sided on purpose (v0.5.1). A name that travels ahead of a player HELPS him; being
+   * unknown must not hurt, because `coachTrustBaseline` already prices in "we do not know what
+   * this boy is yet" through the ability-for-level term. Symmetric, this double-counted
+   * anonymity: every academy player sits well under reputation 45, so every one of them took a
+   * penalty at every manager change - measured as Maccabi senior rate 64.6% -> 59.9% and ten
+   * fewer Maccabi appearances a career, because academy promotion reads Coach Trust.
+   */
+  const reputation = Math.max(0, career.reputation - 45) * t.reputationWeight;
   const form = (career.hidden.form - 55) * t.formWeight;
   const carried = (career.coachTrust - 50) * (options.carryover ?? t.carryover);
   const noise = rng.gaussian(0, t.uncertainty);

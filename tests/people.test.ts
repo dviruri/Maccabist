@@ -25,6 +25,7 @@ import {
   agentOfferFactor,
   clubManagerArchetype,
   endManagerTenure,
+  eventPerson,
   initialManagerTrust,
   installManager,
   managerBaselineDelta,
@@ -619,6 +620,71 @@ describe('v0.5.1 D/E. the manager has a view on loans', () => {
       return loans;
     };
     expect(count('conservative')).toBeGreaterThan(count('rotation'));
+  });
+});
+
+
+/* ------------------------------------------------------------------ */
+/* v0.5.1 Priority 8: events reference the person who is here NOW      */
+/* ------------------------------------------------------------------ */
+
+describe('v0.5.1 people events name the right person', () => {
+  it('follows the manager change - a current-manager event never names his predecessor', () => {
+    const before = withManagerArchetype(seniorAt(MACCABI_ID, 31), 'youth_believer');
+    const outgoing = before.people!.manager!.person;
+
+    const header = eventPerson(before, 'ppl_mgr_prove_it');
+    expect(header?.person.id).toBe(outgoing.id);
+
+    const after = replaceManager(before, createRng(31));
+    const incoming = after.people!.manager!.person;
+    expect(incoming.id).not.toBe(outgoing.id);
+
+    // The same event, asked again, resolves to whoever is actually in charge.
+    const headerAfter = eventPerson(after, 'ppl_mgr_prove_it');
+    expect(headerAfter?.person.id).toBe(incoming.id);
+    expect(headerAfter?.person.name).not.toBe(outgoing.name);
+  });
+
+  it('keeps historical memories pointing at the historical person', () => {
+    const before = seniorAt(MACCABI_ID, 32);
+    const outgoing = before.people!.manager!.person;
+    const withMemory: Career = {
+      ...before,
+      memories: [
+        ...before.memories,
+        {
+          kind: 'manager_gave_debut',
+          season: before.currentSeason,
+          age: before.age,
+          stage: 'senior',
+          detail: outgoing.name,
+          personId: outgoing.id,
+        },
+      ],
+    };
+
+    const after = replaceManager(withMemory, createRng(32));
+    const memory = after.memories.find((m) => m.kind === 'manager_gave_debut');
+
+    // Still the man who actually gave it, not whoever holds the job now.
+    expect(memory?.personId).toBe(outgoing.id);
+    expect(memory?.personId).not.toBe(after.people?.manager?.person.id);
+    expect(memory?.detail).toBe(outgoing.name);
+    expect(validateCareerIntegrity(after)).toEqual([]);
+  });
+
+  it('resolves an agent event to the agent and a coach event to the coach', () => {
+    let career = signAgent(seniorAt(MACCABI_ID, 33), 'family');
+    career = startPersonalCoach(career, 'technical');
+    expect(eventPerson(career, 'ppl_agent_pushes_move')?.role).toBe('agent');
+    expect(eventPerson(career, 'ppl_pc_weakness_found')?.role).toBe('personal_coach');
+    expect(eventPerson(career, 'ppl_mgr_prove_it')?.role).toBe('manager');
+  });
+
+  it('names nobody when the person does not exist yet', () => {
+    const career = seniorAt(MACCABI_ID, 34); // no agent signed
+    expect(eventPerson(career, 'ppl_first_agent_family')).toBeNull();
   });
 });
 
