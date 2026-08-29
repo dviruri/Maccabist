@@ -233,7 +233,7 @@ export const MANAGER_ARCHETYPES: Record<ManagerArchetypeId, ManagerArchetype> = 
     trustGainFactor: 1.1,
     trustLossFactor: 0.85,
     rotationFactor: 1.0,
-    loanWillingness: 1.1,
+    loanWillingness: 1.15,
   },
   conservative: {
     id: 'conservative',
@@ -245,7 +245,7 @@ export const MANAGER_ARCHETYPES: Record<ManagerArchetypeId, ManagerArchetype> = 
     trustGainFactor: 0.8,
     trustLossFactor: 0.85,
     rotationFactor: 0.9,
-    loanWillingness: 1.2,
+    loanWillingness: 1.45,
   },
   disciplinarian: {
     id: 'disciplinarian',
@@ -269,7 +269,7 @@ export const MANAGER_ARCHETYPES: Record<ManagerArchetypeId, ManagerArchetype> = 
     trustGainFactor: 1.0,
     trustLossFactor: 1.0,
     rotationFactor: 1.12,
-    loanWillingness: 0.85,
+    loanWillingness: 0.65,
   },
   star_driven: {
     id: 'star_driven',
@@ -281,7 +281,7 @@ export const MANAGER_ARCHETYPES: Record<ManagerArchetypeId, ManagerArchetype> = 
     trustGainFactor: 1.05,
     trustLossFactor: 1.0,
     rotationFactor: 0.9,
-    loanWillingness: 1.05,
+    loanWillingness: 1.35,
   },
   short_fuse: {
     id: 'short_fuse',

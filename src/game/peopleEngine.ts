@@ -450,6 +450,29 @@ export function scaleTrustMove(career: Career, move: number): number {
 }
 
 /**
+ * Would this manager sanction a loan? (v0.5.1, Priority 3)
+ *
+ * `loanWillingness` has existed on the archetypes since v0.5 and did nothing, which is exactly
+ * the "why does my manager attribute exist if it changes nothing?" the brief names. It is a
+ * multiplier on the loan CHANCE, applied after the existing eligibility gate has already said
+ * yes - eligibility stays authoritative and a manager can never conjure a loan for a player the
+ * rules do not allow to have one.
+ *
+ * The archetype is also read in context rather than flatly: a rotation manager who is actually
+ * planning to use this player is more reluctant to let him go than the same manager would be
+ * about a player buried at the bottom of his squad. That is the Scenario E distinction - the
+ * manager wants him, so the loan is less likely, without ever becoming impossible.
+ */
+export function managerLoanFactor(career: Career): number {
+  if (career.academyStage !== 'senior') return 1;
+  const archetype = managerArchetypeOf(career);
+  let factor = archetype.loanWillingness;
+  // Someone he has plans for is someone he would rather keep.
+  if (career.roleValue >= 45) factor *= 0.8;
+  return factor;
+}
+
+/**
  * The manager's effect on minutes (Phase 18). Combines with everything the minutes model
  * already weighs - it must never dictate selection, so the range is deliberately narrow.
  */

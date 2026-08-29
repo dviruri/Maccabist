@@ -18,6 +18,7 @@ import { PEOPLE_EVENTS } from '../src/data/events/peopleEvents';
 import { autoStep, createCareer, hydrateCareer } from '../src/game/careerEngine';
 import { validateCareerIntegrity } from '../src/game/integrity';
 import { drawDestination, marketClubs } from '../src/game/marketEngine';
+import { generateOffers } from '../src/game/transferEngine';
 import {
   agentEligible,
   agentMarketFactor,
@@ -27,6 +28,7 @@ import {
   initialManagerTrust,
   installManager,
   managerBaselineDelta,
+  managerLoanFactor,
   managerMinutesFactor,
   negotiateExpectedRole,
   personalCoachDevBonus,
@@ -555,6 +557,68 @@ describe('v0.5.1 B/C. clubs manage themselves while the player is away', () => {
     const historical = a.people?.managerHistory.find((t) => t.person.id === original.id);
     expect(historical?.person.name).toBe(original.name);
     expect(historical?.toSeason).toBeDefined();
+  });
+});
+
+
+/* ------------------------------------------------------------------ */
+/* v0.5.1 Scenarios D & E: manager loan willingness                    */
+/* ------------------------------------------------------------------ */
+
+describe('v0.5.1 D/E. the manager has a view on loans', () => {
+  /** A young fringe player: eligible for a loan, not in anyone's plans. */
+  function fringeYouth(archetype: ManagerArchetypeId): Career {
+    const base = withManagerArchetype(seniorAt(MACCABI_ID, 4), archetype);
+    return { ...base, age: 20, roleValue: 30, ability: 58 };
+  }
+
+  it('D. a willing manager makes the loan route more likely', () => {
+    const willing = managerLoanFactor(fringeYouth('conservative'));
+    const reluctant = managerLoanFactor(fringeYouth('rotation'));
+    expect(willing).toBeGreaterThan(reluctant);
+    expect(willing).toBeGreaterThan(1);
+  });
+
+  it('E. a manager with plans for him keeps him, without making a loan impossible', () => {
+    const fringe = fringeYouth('rotation');
+    const wanted = { ...fringe, roleValue: 60 };
+    expect(managerLoanFactor(wanted)).toBeLessThan(managerLoanFactor(fringe));
+    // Reduced, never zero - the door stays open.
+    expect(managerLoanFactor(wanted)).toBeGreaterThan(0);
+  });
+
+  it('cannot bypass loan eligibility, whatever the manager wants', () => {
+    /*
+     * The factor multiplies a CHANCE. Eligibility - age, appearances, already-on-loan - is a
+     * separate boolean gate upstream, so the most loan-happy manager in the game generates
+     * nothing for a player who does not qualify.
+     */
+    const veteran = {
+      ...withManagerArchetype(seniorAt(MACCABI_ID, 8), 'conservative'),
+      age: 33,
+      roleValue: 30,
+    };
+    for (let seed = 1; seed <= 120; seed += 1) {
+      const offers = generateOffers(veteran, createRng(seed));
+      expect(offers.some((o) => o.kind === 'loan'), `seed ${seed}`).toBe(false);
+    }
+  });
+
+  it('is inert inside the academy, like every other archetype modifier', () => {
+    const boy = createCareer({ playerName: 'ת', position: 'CM', seed: 5 });
+    expect(managerLoanFactor(boy)).toBe(1);
+  });
+
+  it('changes the observed loan rate across real offer generation', () => {
+    const count = (archetype: ManagerArchetypeId): number => {
+      const career = fringeYouth(archetype);
+      let loans = 0;
+      for (let seed = 1; seed <= 500; seed += 1) {
+        if (generateOffers(career, createRng(seed)).some((o) => o.kind === 'loan')) loans += 1;
+      }
+      return loans;
+    };
+    expect(count('conservative')).toBeGreaterThan(count('rotation'));
   });
 });
 

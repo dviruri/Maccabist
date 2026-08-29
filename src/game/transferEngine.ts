@@ -6,7 +6,12 @@
  * chances without ever guaranteeing a specific club.
  */
 
-import { agentLoanFactor, agentOfferFactor, negotiateExpectedRole } from './peopleEngine';
+import {
+  agentLoanFactor,
+  agentOfferFactor,
+  managerLoanFactor,
+  negotiateExpectedRole,
+} from './peopleEngine';
 import { stageOrder } from '../data/academy';
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import type {
@@ -676,9 +681,19 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
    * play. The agent factor multiplies the chance the loan conversation happens; eligibility
    * above stays exactly the world's own rule.
    */
+  /*
+   * v0.5.1: the manager's willingness joins the agent's. Both are multipliers on a chance the
+   * world's own rules already computed, and `loanEligible` above - stage, age, appearances,
+   * loan status - is untouched by either. A manager can make the conversation more or less
+   * likely; he cannot make an ineligible player loanable.
+   */
   if (
     loanEligible &&
-    rng.chance((TRANSFERS.loanChance + career.hidden.transferBoost * 0.5) * agentLoanFactor(career))
+    rng.chance(
+      (TRANSFERS.loanChance + career.hidden.transferBoost * 0.5) *
+        agentLoanFactor(career) *
+        managerLoanFactor(career),
+    )
   ) {
     offers.push(...buildLoanOffers(career, rng));
   }

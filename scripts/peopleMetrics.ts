@@ -48,6 +48,21 @@ let coachlessPeakSum = 0;
 const specialtyCount: Record<string, number> = {};
 let agentedCareers = 0;
 let agentChanges = 0;
+/* v0.5.1: was a credible alternative ever put in front of the player? */
+const SWITCH_EVENTS = new Set([
+  'ppl_agent_outgrown',
+  'ppl_agent_sustained_europe',
+  'ppl_agent_strategy_pitch',
+  'ppl_agent_europe_approach',
+  'ppl_agent_loyalty_moment',
+  'ppl_fire_agent',
+]);
+let offeredSwitch = 0;
+let longCareers = 0;
+let longCareersOfferedSwitch = 0;
+let managerTenures = 0;
+let managerTenureSeasons = 0;
+let coachReplacements = 0;
 
 for (let seed = 1; seed <= CAREERS; seed += 1) {
   const c = simulateCareer({ playerName: 'ת', position: (['GK','CB','FB','CM','WG','ST'] as const)[seed % 6]!, seed, policy: balancedPolicy });
@@ -96,6 +111,29 @@ for (let seed = 1; seed <= CAREERS; seed += 1) {
     }
   }
 
+  /* ---- v0.5.1: agent-choice visibility and manager tenure ---- */
+  const sawSwitch = c.eventsHistory.some((e) => SWITCH_EVENTS.has(e.eventId));
+  if (sawSwitch) offeredSwitch += 1;
+  /*
+   * "Long career" is not the discriminating filter here - essentially every career that reaches
+   * senior football plays 12+ senior seasons. What actually decides whether a switch conversation
+   * is even POSSIBLE is whether the player's standing ever cleared the bar the switch events
+   * require (~reputation 45), so that is what the conditional reports.
+   */
+  const peakReputation = Math.max(
+    c.reputation,
+    ...c.seasonHistory.map(() => c.reputation),
+  );
+  if (peakReputation >= 45) {
+    longCareers += 1;
+    if (sawSwitch) longCareersOfferedSwitch += 1;
+  }
+  for (const t of [...people.managerHistory, ...(people.manager ? [people.manager] : [])]) {
+    managerTenures += 1;
+    managerTenureSeasons += (t.toSeason ?? c.currentSeason) - t.fromSeason + 1;
+  }
+  coachReplacements += people.personalCoachHistory.length;
+
   /* ---- personal coaches ---- */
   const hadCoach = people.personalCoach !== null || people.personalCoachHistory.length > 0;
   if (hadCoach) {
@@ -129,6 +167,15 @@ for (const id of Object.keys(AGENT_ARCHETYPES) as AgentArchetypeId[]) {
   );
 }
 console.log(`  agented careers: ${agentedCareers} (${((agentedCareers / CAREERS) * 100).toFixed(1)}%), avg changes ${(agentChanges / Math.max(1, agentedCareers)).toFixed(2)}`);
+console.log(`  offered a credible alternative: ${offeredSwitch} (${((offeredSwitch / CAREERS) * 100).toFixed(1)}%)`);
+console.log(`  careers that ever qualified (reputation 45+): ${longCareers}, of those offered: ${longCareersOfferedSwitch} (${((longCareersOfferedSwitch / Math.max(1, longCareers)) * 100).toFixed(1)}%)`);
+console.log(`  actually switched at least once: ${agentChanges} moves across ${agentedCareers} careers`);
+
+console.log('');
+console.log('MANAGER TENURE (v0.5.1)');
+console.log(`  tenures observed        ${managerTenures}`);
+console.log(`  avg tenure (seasons)    ${(managerTenureSeasons / Math.max(1, managerTenures)).toFixed(2)}`);
+console.log(`  personal coach changes  ${coachReplacements}`);
 
 console.log('\nMANAGERS (senior seasons joined against tenures)');
 console.log('  archetype          seasons   apps/season   U21 apps/season   avg trust');

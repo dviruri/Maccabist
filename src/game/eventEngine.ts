@@ -8,8 +8,10 @@
 
 import { stageConfig } from '../data/academy';
 import { EVENTS_BY_ID, EVENT_POOL } from '../data/events';
+import { AGENT_ARCHETYPES } from '../data/people';
 import type {
   Achievement,
+  AgentArchetypeId,
   Career,
   CareerEventResult,
   EventCategory,
@@ -162,8 +164,39 @@ export function selectionWeight(
      * players far harder than any other person in football chases anyone.
      */
     if (event.conditions.forbidsAgent === true && !career.people?.agent) weight *= 3;
+
+    /*
+     * ...and a career that has outgrown its representation attracts callers (v0.5.1).
+     *
+     * The question v0.5.1 wants asked out loud is "does my current agent still fit the stage my
+     * career is at?". Measured before this, only 16% of careers were ever asked it, because the
+     * switch events compete with forty others for one slot a season. The signal is not random:
+     * it is the gap between what the player is now worth and the level of representation that
+     * signed him. A player whose reputation has climbed well past his agent's own threshold is
+     * exactly who other agents phone.
+     *
+     * Weight only - every switch event still has to pass its own conditions, and staying is
+     * always on the card.
+     */
+    if (event.conditions.requiresAgent === true && hasOutgrownAgent(career)) weight *= 2.6;
   }
   return weight;
+}
+
+/**
+ * Has the player's standing climbed clear of the representation that signed him? (v0.5.1)
+ *
+ * Compared against the agent's own `reputationThreshold` - the level at which that archetype
+ * would take a player on - so this asks a real question rather than a numeric one, and answers
+ * "no" for a player whose agent still matches where he is.
+ */
+function hasOutgrownAgent(career: Career): boolean {
+  const agent = career.people?.agent;
+  if (!agent) return false;
+  const archetype = AGENT_ARCHETYPES[agent.person.archetypeId as AgentArchetypeId];
+  if (!archetype) return false;
+  const seasonsTogether = career.currentSeason - agent.sinceSeason;
+  return career.reputation >= archetype.reputationThreshold + 25 && seasonsTogether >= 3;
 }
 
 /** Picks a single event for a slot, or null when nothing fits. */

@@ -209,6 +209,178 @@ export const PEOPLE_EVENTS: GameEvent[] = [
     ],
   },
 
+  {
+    id: 'ppl_agent_outgrown',
+    kicker: 'שיחה כנה',
+    title: 'הסוכן שלך אומר לך את האמת',
+    description:
+      'הוא מבקש להיפגש, ומדבר לאט. "אני מלווה אותך מאז שהיית ילד, ואני אוהב את זה. אבל השיחות שמגיעות עכשיו הן לא השיחות שאני יודע לנהל. יש אנשים עם רשת אחרת. אני אומר לך את זה כי אכפת לי - לא כי אני רוצה ללכת."',
+    category: 'people',
+    conditions: {
+      requiresAgent: true,
+      agentArchetypes: ['family', 'israel_networker'],
+      bands: ['senior'],
+      minReputation: 52,
+      minAgentRelationship: 55,
+      minAge: 22,
+    },
+    slots: ['early', 'mid'],
+    weight: 12,
+    cooldownSeasons: 4,
+    choices: [
+      {
+        id: 'take_his_advice',
+        label: 'הוא צודק. לעבור למי שמכיר את השוק הזה',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'moved_up',
+            baseWeight: 100,
+            tone: 'good',
+            preview: 'ייצוג עם רשת אירופית - והפרידה נשארת יפה',
+            text: 'הוא עצמו מסדר לך את הפגישה. יש משהו נדיר באדם שפותח לך דלת שמוציאה אותך ממנו. אתם נשארים בקשר.',
+            effects: { signAgent: 'europe_specialist', reputation: 2 },
+          },
+        ],
+      },
+      {
+        id: 'stay_with_him',
+        label: 'מי שהיה איתי בהתחלה יהיה איתי גם עכשיו',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'loyalty_held',
+            baseWeight: 100,
+            tone: 'good',
+            preview: 'הקשר יתחזק - ומי שמכיר אותך יעבוד קשה יותר בשבילך',
+            text: '"אתה לא הולך לשום מקום," אתה אומר. הוא לא עונה מיד. בחודשים הבאים הוא עובד כמו אדם שיש לו משהו להוכיח - ולפעמים זה שווה יותר מרשת קשרים.',
+            effects: { agentRelationship: 14, transferChance: 0.1 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'ppl_agent_sustained_europe',
+    kicker: 'שלוש פניות בחודשיים',
+    title: 'אירופה מתעניינת ברצינות',
+    description:
+      'זו כבר לא פנייה בודדת. שלושה מועדונים שאלו עליך בחודשיים, ואחד מהם חזר פעמיים. סוכן שמתמחה בשוק הזה שומע את הרעש ומציע להיכנס לתמונה - הוא מדבר על מסלול, לא על עסקה אחת.',
+    category: 'people',
+    conditions: {
+      requiresAgent: true,
+      agentArchetypes: ['family', 'israel_networker', 'dealmaker'],
+      bands: ['senior'],
+      abroad: false,
+      minAbility: 66,
+      minReputation: 48,
+      minLastAppearances: 18,
+    },
+    slots: ['mid', 'late'],
+    weight: 12,
+    cooldownSeasons: 3,
+    choices: [
+      {
+        id: 'switch_for_europe',
+        label: 'אם זה הולך לקרות - שיהיה מי שיודע לנהל את זה',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'specialist_takes_over',
+            baseWeight: 70,
+            tone: 'good',
+            preview: 'ייצוג מתמחה יהפוך את ההתעניינות למשא ומתן אמיתי',
+            text: 'הוא נכנס לתמונה ותוך שבועיים ההתעניינות הופכת לשיחות אמיתיות. יש הבדל בין מישהו ששומע על השוק לבין מישהו שגר בו.',
+            effects: { signAgent: 'europe_specialist', transferChance: 0.2 },
+          },
+          {
+            id: 'noise_fades',
+            baseWeight: 30,
+            tone: 'neutral',
+            preview: 'לפעמים הרעש נגמר בדיוק כשמחליפים ידיים',
+            text: 'החלפת ייצוג באמצע גל התעניינות היא הימור. הפעם הגל שוקע בזמן שהניירת מסתדרת. הרשת נשארת - התזמון היה אכזרי.',
+            effects: { signAgent: 'europe_specialist' },
+          },
+        ],
+      },
+      {
+        id: 'trust_current',
+        label: 'שהסוכן שלי ינהל את זה. הוא מכיר אותי',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'handled_it',
+            baseWeight: 55,
+            tone: 'good',
+            preview: 'מי שמכיר אותך יודע גם מה לא מתאים לך',
+            text: 'הוא עובד מסביב לשעון, שואל שאלות שמומחה שוק לא היה חושב לשאול, ופוסל בשקט שני מועדונים שהיו טועים בשבילך.',
+            effects: { agentRelationship: 10, transferChance: 0.14 },
+          },
+          {
+            id: 'out_of_depth',
+            baseWeight: 45,
+            tone: 'bad',
+            preview: 'ונאמנות לא מחליפה מספרי טלפון',
+            text: 'הוא עושה כמיטב יכולתו, ורואים שזה לא השוק שלו. שיחה אחת לא נענית בזמן, ועסקה מתפוגגת. הוא מתנצל. זה לא עוזר.',
+            effects: { agentRelationship: -8, confidence: -3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'ppl_agent_strategy_pitch',
+    kicker: 'פגישה שלא ביקשת',
+    title: 'סוכן אחר מציע לך אסטרטגיה אחרת',
+    description:
+      'הוא מגיע עם מצגת, וזה מרגיש מוזר עד שאתה מקשיב. "אתה מנוהל כמו שחקן שמפחד לטעות. אני הייתי לוקח אותך למקום גדול יותר, מוקדם יותר, גם במחיר של שנה קשה." זו לא אותה קריירה. זו קריירה אחרת.',
+    category: 'people',
+    conditions: {
+      requiresAgent: true,
+      agentArchetypes: ['family', 'israel_networker', 'europe_specialist'],
+      bands: ['senior'],
+      minAge: 21,
+      maxAge: 28,
+      minRoleValue: 48,
+      minReputation: 42,
+    },
+    slots: ['early', 'mid'],
+    weight: 11,
+    cooldownSeasons: 4,
+    choices: [
+      {
+        id: 'take_the_gamble',
+        label: 'אולי באמת שיחקתי אותה בטוח מדי',
+        risk: 'risky',
+        outcomes: [
+          {
+            id: 'new_strategy',
+            baseWeight: 100,
+            tone: 'neutral',
+            preview: 'קריירה אגרסיבית יותר - יותר הצעות, פחות ביטחון בתפקיד',
+            text: 'החתימה מרגישה כמו קפיצה. תוך חודש מגיעות שיחות שלא היו מגיעות קודם - חלקן מרגשות, חלקן מסוכנות. זאת הייתה הנקודה.',
+            effects: { signAgent: 'dealmaker', transferChance: 0.14 },
+          },
+        ],
+      },
+      {
+        id: 'know_yourself',
+        label: 'אתה יודע איך אתה בנוי. להישאר',
+        risk: 'safe',
+        outcomes: [
+          {
+            id: 'self_knowledge',
+            baseWeight: 100,
+            tone: 'good',
+            preview: 'לדעת מה מתאים לך שווה יותר ממצגת טובה',
+            text: 'אתה מודה לו ומסרב. יש שחקנים שפורחים בכאוס ויש כאלה שנשברים בו, ואתה יודע איזה מהם אתה. הסוכן שלך שומע על הפגישה - ועל התשובה.',
+            effects: { agentRelationship: 8, confidence: 4 },
+          },
+        ],
+      },
+    ],
+  },
+
   /* ---------------- advice and pressure (Phases 9-10) -------------- */
   {
     id: 'ppl_agent_pushes_move',
@@ -395,7 +567,7 @@ export const PEOPLE_EVENTS: GameEvent[] = [
     kicker: 'שדות תעופה',
     title: 'הסוכן פתח לך שוק באירופה',
     description:
-      'הוא חוזר מנסיעה עם שם של מועדון ועם עובדה: "הם צפו בך פעמיים. הם רוצים פגישה." זה השוק שהוא מכיר - זה בדיוק מה ששילמת עליו.',
+      'הוא חוזר מנסיעה עם שם של מועדון ועם עובדה: "הם צפו בך פעמיים. הם רוצים פגישה." זה השוק שהוא מכיר - זה בדיוק בשביל זה בחרת בו.',
     category: 'people',
     conditions: {
       requiresAgent: true,
@@ -892,7 +1064,7 @@ export const PEOPLE_EVENTS: GameEvent[] = [
             baseWeight: 32,
             tone: 'neutral',
             preview: 'אבל משהו מהחופש שלך יישאר מחוץ למגרש',
-            text: 'המשבצת מסודרת, והקהל קצת פחות קם מהכיסא. עסקה היא עסקה - שילמת בה משהו.',
+            text: 'המשבצת מסודרת, והקהל קצת פחות קם מהכיסא. עסקה היא עסקה - ויתרת בה על משהו.',
             effects: { coachTrust: 6, discipline: 4, confidence: -3 },
           },
         ],
@@ -1813,7 +1985,7 @@ export const PEOPLE_EVENTS: GameEvent[] = [
             baseWeight: 100,
             tone: 'good',
             preview: 'שנתיים של עבודה שקטה הופכות לחלק ממך',
-            text: 'אתה עונה לו: "של שנינו." יש דברים שקונים בכסף ויש דברים שנבנים בעשרים דקות ביום, שנתיים ברצף. זה מהסוג השני.',
+            text: 'אתה עונה לו: "של שנינו." יש דברים שמגיעים מהר ויש דברים שנבנים בעשרים דקות ביום, שנתיים ברצף. זה מהסוג השני.',
             effects: {
               ability: 2,
               confidence: 6,
