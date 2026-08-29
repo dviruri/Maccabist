@@ -40,6 +40,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { CREST_SEEDS, COUNTRY_QIDS, type CrestSeed } from './crestSeeds';
+import { classifyAsset, type AssetRole } from './crestRoles';
 import { ALL_CLUBS } from '../src/data/clubs';
 import { defaultLeagueFor } from '../src/data/leagues';
 import { snapshotLeagueOf } from '../src/data/worldClubs';
@@ -53,13 +54,36 @@ const ASSET_DIR = path.join(ROOT, 'public', 'club-crests');
 const MANIFEST_PATH = path.join(ASSET_DIR, 'manifest.json');
 const GENERATED_PATH = path.join(ROOT, 'src', 'data', 'clubCrests.generated.ts');
 const CACHE_PATH = path.join(__dirname, '.crest-cache.json');
+const REVIEW_PATH = path.join(ROOT, 'crest-review.json');
 
+/*
+ * BOUNDED NETWORK POLICY (v0.6.4, D10/D11 - the critical operating rule).
+ *
+ * A previous run stalled in an unbounded wait. Nothing here can: attempts are capped, each
+ * request has its own timeout, backoff is bounded, and every club has a total wall-clock budget
+ * after which it is marked unresolved and the run moves on. A provider outage costs the run a
+ * few unresolved clubs, never its progress.
+ */
 const API_DELAY_MS = 700; // stay well under the anonymous MediaWiki rate limits (C15)
+const MAX_MS_PER_CLUB = 45_000; // hard ceiling on one club's whole resolution
+const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_ASSET_BYTES = 400 * 1024; // an SVG crest larger than this is the wrong file
 const USER_AGENT = 'MaccabistCrestImporter/0.6.3 (game development tool; single maintainer)';
 
-/** Wikidata P31 values accepted as "this is a football club". */
-const FOOTBALL_CLUB_QIDS = new Set(['Q476028', 'Q15944511', 'Q23759293', 'Q847017']);
+/**
+ * Wikidata P31 values accepted as "this is a football club".
+ *
+ * v0.6.4 added Q103229495, "men's association football team", after Barcelona, Chelsea and a
+ * dozen others came back `unmatched`: they are not typed as Q476028 at all. It is also the more
+ * useful class for the ambiguity guard, because a women's team carries a different one.
+ */
+const FOOTBALL_CLUB_QIDS = new Set([
+  'Q476028', // association football club
+  'Q103229495', // men's association football team
+  'Q15944511', // association football team
+  'Q23759293',
+  'Q847017', // sports club
+]);
 
 /** Commons licence short-names in the allow-list: the PD / CC0 family only. */
 const LICENSE_ALLOW = /^(public domain|pd[- ]?|cc0)/i;
@@ -69,8 +93,9 @@ const LICENSE_ALLOW = /^(public domain|pd[- ]?|cc0)/i;
 /* ------------------------------------------------------------------ */
 
 type Resolution =
-  | { status: 'imported'; qid: string; file: string; license: string; asset: string; sourceUrl: string; retrievedAt: string }
+  | { status: 'imported'; qid: string; file: string; license: string; asset: string; sourceUrl: string; retrievedAt: string; role: AssetRole }
   | { status: 'license_blocked'; qid: string; file: string; license: string }
+  | { status: 'wrong_role'; qid: string; file: string; role: AssetRole }
   | { status: 'no_logo'; qid: string }
   | { status: 'ambiguous'; candidates: string[] }
   | { status: 'unmatched' }
@@ -94,13 +119,23 @@ function loadCache(): Cache {
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Set for the duration of one club's resolution; `api` refuses to start a call past it. */
+let clubDeadline = Number.POSITIVE_INFINITY;
+
 async function api(base: string, params: Record<string, string>): Promise<unknown> {
   const url = `${base}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`;
   let lastStatus = 0;
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    await sleep(API_DELAY_MS * 2 ** attempt); // exponential backoff (C15)
+    if (Date.now() > clubDeadline) throw new Error('club time budget exceeded');
+    await sleep(API_DELAY_MS * 2 ** attempt); // bounded exponential backoff (C15/D10)
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      const res = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
       lastStatus = res.status;
       if (res.status === 429 || res.status >= 500) continue;
       if (!res.ok) throw new Error(`${res.status} for ${url}`);
@@ -131,8 +166,25 @@ function normalise(name: string): string {
     .trim();
 }
 
+/**
+ * A punctuation-free form, compared alongside the spaced one.
+ *
+ * v0.6.4: Arsenal came back `unmatched` because our seed says "Arsenal FC" and Wikidata's label
+ * is "Arsenal F.C." - which normalise turns into "arsenal fc" and "arsenal f c", two strings
+ * that are obviously the same club and are not equal. Collapsing everything non-alphanumeric
+ * makes both "arsenalfc". This widens matching without weakening it: the country and
+ * entity-type checks are untouched, and ambiguity is still refused rather than guessed.
+ */
+function compact(name: string): string {
+  return normalise(name).replace(/[^a-z0-9]/g, '');
+}
+
 function namesOf(seed: CrestSeed): string[] {
   return [seed.english, ...(seed.aliases ?? [])].map(normalise);
+}
+
+function compactNamesOf(seed: CrestSeed): string[] {
+  return [seed.english, ...(seed.aliases ?? [])].map(compact);
 }
 
 interface Entity {
@@ -195,10 +247,11 @@ async function fetchEntities(qids: string[]): Promise<Entity[]> {
  */
 function verify(seed: CrestSeed, entities: Entity[]): { entity: Entity } | { ambiguous: string[] } | null {
   const ourNames = new Set(namesOf(seed));
+  const ourCompact = new Set(compactNamesOf(seed));
   const allowedCountries = new Set(COUNTRY_QIDS[seed.country]);
   const passing = entities.filter(
     (e) =>
-      e.labels.some((label) => ourNames.has(label)) &&
+      e.labels.some((label) => ourNames.has(label) || ourCompact.has(label.replace(/[^a-z0-9]/g, ''))) &&
       e.instanceOf.some((qid) => FOOTBALL_CLUB_QIDS.has(qid)) &&
       e.country.some((qid) => allowedCountries.has(qid)),
   );
@@ -206,6 +259,28 @@ function verify(seed: CrestSeed, entities: Entity[]): { entity: Entity } | { amb
   if (passing.length > 1) return { ambiguous: passing.map((e) => e.qid) };
   return null;
 }
+
+/* ------------------------------------------------------------------ */
+/* Asset role classification (v0.6.4, D4/D5)                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * What KIND of image this file is.
+ *
+ * v0.6.3 accepted whatever a club's Wikidata P154 pointed at, and code review found the result:
+ * Roma resolved to an older wordmark rather than the club's current badge. "A real asset" and
+ * "the current primary crest" are different claims, and only the second one belongs on a league
+ * table row.
+ *
+ * Classification is by file title, which is what Commons actually gives us to reason about. It
+ * is deliberately conservative: anything that looks like a wordmark, a historic badge, a
+ * monochrome press mark or a dated logo is refused for primary use, and an unclear title is
+ * `unknown` rather than assumed good. Fallback beats a wrong badge.
+ */
+/*
+ * The rules live in `scripts/crestRoles.ts` so the importer and the offline reclassifier can
+ * never drift apart - two copies of a heuristic is two heuristics.
+ */
 
 /* ------------------------------------------------------------------ */
 /* Licence + download (C2/C7)                                          */
@@ -253,6 +328,7 @@ async function download(url: string, dest: string): Promise<number> {
 /* ------------------------------------------------------------------ */
 
 async function resolveClub(seed: CrestSeed, dryRun: boolean): Promise<Resolution> {
+  clubDeadline = Date.now() + MAX_MS_PER_CLUB;
   try {
     let verdict: { entity: Entity } | { ambiguous: string[] } | null = null;
 
@@ -283,6 +359,16 @@ async function resolveClub(seed: CrestSeed, dryRun: boolean): Promise<Resolution
     const { entity } = verdict;
     if (!entity.logoFile) return { status: 'no_logo', qid: entity.qid };
 
+    /*
+     * D4: is this actually the club's current primary crest? A wordmark or a historic badge is a
+     * real asset and the wrong one, and presenting it as the club's badge is a quieter version
+     * of presenting no badge at all.
+     */
+    const role = classifyAsset(entity.logoFile);
+    if (role !== 'current_primary_crest') {
+      return { status: 'wrong_role', qid: entity.qid, file: entity.logoFile, role };
+    }
+
     const info = await fileInfo(entity.logoFile);
     if (!info) return { status: 'no_logo', qid: entity.qid };
     if (!LICENSE_ALLOW.test(info.license)) {
@@ -303,6 +389,7 @@ async function resolveClub(seed: CrestSeed, dryRun: boolean): Promise<Resolution
       asset,
       sourceUrl: info.descriptionUrl,
       retrievedAt: new Date().toISOString().slice(0, 10),
+      role,
     };
   } catch (error) {
     return { status: 'error', message: String(error) };
@@ -331,6 +418,8 @@ function writeManifest(cache: Cache): void {
           sourceFile: entry.file,
           sourcePage: entry.sourceUrl,
           license: entry.license,
+          assetRole: entry.role,
+          verifiedCurrent: entry.role === 'current_primary_crest',
           retrievedAt: entry.retrievedAt,
           trademarkNote:
             'PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.',
@@ -357,6 +446,35 @@ function writeManifest(cache: Cache): void {
     GENERATED_PATH,
     `${header}\nexport const CREST_MANIFEST: Record<string, CrestManifestEntry> = {\n${entries}\n};\n\n/** The local asset path for a club's imported crest, or null when it has none. */\nexport function importedCrestAsset(clubId: string): string | null {\n  return CREST_MANIFEST[clubId]?.asset ?? null;\n}\n`,
   );
+}
+
+/**
+ * The manual-review queue (D13).
+ *
+ * Everything the importer refused to decide, with the reason. An ambiguous match or a
+ * wrong-role asset is a question for a person, not a coin flip - this is where the questions go,
+ * and `scripts/crestSeeds.ts` is where the answers are recorded as reviewed QIDs.
+ */
+function writeReviewQueue(cache: Cache): void {
+  const rows = Object.entries(cache)
+    .filter(([, r]) => r.status === 'ambiguous' || r.status === 'wrong_role' || r.status === 'unmatched')
+    .map(([clubId, r]) => {
+      const seed = CREST_SEEDS.find((s) => s.clubId === clubId);
+      return {
+        clubId,
+        clubName: seed?.english ?? clubId,
+        country: seed?.country,
+        provider: 'wikimedia',
+        reasonForReview: r.status,
+        candidates: (r as { candidates?: string[] }).candidates ?? [],
+        rejectedFile: (r as { file?: string }).file,
+        rejectedRole: (r as { role?: string }).role,
+        confidence: r.status === 'ambiguous' ? 'multiple entities verified' : 'no single verified match',
+      };
+    })
+    .sort((a, b) => a.clubId.localeCompare(b.clubId));
+  fs.writeFileSync(REVIEW_PATH, `${JSON.stringify(rows, null, 1)}
+`);
 }
 
 /* ------------------------------------------------------------------ */
@@ -426,6 +544,7 @@ async function main(): Promise<void> {
   if (!dryRun) {
     fs.writeFileSync(CACHE_PATH, `${JSON.stringify(cache, null, 1)}\n`);
     writeManifest(cache);
+    writeReviewQueue(cache);
   }
 
   console.log('\nsummary:');

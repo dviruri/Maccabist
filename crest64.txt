@@ -1,0 +1,202 @@
+
+> maccabist@0.1.0 crests:missing
+> vite-node scripts/importClubCrests.ts -- --missing-only
+
+crest importer: 185 clubs
+  no_logo          maccabi_haifa          
+  no_logo          maccabi_tel_aviv       
+  no_logo          hapoel_beer_sheva      
+  no_logo          beitar_jerusalem       
+  no_logo          hapoel_tel_aviv        
+  no_logo          maccabi_netanya        
+  no_logo          hapoel_jerusalem_fc    
+  no_logo          bnei_sakhnin           
+  no_logo          hapoel_haifa           
+  unmatched        ironi_kiryat_shmona    
+  no_logo          maccabi_petah_tikva    
+  no_logo          ironi_tiberias         
+  no_logo          hapoel_ramat_gan       
+  no_logo          hapoel_petah_tikva     
+  no_logo          hapoel_kfar_saba       
+  no_logo          maccabi_herzliya       
+  no_logo          hapoel_rishon          
+  no_logo          bnei_yehuda            
+  no_logo          ms_ashdod              
+  no_logo          maccabi_bnei_raina     
+  no_logo          hapoel_afula           
+  no_logo          hapoel_acre            
+  unmatched        maccabi_kabilio_jaffa  
+  error            ms_kafr_qasim          Error: gave up (last status 429) on https://www.wikidata.org
+  no_logo          hapoel_raanana         
+  no_logo          hapoel_kfar_shalem     
+  unmatched        ironi_modiin           
+  no_logo          maccabi_ahi_nazareth   
+  no_logo          maccabi_kiryat_gat     
+  unmatched        ms_kiryat_yam          
+  wrong_role       juventus               
+  wrong_role       as_roma                
+  no_logo          torino                 
+  no_logo          genoa                  
+  no_logo          sassuolo               
+  no_logo          cagliari               
+  no_logo          lecce                  
+  no_logo          hellas_verona          
+  no_logo          cremonese              
+  no_logo          real_madrid            
+  unmatched        barcelona              
+  ambiguous        sevilla                Q10329,Q20978060
+  no_logo          real_sociedad          
+  no_logo          athletic_bilbao        
+  no_logo          villarreal             
+  no_logo          real_betis             
+  no_logo          valencia               
+  license_blocked  celta_vigo             CC BY-SA 3.0
+  no_logo          girona                 
+  no_logo          rayo_vallecano         
+  no_logo          osasuna                
+  no_logo          mallorca               
+  no_logo          espanyol               
+  no_logo          alaves                 
+  no_logo          elche                  
+  no_logo          levante                
+  no_logo          real_oviedo            
+  no_logo          atletico               
+  license_blocked  getafe                 CC BY-SA 4.0
+  no_logo          man_city               
+  unmatched        arsenal                
+  unmatched        chelsea                
+  no_logo          man_united             
+  no_logo          aston_villa            
+  no_logo          newcastle              
+  no_logo          crystal_palace         
+  no_logo          west_ham               
+  no_logo          nottingham_forest      
+  no_logo          bournemouth            
+  no_logo          fulham                 
+  no_logo          brentford              
+  no_logo          everton                
+  no_logo          wolves                 
+  no_logo          leeds                  
+  no_logo          sunderland             
+  no_logo          burnley                
+  no_logo          tottenham              
+  no_logo          brighton               
+  ambiguous        rb_leipzig             Q702455,Q30033219
+  no_logo          eintracht_frankfurt    
+  no_logo          freiburg               
+  no_logo          union_berlin           
+  no_logo          augsburg               
+  license_blocked  koln                   CC BY-SA 4.0
+  no_logo          st_pauli               
+  no_logo          ajax                   
+  no_logo          psv                    
+  no_logo          feyenoord              
+  no_logo          twente                 
+  no_logo          nec_nijmegen           
+  no_logo          sparta_rotterdam       
+  no_logo          fc_groningen           
+  no_logo          heerenveen             
+  license_blocked  go_ahead_eagles        CC BY-SA 4.0
+  no_logo          fortuna_sittard        
+  no_logo          heracles               
+  no_logo          volendam               
+  no_logo          telstar                
+  ambiguous        club_brugge            Q190916,Q60214
+  no_logo          anderlecht             
+  no_logo          gent                   
+  no_logo          antwerp                
+  no_logo          standard_liege         
+  unmatched        charleroi              
+  no_logo          kv_mechelen            
+  no_logo          westerlo               
+  no_logo          sint_truiden           
+  no_logo          zulte_waregem          
+  no_logo          dender                 
+  no_logo          la_louviere            
+  license_blocked  union_sg               CC BY 4.0
+  no_logo          rb_salzburg            
+  no_logo          wolfsberger            
+  no_logo          hartberg               
+  no_logo          wsg_tirol              
+  no_logo          grazer_ak              
+  license_blocked  blau_weiss_linz        CC BY-SA 4.0
+  no_logo          olympiacos             
+  unmatched        panathinaikos          
+  unmatched        aek_athens             
+  no_logo          aris_thessaloniki      
+  no_logo          ofi_crete              
+  unmatched        volos                  
+  unmatched        atromitos              
+  no_logo          asteras_tripolis       
+  no_logo          panetolikos            
+  unmatched        panserraikos           
+  unmatched        kifisia                
+  unmatched        larissa                
+  unmatched        paok                   
+  no_logo          pafos_fc               
+  unmatched        apoel                  
+  no_logo          aek_larnaca            
+  no_logo          omonia_nicosia         
+  no_logo          apollon_limassol       
+  no_logo          aris_limassol          
+  unmatched        ael_limassol           
+  no_logo          anorthosis             
+  no_logo          nea_salamina           
+  no_logo          ethnikos_achna         
+  unmatched        doxa_katokopias        
+  no_logo          omonia_aradippou       
+  ambiguous        porto                  Q128446,Q132456015
+  error            sporting_cp            Error: gave up (last status 429) on https://commons.wikimedi
+  error            braga                  Error: gave up (last status 429) on https://www.wikidata.org
+  no_logo          vitoria_guimaraes      
+  no_logo          famalicao              
+  no_logo          gil_vicente            
+  no_logo          estoril                
+  no_logo          santa_clara            
+  no_logo          arouca                 
+  no_logo          moreirense             
+  no_logo          casa_pia               
+  no_logo          rio_ave                
+  no_logo          nacional               
+  no_logo          avs                    
+  unmatched        alverca                
+  no_logo          benfica                
+  imported         monza                  Public domain
+  no_logo          venezia                
+  no_logo          frosinone              
+  no_logo          coventry_city          
+  error            hull_city              Error: gave up (last status 429) on https://www.wikidata.org
+  error            ipswich_town           Error: gave up (last status 429) on https://www.wikidata.org
+  no_logo          malaga                 
+  no_logo          deportivo_la_coruna    
+  no_logo          racing_santander       
+  ambiguous        schalke                Q32494,Q117743307
+  error            sc_paderborn           Error: gave up (last status 429) on https://commons.wikimedi
+  error            elversberg             Error: gave up (last status 429) on https://www.wikidata.org
+  license_blocked  ado_den_haag           CC BY 2.0
+  license_blocked  cambuur                CC BY-SA 4.0
+  no_logo          willem_ii              
+  no_logo          kortrijk               
+  error            beveren                Error: gave up (last status 429) on https://www.wikidata.org
+  error            lommel                 Error: gave up (last status 429) on https://www.wikidata.org
+  no_logo          maritimo               
+  unmatched        academico_viseu        
+  imported         austria_lustenau       CC0
+  error            iraklis                Error: gave up (last status 429) on https://www.wikidata.org
+  error            kalamata               Error: gave up (last status 429) on https://www.wikidata.org
+  unmatched        karmiotissa            
+  unmatched        krasava_eny            
+  error            omonia_29m             Error: gave up (last status 429) on https://www.wikidata.org
+  error            olympiakos_nicosia     Error: gave up (last status 429) on https://www.wikidata.org
+
+summary:
+  ambiguous        5
+  error            13
+  imported         2
+  license_blocked  8
+  no_logo          132
+  unmatched        23
+  wrong_role       2
+
+manifest: C:\work\Maccabist\public\club-crests\manifest.json
+generated: C:\work\Maccabist\src\data\clubCrests.generated.ts

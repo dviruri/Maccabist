@@ -1,95 +1,129 @@
-# World data — snapshot, completeness and architecture
+# World data — snapshot, architecture and market design
 
-**`WORLD_DATA_VERSION = '2026.1'`** — the 2025/26 European season, the most recent whose full
-league memberships could be verified end to end. The game's fictional 2030s careers play out
-against this stylised present; the snapshot does not track real-world seasons and there is no
-live data service.
+**`WORLD_DATA_VERSION = '2026.2'` · snapshot season `2026/27`.**
 
-## The rule
+Every modelled league's membership is the real 2026/27 membership, verified per league against
+that competition's own season article by `npm run world:audit`
+(`scripts/auditLeagues.mjs`, bounded retries, raw output in `league-audit.json`). The game's
+fictional 2030s careers play out against this stylised present; there is no live data service and
+no per-real-season update.
 
-**No user-visible league may contain a placeholder club, and nothing at runtime may invent
-one.** v0.6.2 and earlier padded short divisions with generated "קבוצה N" rows in
-`leagueEngine.membership()`; that generator is deleted, and `tests/worldData.test.ts` (run via
-`npm run world:validate`) fails the build on any league whose membership is not exactly its
-declared size.
+## The two rules
+
+1. **No user-visible league may contain a placeholder club, and nothing at runtime may invent
+   one.** The `קבוצה N` generator is gone (v0.6.3) and cannot return: a division's size is now
+   *the length of its membership list*, so there is nothing left to pad.
+2. **If a club is in a modelled division, it can sign the player.** v0.6.3's `TableClub` — a
+   named division member the market could not see — is gone (v0.6.4). One identity per club.
 
 ## Architecture
 
 | layer | file | holds |
 |---|---|---|
 | Leagues | `src/data/leagues.ts` | identity, quality/prestige/visibility, promotion/relegation paths |
-| Shapes | `src/data/leagueShape.ts` | division size, Europe/relegation/promotion places |
-| Modelled clubs | `src/data/clubs.ts` | the 35 `Club` records a career can actually join |
-| **Table clubs** | `src/data/worldClubs.ts` | the ~150 named clubs that complete every division |
-| Visual identity | `src/data/clubVisuals.ts` + `src/data/clubCrests.generated.ts` | colours, initials, imported crest assets |
+| Shapes | `src/data/leagueShape.ts` | Europe/relegation/promotion places; size **derived** from membership |
+| **Membership** | `src/data/worldClubs.ts` | `LEAGUE_MEMBERSHIP` — the authoritative "who plays here" |
+| **World clubs** | `src/data/worldClubs.ts` | identity + football profile for every club without a hand-tuned record |
+| Hand-tuned clubs | `src/data/clubs.ts` | Maccabi pathway, derby rival, original European stepping stones |
+| Derivation | `src/data/clubs.ts` | `deriveWorldClubs()` → `ALL_CLUBS`, `ACTIVE_CLUBS` |
+| Visual identity | `src/data/clubVisuals.ts` + `clubCrests.generated.ts` | colours, initials, imported crests |
 
-A **TableClub** is a named, identified division member — id, Hebrew name, quality, colours — that
-appears in league tables, as a match opponent and as a cup finalist. It is deliberately **not** a
-`Club`: it never signs the player, never makes an offer, and never enters `ALL_CLUBS`.
+`ALL_CLUBS` = hand-tuned + derived, including inactive identities.
+`ACTIVE_CLUBS` = the same minus inactive — this is what tables, markets and cup draws use.
 
-### Why transfer probabilities cannot move
+### Why hand-tuned records are not regenerated
 
-The market's candidate pool is `ALL_CLUBS`, which v0.6.3 did not touch. Market probability is
-decided first (per-career interest weights), destination chosen inside that pool second — so
-adding ~150 table clubs changes nothing about how often a player moves or where the market can
-send him. Pinned by two tests: one runs real careers and asserts no table club is ever signed,
-one statically asserts `transferEngine`/`marketEngine` do not import `worldClubs`.
+Club ids are save data, and those ~35 records carry numbers balanced across five versions. A
+world club whose id already exists in `clubs.ts` is skipped by the derivation. Everything else
+gets its football fields from one honest formula over its league and its own quality — 165
+hand-tuned numbers would be 165 things to get wrong and no more truthful.
 
-### The dynamic case
+## League coverage (2026.2)
 
-Only Israeli leagues declare `relegatesTo`/`promotesTo`, and the world records division changes
-only for modelled clubs — so only an Israeli division can ever be short at runtime. The gap is
-filled from `RESERVE_CLUBS_BY_LEAGUE`: real named clubs that belong to no division's main list
-(so a reserve never sits in two tables at once). If reserves run out, `membership()` throws:
-loud beats invented.
+| country | league | clubs | notes vs v0.6.3 |
+|---|---|---|---|
+| ישראל | ליגת העל | 14 | **3 clubs promoted in, 4 out** — see below |
+| ישראל | הליגה הלאומית | 16 | rebuilt from the real division |
+| איטליה | Serie A | 20 | Frosinone, Monza, Venezia in; Cremonese, Verona, Pisa out |
+| אנגליה | Premier League | 20 | Coventry, Hull, Ipswich in; Burnley, West Ham, Wolves out |
+| ספרד | La Liga | 20 | Deportivo, Málaga, Racing Santander in; Girona, Mallorca, Oviedo out |
+| גרמניה | Bundesliga | 18 | Elversberg, Paderborn, Schalke in; Heidenheim, St. Pauli, Wolfsburg out |
+| הולנד | Eredivisie | 18 | ADO Den Haag, Cambuur, Willem II in; Heracles, NAC, Volendam out |
+| בלגיה | Pro League | **18** | **expanded from 16**; Beveren, Kortrijk, Lommel in; Dender out |
+| פורטוגל | Primeira Liga | 18 | Académico de Viseu, Marítimo in; AVS, Tondela out |
+| אוסטריה | Bundesliga | 12 | Austria Lustenau in; Blau-Weiß Linz out |
+| יוון | Super League | 14 | Iraklis, Kalamata in; AEL Larissa, Panserraikos out |
+| קפריסין | First Division | **14** | **was modelled as 12**; membership rebuilt |
 
-## League coverage (2026.1)
+### The Israeli corrections
 
-| country | league | size | modelled | table clubs |
-|---|---|---|---|---|
-| ישראל | ליגת העל | 14 | 10 | 4 |
-| ישראל | הליגה הלאומית | 16 | 10 | 6 |
-| בלגיה | be_pro | 16 | 1 | 15 |
-| הולנד | nl_eredivisie | 18 | 1 | 17 |
-| אוסטריה | at_bundesliga | 12 | 1 | 11 |
-| יוון | gr_superleague | 14 | 1 | 13 |
-| קפריסין | cy_first | 12 | 0 | 12 |
-| פורטוגל | pt_primeira | 18 | 1 | 17 |
-| גרמניה | de_bundesliga | 18 | 2 | 16 |
-| ספרד | es_laliga | 20 | 2 | 18 |
-| איטליה | it_seriea | 20 | 2 | 18 |
-| אנגליה | en_premier | 20 | 2 | 18 |
+v0.6.3 inferred a club's league from its *tier*, which is a statement about career level, not
+about which competition a club plays in. The results were wrong in both directions:
 
-`euro_elite` / `euro_strong` are legacy career-quality buckets kept only as `defaultLeagueFor`'s
-fallback for a hypothetical club in an unmapped country. They have **no shape and no table**, and
-a test asserts every modelled club's country maps to a real league — so their old
-"יריבה אירופית" rows are unreachable.
+- **Hapoel Petah Tikva** and **Hapoel Ramat Gan** were filed in Liga Leumit; both are top-flight.
+- **Maccabi Petah Tikva** is top-flight and was an unused reserve club.
+- **Hapoel Hadera** was modelled as a top-flight club; it is in neither modelled division.
+- **F.C. Ashdod** and **Maccabi Bnei Reineh** were relegated to Liga Leumit.
+- **Hapoel Ramat HaSharon** was in the top-flight list and is not a top-flight club.
 
-## Corrections made by the 2026.1 snapshot
+`defaultLeagueFor` now consults `LEAGUE_MEMBERSHIP` first, so this class of error is structural
+rather than a matter of keeping two fields in sync.
 
-- **ליגת העל held 15 names for 14 places** (a comment said nine modelled clubs; ten map there)
-  and silently sliced off the weakest real club every season.
-- **il_leumit listed "מכבי יפו"** alongside the modelled מכבי קביליו יפו — one real club, two
-  table rows.
-- **Vitesse** (Eredivisie) and **Boavista** (Primeira) are not top-flight members in the
-  snapshot season and were replaced by clubs that are.
+## Inactive clubs — identity without a place
 
-## Save compatibility
+30 clubs are marked **inactive**: real clubs that dropped below the second tier, plus every club
+v0.6.3 carried that the 2026/27 snapshot relegated out of a modelled division (Hellas Verona,
+West Ham, Wolves, Volendam, Girona, …).
 
-Table clubs are derived-only: tables are rebuilt each season from `tableSeed`, and no filler id
-was ever written into a save (season history, trophies and cup finalists referenced `ALL_CLUBS`
-only before v0.6.3). So there is **no placeholder id to migrate** — an old save simply renders
-its current tables against the complete dataset from its next drawn table onward, and its stored
-history (which never contained placeholders) is untouched. No falsified history, no alias table
-needed; `filler_*` ids appear nowhere in persisted state, which `tests/worldData.test.ts` keeps
-true by banning the scheme.
+They keep their id, name, colours and any imported crest, and `getClub` still resolves them — so
+a v0.6.3 career that really did play for West Ham still says so. They appear in **no** table, **no**
+market and **no** cup draw. Nothing is deleted and nothing is remapped: rewriting an old career's
+history to the new snapshot would be falsifying it.
+
+## Market-first transfer selection
+
+Making ~165 clubs signable would, under the old flat weighted draw, have changed the game by
+accident: a country's probability was proportional to how many clubs it had, so England would
+have roughly doubled and Cyprus halved without anyone touching a balance number.
+
+Selection is now two explicit decisions:
+
+```
+1. Does an offer occur?            unchanged - offerChance x agentOfferFactor
+2. WHICH MARKET?                   marketFit(league) x agentMarketWeight
+                                   reads the pool for PRESENCE of a plausible club (`some`),
+                                   never for how many (`length`)
+3. WHICH CLUB inside that market?  clubInterest - level fit, position need, age
+4. Role, manager, hints            unchanged
+```
+
+`P(club) = P(market) × P(club | market)`. Adding ten clubs to Serie A changes *which* Italian club
+calls, not how often Italy calls. `tests/marketSelection.test.ts` measures the correlation between
+market share and club count and requires it to stay weak; a flat draw would put it near 1.0.
+
+The agent's market expertise moved from a per-club multiplier to the market decision, which is
+where it belongs — an agent opens a door; football decides what is behind it.
+
+## Elite gating
+
+No club is unreachable and none is casual. `clubInterest` scores level fit against
+`careerLevel`, so an ability-55 teenager scores ~0 at Inter and an ability-88 international does
+not. Expected role does the rest: a good-but-not-elite player is offered a *lesser role* at a
+bigger club, which is the real trade rather than a yes/no gate.
 
 ## Adding a club or a league
 
-1. Add the club to its league's list in `worldClubs.ts` (or a `Club` record if it should be a
-   career destination).
-2. `npm run world:validate` — it fails until the division's count is exact again.
+1. Add the id to its division in `LEAGUE_MEMBERSHIP`, and its identity to `WORLD_CLUBS`.
+2. `npm run world:validate` — fails until membership, size and identity all line up.
 3. Optionally seed `scripts/crestSeeds.ts` and run `npm run crests:missing`.
 
-No component changes: every surface resolves identity through `clubVisual`/`ClubCrest` and names
-through `clubDisplayName`.
+No component changes: identity resolves through `clubVisual`/`ClubCrest`, names through
+`clubDisplayName`, league through `LEAGUE_MEMBERSHIP`.
+
+## Known limitations
+
+- One division per country outside Israel; no European second tiers, so a club relegated out of a
+  modelled top flight becomes inactive rather than dropping a level.
+- Promotion and relegation inside a career are modelled only for the Israeli leagues, which are
+  the only ones with `relegatesTo`/`promotesTo`.
+- The snapshot is fixed at 2026/27 and does not track real-world seasons.

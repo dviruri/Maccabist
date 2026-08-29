@@ -8,9 +8,17 @@
  * in `importClubCrests.ts` (label/alias match + instance-of football club + country match), and
  * anything short of that is reported as unresolved rather than guessed (C6).
  *
- * Israeli clubs are deliberately absent. CLUB_CRESTS.md records the finding: Israeli club
- * crests are pictorial non-free works, absent from Commons, hosted on Wikipedia under fair-use
- * rationales that exclude icon use. That finding stands; those clubs keep the generated badge.
+ * ## Israel (v0.6.4, D1)
+ *
+ * v0.6.3 excluded Israeli clubs outright, on v0.4.7's finding that their crests are pictorial
+ * non-free works absent from Commons. That finding may well still hold - but a blanket skip
+ * asserts it about thirty clubs without checking any of them, and the pipeline now exists to
+ * check. Every active Israeli club is seeded here and goes through the identical gauntlet:
+ * entity verification, asset-role classification, PD/CC0-only licence gate. Whatever comes back
+ * is reported honestly, including "nothing", which is a measurement rather than an assumption.
+ *
+ * Israeli transliteration varies a lot (Petah Tikva / Petach Tikva / Petah Tiqwa), so these
+ * seeds carry more aliases than the European ones.
  */
 
 export interface CrestSeed {
@@ -30,6 +38,7 @@ export interface CrestSeed {
 }
 
 export type CountryKey =
+  | 'israel'
   | 'italy'
   | 'spain'
   | 'england'
@@ -43,6 +52,7 @@ export type CountryKey =
 
 /** Wikidata QIDs a club's P17 (country) may resolve to, per country. */
 export const COUNTRY_QIDS: Record<CountryKey, readonly string[]> = {
+  israel: ['Q801'],
   italy: ['Q38'],
   spain: ['Q29'],
   // English clubs carry England or the United Kingdom, inconsistently.
@@ -57,6 +67,38 @@ export const COUNTRY_QIDS: Record<CountryKey, readonly string[]> = {
 };
 
 export const CREST_SEEDS: readonly CrestSeed[] = [
+  /* ---------------- Israel (v0.6.4: no longer skipped) ---------------- */
+  { clubId: 'maccabi_haifa', english: 'Maccabi Haifa F.C.', aliases: ['Maccabi Haifa', 'Maccabi Haifa FC'], country: 'israel' },
+  { clubId: 'maccabi_tel_aviv', english: 'Maccabi Tel Aviv F.C.', aliases: ['Maccabi Tel Aviv', 'Maccabi Tel-Aviv'], country: 'israel' },
+  { clubId: 'hapoel_beer_sheva', english: "Hapoel Be'er Sheva F.C.", aliases: ["Hapoel Be'er Sheva", 'Hapoel Beer Sheva', 'Hapoel Beersheba'], country: 'israel' },
+  { clubId: 'beitar_jerusalem', english: 'Beitar Jerusalem F.C.', aliases: ['Beitar Jerusalem', 'Beitar Yerushalayim'], country: 'israel' },
+  { clubId: 'hapoel_tel_aviv', english: 'Hapoel Tel Aviv F.C.', aliases: ['Hapoel Tel Aviv', 'Hapoel Tel-Aviv'], country: 'israel' },
+  { clubId: 'maccabi_netanya', english: 'Maccabi Netanya F.C.', aliases: ['Maccabi Netanya', 'Maccabi Nethanya'], country: 'israel' },
+  { clubId: 'hapoel_jerusalem_fc', english: 'Hapoel Jerusalem F.C.', aliases: ['Hapoel Jerusalem'], country: 'israel' },
+  { clubId: 'bnei_sakhnin', english: 'Bnei Sakhnin F.C.', aliases: ['Bnei Sakhnin', 'Bnei Sachnin'], country: 'israel' },
+  { clubId: 'hapoel_haifa', english: 'Hapoel Haifa F.C.', aliases: ['Hapoel Haifa'], country: 'israel' },
+  { clubId: 'ironi_kiryat_shmona', english: 'Hapoel Ironi Kiryat Shmona F.C.', aliases: ['Ironi Kiryat Shmona', 'Hapoel Kiryat Shmona'], country: 'israel' },
+  { clubId: 'maccabi_petah_tikva', english: 'Maccabi Petah Tikva F.C.', aliases: ['Maccabi Petah Tikva', 'Maccabi Petach Tikva', 'Maccabi Petah Tiqwa'], country: 'israel' },
+  { clubId: 'ironi_tiberias', english: 'Ironi Tiberias F.C.', aliases: ['Ironi Tiberias', 'Ironi Tveria'], country: 'israel' },
+  { clubId: 'hapoel_ramat_gan', english: 'Hapoel Ramat Gan Givatayim F.C.', aliases: ['Hapoel Ramat Gan', 'Hapoel Ramat-Gan'], country: 'israel' },
+  { clubId: 'hapoel_petah_tikva', english: 'Hapoel Petah Tikva F.C.', aliases: ['Hapoel Petah Tikva', 'Hapoel Petach Tikva', 'Hapoel Petah Tiqwa'], country: 'israel' },
+  { clubId: 'hapoel_kfar_saba', english: 'Hapoel Kfar Saba F.C.', aliases: ['Hapoel Kfar Saba', 'Hapoel Kfar-Saba', 'Hapoel Kfar Sava'], country: 'israel' },
+  { clubId: 'maccabi_herzliya', english: 'Maccabi Herzliya F.C.', aliases: ['Maccabi Herzliya', 'Maccabi Hertzliya'], country: 'israel' },
+  { clubId: 'hapoel_rishon', english: 'Hapoel Rishon LeZion F.C.', aliases: ['Hapoel Rishon LeZion', 'Hapoel Rishon Lezion'], country: 'israel' },
+  { clubId: 'bnei_yehuda', english: 'Bnei Yehuda Tel Aviv F.C.', aliases: ['Bnei Yehuda', 'Bnei Yehuda Tel Aviv'], country: 'israel' },
+  { clubId: 'ms_ashdod', english: 'F.C. Ashdod', aliases: ['FC Ashdod', 'Moadon Sport Ashdod'], country: 'israel' },
+  { clubId: 'maccabi_bnei_raina', english: 'Maccabi Bnei Reineh F.C.', aliases: ['Maccabi Bnei Reineh', 'Maccabi Bnei Raina'], country: 'israel' },
+  { clubId: 'hapoel_afula', english: 'Hapoel Afula F.C.', aliases: ['Hapoel Afula'], country: 'israel' },
+  { clubId: 'hapoel_acre', english: 'Hapoel Acre F.C.', aliases: ['Hapoel Acre', 'Hapoel Akko'], country: 'israel' },
+  { clubId: 'maccabi_kabilio_jaffa', english: 'Maccabi Kabilio Jaffa F.C.', aliases: ['Maccabi Jaffa', 'Maccabi Kabilio Jaffa', 'Maccabi Yafo'], country: 'israel' },
+  { clubId: 'ms_kafr_qasim', english: 'F.C. Kafr Qasim', aliases: ['Kafr Qasim', 'Maccabi Kafr Qasim'], country: 'israel' },
+  { clubId: 'hapoel_raanana', english: "Hapoel Ra'anana A.F.C.", aliases: ["Hapoel Ra'anana", 'Hapoel Raanana'], country: 'israel' },
+  { clubId: 'hapoel_kfar_shalem', english: 'Hapoel Kfar Shalem F.C.', aliases: ['Hapoel Kfar Shalem'], country: 'israel' },
+  { clubId: 'ironi_modiin', english: "Hapoel Ironi Modi'in F.C.", aliases: ["Ironi Modi'in", 'Ironi Modiin'], country: 'israel' },
+  { clubId: 'maccabi_ahi_nazareth', english: 'Maccabi Ahi Nazareth F.C.', aliases: ['Maccabi Akhi Nazareth', 'Ahi Nazareth'], country: 'israel' },
+  { clubId: 'maccabi_kiryat_gat', english: 'Maccabi Kiryat Gat F.C.', aliases: ['Maccabi Kiryat Gat'], country: 'israel' },
+  { clubId: 'ms_kiryat_yam', english: 'F.C. Kiryat Yam', aliases: ['Kiryat Yam', 'Hapoel Kiryat Yam'], country: 'israel' },
+
   /* ---------------- Italy ---------------- */
   {
     // Search finds two verifiable "Inter Milan" entities; reviewed 2026-08-29, Q631 is the
@@ -255,4 +297,33 @@ export const CREST_SEEDS: readonly CrestSeed[] = [
   { clubId: 'tondela', english: 'CD Tondela', aliases: ['Tondela'], country: 'portugal' },
   { clubId: 'alverca', english: 'FC Alverca', aliases: ['Alverca'], country: 'portugal' },
   { clubId: 'benfica', english: 'SL Benfica', aliases: ['Benfica'], country: 'portugal' },
+
+  /* ------- v0.6.4: clubs the 2026/27 snapshot promoted into a modelled division ------- */
+  { clubId: 'monza', english: 'AC Monza', aliases: ['Monza'], country: 'italy' },
+  { clubId: 'venezia', english: 'Venezia FC', aliases: ['Venezia'], country: 'italy' },
+  { clubId: 'frosinone', english: 'Frosinone Calcio', aliases: ['Frosinone'], country: 'italy' },
+  { clubId: 'coventry_city', english: 'Coventry City F.C.', aliases: ['Coventry City'], country: 'england' },
+  { clubId: 'hull_city', english: 'Hull City A.F.C.', aliases: ['Hull City'], country: 'england' },
+  { clubId: 'ipswich_town', english: 'Ipswich Town F.C.', aliases: ['Ipswich Town'], country: 'england' },
+  { clubId: 'malaga', english: 'Malaga CF', aliases: ['Malaga', 'Málaga CF'], country: 'spain' },
+  { clubId: 'deportivo_la_coruna', english: 'Deportivo de La Coruna', aliases: ['Deportivo La Coruna', 'Deportivo'], country: 'spain' },
+  { clubId: 'racing_santander', english: 'Racing de Santander', aliases: ['Racing Santander'], country: 'spain' },
+  { clubId: 'schalke', english: 'FC Schalke 04', aliases: ['Schalke 04', 'Schalke'], country: 'germany' },
+  { clubId: 'sc_paderborn', english: 'SC Paderborn 07', aliases: ['SC Paderborn', 'Paderborn'], country: 'germany' },
+  { clubId: 'elversberg', english: 'SV 07 Elversberg', aliases: ['SV Elversberg', 'Elversberg'], country: 'germany' },
+  { clubId: 'ado_den_haag', english: 'ADO Den Haag', aliases: ['Den Haag'], country: 'netherlands' },
+  { clubId: 'cambuur', english: 'SC Cambuur', aliases: ['Cambuur'], country: 'netherlands' },
+  { clubId: 'willem_ii', english: 'Willem II', aliases: ['Willem II Tilburg'], country: 'netherlands' },
+  { clubId: 'kortrijk', english: 'K.V. Kortrijk', aliases: ['KV Kortrijk', 'Kortrijk'], country: 'belgium' },
+  { clubId: 'beveren', english: 'S.K. Beveren', aliases: ['SK Beveren', 'Waasland-Beveren', 'Beveren'], country: 'belgium' },
+  { clubId: 'lommel', english: 'Lommel S.K.', aliases: ['Lommel SK', 'Lommel'], country: 'belgium' },
+  { clubId: 'maritimo', english: 'C.S. Maritimo', aliases: ['Maritimo', 'CS Maritimo'], country: 'portugal' },
+  { clubId: 'academico_viseu', english: 'Academico de Viseu F.C.', aliases: ['Academico de Viseu', 'Academico Viseu'], country: 'portugal' },
+  { clubId: 'austria_lustenau', english: 'SC Austria Lustenau', aliases: ['Austria Lustenau'], country: 'austria' },
+  { clubId: 'iraklis', english: 'Iraklis F.C.', aliases: ['Iraklis Thessaloniki', 'Iraklis'], country: 'greece' },
+  { clubId: 'kalamata', english: 'Kalamata F.C.', aliases: ['PS Kalamata', 'Kalamata'], country: 'greece' },
+  { clubId: 'karmiotissa', english: 'Karmiotissa FC', aliases: ['Karmiotissa Polemidion', 'Karmiotissa'], country: 'cyprus' },
+  { clubId: 'krasava_eny', english: 'Krasava ENY Ypsonas', aliases: ['Krasava', 'ENY Ypsonas'], country: 'cyprus' },
+  { clubId: 'omonia_29m', english: 'Omonia 29M', aliases: ['Omonoia 29 Maiou', 'Omonia 29 Maiou'], country: 'cyprus' },
+  { clubId: 'olympiakos_nicosia', english: 'Olympiakos Nicosia', aliases: ['Olympiakos Nicosia FC'], country: 'cyprus' },
 ];
