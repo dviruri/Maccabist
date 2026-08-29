@@ -334,7 +334,17 @@ events in the pool.
 ## 29. The 50,000-career simulation
 
 ```
-PLACEHOLDER_INT50K
+v0.6 INTEGRITY SCAN — 50,000 careers, balanced policy
+
+clean careers   50,000 / 50,000   100.00%
+
+No violations in any category.
+
+All 28 codes active: the twelve from v0.4.8, seven from v0.5, four from
+v0.5.1, and the five legacy codes added here — including the agreement check
+between the legacy derivation and the v0.4.8 counters, and the monotonic
+milestone-threshold invariant that caught the record-tie bug on its first
+5,000-career smoke run.
 ```
 
 ## 30. Mobile audit
