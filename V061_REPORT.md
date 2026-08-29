@@ -362,7 +362,16 @@ only the derived rank/archetype re-reads through the single authority.
 ## 26. Integrity validation
 
 ```
-PLACEHOLDER_INT50K
+v0.6.1 INTEGRITY SCAN — 50,000 careers, balanced policy
+
+clean careers   50,000 / 50,000   100.00%
+
+No violations in any category.
+
+Every target the brief set came back at zero: historical data validation, Maccabi-specific
+ending contradictions, league/string geography, GK scoring, fake derby labels, cup trophy
+reconciliation, generic meaningful outcome labels, legacy milestones, Maccabism, v0.4.8 truth,
+and manager truth. All 28 integrity codes active.
 ```
 
 ## 27. Controlled scenarios A–J
