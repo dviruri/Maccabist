@@ -17,11 +17,13 @@ import { creditParticipation, needsAppearanceReconciliation } from './participat
 import { checkMilestones } from './milestones';
 import { checkTraitReveals } from './traitReveal';
 import {
+  addMilestone,
   applyHalfProgression,
   checkAchievements,
   cloneCareer,
   type HalfContext,
 } from './progressionEngine';
+import { dueLegacyMilestones } from './maccabiLegacy';
 import { clamp, round, type Rng } from './random';
 import { ageMinutesModifier, countsForMaccabiLegacy, levelContext, playerLevel } from './rules';
 
@@ -488,6 +490,26 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   next.seasonHistory.push(record);
   next.lastSeasonRecord = record;
   next.firstHalfStats = null;
+
+  /*
+   * Maccabi Legacy milestones (v0.6). Checked here because this is the moment the season
+   * record - the fact the milestones read - comes into existence. The announced ledger makes
+   * each one fire exactly once, across any number of spells and departures (Phase 43: a return
+   * resumes the same ledger, because the facts are summed over ALL Maccabi senior records).
+   */
+  for (const milestone of dueLegacyMilestones(next)) {
+    next.legacyMilestones = [...(next.legacyMilestones ?? []), milestone.id];
+    next = addMilestone(next, {
+      id: milestone.id,
+      icon: milestone.icon,
+      text: milestone.text,
+      major: milestone.major,
+    });
+    if (milestone.memory) {
+      next = cloneCareer(next);
+      next.memories = recordMemory(next, milestone.memory, milestone.text);
+    }
+  }
 
   const checked = checkAchievements(next);
   next = checked.career;

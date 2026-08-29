@@ -18,6 +18,12 @@ import { getClub, MACCABI_ID } from '../data/clubs';
 import { AGENT_ARCHETYPES, COACH_SPECIALTIES, MANAGER_ARCHETYPES, specialtiesFor } from '../data/people';
 import { leagueShape } from '../data/leagueShape';
 import { stageOrder } from '../data/academy';
+import {
+  LEGACY_MILESTONES,
+  maccabiLegacyFacts,
+  maccabiLegacyRank,
+  maccabiLegacyScore,
+} from './maccabiLegacy';
 import { outcomeForPosition } from './leagueEngine';
 import {
   appearanceBreakdown,
@@ -77,7 +83,18 @@ export type IntegrityCode =
   /** the current manager's tenure opens after the current season. */
   | 'manager_tenure_from_future'
   /** a club-manager record claims to have been seen in a season yet to happen. */
-  | 'club_manager_seen_in_future';
+  | 'club_manager_seen_in_future'
+  /* ---------- v0.6: Maccabi Legacy ---------- */
+  /** a legacy milestone id appears twice in the announced ledger. */
+  | 'duplicate_legacy_milestone'
+  /** a milestone was announced whose threshold the career never actually crossed. */
+  | 'milestone_before_threshold'
+  /** the legacy score left its bounds or stopped being a number. */
+  | 'legacy_score_out_of_bounds'
+  /** the symbol rank without the football that defines it. */
+  | 'symbol_without_contribution'
+  /** the derived Maccabi facts disagree with the v0.4.8 counters they must equal. */
+  | 'legacy_facts_counter_mismatch';
 
 export interface IntegrityViolation {
   code: IntegrityCode;
@@ -298,7 +315,68 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
   /* ---------------- people (v0.5, Phase 51) ---------------- */
   validatePeople(career, push);
 
+  /* ---------------- Maccabi Legacy (v0.6, Phase 47) ---------------- */
+  validateLegacy(career, push);
+
   return out;
+}
+
+/**
+ * The legacy invariants (v0.6).
+ *
+ * The legacy module re-derives everything from season records, so the deepest check here is
+ * agreement: the derivation must equal the v0.4.8 counters that are themselves validated
+ * against the trophy list. Two independent derivations agreeing is how "one truth" is proven
+ * rather than assumed.
+ */
+function validateLegacy(
+  career: Career,
+  push: (code: IntegrityCode, detail: string, season?: number) => void,
+): void {
+  const announced = career.legacyMilestones ?? [];
+  if (new Set(announced).size !== announced.length) {
+    push('duplicate_legacy_milestone', `announced ledger holds duplicates: ${announced.join(',')}`);
+  }
+  for (const id of announced) {
+    const def = LEGACY_MILESTONES.find((m) => m.id === id);
+    if (def && !def.due(career)) {
+      push('milestone_before_threshold', `${id} announced but its threshold is not met`);
+    }
+  }
+
+  const score = maccabiLegacyScore(career);
+  if (!Number.isFinite(score) || score < 0 || score > 100) {
+    push('legacy_score_out_of_bounds', `legacy score is ${score}`);
+  }
+
+  const facts = maccabiLegacyFacts(career);
+  if (maccabiLegacyRank(career) === 'symbol') {
+    if (facts.appearances < 340 || facts.captainSeasons < 3 || facts.championships < 3) {
+      push(
+        'symbol_without_contribution',
+        `symbol rank with ${facts.appearances} apps, ${facts.captainSeasons} captain seasons, ${facts.championships} titles`,
+      );
+    }
+  }
+
+  /*
+   * The agreement check: legacy derives championships/cups from the trophy list directly; the
+   * v0.4.8 counters are recomputed from the same list at settlement. If these ever diverge, a
+   * derivation drifted - which is the entire class of bug this game's last three versions
+   * removed.
+   */
+  if (facts.championships !== career.maccabi.championships) {
+    push(
+      'legacy_facts_counter_mismatch',
+      `legacy derives ${facts.championships} championships, counter holds ${career.maccabi.championships}`,
+    );
+  }
+  if (facts.cups !== career.maccabi.cups) {
+    push(
+      'legacy_facts_counter_mismatch',
+      `legacy derives ${facts.cups} cups, counter holds ${career.maccabi.cups}`,
+    );
+  }
 }
 
 /**

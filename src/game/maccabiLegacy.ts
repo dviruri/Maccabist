@@ -34,7 +34,7 @@ import { maccabiRelationship } from './maccabiEngine';
 import { clamp, round } from './random';
 import { outputScore } from './rules';
 import { isForeignSeason, isMaccabiSeason, seniorSeasons } from './truth';
-import type { Career, SeasonRecord } from '../types';
+import type { Career, MemoryKind, SeasonRecord } from '../types';
 
 /* ------------------------------------------------------------------ */
 /* Facts: what actually happened, in green                             */
@@ -524,4 +524,157 @@ export function contextualComparisons(career: Career): MaccabiHistoricalPlayer[]
     if (picks.length >= 3) break;
   }
   return picks;
+}
+
+/* ------------------------------------------------------------------ */
+/* Live milestones (Phases 24-28, 45, 55)                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The moments the club's history books notice, defined once and announced exactly once.
+ *
+ * `career.legacyMilestones` is the announced ledger - the ONLY persisted legacy state. A
+ * milestone is due when its predicate holds and its id is not yet in the ledger, which is what
+ * lets a loaded veteran career be marked as already-past-100 without three retroactive
+ * celebrations (Phase 45), and what makes "exactly once" structural (Phase 26).
+ *
+ * Reconciliation with the existing milestone system (Phase 1 audit): `milestones.ts` already
+ * owns the first Maccabi debut and the first championship, so those are NOT duplicated here -
+ * one underlying achievement, one celebration (Phase 13).
+ */
+export interface LegacyMilestoneDef {
+  id: string;
+  icon: string;
+  major: boolean;
+  /** Timeline text at the moment it happens. */
+  text: string;
+  /** Career memory to record alongside, for later event callbacks. */
+  memory?: MemoryKind;
+  due: (career: Career) => boolean;
+}
+
+const appsAtLeast = (n: number) => (career: Career) => maccabiLegacyFacts(career).appearances >= n;
+
+export const LEGACY_MILESTONES: readonly LegacyMilestoneDef[] = [
+  { id: 'maccabi_apps_50', icon: '🟢', major: false, text: '50 הופעות ליגה במדי מכבי חיפה', due: appsAtLeast(50) },
+  {
+    id: 'maccabi_apps_100',
+    icon: '💚',
+    major: true,
+    text: '100 הופעות ליגה בירוק - מועדון המאה',
+    memory: 'maccabi_century',
+    due: appsAtLeast(100),
+  },
+  { id: 'maccabi_apps_200', icon: '💚', major: true, text: '200 הופעות ליגה במכבי חיפה', due: appsAtLeast(200) },
+  { id: 'maccabi_apps_300', icon: '⭐', major: true, text: '300 הופעות ליגה במכבי חיפה', due: appsAtLeast(300) },
+  { id: 'maccabi_apps_400', icon: '⭐', major: true, text: '400 הופעות ליגה - בין הגדולים בהיסטוריה', due: appsAtLeast(400) },
+  {
+    id: 'maccabi_top10_apps',
+    icon: '📗',
+    major: true,
+    text: 'נכנסת לעשירייה הפתוחה של כל הזמנים בהופעות במכבי',
+    memory: 'maccabi_top10_appearances',
+    due: (c) => {
+      const s = historicalStanding(c, 'appearances');
+      return s.rank <= 10 && s.playerValue > 0;
+    },
+  },
+  {
+    id: 'maccabi_top3_apps',
+    icon: '📗',
+    major: true,
+    text: 'שלישיית ההופעות הגדולה בתולדות מכבי - ואתה בתוכה',
+    due: (c) => {
+      const s = historicalStanding(c, 'appearances');
+      return s.rank <= 3 && s.playerValue > 0;
+    },
+  },
+  {
+    id: 'maccabi_apps_tie_record',
+    icon: '👑',
+    major: true,
+    text: 'השווית את שיא ההופעות של אלון חרזי',
+    /*
+     * >= rather than the display-level `tiedRecord` (which is ===), because a milestone
+     * predicate must be MONOTONIC: a player who tied at 495 and then played a 496th game has
+     * still, forever, once tied the record. The 5,000-career integrity smoke caught the ===
+     * version flagging 0.2% of careers - everyone who tied and then kept playing.
+     */
+    due: (c) => {
+      const s = historicalStanding(c, 'appearances');
+      return s.playerValue > 0 && (s.tiedRecord || s.brokeRecord);
+    },
+  },
+  {
+    id: 'maccabi_apps_record',
+    icon: '👑',
+    major: true,
+    text: 'שיא ההופעות של מכבי חיפה שייך לך',
+    memory: 'maccabi_appearance_record',
+    due: (c) => historicalStanding(c, 'appearances').brokeRecord,
+  },
+  {
+    id: 'maccabi_top10_goals',
+    icon: '🥅',
+    major: true,
+    text: 'נכנסת לעשירייה הפתוחה של מלכי השערים של מכבי',
+    due: (c) => {
+      const s = historicalStanding(c, 'goals');
+      return s.rank <= 10 && s.playerValue > 0;
+    },
+  },
+  {
+    id: 'maccabi_goals_record',
+    icon: '👑',
+    major: true,
+    text: 'עברת את 90 השערים של זאהי ארמלי - מלך השערים החדש',
+    due: (c) => historicalStanding(c, 'goals').brokeRecord,
+  },
+  {
+    id: 'maccabi_first_captaincy',
+    icon: '🎖️',
+    major: true,
+    text: 'העונה הראשונה שלך כקפטן מכבי חיפה',
+    memory: 'first_maccabi_captaincy',
+    due: (c) => maccabiLegacyFacts(c).captainSeasons >= 1,
+  },
+];
+
+/** Milestones whose moment has arrived and which have never been announced. */
+export function dueLegacyMilestones(career: Career): LegacyMilestoneDef[] {
+  const announced = new Set(career.legacyMilestones ?? []);
+  return LEGACY_MILESTONES.filter((m) => !announced.has(m.id) && m.due(career));
+}
+
+/**
+ * Mark everything currently due as already seen, announcing nothing (Phase 45).
+ *
+ * The migration path for careers that predate the ledger: a veteran with 235 appearances is a
+ * man who lived those milestones, not one who owes the game three popups.
+ */
+export function markLegacyMilestonesSeen(career: Career): Career {
+  const due = LEGACY_MILESTONES.filter((m) => m.due(career)).map((m) => m.id);
+  return { ...career, legacyMilestones: [...new Set([...(career.legacyMilestones ?? []), ...due])] };
+}
+
+/**
+ * The next number worth chasing (Phase 25) - for the record-proximity line in the legacy
+ * screen. Appearance thresholds and the historical ladder only; null when the mountain is
+ * climbed or the career never touched green.
+ */
+export function nextLegacyTarget(career: Career): { label: string; gap: number } | null {
+  const f = maccabiLegacyFacts(career);
+  if (f.appearances === 0) return null;
+
+  const standing = historicalStanding(career, 'appearances');
+  if (standing.above) {
+    const next = standing.above;
+    return {
+      label: `${next.player.name} — ${next.value} הופעות`,
+      gap: next.value - f.appearances,
+    };
+  }
+  const thresholds = [50, 100, 200, 300, 400, 500];
+  const next = thresholds.find((t) => t > f.appearances);
+  return next ? { label: `${next} הופעות במכבי`, gap: next - f.appearances } : null;
 }

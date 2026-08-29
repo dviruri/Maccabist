@@ -59,6 +59,7 @@ import { leagueShape } from '../data/leagueShape';
 import { LEAGUE_TROPHY_IDS } from './truth';
 import { mayDeliverOnField, openParticipation } from './participation';
 import { computeLegendScore } from './legendEngine';
+import { markLegacyMilestonesSeen } from './maccabiLegacy';
 import { hasTrait, recordMemory } from './memory';
 import { advancePeopleSeason, migratePeople, replaceManager } from './peopleEngine';
 import {
@@ -247,6 +248,17 @@ export function hydrateCareer(career: Career): Career {
   }
 
   /*
+   * Maccabi Legacy for a pre-v0.6 save (Phase 45).
+   *
+   * A veteran career loading with 235 appearances is a man who lived the 50/100/200 milestones,
+   * not one who owes the game three retroactive popups. Everything currently due is marked as
+   * seen without announcing; the NEXT threshold he actually crosses fires normally.
+   */
+  if (next.legacyMilestones === undefined) {
+    next = markLegacyMilestonesSeen(next);
+  }
+
+  /*
    * People for a pre-v0.5 save (Phase 49).
    *
    * The one migration that matters is Coach Trust: the number in the save already IS a
@@ -419,6 +431,8 @@ export function createCareer(input: NewCareerInput): Career {
      * migration for old saves rather than something every new career also passes through.
      */
     seasonParticipation: { season: FIRST_ACADEMY_SEASON, appearances: 0, starts: 0 },
+    // v0.6: a fresh career has announced nothing - every legacy milestone is ahead of it.
+    legacyMilestones: [],
     seasonOpening: null,
     lastSeasonRecord: null,
     lastSeasonDeltas: [],

@@ -642,7 +642,12 @@ export type MemoryKind =
   | 'manager_left'
   | 'new_manager_page'
   | 'personal_coach_started'
-  | 'personal_coach_breakthrough';
+  | 'personal_coach_breakthrough'
+  // Maccabi Legacy (v0.6) - the moments the club's history books notice
+  | 'maccabi_century'
+  | 'maccabi_top10_appearances'
+  | 'maccabi_appearance_record'
+  | 'first_maccabi_captaincy';
 
 export interface CareerMemory {
   kind: MemoryKind;
@@ -1675,6 +1680,13 @@ export interface Career {
    * migrates, seeding the current manager's relationship from the existing `coachTrust`.
    */
   people?: PeopleState;
+  /**
+   * Maccabi Legacy milestones already announced (v0.6). The ONLY persisted legacy state -
+   * everything else derives from season records. Exists so a milestone fires exactly once,
+   * and so a loaded veteran career is marked as having already passed 50/100/200 rather than
+   * being showered with three retroactive celebrations (Phase 45).
+   */
+  legacyMilestones?: string[];
   /**
    * The last few Maccabism changes, with why each was allowed (v0.4.8, Phase 24).
    *

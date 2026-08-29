@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { MACCABI_ID } from '../src/data/clubs';
 import { historicalRecord } from '../src/data/maccabiHistory';
-import { createCareer } from '../src/game/careerEngine';
+import { createCareer, hydrateCareer } from '../src/game/careerEngine';
 import {
   contextualComparisons,
   globalCareerScore,
@@ -18,6 +18,9 @@ import {
   maccabiLegacyRank,
   maccabiLegacyScore,
 } from '../src/game/maccabiLegacy';
+import { dueLegacyMilestones, LEGACY_MILESTONES, markLegacyMilestonesSeen, nextLegacyTarget } from '../src/game/maccabiLegacy';
+import { validateCareerIntegrity } from '../src/game/integrity';
+import { balancedPolicy, simulateCareer } from '../src/game/simulate';
 import type { Career, SeasonRecord, Trophy } from '../src/types';
 
 /* ------------------------------------------------------------------ */
@@ -421,5 +424,91 @@ describe('the mechanics underneath', () => {
     const first = scoreAt(100) - scoreAt(0);
     const fifth = scoreAt(500) - scoreAt(400);
     expect(first).toBeGreaterThan(fifth * 2);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Scenario I: the old save (Phase 58), and milestones exactly once    */
+/* ------------------------------------------------------------------ */
+
+describe('I. a v0.5.2 save with 235 Maccabi appearances (Phase 58)', () => {
+  function veteran(): Career {
+    seasonCounter = 2031;
+    const records = [
+      ...Array.from({ length: 8 }, (_, i) => season(MACCABI_ID, 29, { age: 19 + i })),
+      season(MACCABI_ID, 3, { age: 27 }),
+    ];
+    const career = withHistory(base(23), records);
+    // A pre-v0.6 save has no ledger at all.
+    const { legacyMilestones: _dropped, ...rest } = career;
+    return rest as Career;
+  }
+
+  it('derives the legacy correctly and does NOT replay old milestones', () => {
+    const loaded = hydrateCareer(veteran());
+    expect(maccabiLegacyFacts(loaded).appearances).toBe(235);
+
+    // 50, 100 and 200 are marked as lived, not announced - nothing is due right now.
+    expect(loaded.legacyMilestones).toContain('maccabi_apps_50');
+    expect(loaded.legacyMilestones).toContain('maccabi_apps_100');
+    expect(loaded.legacyMilestones).toContain('maccabi_apps_200');
+    expect(dueLegacyMilestones(loaded)).toHaveLength(0);
+
+    // ...and no timeline entry was written for any of them during migration.
+    const legacyIds = new Set(LEGACY_MILESTONES.map((m) => m.id));
+    expect(loaded.milestones.filter((m) => legacyIds.has(m.id))).toHaveLength(0);
+  });
+
+  it('lets the NEXT threshold fire normally after migration', () => {
+    const loaded = hydrateCareer(veteran());
+    seasonCounter = 2050;
+    const later = withHistory(loaded, [
+      season(MACCABI_ID, 34, { age: 28 }),
+      season(MACCABI_ID, 33, { age: 29 }),
+    ]);
+    const due = dueLegacyMilestones(later);
+    expect(due.map((m) => m.id)).toContain('maccabi_apps_300');
+    expect(due.map((m) => m.id)).not.toContain('maccabi_apps_200');
+  });
+
+  it('markLegacyMilestonesSeen is idempotent and never duplicates', () => {
+    const once = markLegacyMilestonesSeen(veteran());
+    const twice = markLegacyMilestonesSeen(once);
+    expect(twice.legacyMilestones).toEqual(once.legacyMilestones);
+    expect(new Set(twice.legacyMilestones).size).toBe(twice.legacyMilestones!.length);
+  });
+});
+
+describe('milestones through the real engine', () => {
+  it('announces each milestone exactly once across a whole simulated career', () => {
+    let found = 0;
+    for (let seed = 1; seed <= 40 && found < 8; seed += 1) {
+      const career = simulateCareer({ playerName: 'ת', position: 'CM', seed, policy: balancedPolicy });
+      const announced = career.legacyMilestones ?? [];
+      if (announced.length === 0) continue;
+      found += 1;
+
+      // Exactly once, in both ledgers.
+      expect(new Set(announced).size, `seed ${seed}`).toBe(announced.length);
+      const legacyIds = new Set(LEGACY_MILESTONES.map((m) => m.id));
+      const onTimeline = career.milestones.filter((m) => legacyIds.has(m.id)).map((m) => m.id);
+      expect(new Set(onTimeline).size, `seed ${seed}`).toBe(onTimeline.length);
+
+      // Every announced id genuinely crossed its threshold - the integrity code agrees.
+      expect(validateCareerIntegrity(career), `seed ${seed}`).toEqual([]);
+    }
+    expect(found, 'no simulated career ever announced a legacy milestone').toBeGreaterThan(0);
+  });
+
+  it('points at the next mountain (Phase 25)', () => {
+    seasonCounter = 2031;
+    const career = withHistory(base(24), [
+      ...Array.from({ length: 3 }, (_, i) => season(MACCABI_ID, 30, { age: 20 + i })),
+    ]);
+    const target = nextLegacyTarget(career);
+    // 90 appearances: the next name up the historical ladder is Mizrahi on 91.
+    expect(target).not.toBeNull();
+    expect(target!.gap).toBe(1);
+    expect(target!.label).toContain('91');
   });
 });
