@@ -511,8 +511,8 @@ export function contextualComparisons(career: Career): MaccabiHistoricalPlayer[]
    */
   const samePosition = MACCABI_PANTHEON.filter((p) => p.positionGroup === group).sort(
     (a, b) =>
-      Math.abs((a.leagueAppearances ?? 0) - standing.playerValue) -
-      Math.abs((b.leagueAppearances ?? 0) - standing.playerValue),
+      Math.abs((a.appearances ?? 0) - standing.playerValue) -
+      Math.abs((b.appearances ?? 0) - standing.playerValue),
   );
   const nearby = ladder
     .filter((row) => Math.abs(row.value - standing.playerValue) <= 120)
@@ -627,7 +627,7 @@ export const LEGACY_MILESTONES: readonly LegacyMilestoneDef[] = [
     id: 'maccabi_goals_record',
     icon: '👑',
     major: true,
-    text: 'עברת את 90 השערים של זאהי ארמלי - מלך השערים החדש',
+    text: 'עברת את השיא של זאהי ארמלי - מלך השערים החדש של מכבי',
     due: (c) => historicalStanding(c, 'goals').brokeRecord,
   },
   {

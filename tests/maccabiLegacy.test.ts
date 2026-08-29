@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { MACCABI_ID } from '../src/data/clubs';
-import { historicalRecord } from '../src/data/maccabiHistory';
+import { historicalLadder, historicalRecord } from '../src/data/maccabiHistory';
 import { createCareer, hydrateCareer } from '../src/game/careerEngine';
 import {
   contextualComparisons,
@@ -505,10 +505,21 @@ describe('milestones through the real engine', () => {
     const career = withHistory(base(24), [
       ...Array.from({ length: 3 }, (_, i) => season(MACCABI_ID, 30, { age: 20 + i })),
     ]);
+    /*
+     * Derived from the ladder rather than hardcoded (v0.6.1): the v0.6 version asserted "the
+     * next man up is Mizrahi on 91", which was true only of the mis-scoped league dataset. A
+     * test that pins the DATA breaks whenever the data is corrected; a test that pins the
+     * RELATION survives, and is what the feature actually promises.
+     */
     const target = nextLegacyTarget(career);
-    // 90 appearances: the next name up the historical ladder is Mizrahi on 91.
     expect(target).not.toBeNull();
-    expect(target!.gap).toBe(1);
-    expect(target!.label).toContain('91');
+
+    const apps = maccabiLegacyFacts(career).appearances;
+    const ladder = historicalLadder('appearances');
+    const nextUp = [...ladder].reverse().find((row) => row.value > apps);
+    expect(nextUp, 'no historical player above this total').toBeDefined();
+    expect(target!.gap).toBe(nextUp!.value - apps);
+    expect(target!.label).toContain(String(nextUp!.value));
+    expect(target!.label).toContain(nextUp!.player.name);
   });
 });
