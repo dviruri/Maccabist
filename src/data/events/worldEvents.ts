@@ -151,6 +151,7 @@ export const WORLD_EVENTS: GameEvent[] = [
             id: 'door_opens',
             baseWeight: 60,
             tone: 'good',
+            preview: 'הסוכן יתחיל לעבוד - אולי הבלגן הוא בעצם הזדמנות',
             text: 'הסוכן שלך מתחיל לעבוד. אולי הבלגן הזה הוא בעצם הזדמנות.',
             effects: { transferChance: 0.35, roleValue: -3 },
           },
@@ -158,6 +159,7 @@ export const WORLD_EVENTS: GameEvent[] = [
             id: 'word_gets_out',
             baseWeight: 40,
             tone: 'bad',
+            preview: 'מישהו יספר למאמן שאתה מחפש, והוא לא יעמיד אותך בשבת',
             text: 'מישהו מספר למאמן שאתה מחפש. הוא לא אומר כלום, והוא גם לא מעמיד אותך בשבת.',
             effects: { coachTrust: -8, roleValue: -6, transferChance: 0.2 },
           },
@@ -383,6 +385,7 @@ export const WORLD_EVENTS: GameEvent[] = [
             id: 'shop_window',
             baseWeight: 58,
             tone: 'good',
+            preview: 'הציטוט יתגלגל, ושני מועדונים יתקשרו לסוכן תוך יומיים',
             text: 'הציטוט מתגלגל. שני מועדונים מתקשרים לסוכן שלך תוך יומיים.',
             effects: {
               transferChance: 0.4,

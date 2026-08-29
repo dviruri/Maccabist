@@ -523,6 +523,7 @@ export const POSITION_EVENTS: GameEvent[] = [
             id: 'leader',
             baseWeight: 44,
             tone: 'good',
+            preview: 'הקו יזוז ביחד במחצית השנייה, והמאמן יראה מי עשה את זה',
             text: 'אתה מדבר, וזה עובד. במחצית השנייה הקו זז ביחד ולא ספגתם עוד. המאמן ראה בדיוק מי עשה את זה.',
             effects: {
               coachTrust: 10,
@@ -541,6 +542,7 @@ export const POSITION_EVENTS: GameEvent[] = [
             id: 'ignored',
             baseWeight: 56,
             tone: 'neutral',
+            preview: 'שחקן מבוגר ממך יגיד לך לשתוק ולשחק',
             text: 'אתה מנסה לדבר, ושחקן מבוגר ממך אומר לך לשתוק ולשחק. אולי הוא צודק. אולי עוד שנה זה יהיה אחרת.',
             effects: { confidence: -4, pressure: 4, roleValue: 1 },
           },
@@ -967,6 +969,7 @@ export const POSITION_EVENTS: GameEvent[] = [
             id: 'season_of_life',
             baseWeight: 48,
             tone: 'good',
+            preview: 'תסיים את העונה מלך השערים של הליגה שלך',
             text: 'הבצורת לא באה. אתה מסיים את העונה בתור מלך השערים של הליגה שלך, וכולם יודעים את השם.',
             effects: {
               form: 10,
@@ -986,6 +989,7 @@ export const POSITION_EVENTS: GameEvent[] = [
             id: 'came_down',
             baseWeight: 52,
             tone: 'neutral',
+            preview: 'הגל יישבר אחרי שני משחקים - אבל עכשיו אתה יודע שאתה יכול',
             text: 'הגל נשבר אחרי עוד שני משחקים, כמו תמיד. אבל עכשיו אתה יודע שאתה יכול.',
             effects: { confidence: 5, reputation: 3, form: -3, ability: 0.8 },
           },

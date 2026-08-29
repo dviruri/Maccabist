@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 import { formatIssues, validateEvents } from '../src/game/eventValidation';
 
 import { EVENT_POOL } from '../src/data/events';
+import { isGenericLabel } from '../src/game/decisionEngine';
 import { createCareer } from '../src/game/careerEngine';
 import { matchesClubScope } from '../src/game/conditions';
 import { isEventEligible } from '../src/game/eventEngine';
@@ -378,3 +379,68 @@ function sample(): GameEvent {
     ],
   };
 }
+
+describe('v0.6.1 D6. meaningful decisions say what actually happens', () => {
+  /*
+   * The v0.4.6 promise, enforced. A percentage next to "החלטה טובה" tells the player nothing;
+   * the whole point of showing odds is that he knows what he is weighing. A choice with more
+   * than one outcome is a choice he is weighing, so every one of its outcomes must carry
+   * concrete text of its own rather than falling through to a valence label.
+   *
+   * Measured before this pass: 111 meaningful outcomes fell through. Now zero.
+   */
+  it('leaves no meaningful outcome on a generic valence label', () => {
+    const offenders: string[] = [];
+    for (const event of EVENT_POOL) {
+      for (const choice of event.choices) {
+        if (choice.outcomes.length <= 1) continue;
+        for (const outcome of choice.outcomes) {
+          if (isGenericLabel(outcome.id, outcome.preview)) {
+            offenders.push(`${event.id}/${choice.id}/${outcome.id}`);
+          }
+        }
+      }
+    }
+    expect(offenders, 'meaningful outcomes showing a generic label').toEqual([]);
+  });
+
+  it('keeps those previews concrete rather than restating the valence', () => {
+    /*
+     * D3: renaming "החלטה טובה" to "תוצאה חיובית" is the same defect. A preview may not BE a
+     * valence word, and must be long enough to name a consequence.
+     */
+    const VALENCE_WORDS = [
+      'הצלחה', 'כישלון', 'תוצאה טובה', 'תוצאה רעה', 'תוצאה חיובית', 'תוצאה שלילית',
+      'החלטה טובה', 'החלטה רעה', 'הצלחה גדולה', 'כישלון כבד', 'בלי דרמה',
+    ];
+    const offenders: string[] = [];
+    for (const event of EVENT_POOL) {
+      for (const choice of event.choices) {
+        if (choice.outcomes.length <= 1) continue;
+        for (const outcome of choice.outcomes) {
+          const preview = outcome.preview?.trim();
+          if (!preview) continue;
+          if (VALENCE_WORDS.includes(preview) || preview.length < 12) {
+            offenders.push(`${event.id}/${choice.id}/${outcome.id}: "${preview}"`);
+          }
+        }
+      }
+    }
+    expect(offenders, 'previews that only restate the valence').toEqual([]);
+  });
+
+  it('still uses ONE outcome object for preview and resolution (D4)', () => {
+    /*
+     * The preview the player reads and the text he gets are fields of the same object, so they
+     * cannot describe different events. This asserts the shape rather than the wording.
+     */
+    for (const event of EVENT_POOL) {
+      for (const choice of event.choices) {
+        for (const outcome of choice.outcomes) {
+          expect(typeof outcome.text, `${event.id}/${outcome.id}`).toBe('string');
+          expect(outcome.text.length).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+});

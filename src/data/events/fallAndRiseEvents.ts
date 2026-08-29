@@ -78,6 +78,7 @@ export const FALL_AND_RISE_EVENTS: GameEvent[] = [
             id: 'understood',
             baseWeight: 62,
             tone: 'neutral',
+            preview: 'יבינו. אף אחד לא יאהב את זה, ואף אחד לא יופתע',
             text: 'הם מבינים. אף אחד לא אוהב את זה, אבל אף אחד גם לא מופתע.',
             effects: {
               transferChance: 0.45,
@@ -90,6 +91,7 @@ export const FALL_AND_RISE_EVENTS: GameEvent[] = [
             id: 'resented',
             baseWeight: 38,
             tone: 'bad',
+            preview: 'המאמן יגיד שציפה ליותר ממך - ולא על כדורגל',
             text: 'המאמן אומר לך שהוא ציפה ליותר ממך. הוא לא מתכוון לכדורגל.',
             effects: {
               transferChance: 0.35,
@@ -130,6 +132,7 @@ export const FALL_AND_RISE_EVENTS: GameEvent[] = [
             id: 'dragged_them_up',
             baseWeight: 66,
             tone: 'good',
+            preview: 'הקבוצה תתיישר לפיך, וזו תהפוך להיות הקבוצה שלך',
             text: 'אתה מסרב להוריד את הרמה, והקבוצה מתיישרת לפיך. זו הפכה להיות הקבוצה שלך.',
             effects: {
               form: 7,
@@ -160,6 +163,7 @@ export const FALL_AND_RISE_EVENTS: GameEvent[] = [
             id: 'fresh',
             baseWeight: 40,
             tone: 'neutral',
+            preview: 'תעבור את העונה בלי להישבר. גם בלי להיזכר',
             text: 'אתה עובר את העונה בלי להישבר. גם בלי להיזכר.',
             effects: { form: -2, injuryRisk: -4, advanceArc: 'fall_and_rise' },
           },
@@ -167,6 +171,7 @@ export const FALL_AND_RISE_EVENTS: GameEvent[] = [
             id: 'noticed',
             baseWeight: 60,
             tone: 'bad',
+            preview: 'הקהל יראה שחקן שלא באמת פה - ועל זה לא סולחים',
             text: 'הקהל רואה שחקן שלא באמת פה. בליגה הזאת סולחים על הרבה, לא על זה.',
             effects: {
               roleValue: -9,
@@ -240,6 +245,7 @@ export const FALL_AND_RISE_EVENTS: GameEvent[] = [
             id: 'moved_on_a_hero',
             baseWeight: 64,
             tone: 'good',
+            preview: 'תגיד להם בפנים לפני שזה מגיע לעיתונות - ותצא בכבוד',
             text: 'אתה אומר להם את זה בפנים, לפני שזה מגיע לעיתונות. הם לא שמחים, והם גם לא כועסים.',
             effects: {
               transferChance: 0.5,

@@ -128,6 +128,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'promoted',
             baseWeight: 55,
             tone: 'good',
+            preview: 'העברה רשמית לקבוצה הבוגרת יותר - שנה שלמה שהרווחת',
             text: 'הם מעבירים אותך רשמית. שנה שלמה שאתה מרוויח, וכל מי שראה אותך בהתחלה לא מאמין.',
             effects: {
               promotionBoost: 24,
@@ -152,6 +153,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'not_yet',
             baseWeight: 45,
             tone: 'neutral',
+            preview: 'יעדיפו לחכות עוד חצי שנה. לא סירוב - עיכוב',
             text: 'הם מעדיפים לחכות עוד חצי שנה. לא סירוב - עיכוב.',
             effects: { promotionBoost: 8, olderGroup: 'training', completeArc: 'older_group' },
           },
@@ -392,6 +394,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'redemption',
             baseWeight: 40,
             tone: 'good',
+            preview: 'עשרים דקות שבהן תהיה הכי טוב על הדשא',
             text: 'עשרים דקות שבהן היית הכי טוב על הדשא. בסיום הוא לא אמר כלום - רק טפח לך על הגב, וזה הספיק.',
             effects: {
               coachTrust: 16,
@@ -420,6 +423,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'anonymous',
             baseWeight: 60,
             tone: 'bad',
+            preview: 'שמונה נגיעות בכדור - בלי טעות, ובלי סיבה לזכור אותך',
             text: 'נגעת בכדור אולי שמונה פעמים. לא עשית שום דבר רע, ובדיוק בזה הבעיה.',
             effects: {
               confidence: -6,
@@ -484,6 +488,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'back_early',
             baseWeight: 45,
             tone: 'good',
+            preview: 'חזרה שלושה שבועות לפני התחזית',
             text: 'חזרת שלושה שבועות לפני התחזית. המאמן שמח, הפיזיו פחות.',
             effects: {
               minutesModifier: 1.15,
@@ -498,6 +503,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'setback',
             baseWeight: 55,
             tone: 'bad',
+            preview: 'אותו מקום ייפתח שבועיים אחרי החזרה, והפעם בלי תאריכים',
             text: 'שבועיים אחרי החזרה, אותו מקום. הפעם אף אחד לא מדבר על תאריכים.',
             effects: {
               injuryChance: 1,
@@ -560,6 +566,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'over_it',
             baseWeight: 55,
             tone: 'good',
+            preview: 'תיכנס בלי לחשוב ותקום בלי לבדוק - שחקן שוב',
             text: 'נכנסת בלי לחשוב וקמת בלי לבדוק. מהרגע הזה אתה שחקן שוב, לא מישהו שחוזר מפציעה.',
             effects: {
               confidence: 12,
@@ -581,6 +588,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'flinched',
             baseWeight: 45,
             tone: 'bad',
+            preview: 'תמשוך את הרגל ברגע האחרון, והראש ידע בדיוק מה קרה',
             text: 'משכת את הרגל ברגע האחרון. הכדור שלהם, והראש שלך יודע בדיוק מה קרה שם.',
             effects: {
               confidence: -9,
@@ -828,6 +836,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'homesick',
             baseWeight: 45,
             tone: 'bad',
+            preview: 'תדבר עם הבית כל יום ולא תרגיש שייך - וזה ייראה במגרש',
             text: 'אתה מדבר עם הבית כל יום ולא מצליח להרגיש שייך. במגרש זה נראה בדיוק ככה.',
             maccabiRelevance: 'return',
             effects: {
@@ -886,6 +895,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'broke_through',
             baseWeight: 38,
             tone: 'good',
+            preview: 'פציעה של מישהו, מקום שלא תוותר עליו - וככה נשארים באירופה',
             text: 'חיכית לפציעה של מישהו וכשהיא הגיעה לא ויתרת על המקום. ככה נשארים באירופה.',
             effects: {
               roleValue: 9,
@@ -904,6 +914,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'wasted_year',
             baseWeight: 62,
             tone: 'bad',
+            preview: 'עונה שלמה של חימום, בגיל שבו זו נקודת ציון',
             text: 'עונה שלמה של חימום. בגיל הזה זו לא רק עונה - זו נקודת ציון בקריירה.',
             effects: {
               minutesModifier: 0.5,
@@ -987,6 +998,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'buried_it',
             baseWeight: 52,
             tone: 'good',
+            preview: 'אותה פינה, הפעם בפנים - וחשבון שנסגר',
             text: 'אותה פינה, הפעם בפנים. לא חגגת - רק הסתובבת והסתכלת על הספסל. יש דברים שסוגרים חשבון.',
             effects: {
               confidence: 14,
@@ -1014,6 +1026,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'again',
             baseWeight: 48,
             tone: 'bad',
+            preview: 'שוב תחטיא, ולא תסתכל לאף אחד בעיניים',
             text: 'שוב. אתה לא מסתכל לאף אחד בעיניים עד סוף המשחק, ואולי עוד קצת אחרי.',
             effects: {
               confidence: -14,
@@ -1066,6 +1079,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'saw_it',
             baseWeight: 58,
             tone: 'good',
+            preview: '"ראיתי ילד שנשבר וקם" - הוא זוכר, והוא אמר את זה למעלה',
             text: '"אני יודע," הוא אומר. "ראיתי ילד שנשבר וקם. זה בדיוק מה שאמרתי עליך למעלה."',
             effects: { coachTrust: 10, confidence: 7, flags: ['first_team_radar'] },
             modifiers: [{ attribute: 'ability', above: 62, multiplier: 1.35 }],
@@ -1078,6 +1092,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'still_the_kid',
             baseWeight: 42,
             tone: 'bad',
+            preview: 'בראש שלו תישאר הילד שלא עמד בקצב',
             text: 'הוא מחייך בנימוס. בראש שלו אתה עדיין הילד שלא עמד בקצב, וזה ייקח זמן לשנות.',
             effects: { coachTrust: -5, pressure: 5 },
           },
@@ -1092,6 +1107,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'proved_it',
             baseWeight: 62,
             tone: 'good',
+            preview: 'אחרי חודש הוא ייגש מיוזמתו ויגיד "טעיתי בך"',
             text: 'לא אמרת מילה. אחרי חודש הוא ניגש אליך מיוזמתו ואמר: "טעיתי בך."',
             effects: { coachTrust: 8, confidence: 6, ability: 1, revealTrait: 'hard_worker' },
             traitModifiers: [{ trait: 'professional', multiplier: 1.4 }],
@@ -1100,6 +1116,7 @@ export const ARC_EVENTS: GameEvent[] = [
             id: 'unnoticed',
             baseWeight: 38,
             tone: 'neutral',
+            preview: 'הוא עסוק בבוגרים ואתה עוד לא שם. אולי בעונה הבאה',
             text: 'הוא עסוק בקבוצה הבוגרת ואתה עוד לא שם. אולי בעונה הבאה.',
             effects: { pressure: 3 },
           },

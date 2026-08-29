@@ -183,6 +183,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             id: 'landed',
             baseWeight: 72,
             tone: 'good',
+            preview: 'בחיפה יזכרו מי דיבר כשהיה קשה',
             text: 'הפוסט שלך מתגלגל בכל האתרים. בחיפה זוכרים מי דיבר כשהיה קשה.',
             maccabiRelevance: 'people',
             effects: {
@@ -196,6 +197,7 @@ export const AMBIENT_MACCABI_EVENTS: GameEvent[] = [
             id: 'read_wrong',
             baseWeight: 28,
             tone: 'bad',
+            preview: 'יקראו את זה כרחמים: "איפה היית כשהיינו צריכים אותך?"',
             text: 'חלק קוראים את זה כרחמים. "איפה היית כשהיינו צריכים אותך?"',
             maccabiRelevance: 'people',
             effects: { maccabism: 4, pressure: 4, remember: 'maccabi_relegated_while_away' },
