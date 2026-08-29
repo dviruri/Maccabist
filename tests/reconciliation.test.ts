@@ -400,19 +400,27 @@ describe('real careers do not contradict themselves', () => {
    * The two bugs the 50,000-career scan found and 20,000 did not. Both are pinned by their own
    * seed, because a population test that only samples 150 careers is exactly what missed them.
    */
-  it('counts a title won on loan at Maccabi (seed 722)', () => {
+  it('counts a title won on a single season back at Maccabi (seed 11)', () => {
     /*
      * The counters were incremented inside the countsForMaccabiLegacy branch, which requires
-     * parentClubId === null - so a title won on loan at Maccabi awarded a trophy with
-     * clubId maccabi_haifa and counted nothing. They are recomputed from the trophy list now.
+     * parentClubId === null - so a title won during a spell at Maccabi that the career did not
+     * treat as "his" awarded a trophy with clubId maccabi_haifa and counted nothing. They are
+     * recomputed from the trophy list now.
      */
     /*
-     * Re-pinned for v0.5: the manager minutes factor shifted every career's trajectory, and
-     * seed 3119 no longer produces the loan-title shape. Seed 722 does - a 2053 title at Maccabi
-     * sandwiched between two Dortmund seasons. The invariant itself is also covered across a
-     * population below; this pin exists so the loan case specifically stays exercised.
+     * Re-pinned twice, and the second time the name was corrected with it.
+     *
+     * v0.5 moved it from 3119 to 722 when the manager minutes factor shifted every trajectory.
+     * v0.6.2 moves it again for the same reason - `projectCup` draws at preseason, so every seed
+     * after it lands differently - and while checking 722 it turned out its title season had
+     * `onLoan: false`. The pin had been named for a loan for two versions without being one.
+     *
+     * Seed 11 is the shape the pin is actually for: one Maccabi championship in 2044, between a
+     * Hapoel Nof HaGalil season and a Maccabi Herzliya one. The counter must equal the trophy list
+     * for a title won in a single season back at the club. The invariant is covered across a
+     * population below too; this pin keeps the away-and-back case specifically exercised.
      */
-    const career = simulateCareer({ playerName: 'ת', position: 'ST', seed: 722, policy: balancedPolicy });
+    const career = simulateCareer({ playerName: 'ת', position: 'ST', seed: 11, policy: balancedPolicy });
     const titles = career.trophies.filter(
       (t) => t.clubId === MACCABI_ID && t.id === 'championship',
     ).length;

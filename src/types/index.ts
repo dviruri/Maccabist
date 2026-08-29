@@ -524,6 +524,35 @@ export interface SeasonParticipation {
   onFieldEventFired?: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/* The cup (v0.6.2)                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * How far a club went in the cup.
+ *
+ * Deliberately five rungs and no bracket. `winners` and `runner_up` are the only two that anything
+ * gates on; the rest exist so a cup exit has somewhere to be other than "not the final".
+ */
+export type CupRun = 'early_exit' | 'quarter_final' | 'semi_final' | 'runner_up' | 'winners';
+
+/**
+ * A club's cup season, decided at preseason (v0.6.2).
+ *
+ * The authoritative answer to "was there a final?", "against whom?" and "did we win it?". The cup
+ * used to be a lone season-end roll with no relationship to the cup-final event, which is how a
+ * player could be told he decided a final and then receive no cup. See `src/game/cupEngine.ts`.
+ */
+export interface CupSeasonState {
+  season: number;
+  clubId: string;
+  /** The trophy this competition produces, so the state and the trophy list cannot disagree. */
+  trophyId: 'cup' | 'foreign_cup' | 'youth_cup';
+  run: CupRun;
+  /** The other finalist. Null unless the run reached a final. */
+  finalOpponentId: string | null;
+}
+
 export interface WorldState {
   /**
    * The player's club's season, decided at preseason (v0.4.6). Optional: v0.4.5.1 saves have
@@ -532,6 +561,11 @@ export interface WorldState {
   projection?: SeasonProjection | null;
   /** Maccabi's own season, tracked in parallel so it has a table wherever the player is. */
   maccabiProjection?: SeasonProjection | null;
+  /**
+   * The player's club's cup run this season (v0.6.2). Optional: pre-v0.6.2 saves have none, and
+   * every consumer reads that as "no cup claim is supported" rather than inventing one.
+   */
+  cup?: CupSeasonState | null;
   /**
    * Maccabi's own seasons while the player was elsewhere (v0.4.1).
    *
@@ -1152,6 +1186,16 @@ export interface EventConditions {
   vsMaccabi?: boolean;
   /** The opponent is a club he used to play for. */
   vsFormerClub?: boolean;
+
+  /* ---------- v0.6.2: the cup ---------- */
+  /**
+   * What the club's cup run must be this season, read from `world.cup`.
+   *
+   * `'reached'` means a final was played either way; `'won'` and `'lost'` are the two results. An
+   * event may not mention a cup final without one of these - that is the condition that makes
+   * "you decided the final" and "you won no cup" impossible to hold at once.
+   */
+  cupFinal?: 'reached' | 'won' | 'lost';
 
   /* ---------- v0.5: people ---------- */
   /** The player must have (or must not have) representation. */

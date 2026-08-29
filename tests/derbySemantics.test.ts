@@ -83,11 +83,12 @@ describe('v0.6.2 derby content requires an authoritative derby', () => {
   });
 
   it('keeps the cup final on its own achievement, not a derby one', () => {
-    const cupFinal = EVENT_POOL.find((e) => e.id === 'sen_cup_final');
-    expect(cupFinal).toBeDefined();
+    // v0.6.2 Part 4 split the single `sen_cup_final` into a won and a lost variant.
+    const finals = EVENT_POOL.filter((e) => e.id.startsWith('sen_cup_final'));
+    expect(finals.map((e) => e.id).sort()).toEqual(['sen_cup_final_lost', 'sen_cup_final_won']);
 
-    const awarded = cupFinal!.choices.flatMap((c) =>
-      c.outcomes.map((o) => o.effects?.achievement).filter(Boolean),
+    const awarded = finals.flatMap((f) =>
+      f.choices.flatMap((c) => c.outcomes.map((o) => o.effects?.achievement).filter(Boolean)),
     );
     expect(awarded).not.toContain('derby_moment');
     expect(awarded).toContain('cup_final_hero');
@@ -134,6 +135,53 @@ describe('v0.6.2 derby content requires an authoritative derby', () => {
 });
 
 /* ================================================================== */
+/* v0.6.2 Part 5 — the same guard, for every context                   */
+/* ================================================================== */
+
+describe('v0.6.2 an event-granted achievement is gated on the context it declares', () => {
+  /*
+   * The generalisation. Derby was the reported bug, but the shape of it - an honour naming a
+   * context that nothing required to be true - is not specific to derbies. Any achievement with a
+   * `check` predicate verifies itself against the career, so it cannot lie. The ones granted by an
+   * event have no such backstop, and those are exactly the two that went wrong.
+   */
+  const EVENT_GRANTED = ACHIEVEMENT_DEFS.filter((a) => a.check === undefined);
+
+  it('has some, or this test is guarding nothing', () => {
+    expect(EVENT_GRANTED.length).toBeGreaterThan(0);
+  });
+
+  it('declares a category on every one of them', () => {
+    for (const achievement of EVENT_GRANTED) {
+      expect(achievement.category, `${achievement.id} is event-granted`).toBeDefined();
+    }
+  });
+
+  it('gates each grant on the condition its category names', () => {
+    const offenders: string[] = [];
+    for (const event of EVENT_POOL) {
+      for (const choice of event.choices) {
+        for (const outcome of choice.outcomes) {
+          const id = outcome.effects?.achievement;
+          if (!id) continue;
+          const def = ACHIEVEMENTS_BY_ID.get(id);
+          if (!def || def.check !== undefined) continue;
+
+          const c = event.conditions;
+          const ok =
+            def.category === 'career' ||
+            (def.category === 'derby' && isDerbyGated(event)) ||
+            (def.category === 'cup' && c.cupFinal !== undefined) ||
+            (def.category === 'maccabi' && c.clubScope === 'maccabi');
+          if (!ok) offenders.push(`${event.id} grants ${id} (${def.category})`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+/* ================================================================== */
 /* Scenario A — the reported career, end to end                        */
 /* ================================================================== */
 
@@ -168,8 +216,9 @@ describe('v0.6.2 A. Kfar Saba vs Umm al-Fahm carries zero derby content', () => 
      * The exact reported path. The cup final may well be eligible for this player - that is the
      * point of the event - and what it gives him must contain no derby claim.
      */
-    const cupFinal = EVENT_POOL.find((e) => e.id === 'sen_cup_final')!;
-    expect(derbyClaims(cupFinal)).toEqual([]);
+    for (const final of EVENT_POOL.filter((e) => e.id.startsWith('sen_cup_final'))) {
+      expect(derbyClaims(final), final.id).toEqual([]);
+    }
   });
 });
 

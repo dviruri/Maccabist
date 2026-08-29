@@ -38,6 +38,7 @@ import { hasRivalryOfType, matchContext } from './matchEngine';
 import { isAtMaccabi, isAtMaccabiSenior, isOnLoan, isPlayingAbroad } from './rules';
 import { canBeOnField, canHaveStarted } from './participation';
 import { agentEligible } from './peopleEngine';
+import { reachedCupFinal, wonCupThisSeason } from './cupEngine';
 import { isDerbyEligible } from './worldPredicates';
 import {
   clubStrengthVsLeague,
@@ -359,6 +360,18 @@ function matchesWorldState(career: Career, c: EventConditions, phase: SeasonPhas
  * what makes it impossible for a club with no local rival to receive a derby event.
  */
 function matchesMatchContext(career: Career, c: EventConditions, phase: SeasonPhase): boolean {
+  /*
+   * The cup (v0.6.2). Checked before the fixture block because a cup final is not a league fixture:
+   * it has no table row, no home leg and no position gap, so `matchContext` has nothing useful to
+   * say about it. What it does have is an authoritative run in `world.cup`, and that is the whole
+   * gate. Fails closed - a save with no cup state supports no cup-final event.
+   */
+  if (c.cupFinal !== undefined) {
+    if (!reachedCupFinal(career)) return false;
+    if (c.cupFinal === 'won' && !wonCupThisSeason(career)) return false;
+    if (c.cupFinal === 'lost' && wonCupThisSeason(career)) return false;
+  }
+
   const wants =
     c.requiresDerby !== undefined ||
     c.rivalryTypes !== undefined ||

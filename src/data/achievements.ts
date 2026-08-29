@@ -118,6 +118,8 @@ export const ACHIEVEMENT_DEFS: AchievementDefinition[] = [
     description: 'היית הטוב ביותר בטורניר בינלאומי.',
     icon: '🏅',
     major: true,
+    // v0.6.2: no contextual requirement - a tournament is not a derby, a cup or a Maccabi fact.
+    category: 'career',
   },
   {
     id: 'coach_favourite',
@@ -141,6 +143,8 @@ export const ACHIEVEMENT_DEFS: AchievementDefinition[] = [
     description: 'נשארת אחרי הירידה, והחזרת את המועדון לליגה הבכירה.',
     icon: '🔺',
     major: true,
+    // v0.6.2: a career shape, not a context. The fall-and-rise arc is the whole requirement.
+    category: 'career',
   },
   {
     id: 'derby_moment',

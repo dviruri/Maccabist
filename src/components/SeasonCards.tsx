@@ -1,7 +1,8 @@
 import { getLeague } from '../data/leagues';
 import { trophyIcon } from '../data/trophies';
 import { LEGACY_MILESTONES } from '../game/maccabiLegacy';
-import type { Milestone, Career, SeasonStats } from '../types';
+import type { Milestone, Career, SeasonRecord, SeasonStats } from '../types';
+import { cupRunLabel } from '../game/cupEngine';
 import { levelContext } from '../game/rules';
 import { teamDisplayFor, teamDisplayLine } from '../game/identity';
 import { clubSeasonFor, isBadSeason, isGoodSeason } from '../game/worldEngine';
@@ -237,6 +238,14 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
           </div>
         )}
 
+        {/*
+          The cup, when it did not end in a trophy (v0.6.2).
+          A won cup is already on the trophy line above; what was missing was everything else. The
+          cup run is now an authoritative season fact, so a lost final can finally be reported -
+          and a player who was told he played a final gets told how it ended.
+        */}
+        <CupRunLine career={career} record={record} />
+
         <SeasonMemories career={career} season={record.season} />
 
         {career.lastSeasonDeltas.length > 0 && (
@@ -293,6 +302,20 @@ interface ProgressionProps {
 }
 
 /** The academy ladder moment - promotion, a jumped year, or a season standing still. */
+/**
+ * How the cup ended, when it did not end with a trophy.
+ *
+ * Read straight off `world.cup`, matched to the record's own season and club rather than through
+ * `currentCup` - the summary is shown at season end, when "current" is about to mean the next one.
+ * An early exit says nothing: a club going out in the second round is not news.
+ */
+function CupRunLine({ career, record }: { career: Career; record: SeasonRecord }): JSX.Element | null {
+  const cup = career.world.cup;
+  if (!cup || cup.season !== record.season || cup.clubId !== record.clubId) return null;
+  if (cup.run === 'winners' || cup.run === 'early_exit') return null;
+  return <p className="faint">🥈 {cupRunLabel(cup.run)}.</p>;
+}
+
 export function ProgressionCard({ career, onContinue }: ProgressionProps): JSX.Element | null {
   const progression = career.lastProgression;
   if (!progression) return null;

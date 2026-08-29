@@ -1452,15 +1452,32 @@ export const SENIOR_EVENTS: GameEvent[] = [
       },
     ],
   },
+  /*
+   * THE CUP FINAL, IN TWO HALVES (v0.6.2, Target 4).
+   *
+   * There used to be one `sen_cup_final` with no cup condition at all. It fired on role value and
+   * age alone, and its outcomes narrated the result - one had the player carried off the pitch, the
+   * other had him watching the opposition lift the trophy - while the trophy itself was an
+   * unrelated roll at season end. So the game could tell a player he decided the final and then
+   * award him nothing, or hand him a cup in a season it never mentioned a final.
+   *
+   * `world.cup` now commits the run at preseason, so the result is a known fact by the time the
+   * event is planned. Rather than write one event that has to stay silent about who won - which is
+   * a strange way to cover a cup final - there are two, each gated on the real result. Every
+   * outcome inside them is about the player's own evening, which is the only thing still open.
+   *
+   * Neither is derby-gated and neither says דרבי. If the draw put the club's actual local rival in
+   * the final, `isCupFinalDerby` says so from the rivalry data; no event asserts it.
+   */
   {
-    id: 'sen_cup_final',
+    id: 'sen_cup_final_won',
     kicker: 'גמר גביע המדינה',
     title: 'תשעים דקות על תואר',
     /*
      * v0.6.1, C4: was "אצטדיון מלא, חצי ירוק" - which asserts the player's club plays in green
      * at a NEUTRAL final. It is false for most clubs in the game, and a real playtest read it
      * at a Hapoel Kfar Saba final as the venue belonging to somebody. A final is played on
-     * neutral ground; the text now describes the occasion and both ends of the stadium without
+     * neutral ground; the text describes the occasion and both ends of the stadium without
      * claiming a colour for either.
      */
     description:
@@ -1469,6 +1486,8 @@ export const SENIOR_EVENTS: GameEvent[] = [
     conditions: {
       // v0.4.8: on the pitch, so he has to be playing.
       requiresAppearance: true,
+      // v0.6.2: and there has to have actually been a final, which his club actually won.
+      cupFinal: 'won',
       bands: ['senior'], minRoleValue: 45, minAge: 20,
     },
     weight: 7,
@@ -1503,6 +1522,76 @@ export const SENIOR_EVENTS: GameEvent[] = [
           {
             id: 'anonymous',
             baseWeight: 62,
+            tone: 'neutral',
+            preview: 'תיעלם בגמר ותרים גביע שאחרים הכריעו',
+            /*
+             * The club won, so he lifts it - and the honest version of this outcome is that he
+             * knows exactly how much of it was his. No achievement: `cup_final_hero` belongs to
+             * the man who decided it, and the trophy in his cabinet already records the rest.
+             */
+            text: 'נעלמת בגמר. בסוף אתה מרים את הגביע עם כולם ויודע בדיוק כמה ממנו שלך.',
+            effects: { confidence: -4, pressure: 6, coachTrust: -2 },
+          },
+        ],
+      },
+      {
+        id: 'do_the_job',
+        label: 'לשחק בלי סיכונים ולסמוך על הקבוצה',
+        risk: 'balanced',
+        outcomes: [
+          {
+            id: 'professional_final',
+            baseWeight: 100,
+            tone: 'good',
+            text: 'משחק נכון וממושמע, בלי טעות אחת. הקבוצה מרימה גביע ואתה חלק ממנה.',
+            effects: { coachTrust: 5, confidence: 5, reputation: 3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sen_cup_final_lost',
+    kicker: 'גמר גביע המדינה',
+    title: 'תשעים דקות על תואר',
+    description:
+      'אצטדיון מלא, שני יציעים שלא מפסיקים לרגע, וגביע אחד על שולחן בקו האמצע. יש קריירות שנזכרות בזכות ערב אחד כזה, ויש כאלה שנזכרות בזכות ההחמצה בו.',
+    category: 'competition',
+    conditions: {
+      requiresAppearance: true,
+      cupFinal: 'lost',
+      bands: ['senior'], minRoleValue: 45, minAge: 20,
+    },
+    weight: 7,
+    rarity: 'uncommon',
+    cooldownSeasons: 4,
+    choices: [
+      {
+        id: 'step_up',
+        label: 'לשחק את המשחק של החיים',
+        risk: 'opportunity',
+        outcomes: [
+          {
+            id: 'best_on_the_pitch',
+            baseWeight: 38,
+            tone: 'neutral',
+            preview: 'תהיה הטוב בדשא ותפסיד בכל זאת',
+            /*
+             * The one outcome the old event could not produce, because it had no idea the club
+             * had lost: a great personal night on the wrong side of the result. It is a real
+             * football evening and the reputation gain is real - the medal is not.
+             */
+            text: 'היית הטוב בדשא ואף אחד לא יזכור את זה. אתה עומד בשורה ומקבל מדליית כסף שלא רצית.',
+            effects: { reputation: 8, roleValue: 5, confidence: -3, pressure: 6 },
+            modifiers: [
+              { attribute: 'ability', above: 74, multiplier: 1.45 },
+              { attribute: 'form', above: 65, multiplier: 1.35 },
+              { attribute: 'confidence', below: 45, multiplier: 0.5 },
+            ],
+          },
+          {
+            id: 'anonymous',
+            baseWeight: 62,
             tone: 'bad',
             preview: 'תיעלם בגמר ותסתכל עליהם מרימים גביע',
             text: 'נעלמת בגמר. אתה מסתכל על הקבוצה היריבה מרימה גביע ולומד משהו על עצמך.',
@@ -1519,8 +1608,8 @@ export const SENIOR_EVENTS: GameEvent[] = [
             id: 'professional_final',
             baseWeight: 100,
             tone: 'neutral',
-            text: 'משחק נכון וממושמע. אם הקבוצה תרים גביע, גם אתה תרים אותו.',
-            effects: { coachTrust: 5, confidence: 3 },
+            text: 'משחק נכון וממושמע. לא עשית טעות, וזה לא הספיק. יש ערבים כאלה.',
+            effects: { coachTrust: 4, confidence: -4 },
           },
         ],
       },

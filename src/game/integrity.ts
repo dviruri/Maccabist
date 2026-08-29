@@ -15,6 +15,8 @@
  */
 
 import { getClub, MACCABI_ID } from '../data/clubs';
+import { ACHIEVEMENT_DEFS } from '../data/achievements';
+import { hasDerby } from '../data/rivalries';
 import { AGENT_ARCHETYPES, COACH_SPECIALTIES, MANAGER_ARCHETYPES, specialtiesFor } from '../data/people';
 import { leagueShape } from '../data/leagueShape';
 import { stageOrder } from '../data/academy';
@@ -94,7 +96,16 @@ export type IntegrityCode =
   /** the symbol rank without the football that defines it. */
   | 'symbol_without_contribution'
   /** the derived Maccabi facts disagree with the v0.4.8 counters they must equal. */
-  | 'legacy_facts_counter_mismatch';
+  | 'legacy_facts_counter_mismatch'
+  /* ---------- v0.6.2: derby and cup ---------- */
+  /** a derby honour on the record of a career whose clubs never had a modelled local rival. */
+  | 'derby_claim_without_rival'
+  /** a cup trophy for a season whose authoritative cup state did not produce one. */
+  | 'cup_trophy_without_cup_win'
+  /** the cup state says the club won and the competition recorded is a different one. */
+  | 'cup_trophy_kind_mismatch'
+  /** cup state carried for a season or a club it does not belong to. */
+  | 'cup_state_out_of_scope';
 
 export interface IntegrityViolation {
   code: IntegrityCode;
@@ -318,8 +329,99 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
   /* ---------------- Maccabi Legacy (v0.6, Phase 47) ---------------- */
   validateLegacy(career, push);
 
+  /* ---------------- derby and cup (v0.6.2) ---------------- */
+  validateDerbyAndCup(career, push);
+
   return out;
 }
+
+/**
+ * Derby and cup coherence (v0.6.2).
+ *
+ * Both checks exist because a career shipped that held a derby honour without a derby and a cup
+ * final without a cup. Neither was reachable through a *rule* - they were reachable because
+ * nothing joined the honour to the fact it was named after.
+ */
+function validateDerbyAndCup(
+  career: Career,
+  push: (code: IntegrityCode, detail: string, season?: number) => void,
+): void {
+  /*
+   * A derby honour requires a club that has one.
+   *
+   * Checked against every club the career has actually played senior football for, not just the
+   * current one - a derby memory from four clubs ago is legitimate, and the current club having no
+   * rival says nothing about it. Only a career that never once played for a club with a modelled
+   * local rival can be certain the honour is false, and that is the case the reported bug was.
+   */
+  const derbyHonours = [
+    ...career.achievements
+      .filter((a) => derbyAchievementIds.has(a.id))
+      .map((a) => `achievement ${a.id}`),
+    ...career.memories.filter((m) => m.kind.includes('derby')).map((m) => `memory ${m.kind}`),
+  ];
+  if (derbyHonours.length > 0) {
+    const clubs = new Set(career.seasonHistory.map((r) => r.clubId));
+    clubs.add(career.currentClubId);
+    const everHadRival = [...clubs].some((id) => hasDerby(id));
+    if (!everHadRival) {
+      push(
+        'derby_claim_without_rival',
+        `${derbyHonours.join(', ')} on a career whose clubs have no modelled local rival`,
+      );
+    }
+  }
+
+  /*
+   * The cup state is season- and club-scoped. Carrying one that belongs to another season or
+   * another club is how a stale fact starts answering questions it has no business answering, so
+   * it is a violation in its own right rather than something `currentCup` quietly filters out.
+   */
+  const cup = career.world.cup;
+  if (cup && !career.retired) {
+    if (cup.season !== career.currentSeason) {
+      push(
+        'cup_state_out_of_scope',
+        `cup state is for ${cup.season}, career is in ${career.currentSeason}`,
+      );
+    } else if (cup.clubId !== career.currentClubId) {
+      push(
+        'cup_state_out_of_scope',
+        `cup state is for ${cup.clubId}, player is at ${career.currentClubId}`,
+      );
+    }
+  }
+
+  /*
+   * A cup trophy for the CURRENT season must match the current cup state. Earlier seasons cannot
+   * be checked - only one cup state is carried, by design - but the current season is where a
+   * disagreement would actually be visible to the player, and it is the season an event could
+   * still be contradicting.
+   */
+  const cupThisSeason = career.trophies.filter(
+    (t) => t.season === career.currentSeason && CUP_TROPHY_IDS.includes(t.id),
+  );
+  if (cupThisSeason.length > 0 && cup && cup.season === career.currentSeason) {
+    if (cup.run !== 'winners') {
+      push(
+        'cup_trophy_without_cup_win',
+        `a ${cupThisSeason[0]!.id} recorded in a season the cup state ended at ${cup.run}`,
+        career.currentSeason,
+      );
+    } else if (!cupThisSeason.some((t) => t.id === cup.trophyId)) {
+      push(
+        'cup_trophy_kind_mismatch',
+        `cup state won a ${cup.trophyId}, trophy list holds ${cupThisSeason.map((t) => t.id).join(', ')}`,
+        career.currentSeason,
+      );
+    }
+  }
+}
+
+/** Achievement ids that claim a derby, taken from the typed catalogue rather than from names. */
+const derbyAchievementIds = new Set(
+  ACHIEVEMENT_DEFS.filter((a) => a.category === 'derby').map((a) => a.id),
+);
 
 /**
  * The legacy invariants (v0.6).

@@ -6,6 +6,7 @@ import { EVENTS_BY_ID, EVENT_POOL } from '../data/events';
 import { autoStep, retire } from '../game/careerEngine';
 import { cohortLead, isPlayingUpACohort, naturalStage, relativeAgeBonus } from '../game/cohort';
 import { matchesClubScope } from '../game/conditions';
+import { cupFinalOpponent, isCupFinalDerby } from '../game/cupEngine';
 import { validateCareerIntegrity } from '../game/integrity';
 import {
   agentLoanFactor,
@@ -172,6 +173,21 @@ export function DebugPanel({
           <Row label="promotionScore" value={promotionScore(career, 60, rng).toFixed(1)} />
           <Row label="maccabi apps" value={career.maccabi.appearances} />
           <Row label="flags" value={career.flags.join(',') || '—'} />
+
+          {/* ---- v0.6.2: the authoritative cup run ---- */}
+          <Row
+            label="cup run"
+            value={
+              career.world.cup
+                ? `${career.world.cup.run} (${career.world.cup.season}, ${career.world.cup.clubId})`
+                : '— no cup state'
+            }
+          />
+          <Row
+            label="cup final vs"
+            value={cupFinalOpponent(career) ?? '—'}
+          />
+          <Row label="cup final is derby" value={String(isCupFinalDerby(career))} />
 
           {/* ---- v0.3.1: cohort, origin, club context ---- */}
           <Row

@@ -101,7 +101,24 @@ const PROMOTION_PATTERNS = [
   'מדברים על עלייה',
 ];
 
+/*
+ * v0.6.2: a cup final is a claim like any other.
+ *
+ * `sen_cup_final` asserted a State Cup final in its kicker, its title and both of its outcomes,
+ * and gated on role value and age. The claims audit never saw it because no rule looked for the
+ * words - the derby rule caught דרבי, and nothing caught גמר גביע. The cup now has authoritative
+ * state, so the claim has a requirement to point at.
+ */
+const CUP_FINAL_PATTERNS = ['גמר הגביע', 'גמר גביע', 'בגמר הגביע'];
+
 export const CLAIM_RULES: readonly ClaimRule[] = [
+  {
+    id: 'cup-final',
+    patterns: CUP_FINAL_PATTERNS,
+    requirement: "cupFinal: 'won' | 'lost' | 'reached'",
+    mentions: (e) => says(e, CUP_FINAL_PATTERNS),
+    supported: (e) => c(e).cupFinal !== undefined,
+  },
   {
     id: 'derby',
     patterns: ['דרבי'],

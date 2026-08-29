@@ -13,6 +13,7 @@
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { defaultLeagueFor, getLeague, type League } from '../data/leagues';
 import type { Career, ClubSeasonOutcome, ClubSeasonResult, SeasonRecord, WorldState } from '../types';
+import { projectCup } from './cupEngine';
 import { projectSeason, settleProjection } from './leagueEngine';
 import { WORLD } from './balance';
 import { clamp, type Rng } from './random';
@@ -372,7 +373,14 @@ export function openWorldSeason(career: Career, rng: Rng): WorldState {
       ? null
       : projectSeason(career.world, MACCABI_ID, career.currentSeason, null, null, rng);
 
-  return { ...career.world, projection, maccabiProjection: maccabi };
+  /*
+   * The cup is projected here too (v0.6.2), and deliberately for every club - academy included.
+   * `projectSeason` returns null where there is no modelled table, but a cup is a knockout: an age
+   * group plays for a youth cup even though it has no league table to read.
+   */
+  const cup = projectCup(career, rng);
+
+  return { ...career.world, projection, maccabiProjection: maccabi, cup };
 }
 
 /**

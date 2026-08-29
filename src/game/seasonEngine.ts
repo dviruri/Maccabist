@@ -6,6 +6,7 @@
  * matches - a half is generated from position, ability, role, coach trust, level and luck.
  */
 
+import { currentCup } from './cupEngine';
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { clubDisplayName, currentTeamDisplay } from './identity';
 import { TROPHY_DEFS } from '../data/trophies';
@@ -280,13 +281,21 @@ function rollTrophies(career: Career, stats: SeasonStats, rng: Rng): Trophy[] {
   }
 
   /*
-   * The cup stays a roll, and that is deliberate: no cup competition is modelled, so there is no
-   * authoritative table to read it from. What matters is that it keeps its own identity - a cup is
-   * never labelled אליפות.
+   * THE CUP IS NOT ROLLED EITHER (v0.6.2).
+   *
+   * It was, on the same reasoning the league title used to have: no cup competition was modelled,
+   * so there was nothing to read. But `sen_cup_final` was already telling players they had decided
+   * a cup final, and a season-end roll knew nothing about it - so the game could carry a player off
+   * the pitch as a cup hero and then award him no cup.
+   *
+   * `world.cup` now commits the run at preseason and this reads it. The trophy id comes from the
+   * state as well, so the competition that was played is the competition that is recorded.
+   *
+   * A pre-v0.6.2 save mid-season has no cup state, so it wins no cup that season. That is the
+   * fail-closed answer and it costs at most one season of a competition the player was never shown.
    */
-  if (rng.chance(level.cupChance * contribution)) {
-    add(level.isAcademy ? 'youth_cup' : isIsraeli ? 'cup' : 'foreign_cup');
-  }
+  const cup = currentCup(career);
+  if (cup?.run === 'winners') add(cup.trophyId);
   if (level.europeChance > 0 && rng.chance(level.europeChance * contribution)) {
     add(rng.chance(0.2) ? 'champions_league' : 'european_run');
   }
