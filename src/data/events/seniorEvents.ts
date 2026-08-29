@@ -991,7 +991,7 @@ export const SENIOR_EVENTS: GameEvent[] = [
             id: 'green_end',
             baseWeight: 100,
             tone: 'good',
-            text: 'החלטת שהסוף שלך יהיה בירוק. יש כאלה שלא יבינו את זה לעולם.',
+            text: 'החלטת שהסוף שלך יהיה כאן, במועדון שאתה מכיר. יש כאלה שלא יבינו את זה לעולם.',
             maccabiRelevance: 'leaving',
             effects: { maccabism: 15, roleValue: 5 },
           },
@@ -1438,9 +1438,16 @@ export const SENIOR_EVENTS: GameEvent[] = [
     id: 'sen_cup_final',
     kicker: 'גמר גביע המדינה',
     title: 'תשעים דקות על תואר',
+    /*
+     * v0.6.1, C4: was "אצטדיון מלא, חצי ירוק" - which asserts the player's club plays in green
+     * at a NEUTRAL final. It is false for most clubs in the game, and a real playtest read it
+     * at a Hapoel Kfar Saba final as the venue belonging to somebody. A final is played on
+     * neutral ground; the text now describes the occasion and both ends of the stadium without
+     * claiming a colour for either.
+     */
     description:
-      'אצטדיון מלא, חצי ירוק. יש קריירות שנזכרות בזכות ערב אחד כזה, ויש כאלה שנזכרות בזכות ההחמצה בו.',
-    category: 'match_moment',
+      'אצטדיון מלא, שני יציעים שלא מפסיקים לרגע, וגביע אחד על שולחן בקו האמצע. יש קריירות שנזכרות בזכות ערב אחד כזה, ויש כאלה שנזכרות בזכות ההחמצה בו.',
+    category: 'competition',
     conditions: {
       // v0.4.8: on the pitch, so he has to be playing.
       requiresAppearance: true,

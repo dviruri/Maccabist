@@ -1135,3 +1135,44 @@
   line-height: 1.5;
   margin: 0;
 }
+
+/* The named trophy list at retirement (v0.6.1, C2). */
+.trophy-summary-line {
+  font-size: 13px;
+  color: var(--text-primary);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+.trophy-summary-line:last-child {
+  border-bottom: 0;
+}
+
+.trophy-summary-clubs {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Neutral competition identity (v0.6.1, C4/C5)                        */
+/* ------------------------------------------------------------------ */
+
+/*
+ * A cup final is played on neutral ground. The app's chrome stays Maccabist green - that is the
+ * GAME's identity - but the match must not borrow the current club's colours and imply the venue
+ * belongs to somebody. Gold on dark: the competition's own identity, equal for both clubs.
+ */
+.event-final {
+  border-color: var(--gold-deep);
+  background:
+    linear-gradient(180deg, rgba(255, 201, 74, 0.06), transparent 45%),
+    var(--surface-dark);
+}
+
+.event-final .event-variant-label,
+.event-final .kicker {
+  color: var(--gold);
+}

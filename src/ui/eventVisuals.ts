@@ -15,6 +15,7 @@ import { isPlayingAbroad } from '../game/rules';
  */
 
 export type EventVariant =
+  | 'final'
   | 'people'
   | 'coach'
   | 'match'
@@ -33,6 +34,7 @@ export type EventVariant =
  * so `tests/eventVisuals.test.ts` walks the real catalogue against this list.
  */
 export const VARIANTS: readonly EventVariant[] = [
+  'final',
   'people',
   'coach',
   'match',
@@ -58,6 +60,9 @@ export interface EventVisual {
 }
 
 const VARIANT_META: Record<EventVariant, { icon: string; label: string }> = {
+  // v0.6.1: a final is played on neutral ground and gets neutral, competition-owned identity -
+  // gold and dark, never the current club's colours. See `.event-final` in density.css.
+  final: { icon: '🏆', label: 'גמר' },
   coach: { icon: '📋', label: 'המאמן' },
   people: { icon: '🤝', label: 'האנשים שלך' },
   match: { icon: '⚽', label: 'רגע במשחק' },
@@ -76,7 +81,7 @@ const CATEGORY_VARIANT: Record<EventCategory, EventVariant> = {
   coach: 'coach',
   people: 'people',
   match_moment: 'match',
-  competition: 'match',
+  competition: 'final',
   development: 'development',
   promotion: 'development',
   transfer: 'transfer',

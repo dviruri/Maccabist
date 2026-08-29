@@ -318,3 +318,55 @@ export const MACCABI_RELEVANCE_REASONS: Record<MaccabiRelevance, string> = {
   return: 'חזרה למכבי',
   opponent: 'משחק מול מכבי',
 };
+
+/* ------------------------------------------------------------------ */
+/* Career trophy summary (v0.6.1, C2)                                  */
+/* ------------------------------------------------------------------ */
+
+export interface TrophyGroup {
+  /** Trophy id, e.g. 'championship' | 'cup'. */
+  id: string;
+  /** The competition's own name - 'גביע המדינה', never a generic word. */
+  name: string;
+  count: number;
+  /** Clubs it was won with, in the order first won. */
+  clubs: string[];
+  /** True when every one of them was won at Maccabi. */
+  allAtMaccabi: boolean;
+}
+
+/**
+ * Every trophy the career actually won, grouped by competition (v0.6.1).
+ *
+ * Written because the retirement screen showed only `career.trophies.length` - a number. A
+ * player who won the State Cup with Hapoel Kfar Saba saw "תארים בקריירה: 1" and never saw the
+ * words גביע המדינה anywhere in his career summary, which is the reported bug: the trophy
+ * existed in the data, in the season record and on the timeline, and then vanished at the one
+ * screen that is supposed to sum a career up.
+ *
+ * Derived from the trophy list, so it cannot disagree with it. Club attribution is preserved:
+ * a cup won away from Maccabi is still a cup this player won, and is still not a Maccabi trophy.
+ */
+export function trophySummary(career: Career): TrophyGroup[] {
+  const groups = new Map<string, TrophyGroup>();
+  for (const trophy of career.trophies) {
+    const existing = groups.get(trophy.id);
+    if (existing) {
+      existing.count += 1;
+      if (!existing.clubs.includes(trophy.clubName)) existing.clubs.push(trophy.clubName);
+      if (trophy.clubId !== MACCABI_ID) existing.allAtMaccabi = false;
+      continue;
+    }
+    groups.set(trophy.id, {
+      id: trophy.id,
+      name: trophy.name,
+      count: 1,
+      clubs: [trophy.clubName],
+      allAtMaccabi: trophy.clubId === MACCABI_ID,
+    });
+  }
+  // Heaviest competitions first, so a league title leads a Toto Cup.
+  const weight = (id: string): number =>
+    career.trophies.find((t) => t.id === id)?.weight ?? 0;
+  return [...groups.values()].sort((a, b) => weight(b.id) - weight(a.id) || b.count - a.count);
+}

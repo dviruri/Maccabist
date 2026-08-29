@@ -1,6 +1,7 @@
 import { CareerTimeline } from '../components/CareerTimeline';
 import { Timeline } from '../components/Timeline';
-import { appearanceBreakdown } from '../game/truth';
+import { appearanceBreakdown, trophySummary } from '../game/truth';
+import { trophyIcon } from '../data/trophies';
 import {
   globalCareerScore,
   historicalStanding,
@@ -75,6 +76,7 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
   const globalScore = globalCareerScore(career);
   const legacyScore = maccabiLegacyScore(career);
   const archetypes = maccabiArchetypes(career);
+  const trophyGroups = trophySummary(career);
   const appearanceStanding = historicalStanding(career, 'appearances');
 
   return (
@@ -257,7 +259,40 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
             <NumberBox value={m.captainSeasons} label="עונות כקפטן" />
             <NumberBox value={career.trophies.length} label="תארים בקריירה" />
           </div>
+        </div>
+      </section>
 
+      {/*
+        התארים שלך (v0.6.1, C2). The count above answers "how many"; only this answers "which".
+        A State Cup won at Hapoel Kfar Saba lived in the trophy list, the season record and the
+        timeline, and then disappeared at retirement behind the number 1 - so the one screen
+        that sums a career up never said גביע המדינה. Every competition is now named, with the
+        club it was won at, because a cup won away from Maccabi is still a cup this player won.
+      */}
+      {trophyGroups.length > 0 && (
+        <section className="card retirement-block">
+          <div className="stack-sm">
+            <div className="kicker">התארים שלך</div>
+            {trophyGroups.map((group) => (
+              <div key={group.id} className="trophy-summary-line">
+                <span aria-hidden>{trophyIcon(group.id)}</span>{' '}
+                <b>{group.name}</b>
+                {group.count > 1 && (
+                  <>
+                    {' '}
+                    ×<Ltr>{group.count}</Ltr>
+                  </>
+                )}
+                <span className="trophy-summary-clubs">{group.clubs.join(' · ')}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* --- the shape of the career, in chips --- */}
+      <section className="card retirement-block">
+        <div className="stack-sm">
           <div className="row row-wrap">
             {m.academyGraduate && <Chip>🌱 בוגר האקדמיה</Chip>}
             {m.returned && (
