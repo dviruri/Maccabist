@@ -11,6 +11,11 @@ import { describe, expect, it } from 'vitest';
 
 import { ENDINGS } from '../src/data/endings';
 import { ARCHETYPES } from '../src/game/storyEngine';
+import {
+  LEGACY_ARCHETYPE_ICONS,
+  LEGACY_RANK_ICONS,
+  LEGACY_RANK_LABELS,
+} from '../src/game/maccabiLegacy';
 import { MACCABI_ID } from '../src/data/clubs';
 import { createCareer } from '../src/game/careerEngine';
 import { validateCareerIntegrity } from '../src/game/integrity';
@@ -29,26 +34,42 @@ const RED_RENDERING_GLYPHS = [
 ];
 
 describe('v0.5.1 J. the legacy badge is brand-consistent', () => {
-  it('gives no career archetype a red-rendering emblem', () => {
+  it('gives the one-club archetype a green emblem', () => {
+    /*
+     * v0.6.1: this pinned the TITLE. That title moved to its single authority
+     * (`maccabiLegacyRank`), so the test now pins the archetype by id - the property it always
+     * meant to protect - and the title assertion moved to the authority test below.
+     */
+    const oneClub = ARCHETYPES.find((a) => a.id === 'one_club_icon');
+    expect(oneClub?.icon).toBe('\u{1F49A}');
+  });
+
+  it('keeps the Maccabi Legacy emblems red-free too (v0.6.1)', () => {
+    for (const [rank, icon] of Object.entries(LEGACY_RANK_ICONS)) {
+      for (const glyph of RED_RENDERING_GLYPHS) {
+        expect(icon, `rank ${rank}`).not.toContain(glyph);
+      }
+    }
+    for (const [id, icon] of Object.entries(LEGACY_ARCHETYPE_ICONS)) {
+      for (const glyph of RED_RENDERING_GLYPHS) {
+        expect(icon, `archetype ${id}`).not.toContain(glyph);
+      }
+    }
+  });
+
+  it('makes Maccabi Legacy the sole authority for the prestige titles (v0.6.1, B2)', () => {
+    const SYMBOL = LEGACY_RANK_LABELS.symbol;
+    const GREEN_LEGEND = LEGACY_RANK_LABELS.green_legend;
+
+    // No other system may award either title.
     for (const archetype of ARCHETYPES) {
-      for (const glyph of RED_RENDERING_GLYPHS) {
-        expect(archetype.icon, `${archetype.id} uses a red-rendering glyph`).not.toContain(glyph);
-      }
+      expect(archetype.title, `storyEngine ${archetype.id}`).not.toBe(SYMBOL);
+      expect(archetype.title, `storyEngine ${archetype.id}`).not.toBe(GREEN_LEGEND);
     }
-  });
-
-  it('gives no ending a red-rendering emblem either', () => {
     for (const ending of ENDINGS) {
-      for (const glyph of RED_RENDERING_GLYPHS) {
-        expect(ending.icon, `${ending.id} uses a red-rendering glyph`).not.toContain(glyph);
-      }
+      expect(ending.title, `ending ${ending.id}`).not.toBe(SYMBOL);
+      expect(ending.title, `ending ${ending.id}`).not.toBe(GREEN_LEGEND);
     }
-  });
-
-  it('gives הסמל a green emblem', () => {
-    const symbol = ARCHETYPES.find((a) => a.id === 'one_club_icon');
-    expect(symbol?.title).toBe('הסמל');
-    expect(symbol?.icon).toBe('\u{1F49A}');
   });
 
   it('keeps every emblem distinct, so two endings never look alike', () => {

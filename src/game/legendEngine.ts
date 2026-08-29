@@ -15,6 +15,7 @@ import type { Career, CareerEnding, LegendComponent, LegendResult } from '../typ
 import { LEGEND } from './balance';
 import { clamp, round } from './random';
 import { outputScore } from './rules';
+import { isForeignSeason } from './truth';
 import { careerArchetype, careerStory } from './storyEngine';
 
 /** Diminishing-returns curve: fast early progress, slow at the top. */
@@ -34,11 +35,20 @@ export function computeLegendComponents(career: Career): LegendComponent[] {
     .filter((trophy) => trophy.clubId === MACCABI_ID)
     .reduce((sum, trophy) => sum + trophy.weight, 0);
 
+  /*
+   * v0.6.1, B5: geography comes from DATA, never from a display string.
+   *
+   * This read `s.league !== 'ליגת העל'` to mean "abroad" - the same defect class v0.4.8 removed
+   * from the retirement screen. It counted every Liga Leumit season as a European one (the name
+   * is 'הליגה הלאומית', which is also !== 'ליגת העל'), and every academy season besides. A
+   * player who dropped to the Israeli second division was being scored as if he had gone to
+   * Europe. `isForeignSeason` reads the club's country, which is a fact.
+   */
   const europePoints = career.trophies
     .filter((trophy) => trophy.clubId !== MACCABI_ID)
     .reduce((sum, trophy) => sum + trophy.weight * 4, 0)
     + career.seasonHistory
-      .filter((s) => s.league !== 'ליגת העל' && s.stats.appearances > 12)
+      .filter((s) => s.academyStage === 'senior' && isForeignSeason(s) && s.stats.appearances > 12)
       .length * 3
     + Math.max(0, career.peakAbility - 78) * 0.9;
 

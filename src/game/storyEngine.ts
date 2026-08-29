@@ -40,7 +40,12 @@ const m = (career: Career) => career.maccabi;
 export const ARCHETYPES: readonly ArchetypeRule[] = [
   {
     id: 'legend',
-    title: 'אגדה ירוקה',
+    /*
+     * v0.6.1: was titled 'אגדה ירוקה'. That is a MACCABI LEGACY rank, and it may have exactly
+     * one authority - `maccabiLegacyRank`. This archetype survives as narrative flavour for the
+     * career story, so its title now describes the career rather than awarding a club rank.
+     */
+    title: 'קריירה גדולה בירוק',
     subtitle: 'שם שלא צריך הסבר בחיפה',
     icon: '👑',
     priority: 100,
@@ -48,7 +53,8 @@ export const ARCHETYPES: readonly ArchetypeRule[] = [
   },
   {
     id: 'one_club_icon',
-    title: 'הסמל',
+    // v0.6.1: was titled 'הסמל'. Same reason - that rank belongs to Maccabi Legacy alone.
+    title: 'מועדון אחד',
     subtitle: 'מועדון אחד, קריירה שלמה',
     /*
      * v0.5.1: was U+1F6E1, the shield - which Segoe UI Emoji renders RED, so on Windows the

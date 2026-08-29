@@ -4,6 +4,7 @@ import { appearanceBreakdown } from '../game/truth';
 import {
   globalCareerScore,
   historicalStanding,
+  LEGACY_ARCHETYPE_ICONS,
   LEGACY_RANK_ICONS,
   LEGACY_RANK_LABELS,
   maccabiArchetypes,
@@ -26,7 +27,6 @@ import { careerYears, positionLabel } from '../ui/format';
  */
 export const LEGENDARY_ENDINGS: readonly string[] = ['legend', 'one_club_icon'];
 /** Aligned with the engine's own top Legend Score band. */
-const LEGENDARY_SCORE = 75;
 
 interface Props {
   career: Career;
@@ -64,13 +64,16 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
    * the player reads, so the title is what the colour answers to. The score threshold stays as a
    * second route in, aligned with the engine's own top band.
    */
-  const legendary =
-    LEGENDARY_ENDINGS.includes(legend?.ending.id ?? '') || score >= LEGENDARY_SCORE;
+  /*
+   * Gold trim follows the Maccabi Legacy rank (v0.6.1). It used to key off storyEngine ending
+   * ids, which is the same duplicated authority the headline just lost.
+   */
+  const legacyRank = maccabiLegacyRank(career);
+  const legendary = legacyRank === 'symbol' || legacyRank === 'green_legend';
 
   /* v0.6: the other three reads - global career, Maccabi legacy, and the standing. */
   const globalScore = globalCareerScore(career);
   const legacyScore = maccabiLegacyScore(career);
-  const legacyRank = maccabiLegacyRank(career);
   const archetypes = maccabiArchetypes(career);
   const appearanceStanding = historicalStanding(career, 'appearances');
 
@@ -94,12 +97,25 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
           <Ltr>{career.retirementAge}</Ltr>
         </p>
 
+        {/*
+          v0.6.1, Checkpoint B: ONE authority for the headline.
+
+          Until now the poster's title came from `storyEngine`'s ARCHETYPES, which could award
+          "הסמל" or "אגדה ירוקה" on its own rules while `maccabiLegacy` - the system built to
+          own exactly those words - reached a different verdict. Two live formulas for one
+          prestige title is the defect this version exists to remove.
+
+          The headline is now the Maccabi Legacy career archetype, always. It covers non-Maccabi
+          careers too (הכוכב האירופי, אורח לרגע, קריירה בחוץ), so no career is forced into
+          Maccabi prestige language it did not earn. The old ending survives only as narrative
+          prose further down - it no longer names a rank.
+        */}
         <div className="poster-ending">
           <div className="poster-ending-icon" aria-hidden>
-            {legend?.ending.icon}
+            {LEGACY_ARCHETYPE_ICONS[archetypes.primary.id]}
           </div>
-          <h2 className="poster-ending-title">{legend?.ending.title}</h2>
-          <div className="poster-ending-sub">{legend?.ending.subtitle}</div>
+          <h2 className="poster-ending-title">{archetypes.primary.label}</h2>
+          <div className="poster-ending-sub">{archetypes.primary.line}</div>
         </div>
 
         {/*

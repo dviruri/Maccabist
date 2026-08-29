@@ -523,3 +523,108 @@ describe('milestones through the real engine', () => {
     expect(target!.label).toContain(nextUp!.player.name);
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* v0.6.1 Checkpoint B: one authority, and a return that is football   */
+/* ------------------------------------------------------------------ */
+
+describe('v0.6.1 B7. global greatness and Maccabi legacy are different questions', () => {
+  it('no Maccabi prestige title can come from the global score', () => {
+    /*
+     * The European superstar is the case that must never slip: enormous globally, thin in
+     * green. The rank is gated on Maccabi football, so no amount of global brilliance reaches
+     * הסמל or אגדה ירוקה.
+     */
+    const career = europeanSuperstar();
+    expect(globalCareerScore(career)).toBeGreaterThanOrEqual(65);
+    expect(maccabiLegacyRank(career)).not.toBe('symbol');
+    expect(maccabiLegacyRank(career)).not.toBe('green_legend');
+  });
+
+  it('the one-club captain outranks the superstar in green and may trail him globally', () => {
+    const captain = oneClubLegend();
+    const star = europeanSuperstar();
+
+    expect(maccabiLegacyScore(captain)).toBeGreaterThan(maccabiLegacyScore(star) + 40);
+    expect(maccabiLegacyRank(captain)).toBe('symbol');
+    // ...and that he scores lower globally is correct, not a bug.
+    expect(globalCareerScore(star)).toBeGreaterThan(0);
+  });
+
+  it('does not punish a goalkeeper for scoring no goals (B6)', () => {
+    /*
+     * The shared outputScore normalises clean sheets against goals, and the legend engine
+     * passes the keeper's actual clean-sheet data. A keeper and an outfielder with comparable
+     * careers should not be separated by the fact that one of them is a keeper.
+     */
+    seasonCounter = 2031;
+    const gkRecords = Array.from({ length: 12 }, (_, i) =>
+      season(MACCABI_ID, 32, { cleanSheets: 13, age: 20 + i }),
+    );
+    const gk = withHistory({ ...base(41), position: 'GK' }, gkRecords, [
+      trophy('championship', MACCABI_ID, 2035),
+    ]);
+
+    seasonCounter = 2031;
+    const cbRecords = Array.from({ length: 12 }, (_, i) =>
+      season(MACCABI_ID, 32, { goals: 3, assists: 2, age: 20 + i }),
+    );
+    const cb = withHistory({ ...base(41), position: 'CB' }, cbRecords, [
+      trophy('championship', MACCABI_ID, 2035),
+    ]);
+
+    const gap = Math.abs(maccabiLegacyScore(gk) - maccabiLegacyScore(cb));
+    expect(gap, 'position should not decide a comparable career').toBeLessThan(12);
+    // The parity gap above is the real claim; this floor just confirms the career is substantial.
+    expect(maccabiLegacyScore(gk)).toBeGreaterThanOrEqual(55);
+  });
+});
+
+describe('v0.6.1 E. the prodigal son must actually play after coming home (B8)', () => {
+  function returned(postReturnApps: number, postSeasons: number): Career {
+    seasonCounter = 2031;
+    const records = [
+      ...Array.from({ length: 5 }, (_, i) => season(MACCABI_ID, 30, { age: 19 + i })),
+      ...Array.from({ length: 3 }, (_, i) => season('az_alkmaar', 32, { age: 24 + i })),
+      ...Array.from({ length: postSeasons }, (_, i) =>
+        season(MACCABI_ID, Math.round(postReturnApps / postSeasons), { age: 27 + i }),
+      ),
+    ];
+    const careerBase = withHistory(base(43), records);
+    return {
+      ...careerBase,
+      maccabi: {
+        ...careerBase.maccabi,
+        everLeft: true,
+        returned: true,
+        returnAge: 27,
+        seasonsAfterReturn: postSeasons,
+      },
+    };
+  }
+
+  it('counts post-return appearances as their own authoritative fact', () => {
+    const ceremonial = returned(6, 2);
+    expect(maccabiLegacyFacts(ceremonial).postReturnAppearances).toBe(6);
+
+    const real = returned(90, 3);
+    expect(maccabiLegacyFacts(real).postReturnAppearances).toBe(90);
+  });
+
+  it('refuses the archetype for a ceremonial return - 5 appearances is not a comeback', () => {
+    const ceremonial = returned(6, 2);
+    // v0.6 would have granted it: 2+ seasons back and 150+ career Maccabi appearances banked
+    // years earlier in the first spell.
+    expect(maccabiLegacyFacts(ceremonial).appearances).toBeGreaterThan(100);
+    expect(maccabiLegacyFacts(ceremonial).seasonsAfterReturn).toBeGreaterThanOrEqual(2);
+
+    const { primary, secondary } = maccabiArchetypes(ceremonial);
+    expect([primary.id, ...secondary.map((t) => t.id)]).not.toContain('prodigal_son');
+  });
+
+  it('grants it once the return carried real football', () => {
+    const real = returned(90, 3);
+    const { primary, secondary } = maccabiArchetypes(real);
+    expect([primary.id, ...secondary.map((t) => t.id)]).toContain('prodigal_son');
+  });
+});

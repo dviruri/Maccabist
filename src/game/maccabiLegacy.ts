@@ -63,6 +63,14 @@ export interface MaccabiLegacyFacts {
   seasonsAfterReturn: number;
   /** Age at first Maccabi senior appearance, null if it never happened. */
   debutAge: number | null;
+  /**
+   * Maccabi senior appearances made AFTER coming home (v0.6.1, B8).
+   *
+   * The authoritative measure of whether a return was football or ceremony. `seasonsAfterReturn`
+   * counts seasons, which a 35-year-old who came back for a farewell also accumulates; this
+   * counts the matches he actually played once he was back.
+   */
+  postReturnAppearances: number;
 }
 
 /** A Maccabi senior season the player actually played for Maccabi (not on loan elsewhere). */
@@ -91,6 +99,24 @@ export function maccabiLegacyFacts(career: Career): MaccabiLegacyFacts {
     if (debutAge === null && record.stats.appearances > 0) debutAge = record.age;
   }
 
+  /*
+   * Post-return appearances: everything played from the homecoming season onward. The return
+   * season is derived from the records rather than stored - the last Maccabi spell is the run
+   * of Maccabi seasons after the final non-Maccabi one.
+   */
+  let postReturnAppearances = 0;
+  if (career.maccabi.returned) {
+    const senior = seniorSeasons(career);
+    let lastAwayIndex = -1;
+    senior.forEach((record, index) => {
+      if (!isMaccabiSeason(record) || record.onLoan) lastAwayIndex = index;
+    });
+    for (let i = lastAwayIndex + 1; i < senior.length; i += 1) {
+      const record = senior[i]!;
+      if (isMaccabiSeason(record) && !record.onLoan) postReturnAppearances += record.stats.appearances;
+    }
+  }
+
   const championships = career.trophies.filter(
     (t) => t.clubId === MACCABI_ID && t.id === 'championship',
   ).length;
@@ -110,6 +136,7 @@ export function maccabiLegacyFacts(career: Career): MaccabiLegacyFacts {
     returned: career.maccabi.returned,
     seasonsAfterReturn: career.maccabi.seasonsAfterReturn,
     debutAge,
+    postReturnAppearances,
   };
 }
 
@@ -179,7 +206,8 @@ export function maccabiLegacyComponents(career: Career): LegacyComponent[] {
    * from the career record, never from memories, and a return only means something if football
    * followed it (Phase 17's rule, applied to points as well as archetypes).
    */
-  const realReturn = f.returned && f.seasonsAfterReturn >= 2 && f.appearances >= 40;
+  // Same authoritative test as the archetype (v0.6.1): a return is real when football followed.
+  const realReturn = f.returned && f.seasonsAfterReturn >= 2 && f.postReturnAppearances >= 60;
   const storyPoints =
     (f.academyGraduate ? 0.5 : 0) + (realReturn ? 0.5 : 0);
 
@@ -376,6 +404,23 @@ const ARCHETYPE_META: Record<MaccabiArchetypeId, Omit<MaccabiArchetype, 'id'>> =
   outsider: { label: 'קריירה בחוץ', line: 'הסיפור שלך נכתב במקום אחר.' },
 };
 
+/**
+ * Emblems for the retirement headline (v0.6.1). Green, gold, and neutral - never red, and the
+ * badge test class covers this map too.
+ */
+export const LEGACY_ARCHETYPE_ICONS: Record<MaccabiArchetypeId, string> = {
+  symbol: '👑',
+  green_legend: '⭐',
+  prodigal_son: '🏠',
+  european_star: '🌍',
+  leader: '🎖️',
+  fan_favourite: '💚',
+  late_bloomer: '🌱',
+  maccabi_player: '🟢',
+  passer_by: '🧳',
+  outsider: '🧭',
+};
+
 export interface MaccabiArchetypeResult {
   primary: MaccabiArchetype;
   secondary: MaccabiArchetype[];
@@ -396,12 +441,23 @@ export function maccabiArchetypes(career: Career): MaccabiArchetypeResult {
    * seasons elsewhere, a real return, and real football after it. One rejected foreign offer,
    * or a homecoming spent on the bench, does not qualify.
    */
+  /*
+   * הבן האובד needs the whole journey to have been FOOTBALL (v0.6.1, B8).
+   *
+   * v0.6 required 2+ seasons after the return and 100+ CAREER Maccabi appearances - both of
+   * which a ceremonial homecoming satisfies, because the appearances were banked years earlier
+   * in the first spell and a farewell tour still occupies two seasons. The missing clause was
+   * how much football he actually played once he was back. 60 is roughly two regular seasons at
+   * this club; a veteran who returns for a handful of substitute appearances is a lovely story
+   * and a different one.
+   */
   const prodigal =
     career.maccabi.everLeft &&
     f.returned &&
     awaySeasons >= 3 &&
     f.seasonsAfterReturn >= 2 &&
-    f.appearances >= 100;
+    f.appearances >= 100 &&
+    f.postReturnAppearances >= 60;
 
   const european =
     foreignApps >= 120 &&

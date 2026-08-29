@@ -22,7 +22,8 @@ export interface EndingDefinition extends CareerEnding {
 export const ENDINGS: EndingDefinition[] = [
   {
     id: 'green_legend',
-    title: 'אגדה ירוקה',
+    // v0.6.1: retitled - 'אגדה ירוקה' is a Maccabi Legacy rank with a single authority.
+    title: 'קריירה גדולה בירוק',
     subtitle: 'השם שלך על הקיר של סמי עופר',
     description:
       'לא עוד שחקן טוב שעבר במועדון. אתה חלק מהסיפור שמספרים לילדים ביציע. שירים, קעקועים, וילדים שנולדו עם השם שלך על הגב.',
@@ -32,7 +33,8 @@ export const ENDINGS: EndingDefinition[] = [
   },
   {
     id: 'the_symbol',
-    title: 'הסמל',
+    // v0.6.1: retitled for the same reason. Only `maccabiLegacyRank` may say "הסמל".
+    title: 'מועדון אחד',
     subtitle: 'קפטן. שנים. בלי לוותר.',
     description:
       'אף פעם לא היית הכי מוכשר בליגה, אבל היית שם בכל עונה, בכל קרב, עם הסרט על הזרוע. במכבי חיפה זוכרים אותך כאיש שהחזיק את המועדון.',
