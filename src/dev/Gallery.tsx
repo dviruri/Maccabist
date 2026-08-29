@@ -266,25 +266,38 @@ const retiredLegend = (): Career => {
     currentSeason: 2056,
     peakAbility: 88,
     stats: { appearances: 512, goals: 96, assists: 74, cleanSheets: 0 },
+    /*
+     * v0.6: the fixture's counters, records and trophy list now AGREE - the previous version
+     * said 384 appearances in the counter while its own season records summed to 527 and its
+     * trophy list was empty, which is exactly the inconsistency `legacy_facts_counter_mismatch`
+     * forbids in real careers. A showcase should not model the bug the engine bans.
+     */
     maccabi: {
       ...seniorAtMaccabi().maccabi,
-      appearances: 384,
-      goals: 71,
-      assists: 58,
-      seasons: 13,
+      appearances: 527,
+      goals: 153,
+      assists: 102,
+      seasons: 17,
       championships: 6,
       cups: 2,
-      captainSeasons: 5,
+      captainSeasons: 7,
       europeanRuns: 4,
       everLeft: false,
       academyGraduate: true,
       academySeasons: 9,
       debutAge: 18,
     },
-    // A real span, so the poster's "2039-2056" line is not a fixture artifact.
     seasonHistory: Array.from({ length: 17 }, (_, i) =>
-      seasonRecord({ season: 2039 + i, age: 18 + i }),
+      seasonRecord({ season: 2039 + i, age: 18 + i, captain: i >= 10 }),
     ),
+    trophies: [
+      ...[2042, 2044, 2046, 2049, 2052, 2054].map((season) => ({
+        id: 'championship', name: 'אליפות', season, clubId: MACCABI_ID, clubName: 'מכבי חיפה', weight: 3,
+      })),
+      ...[2045, 2051].map((season) => ({
+        id: 'cup', name: 'גביע המדינה', season, clubId: MACCABI_ID, clubName: 'מכבי חיפה', weight: 1.5,
+      })),
+    ],
     milestones: [
       { id: 'debut', season: 2039, age: 18, icon: '👕', text: 'הופעת בכורה במכבי חיפה', major: true },
       { id: 'title', season: 2042, age: 21, icon: '🏆', text: 'אליפות ראשונה', major: true },
