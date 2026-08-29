@@ -13,6 +13,16 @@ import {
   managerMinutesFactor,
   resolveClubManager,
 } from '../game/peopleEngine';
+import {
+  dueLegacyMilestones,
+  globalCareerScore,
+  historicalStanding,
+  maccabiArchetypes,
+  maccabiLegacyFacts,
+  maccabiLegacyRank,
+  maccabiLegacyScore,
+  nextLegacyTarget,
+} from '../game/maccabiLegacy';
 
 /** A representative spread for the destination-manager trace: home, domestic, abroad. */
 const DEBUG_CLUBS = ['maccabi_haifa', 'hapoel_haifa', 'maccabi_tel_aviv', 'az_alkmaar', 'union_sg'];
@@ -596,6 +606,49 @@ function IntegrityBlock({ career }: { career: Career }): JSX.Element {
         draw fell. This is what makes a future "the offer promised X and I got Y" report a
         five-second diagnosis instead of an afternoon.
       */}
+      {/*
+        Maccabi Legacy (v0.6, Phase 49): the facts, the score, the standing, and what fires
+        next - so a "why am I not a legend yet" report is a read, not an investigation.
+      */}
+      <div className="debug-integrity-head">maccabi legacy</div>
+      <Row
+        label="facts"
+        value={(() => {
+          const f = maccabiLegacyFacts(career);
+          return `apps=${f.appearances} seasons=${f.seasons} g=${f.goals} a=${f.assists} cs=${f.cleanSheets} titles=${f.championships} cups=${f.cups} cpt=${f.captainSeasons}`;
+        })()}
+      />
+      <Row
+        label="legacy"
+        value={`score=${maccabiLegacyScore(career)} rank=${maccabiLegacyRank(career)} global=${globalCareerScore(career)}`}
+      />
+      <Row
+        label="archetype"
+        value={(() => {
+          const a = maccabiArchetypes(career);
+          return `${a.primary.id}${a.secondary.length ? ' + ' + a.secondary.map((t) => t.id).join(',') : ''}`;
+        })()}
+      />
+      <Row
+        label="standing"
+        value={(() => {
+          const s1 = historicalStanding(career, 'appearances');
+          const s2 = historicalStanding(career, 'goals');
+          return `apps #${s1.rank}${s1.above ? ` (gap ${s1.gap} to ${s1.above.player.id})` : ' — record'} · goals #${s2.rank}`;
+        })()}
+      />
+      <Row
+        label="milestones"
+        value={`announced ${(career.legacyMilestones ?? []).length}, due ${dueLegacyMilestones(career).length}`}
+      />
+      <Row
+        label="next target"
+        value={(() => {
+          const t = nextLegacyTarget(career);
+          return t ? `${t.label} (עוד ${t.gap})` : 'none';
+        })()}
+      />
+
       <div className="debug-integrity-head">destination managers</div>
       {DEBUG_CLUBS.filter((id) => id !== career.currentClubId).map((clubId) => {
         const r = resolveClubManager(career, clubId, career.currentSeason);

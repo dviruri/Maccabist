@@ -5,6 +5,7 @@ import { ARC_EVENTS } from './arcEvents';
 import { FALL_AND_RISE_EVENTS } from './fallAndRiseEvents';
 import { MACCABI_EVENTS } from './maccabiEvents';
 import { PEOPLE_EVENTS } from './peopleEvents';
+import { LEGACY_EVENTS } from './legacyEvents';
 import { POSITION_EVENTS } from './positionEvents';
 import { SENIOR_EVENTS } from './seniorEvents';
 import { SENIOR_PHASE_EVENTS } from './seniorPhaseEvents';
@@ -25,6 +26,7 @@ export const EVENT_POOL: GameEvent[] = [
   ...FALL_AND_RISE_EVENTS,
   ...MACCABI_EVENTS,
   ...PEOPLE_EVENTS,
+  ...LEGACY_EVENTS,
   ...POSITION_EVENTS,
   ...SPONTANEOUS_EVENTS,
   ...SENIOR_EVENTS,

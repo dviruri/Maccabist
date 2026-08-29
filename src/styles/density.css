@@ -895,3 +895,243 @@
   color: var(--text-secondary);
   margin-top: 1px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Maccabi Legacy (v0.6)                                               */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Historic, premium, green - with gold reserved for the top of the ladder. Same density rules
+ * as everything since v0.4.7: one strong number, label-size context, no giant cards.
+ */
+
+.legacy-section {
+  padding: 12px 14px;
+}
+
+.legacy-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.legacy-score {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--green-bright);
+  background: radial-gradient(circle at 50% 35%, var(--green-wash), transparent 70%),
+    var(--surface-dark);
+  border: 2px solid var(--green-deep);
+}
+
+.legacy-head-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.legacy-rank {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.legacy-archetype {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green-bright);
+  margin-top: 3px;
+}
+
+.legacy-line {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.legacy-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+  flex-wrap: wrap;
+}
+
+.legacy-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gold);
+  border: 1px solid var(--gold-deep);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.legacy-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 8px;
+}
+
+.legacy-stat {
+  text-align: center;
+}
+
+.legacy-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.legacy-stat-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.legacy-target {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.legacy-target-gap {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--green-bright);
+}
+
+.legacy-target-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.legacy-ladder {
+  margin-top: 10px;
+}
+
+.legacy-ladder:first-of-type {
+  margin-top: 4px;
+}
+
+.legacy-ladder-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.legacy-ladder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.legacy-ladder-rank {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-weight: 700;
+}
+
+.legacy-ladder-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.legacy-ladder-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.legacy-ladder-you {
+  color: var(--green-bright);
+  font-weight: 700;
+  border-top: 1px dashed var(--line-strong);
+  margin-top: 2px;
+  padding-top: 5px;
+}
+
+.legacy-ladder-you .legacy-ladder-name,
+.legacy-ladder-you .legacy-ladder-value {
+  color: var(--green-bright);
+}
+
+.legacy-ladder-you.is-top .legacy-ladder-name,
+.legacy-ladder-you.is-top .legacy-ladder-value {
+  color: var(--gold);
+}
+
+.legacy-ladder-note {
+  font-size: 11px;
+  color: var(--gold);
+  margin-top: 3px;
+}
+
+.legacy-scope-note {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.legacy-compare {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.legacy-compare:last-child {
+  border-bottom: 0;
+}
+
+.legacy-compare-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.legacy-compare-era {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.legacy-compare-note {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* Retirement: the two-score contrast (v0.6, Phase 35). */
+.poster-scores {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+}
+
+.poster-score-secondary .poster-score-value {
+  color: var(--text-secondary);
+}
+
+/* One compact legacy line in the season summary (v0.6, Phase 29). */
+.season-legacy-line {
+  font-size: 12px;
+  color: var(--green-bright);
+  line-height: 1.5;
+  margin: 0;
+}

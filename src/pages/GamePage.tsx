@@ -6,6 +6,7 @@ import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { Sheet } from '../components/Sheet';
 import { PeopleCard } from '../components/PeopleCard';
+import { LegacyCard } from '../components/LegacyCard';
 import { Celebration } from '../components/Celebration';
 import { DebugPanel } from '../components/DebugPanel';
 import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
@@ -41,7 +42,7 @@ interface Props {
  * A plain union rather than three booleans: only one sheet can be open at a time, and encoding
  * that in the type means it cannot get into a state where two are.
  */
-type SheetId = 'table' | 'timeline' | 'history' | 'people' | null;
+type SheetId = 'table' | 'timeline' | 'history' | 'people' | 'legacy' | null;
 
 export function GamePage({ career, actions, onExit }: Props): JSX.Element {
   const [sheet, setSheet] = useState<SheetId>(null);
@@ -108,6 +109,9 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         <button type="button" className="play-nav-btn" onClick={() => setSheet('people')}>
           האנשים שלי
         </button>
+        <button type="button" className="play-nav-btn" onClick={() => setSheet('legacy')}>
+          מורשת
+        </button>
       </nav>
 
       {/*
@@ -126,6 +130,11 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
       {/* v0.5, Phase 27: the people screen - one tap away, never above the active event. */}
       <Sheet open={sheet === 'people'} title="האנשים שלי" onClose={close}>
         <PeopleCard career={career} />
+      </Sheet>
+
+      {/* v0.6, Phase 31: Maccabi Legacy - the record book, one tap away like everything else. */}
+      <Sheet open={sheet === 'legacy'} title="מורשת מכבי" onClose={close}>
+        <LegacyCard career={career} />
       </Sheet>
 
       <Sheet open={sheet === 'timeline'} title="סיפור הקריירה" onClose={close}>

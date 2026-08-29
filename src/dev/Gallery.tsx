@@ -19,6 +19,7 @@ import { GamePage } from '../pages/GamePage';
 import { Sheet } from '../components/Sheet';
 import { endManagerTenure, installManager, signAgent, startPersonalCoach } from '../game/peopleEngine';
 import { PeopleCard } from '../components/PeopleCard';
+import { LegacyCard } from '../components/LegacyCard';
 import type { GameActions } from '../state/useGame';
 import { ClubCrest } from '../components/ClubCrest';
 import { resolveOrigin } from '../game/originEngine';
@@ -110,6 +111,40 @@ const seniorAtMaccabi = (): Career => {
   };
 };
 /** A career with every kind of person attached, for the people-screen scene (v0.5). */
+
+/** A career deep in the record book, for the legacy-screen scene (v0.6). */
+const legacyCareer = (): Career => {
+  const career = seniorAtMaccabi();
+  const records = Array.from({ length: 9 }, (_, i) => ({
+    season: 2040 + i,
+    age: 19 + i,
+    academyStage: 'senior' as const,
+    clubId: 'maccabi_haifa',
+    clubName: 'מכבי חיפה',
+    teamName: 'מכבי חיפה',
+    league: 'ליגת העל',
+    onLoan: false,
+    stats: { appearances: 31, starts: 30, goals: 6, assists: 7, cleanSheets: 0, goalsConceded: 0, rating: 74, injuredGames: 0 },
+    firstHalf: null,
+    ability: 74,
+    role: 'starter' as const,
+    coachTrust: 74,
+    trophies: [],
+    captain: i >= 6,
+    olderGroup: 'none' as const,
+  }));
+  return {
+    ...career,
+    seasonHistory: [...career.seasonHistory, ...records],
+    trophies: [
+      ...career.trophies,
+      { id: 'championship', name: 'אליפות', season: 2043, clubId: 'maccabi_haifa', clubName: 'מכבי חיפה', weight: 3 },
+      { id: 'championship', name: 'אליפות', season: 2046, clubId: 'maccabi_haifa', clubName: 'מכבי חיפה', weight: 3 },
+      { id: 'cup', name: 'גביע המדינה', season: 2044, clubId: 'maccabi_haifa', clubName: 'מכבי חיפה', weight: 1.5 },
+    ],
+  };
+};
+
 const peopleCareer = (): Career => {
   let career = seniorAtMaccabi();
   career = installManager(endManagerTenure(career, true));
@@ -690,6 +725,10 @@ export function Gallery(): JSX.Element {
     /* v0.5: the people screen, with every relationship populated so the layout is stressed. */
     ['sheet-people', <Sheet open title="האנשים שלי" onClose={noop}>
       <PeopleCard career={peopleCareer()} />
+    </Sheet>],
+    /* v0.6: the legacy screen, on a career deep enough to light every section. */
+    ['sheet-legacy', <Sheet open title="מורשת מכבי" onClose={noop}>
+      <LegacyCard career={legacyCareer()} />
     </Sheet>],
     ['sheet-timeline', <Sheet open title="סיפור הקריירה" onClose={noop}>
       <CareerTimeline career={retiredLegend()} defaultOpen />

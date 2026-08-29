@@ -1,6 +1,15 @@
 import { CareerTimeline } from '../components/CareerTimeline';
 import { Timeline } from '../components/Timeline';
 import { appearanceBreakdown } from '../game/truth';
+import {
+  globalCareerScore,
+  historicalStanding,
+  LEGACY_RANK_ICONS,
+  LEGACY_RANK_LABELS,
+  maccabiArchetypes,
+  maccabiLegacyRank,
+  maccabiLegacyScore,
+} from '../game/maccabiLegacy';
 import { Chip, Logo, Ltr, NumberBox } from '../components/primitives';
 import { TRAITS_BY_ID } from '../data/traits';
 import { careerStory } from '../game/storyEngine';
@@ -58,6 +67,13 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
   const legendary =
     LEGENDARY_ENDINGS.includes(legend?.ending.id ?? '') || score >= LEGENDARY_SCORE;
 
+  /* v0.6: the other three reads - global career, Maccabi legacy, and the standing. */
+  const globalScore = globalCareerScore(career);
+  const legacyScore = maccabiLegacyScore(career);
+  const legacyRank = maccabiLegacyRank(career);
+  const archetypes = maccabiArchetypes(career);
+  const appearanceStanding = historicalStanding(career, 'appearances');
+
   return (
     <div className="shell narrow retirement">
       {/*
@@ -86,11 +102,24 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
           <div className="poster-ending-sub">{legend?.ending.subtitle}</div>
         </div>
 
-        <div className="poster-score">
-          <div className="poster-score-value">
-            <Ltr>{score}</Ltr>
+        {/*
+          v0.6, Phase 35: two numbers, honestly. A career can be 90 in the world and 34 in
+          green - showing both without inflating either is the entire point of the feature.
+          The existing Legend Score keeps its place; the global career read joins it.
+        */}
+        <div className="poster-scores">
+          <div className="poster-score">
+            <div className="poster-score-value">
+              <Ltr>{score}</Ltr>
+            </div>
+            <div className="poster-score-label">מדד אגדה</div>
           </div>
-          <div className="poster-score-label">מדד אגדה</div>
+          <div className="poster-score poster-score-secondary">
+            <div className="poster-score-value">
+              <Ltr>{globalScore}</Ltr>
+            </div>
+            <div className="poster-score-label">קריירה עולמית</div>
+          </div>
         </div>
 
         {/* The headline of the whole career, in the poster rather than buried in a stat grid. */}
@@ -152,6 +181,44 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
               </Chip>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* --- מורשת מכבי (v0.6, Phase 33) --- */}
+      <section className="card retirement-block">
+        <div className="stack-sm">
+          <div className="kicker">מורשת מכבי</div>
+          <div className="legacy-head">
+            <div className="legacy-score" aria-label={`מדד מורשת ${legacyScore}`}>
+              <Ltr>{legacyScore}</Ltr>
+            </div>
+            <div className="legacy-head-body">
+              <div className="legacy-rank">
+                <span aria-hidden>{LEGACY_RANK_ICONS[legacyRank]}</span>{' '}
+                {LEGACY_RANK_LABELS[legacyRank]}
+              </div>
+              <div className="legacy-archetype">{archetypes.primary.label}</div>
+              <div className="legacy-line">{archetypes.primary.line}</div>
+              {archetypes.secondary.length > 0 && (
+                <div className="legacy-tags">
+                  {archetypes.secondary.map((tag) => (
+                    <span key={tag.id} className="legacy-tag">
+                      {tag.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {appearanceStanding.playerValue > 0 && (
+            <div className="legacy-line">
+              {appearanceStanding.brokeRecord
+                ? 'שיא ההופעות של המועדון שייך לך.'
+                : appearanceStanding.rank <= 10
+                  ? `מקום ${appearanceStanding.rank} בהופעות בכל הזמנים של מכבי.`
+                  : `${appearanceStanding.playerValue} הופעות ליגה בירוק.`}
+            </div>
+          )}
         </div>
       </section>
 

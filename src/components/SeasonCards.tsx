@@ -1,6 +1,7 @@
 import { getLeague } from '../data/leagues';
 import { trophyIcon } from '../data/trophies';
-import type { Career, SeasonStats } from '../types';
+import { LEGACY_MILESTONES } from '../game/maccabiLegacy';
+import type { Milestone, Career, SeasonStats } from '../types';
 import { levelContext } from '../game/rules';
 import { teamDisplayFor, teamDisplayLine } from '../game/identity';
 import { clubSeasonFor, isBadSeason, isGoodSeason } from '../game/worldEngine';
@@ -159,6 +160,13 @@ interface SeasonProps {
   onContinue: () => void;
 }
 
+
+/** The legacy milestones announced in a given season, straight off the timeline (v0.6). */
+function legacyMoments(career: Career, season: number): Milestone[] {
+  const legacyIds = new Set(LEGACY_MILESTONES.map((m) => m.id));
+  return career.milestones.filter((m) => m.season === season && legacyIds.has(m.id));
+}
+
 export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Element | null {
   const record = career.lastSeasonRecord;
   if (!record) return null;
@@ -193,6 +201,17 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
         <ClubSeasonLine career={career} season={record.season} />
 
         <StatBoxes career={career} stats={record.stats} teamGames={levelContext(career).seasonGames} />
+
+        {/*
+          מורשת מכבי (v0.6, Phase 29): when this season crossed a legacy milestone, one compact
+          line says so. Selected from the timeline the engine already wrote - the summary
+          renders the fact, it never computes thresholds itself.
+        */}
+        {legacyMoments(career, record.season).map((moment) => (
+          <p key={moment.id} className="season-legacy-line">
+            {moment.icon} <b>מורשת מכבי:</b> {moment.text}
+          </p>
+        ))}
 
         {record.stats.injuredGames > 0 && (
           <p className="faint">
