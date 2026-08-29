@@ -103,7 +103,8 @@ maybeChangeCoach: decide only — no trust mutation whatsoever
         → initialManagerTrust(career, rng)  ← the new man is now in the chair
 ```
 
-`initialManagerTrust` is the single derivation used by **all four** sites:
+`initialManagerTrust` is the single derivation used by **all three** new-relationship sites
+(manager leaves, player leaves, boy joins the academy):
 
 ```ts
 baseline            // ability-for-level, service, and the NEW archetype's tilt
@@ -142,7 +143,7 @@ field on `ManagerTenure` — a test asserts the open tenure carries neither `tru
 `finalTrust` — and `finalTrust` is written only at the moment a relationship closes.
 
 Every mutation was audited. They are: event effects (`applyEffects`), half-season progression
-(`updateCoachTrust`), season drift, early-promotion penalty, and the four new-relationship
+(`updateCoachTrust`), season drift, early-promotion penalty, and the three new-relationship
 sites, which now all route through `initialManagerTrust`. `coachTrustBaseline` moved to
 `peopleEngine` — it reads the current manager's archetype, so it is manager-scoped trust logic,
 and keeping it in `progressionEngine` was also what forced the import cycle the fix would
