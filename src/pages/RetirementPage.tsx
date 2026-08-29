@@ -125,12 +125,10 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
         </div>
 
         {/*
-          v0.6, Phase 35: two numbers, honestly. A career can be 90 in the world and 34 in
-          green - showing both without inflating either is the entire point of the feature.
-          The existing Legend Score keeps its place; the global career read joins it.
-        */}
-        {/*
           v0.6.2: TWO greatness axes, and only two.
+
+          (v0.6 Phase 35 introduced this block as "two numbers, honestly" - the global career read
+          joining the Legend Score. The principle held; it was the third score that had to go.)
 
           The poster carried three overlapping scores - מדד אגדה, קריירה עולמית and (further
           down) מורשת מכבי - and two of them mostly answered the same question. A player should

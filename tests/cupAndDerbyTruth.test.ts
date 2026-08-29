@@ -152,14 +152,24 @@ describe('H. an authoritative derby is still a derby', () => {
 /* ================================================================== */
 
 describe('G. a State Cup won away from Maccabi persists through the whole career', () => {
+  /*
+   * `TROPHY_DEFS` is a Record with an index signature, so every lookup is optional under
+   * `noUncheckedIndexedAccess`. Resolved once, here, rather than with four non-null assertions -
+   * a missing State Cup definition is a real failure and should read as one.
+   */
+  const CUP = TROPHY_DEFS.cup;
+  if (!CUP) throw new Error('TROPHY_DEFS.cup is missing');
+  // Read out here: the narrowing above does not follow `CUP` into the helper below.
+  const { id: CUP_ID, name: CUP_NAME, weight: CUP_WEIGHT } = CUP;
+
   function cupTrophy(clubId: string, clubName: string, season: number): Trophy {
     return {
       id: 'cup',
-      name: TROPHY_DEFS.cup.name,
+      name: CUP_NAME,
       season,
       clubId,
       clubName,
-      weight: TROPHY_DEFS.cup.weight,
+      weight: CUP_WEIGHT,
     };
   }
 
@@ -185,8 +195,8 @@ describe('G. a State Cup won away from Maccabi persists through the whole career
   }
 
   it('C1. the trophy is typed, and named גביע המדינה - never a generic word', () => {
-    expect(TROPHY_DEFS.cup.id).toBe('cup');
-    expect(TROPHY_DEFS.cup.name).toBe('גביע המדינה');
+    expect(CUP_ID).toBe('cup');
+    expect(CUP_NAME).toBe('גביע המדינה');
   });
 
   it('C3. survives in the season record, the career summary, and a later transfer', () => {

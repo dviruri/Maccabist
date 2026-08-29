@@ -442,6 +442,32 @@ const memorableSeason = (): Career => {
 };
 
 /*
+ * A season that ended in a lost cup final (v0.6.2).
+ *
+ * The only way to see the new cup line, because a won cup shows as a trophy and an early exit is
+ * deliberately silent. Built by setting the authoritative state rather than by faking the line -
+ * if `CupRunLine` stops reading `world.cup`, this fixture goes blank and says so.
+ */
+const lostCupFinal = (): Career => {
+  const career = seniorAtMaccabi();
+  const record = career.lastSeasonRecord;
+  if (!record) return career;
+  return {
+    ...career,
+    world: {
+      ...career.world,
+      cup: {
+        season: record.season,
+        clubId: record.clubId,
+        trophyId: 'cup',
+        run: 'runner_up',
+        finalOpponentId: 'hapoel_haifa',
+      },
+    },
+  };
+};
+
+/*
  * A senior career with a live projection, for the table scenes. Runs the real projector rather
  * than hand-building a table, so the gallery shows what the game actually generates.
  */
@@ -822,6 +848,7 @@ export function Gallery(): JSX.Element {
     ['midseason', <MidSeasonCard career={midSeasonCareer()} onContinue={noop} />],
     /* A season that actually produced milestones, so the "what you will remember" strip renders. */
     ['season-memorable', <SeasonResultCard career={memorableSeason()} onContinue={noop} />],
+    ['season-cup-final-lost', <SeasonResultCard career={lostCupFinal()} onContinue={noop} />],
     ['retirement', <RetirementPage career={retiredLegend()} onNewCareer={noop} isBest />],
     ['retirement-modest', <RetirementPage career={retiredModest()} onNewCareer={noop} isBest={false} />],
     [

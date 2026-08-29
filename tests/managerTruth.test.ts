@@ -302,7 +302,7 @@ describe('v0.5.2 J. the hint, the advice and the arrival share one truth', () =>
 
       const resolved = resolveClubManager(later, MACCABI_ID, later.currentSeason);
       const expectedHint = HINTS[resolved.person.archetypeId];
-      const shownHint = home.hints.find((h) => h.startsWith('מאמן:'));
+      const shownHint = home.hints?.find((h) => h.startsWith('מאמן:'));
 
       if (shownHint) {
         expect(shownHint, `seed ${seed}`).toBe(expectedHint);
