@@ -14,6 +14,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { ALL_CLUBS, MACCABI_ID, getClub } from '../src/data/clubs';
+import { getLeague } from '../src/data/leagues';
+import { tableClubById, tableClubLeague } from '../src/data/worldClubs';
 import { EVENT_POOL } from '../src/data/events';
 import { rivalryBetween } from '../src/data/rivalries';
 import { createCareer } from '../src/game/careerEngine';
@@ -118,6 +120,11 @@ describe('v0.6.2 the cup run is a committed season fact', () => {
   });
 
   it('draws finalists that are real clubs from the same country', () => {
+    /*
+     * v0.6.3 widened the pool: a finalist may be a modelled Club or a named table club from the
+     * same national dataset. Either way it must be an identified club of the right country -
+     * never an invented one.
+     */
     const rng = createRng(4242);
     const career = seniorAt(MACCABI_ID);
     const ids = new Set<string>();
@@ -126,9 +133,17 @@ describe('v0.6.2 the cup run is a committed season fact', () => {
       if (cup.finalOpponentId) ids.add(cup.finalOpponentId);
     }
     expect(ids.size).toBeGreaterThan(3);
+    const home = getClub(MACCABI_ID).country;
     for (const id of ids) {
       expect(id).not.toBe(MACCABI_ID);
-      expect(getClub(id).country).toBe(getClub(MACCABI_ID).country);
+      const table = tableClubById(id);
+      if (table) {
+        const leagueId = tableClubLeague(id);
+        expect(leagueId, id).not.toBeNull();
+        expect(getLeague(leagueId!).country, id).toBe(home);
+      } else {
+        expect(getClub(id).country, id).toBe(home);
+      }
     }
   });
 

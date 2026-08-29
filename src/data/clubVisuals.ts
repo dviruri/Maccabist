@@ -14,6 +14,9 @@
  * record without touching a single component.
  */
 
+import { tableClubById } from './worldClubs';
+import { importedCrestAsset } from './clubCrests.generated';
+
 export interface ClubVisual {
   /** Primary colour, used for the badge field. */
   primary: string;
@@ -136,6 +139,21 @@ export function clubVisual(clubId: string, name?: string): ClubVisual {
   const declared = CLUB_VISUALS[clubId];
   if (declared) return declared;
 
+  /*
+   * A table club (v0.6.3): a named division member that is not a transfer destination. Its
+   * colours and initials are declared in worldClubs.ts alongside its membership - one truth per
+   * club - and merged with any imported crest asset here, so ClubCrest needs no second lookup.
+   */
+  const tableClub = tableClubById(clubId);
+  if (tableClub) {
+    return {
+      primary: tableClub.colors?.primary ?? FALLBACK_COLOURS[hashOf(clubId) % FALLBACK_COLOURS.length]!,
+      secondary: tableClub.colors?.secondary ?? '#ffffff',
+      initials: tableClub.initials ?? initialsFor(tableClub.name),
+      asset: importedCrestAsset(clubId) ?? undefined,
+    };
+  }
+
   const label = name ?? clubId;
   const hash = hashOf(clubId);
   return {
@@ -161,7 +179,8 @@ export function clubVisual(clubId: string, name?: string): ClubVisual {
  * would make the game's appearance depend on someone else's server and licence.
  */
 export function getClubCrest(clubId: string): string | null {
-  const asset = CLUB_VISUALS[clubId]?.asset;
+  // v0.6.3: a hand-declared asset wins; otherwise the importer's manifest is consulted.
+  const asset = CLUB_VISUALS[clubId]?.asset ?? importedCrestAsset(clubId) ?? undefined;
   if (!asset) return null;
   if (/^https?:/i.test(asset)) {
     /*

@@ -13,7 +13,8 @@
     "typecheck": "tsc -b && tsc -p tsconfig.test.json",
     "simulate": "vite-node scripts/simulate.ts --",
     "simulate:large": "vite-node scripts/simulate.ts -- --careers=20000",
-    "cup-metrics": "vite-node scripts/cupMetrics.ts --"
+    "cup-metrics": "vite-node scripts/cupMetrics.ts --",
+    "world:validate": "vitest run tests/worldData.test.ts"
   },
   "dependencies": {
     "react": "^18.3.1",

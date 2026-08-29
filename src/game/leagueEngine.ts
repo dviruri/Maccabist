@@ -25,6 +25,7 @@
 import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import { defaultLeagueFor, getLeague } from '../data/leagues';
 import { hasTable, leagueShape, type LeagueShape } from '../data/leagueShape';
+import { RESERVE_CLUBS_BY_LEAGUE } from '../data/worldClubs';
 import type {
   Career,
   ClubSeasonOutcome,
@@ -245,26 +246,37 @@ function membership(
     rows.push({ clubId: club.id, name: club.shortName ?? club.name, quality: club.quality });
   }
 
-  // Strongest first, so the filler names slot in around the modelled clubs sensibly.
+  // Strongest first, so the table clubs slot in around the modelled clubs sensibly.
   rows.sort((a, b) => b.quality - a.quality);
 
   for (const other of shape.others) {
     if (rows.length >= shape.size) break;
-    rows.push({ clubId: `filler_${leagueId}_${other.name}`, name: other.name, quality: other.quality });
+    rows.push({ clubId: other.id, name: other.name, quality: other.quality });
   }
 
   /*
-   * Still short: pad rather than render a table with holes in it. Only reachable for a league
-   * whose `others` list is shorter than its declared size.
+   * Short of the declared size (v0.6.3). This is only reachable when promotion or relegation
+   * moved a modelled club out of an Israeli division mid-career - the static data is validated
+   * complete, and only the Israeli leagues declare movement paths. The gap is filled from the
+   * league's named reserves: real clubs, deliberately absent from every division's main list so
+   * a reserve never sits in two tables at once.
+   *
+   * THE "קבוצה N" GENERATOR THAT USED TO LIVE HERE IS GONE. If the reserves ever run out, that
+   * is a world-data bug, and it throws rather than quietly inventing a club - the placeholder
+   * ban is only worth something if the code that used to violate it cannot.
    */
-  let n = 1;
-  while (rows.length < shape.size) {
-    rows.push({
-      clubId: `filler_${leagueId}_x${n}`,
-      name: `קבוצה ${n}`,
-      quality: getLeague(leagueId).quality,
-    });
-    n += 1;
+  if (rows.length < shape.size) {
+    const present = new Set(rows.map((r) => r.clubId));
+    for (const reserve of RESERVE_CLUBS_BY_LEAGUE[leagueId] ?? []) {
+      if (rows.length >= shape.size) break;
+      if (present.has(reserve.id)) continue;
+      rows.push({ clubId: reserve.id, name: reserve.name, quality: reserve.quality });
+    }
+  }
+  if (rows.length < shape.size) {
+    throw new Error(
+      `league ${leagueId} has ${rows.length} clubs for ${shape.size} places and no reserves left - world data is incomplete`,
+    );
   }
 
   return rows.slice(0, shape.size);
