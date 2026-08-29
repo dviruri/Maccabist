@@ -359,10 +359,19 @@ hold.
 
 Four new codes: `open_bond_history`, `agent_before_eligible_stage`,
 `manager_tenure_from_future`, `club_manager_seen_in_future` — joining the seven from v0.5 and
-the twelve from v0.4.8.
+the twelve from v0.4.8, for 23 in total.
+
+Every target the brief set came back at zero: critical integrity violations, manager trust
+ownership violations, manager history violations, invalid agent approaches, loan eligibility
+violations, unauthorized Maccabism mutations, person reference violations, and v0.4.8 truth
+violations.
 
 ```
-PLACEHOLDER_INT50K
+v0.5.1 INTEGRITY SCAN — 50,000 careers, balanced policy
+
+clean careers   50,000 / 50,000   100.00%
+
+No violations in any category.
 ```
 
 ## 19. Simulation methodology
