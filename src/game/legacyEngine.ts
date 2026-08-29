@@ -113,7 +113,10 @@ export const LEGACY_LABELS: Record<LegacyStatus, string> = {
 export const LEGACY_ICONS: Record<LegacyStatus, string> = {
   none: '',
   fan_favourite: '💚',
-  icon: '🛡️',
+  // v0.6: was the shield (U+1F6E1), which Segoe UI Emoji renders RED - the exact class of bug
+  // v0.5.1 fixed on the retirement poster, missed here because this map predates that test.
+  // Gold star: prestige in the brand's own accent colour, in every emoji font.
+  icon: '⭐',
   legend: '👑',
 };
 
