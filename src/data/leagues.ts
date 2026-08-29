@@ -1,4 +1,5 @@
 import type { ClubTier } from '../types';
+import { snapshotLeagueOf } from './worldClubs';
 
 /**
  * Lightweight league definitions (v0.4).
@@ -231,7 +232,19 @@ export function getLeague(id: string): League {
  * The generic buckets remain as a fallback for a club in a country with no modelled league, so
  * adding a club never breaks and adding its league is a pure data change.
  */
-export function defaultLeagueFor(tier: ClubTier, country: string): string {
+export function defaultLeagueFor(tier: ClubTier, country: string, clubId?: string): string {
+  /*
+   * v0.6.4: the snapshot membership is the authoritative answer and comes first.
+   *
+   * Before this, a club's league was inferred from its tier and country - which is why Hapoel
+   * Petah Tikva, a `israeli_low` record, was filed in Liga Leumit while the real club had been
+   * promoted. Tier is a statement about career level; membership is a statement about which
+   * competition a club actually plays in, and only one of those can decide a league.
+   */
+  if (clubId) {
+    const member = snapshotLeagueOf(clubId);
+    if (member) return member;
+  }
   if (tier === 'academy' || tier === 'youth') return 'il_youth';
   if (tier === 'israeli_low') return 'il_leumit';
   if (tier === 'israeli_top' || tier === 'israeli_mid') return 'il_premier';

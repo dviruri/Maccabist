@@ -331,8 +331,10 @@ describe('the table never contradicts the season it describes', () => {
       [MACCABI_ID, 'champion'],
       [MACCABI_ID, 'relegation_battle'],
       ['hapoel_hadera', 'mid_table'],
-      ['hapoel_petah_tikva', 'promoted'],
-      ['hapoel_petah_tikva', 'struggled'],
+      // v0.6.4: hapoel_petah_tikva was promoted to the top flight by the 2026/27 snapshot,
+      // so the second-division scenarios moved to a club that is actually in Liga Leumit.
+      ['hapoel_kfar_saba', 'promoted'],
+      ['hapoel_kfar_saba', 'struggled'],
     ];
     for (const [clubId, outcome] of cases) {
       const career = seniorAt(clubId, outcome);

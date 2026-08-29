@@ -14,8 +14,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { ALL_CLUBS, MACCABI_ID, getClub } from '../src/data/clubs';
-import { getLeague } from '../src/data/leagues';
-import { tableClubById, tableClubLeague } from '../src/data/worldClubs';
 import { EVENT_POOL } from '../src/data/events';
 import { rivalryBetween } from '../src/data/rivalries';
 import { createCareer } from '../src/game/careerEngine';
@@ -136,14 +134,8 @@ describe('v0.6.2 the cup run is a committed season fact', () => {
     const home = getClub(MACCABI_ID).country;
     for (const id of ids) {
       expect(id).not.toBe(MACCABI_ID);
-      const table = tableClubById(id);
-      if (table) {
-        const leagueId = tableClubLeague(id);
-        expect(leagueId, id).not.toBeNull();
-        expect(getLeague(leagueId!).country, id).toBe(home);
-      } else {
-        expect(getClub(id).country, id).toBe(home);
-      }
+      // v0.6.4: one club model, so one lookup answers for every finalist.
+      expect(getClub(id).country, id).toBe(home);
     }
   });
 

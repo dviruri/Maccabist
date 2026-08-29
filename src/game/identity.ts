@@ -21,7 +21,7 @@
  */
 
 import { stageBand, stageLabel } from '../data/academy';
-import { tableClubById } from '../data/worldClubs';
+import { worldClubById } from '../data/worldClubs';
 import { getClub, MACCABI_ACADEMY_ID, MACCABI_ID } from '../data/clubs';
 import type { AcademyStage, Career, TeamDisplay, TeamUnit } from '../types';
 
@@ -62,11 +62,16 @@ export function isFirstTeam(career: Career): boolean {
  */
 export function clubDisplayName(clubId: string): string {
   if (clubId === MACCABI_ACADEMY_ID || clubId === 'maccabi_youth') return getClub(MACCABI_ID).name;
-  // v0.6.3: a table club - a named division member outside ALL_CLUBS - is a real club with a
-  // real name. Cup finalists in particular can be either kind.
-  const table = tableClubById(clubId);
-  if (table) return table.name;
-  return getClub(clubId).name;
+  /*
+   * v0.6.4: every world club now has a real `Club` record, so `getClub` answers for all of them.
+   * The world lookup stays as a guard for an id that resolves nowhere else - an inactive club
+   * carried in a very old save, for instance - because a career's history must stay readable.
+   */
+  try {
+    return getClub(clubId).name;
+  } catch {
+    return worldClubById(clubId)?.name ?? clubId;
+  }
 }
 
 /**

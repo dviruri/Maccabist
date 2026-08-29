@@ -22,10 +22,10 @@
  * outcome is derived from the table's final position rather than drawn alongside it.
  */
 
-import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
-import { defaultLeagueFor, getLeague } from '../data/leagues';
+import { CLUBS, getClub, MACCABI_ID } from '../data/clubs';
+import { getLeague } from '../data/leagues';
 import { hasTable, leagueShape, type LeagueShape } from '../data/leagueShape';
-import { RESERVE_CLUBS_BY_LEAGUE } from '../data/worldClubs';
+import { LEAGUE_MEMBERSHIP, isInactiveClub } from '../data/worldClubs';
 import type {
   Career,
   ClubSeasonOutcome,
@@ -227,59 +227,46 @@ export function settleProjection(
 /* ------------------------------------------------------------------ */
 
 /**
- * Every club in a division this season: the modelled ones, plus the league's own filler names.
+ * Every club in a division this season.
  *
- * A club's league is its default unless the world has moved it, so promotions and relegations
- * that happened earlier in the career are reflected without storing a membership list.
+ * v0.6.4: one list, read from the authoritative membership. There is no filler tier any more -
+ * `LEAGUE_MEMBERSHIP` names every club in every division, so this walks that list and resolves
+ * each id. In-career promotion and relegation still override it through `world.clubLeagues`,
+ * which is why a club is only kept if the world has not moved it somewhere else, and why a club
+ * the world has moved INTO this division is added.
+ *
+ * THE "קבוצה N" GENERATOR THAT USED TO LIVE HERE IS GONE (v0.6.3) AND CANNOT COME BACK: there is
+ * nothing left to pad, because the data is complete by construction and the size is the length
+ * of the list itself.
  */
 function membership(
   world: WorldState,
   leagueId: string,
-  shape: LeagueShape,
 ): Array<{ clubId: string; name: string; quality: number }> {
   const rows: Array<{ clubId: string; name: string; quality: number }> = [];
+  const seen = new Set<string>();
 
-  for (const club of ALL_CLUBS) {
-    if (club.tier === 'academy' || club.tier === 'youth') continue;
-    const current = world.clubLeagues[club.id] ?? defaultLeagueFor(club.tier, club.country);
-    if (current !== leagueId) continue;
-    rows.push({ clubId: club.id, name: club.shortName ?? club.name, quality: club.quality });
+  const add = (clubId: string): void => {
+    if (seen.has(clubId) || isInactiveClub(clubId)) return;
+    const club = CLUBS[clubId];
+    if (!club) return;
+    seen.add(clubId);
+    rows.push({ clubId, name: club.shortName ?? club.name, quality: club.quality });
+  };
+
+  // The snapshot membership, minus anyone the career has since moved elsewhere.
+  for (const clubId of LEAGUE_MEMBERSHIP[leagueId] ?? []) {
+    const moved = world.clubLeagues[clubId];
+    if (moved !== undefined && moved !== leagueId) continue;
+    add(clubId);
+  }
+  // Plus anyone the career has moved into this division.
+  for (const [clubId, movedTo] of Object.entries(world.clubLeagues)) {
+    if (movedTo === leagueId) add(clubId);
   }
 
-  // Strongest first, so the table clubs slot in around the modelled clubs sensibly.
   rows.sort((a, b) => b.quality - a.quality);
-
-  for (const other of shape.others) {
-    if (rows.length >= shape.size) break;
-    rows.push({ clubId: other.id, name: other.name, quality: other.quality });
-  }
-
-  /*
-   * Short of the declared size (v0.6.3). This is only reachable when promotion or relegation
-   * moved a modelled club out of an Israeli division mid-career - the static data is validated
-   * complete, and only the Israeli leagues declare movement paths. The gap is filled from the
-   * league's named reserves: real clubs, deliberately absent from every division's main list so
-   * a reserve never sits in two tables at once.
-   *
-   * THE "קבוצה N" GENERATOR THAT USED TO LIVE HERE IS GONE. If the reserves ever run out, that
-   * is a world-data bug, and it throws rather than quietly inventing a club - the placeholder
-   * ban is only worth something if the code that used to violate it cannot.
-   */
-  if (rows.length < shape.size) {
-    const present = new Set(rows.map((r) => r.clubId));
-    for (const reserve of RESERVE_CLUBS_BY_LEAGUE[leagueId] ?? []) {
-      if (rows.length >= shape.size) break;
-      if (present.has(reserve.id)) continue;
-      rows.push({ clubId: reserve.id, name: reserve.name, quality: reserve.quality });
-    }
-  }
-  if (rows.length < shape.size) {
-    throw new Error(
-      `league ${leagueId} has ${rows.length} clubs for ${shape.size} places and no reserves left - world data is incomplete`,
-    );
-  }
-
-  return rows.slice(0, shape.size);
+  return rows;
 }
 
 /**
@@ -307,7 +294,7 @@ export function buildTable(
   const shape = leagueShape(projection.leagueId);
   if (!shape) return { leagueId: projection.leagueId, season: projection.season, phase, rows: [] };
 
-  const clubs = membership(world, projection.leagueId, shape);
+  const clubs = membership(world, projection.leagueId);
   const rng = createRng((projection.tableSeed ^ phaseSalt(phase)) >>> 0);
 
   const pins = new Map<number, string>();

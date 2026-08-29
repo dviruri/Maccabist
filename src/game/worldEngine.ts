@@ -31,7 +31,7 @@ export function leagueOf(world: WorldState, clubId: string): League {
   const moved = world.clubLeagues[clubId];
   if (moved) return getLeague(moved);
   const club = getClub(clubId);
-  return getLeague(defaultLeagueFor(club.tier, club.country));
+  return getLeague(defaultLeagueFor(club.tier, club.country, club.id));
 }
 
 export function playerLeague(career: Career): League {

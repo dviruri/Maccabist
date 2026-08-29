@@ -1,5 +1,8 @@
 import type { Club, ClubTier } from '../types';
 import { EXTERNAL_YOUTH_CLUBS } from './youthClubs';
+import { getLeague } from './leagues';
+import { leagueShape } from './leagueShape';
+import { WORLD_CLUBS, isInactiveClub, snapshotLeagueOf } from './worldClubs';
 
 /**
  * Compact club dataset for the MVP.
@@ -569,11 +572,125 @@ const clubList: Club[] = [
  * resolvable club, but `ALL_CLUBS` deliberately does not - it drives transfer destinations,
  * and nobody signs a professional contract with an under-11 side.
  */
+/* ------------------------------------------------------------------ */
+/* The rest of the football world (v0.6.4)                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Turns every `WorldClub` into a real `Club`.
+ *
+ * This is the v0.6.4 unification. Before it, `worldClubs.ts` held ~150 clubs that appeared in
+ * league tables but were invisible to the transfer market - so a Serie A table full of Inter,
+ * Milan and Juventus offered exactly two possible destinations. Now there is one club identity
+ * per club and one pool, and what keeps the elite clubs rare is eligibility rather than a second
+ * class of object.
+ *
+ * The hand-tuned records above are NOT regenerated: their ids are save data and their numbers
+ * were balanced across five versions. A world club whose id already exists here is skipped.
+ *
+ * The derived football fields come from the club's league and its own quality, because those are
+ * the two facts the dataset actually carries. Title and cup chances scale with how far above the
+ * division the squad sits; European qualification follows the same curve against the league's own
+ * `europePlaces`. Nothing here is hand-tuned per club, which is deliberate - 150 hand-tuned
+ * numbers would be 150 things to get wrong and no more truthful than one honest formula.
+ */
+function deriveWorldClubs(existing: readonly Club[]): Club[] {
+  const known = new Set(existing.map((club) => club.id));
+  const derived: Club[] = [];
+
+  for (const world of WORLD_CLUBS) {
+    if (known.has(world.id)) continue;
+    const leagueId = snapshotLeagueOf(world.id);
+    const league = leagueId ? getLeague(leagueId) : null;
+
+    /*
+     * An inactive club still needs a Club record so `getClub` resolves it for an old save's
+     * history. It is filed under its country's shape with no competitive chances at all, and
+     * `isInactiveClub` keeps it out of every table, market and cup draw regardless.
+     */
+    const country = league?.country ?? 'ישראל';
+    const isIsraeli = country === 'ישראל';
+    const strength = world.quality - (league?.quality ?? 60);
+
+    derived.push({
+      id: world.id,
+      name: world.name,
+      country,
+      league: league?.name ?? 'ללא ליגה',
+      quality: world.quality,
+      prestige: world.prestige ?? Math.round((league?.prestige ?? 20) * 0.5 + world.quality * 0.35),
+      development: Math.round(clampNumber(52 + strength * 0.7, 45, 82)),
+      tier: tierFor(world.quality, isIsraeli, leagueId),
+      titleChance: world.inactive ? 0 : chanceCurve(strength, 0.34, 9),
+      cupChance: world.inactive ? 0 : chanceCurve(strength, 0.26, 14),
+      europeChance:
+        world.inactive || !leagueId || (leagueShape(leagueId)?.europePlaces ?? 0) === 0
+          ? 0
+          : chanceCurve(strength, 0.34, 13),
+      isSenior: true,
+      seasonGames: seasonGamesFor(world.quality, isIsraeli, leagueId),
+    });
+  }
+  return derived;
+}
+
+const clampNumber = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
+
+/**
+ * How likely a competitive outcome is, given how far above its division a squad sits.
+ *
+ * A logistic-ish curve rather than a threshold: the best club in a league is a strong favourite,
+ * a mid-table club has a real if small chance, and a promoted side is not quite zero. `spread`
+ * sets how sharply the curve separates them.
+ */
+function chanceCurve(strength: number, peak: number, spread: number): number {
+  return Math.round(peak * (1 / (1 + Math.exp(-strength / spread))) * 1000) / 1000;
+}
+
+function tierFor(quality: number, isIsraeli: boolean, leagueId: string | null): ClubTier {
+  if (isIsraeli) {
+    if (leagueId === 'il_leumit') return 'israeli_low';
+    return quality >= 60 ? 'israeli_top' : 'israeli_mid';
+  }
+  if (quality >= 82) return 'euro_top';
+  if (quality >= 68) return 'euro_mid';
+  return 'euro_dev';
+}
+
+/**
+ * Matches played in a season, all competitions.
+ *
+ * The same shape the hand-tuned records use: a league fixture count, plus cup football, plus more
+ * European nights the stronger the club is. v0.6.1 established that these are all-competition
+ * figures, and the historical benchmarks depend on them staying that way.
+ */
+function seasonGamesFor(quality: number, isIsraeli: boolean, leagueId: string | null): number {
+  const base = isIsraeli ? (leagueId === 'il_leumit' ? 34 : 36) : 36;
+  const europe = quality >= 82 ? 12 : quality >= 74 ? 8 : quality >= 66 ? 4 : 0;
+  return base + europe;
+}
+
+const worldDerivedClubs = deriveWorldClubs(clubList);
+
+/** Every club the game knows: hand-tuned, derived from the world dataset, and youth. */
+const fullClubList: readonly Club[] = [...clubList, ...worldDerivedClubs];
+
 export const CLUBS: Record<string, Club> = Object.fromEntries(
-  [...clubList, ...EXTERNAL_YOUTH_CLUBS].map((club) => [club.id, club]),
+  [...fullClubList, ...EXTERNAL_YOUTH_CLUBS].map((club) => [club.id, club]),
 );
 
-export const ALL_CLUBS: readonly Club[] = clubList;
+export const ALL_CLUBS: readonly Club[] = fullClubList;
+
+/**
+ * The clubs that can actually be played for this snapshot.
+ *
+ * `ALL_CLUBS` includes inactive identities so an old save's history still resolves. Anything
+ * choosing a destination, drawing a table or picking a cup opponent wants this instead.
+ */
+export const ACTIVE_CLUBS: readonly Club[] = fullClubList.filter(
+  (club) => !isInactiveClub(club.id),
+);
 
 export function getClub(id: string): Club {
   const club = CLUBS[id];

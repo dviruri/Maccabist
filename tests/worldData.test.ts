@@ -1,28 +1,26 @@
 /**
- * World-data truth (v0.6.3, Checkpoint 1).
+ * World-data truth (v0.6.3, rewritten for the v0.6.4 unification).
  *
- * Real playtesting in Italy produced a league table reading "קבוצה 8 / קבוצה 9 / קבוצה 10":
- * `LeagueShape.others` declared eight clubs for a twenty-club division and the engine invented
- * the rest at runtime. The generator is deleted; these tests are what keeps it deleted.
- *
- * The invariant is exact: for every tabled league, the modelled clubs that default into it plus
- * its named table clubs equal its declared size. Not "at least" - a league that is over-full
- * silently drops real clubs from the bottom of the table, which is a quieter version of the
- * same lie.
+ * v0.6.3 killed the runtime "קבוצה N" generator and held membership to an exact size. v0.6.4 went
+ * further: there is no `TableClub` any more, a division's size IS the length of its membership
+ * list, and every active member is a real `Club` the market can reach. These tests keep all three
+ * true, and pin the specific snapshot errors v0.6.3 shipped.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { ALL_CLUBS } from '../src/data/clubs';
+import { ACTIVE_CLUBS, ALL_CLUBS, CLUBS, getClub } from '../src/data/clubs';
 import { EXTERNAL_YOUTH_CLUB_IDS } from '../src/data/youthClubs';
-import { defaultLeagueFor, getLeague } from '../src/data/leagues';
+import { defaultLeagueFor } from '../src/data/leagues';
 import { LEAGUE_SHAPES, hasTable } from '../src/data/leagueShape';
 import {
-  RESERVE_CLUBS_BY_LEAGUE,
-  TABLE_CLUBS_BY_LEAGUE,
+  INACTIVE_CLUB_IDS,
+  LEAGUE_MEMBERSHIP,
+  WORLD_CLUBS,
   WORLD_DATA_VERSION,
-  allTableClubs,
-  tableClubById,
+  WORLD_SNAPSHOT_SEASON,
+  isInactiveClub,
+  snapshotLeagueOf,
 } from '../src/data/worldClubs';
 import { clubVisual } from '../src/data/clubVisuals';
 import { createCareer } from '../src/game/careerEngine';
@@ -31,10 +29,7 @@ import { createRng } from '../src/game/random';
 import { balancedPolicy, simulateCareer } from '../src/game/simulate';
 import type { Career } from '../src/types';
 
-/**
- * Every generated-placeholder pattern the old engine could produce, plus the imports the brief
- * names. Checked against NAMES, because the ban is about what a player can read.
- */
+/** Every generated-placeholder pattern the old engine could produce. */
 const PLACEHOLDER_PATTERNS: readonly RegExp[] = [
   /קבוצה\s*\d/,
   /יריבה אירופית/,
@@ -43,236 +38,10 @@ const PLACEHOLDER_PATTERNS: readonly RegExp[] = [
   /placeholder/i,
 ];
 
-function isPlaceholderName(name: string): boolean {
-  return PLACEHOLDER_PATTERNS.some((p) => p.test(name));
-}
+const isPlaceholderName = (name: string): boolean =>
+  PLACEHOLDER_PATTERNS.some((p) => p.test(name));
 
-/** The modelled clubs whose default league is this one. Mirrors `membership()` exactly. */
-function modelledIn(leagueId: string): string[] {
-  return ALL_CLUBS.filter(
-    (c) =>
-      c.tier !== 'academy' &&
-      c.tier !== 'youth' &&
-      defaultLeagueFor(c.tier, c.country) === leagueId,
-  ).map((c) => c.id);
-}
-
-/* ================================================================== */
-/* League completeness                                                 */
-/* ================================================================== */
-
-describe('v0.6.3 every tabled league carries its complete membership', () => {
-  it('has modelled + table clubs equal to the declared size, exactly', () => {
-    const report: string[] = [];
-    for (const [leagueId, shape] of Object.entries(LEAGUE_SHAPES)) {
-      const total = modelledIn(leagueId).length + shape.others.length;
-      if (total !== shape.size) {
-        report.push(`${leagueId}: ${total} clubs for ${shape.size} places`);
-      }
-    }
-    expect(report, 'incomplete or over-full leagues').toEqual([]);
-  });
-
-  it('declares a shape for every league a modelled club can play in', () => {
-    for (const club of ALL_CLUBS) {
-      if (club.tier === 'academy' || club.tier === 'youth') continue;
-      const leagueId = defaultLeagueFor(club.tier, club.country);
-      expect(hasTable(leagueId), `${club.id} -> ${leagueId}`).toBe(true);
-    }
-  });
-
-  it('leaves the generic euro buckets tableless and unreachable', () => {
-    /*
-     * euro_elite / euro_strong were quality buckets with placeholder rival names. They survive
-     * in leagues.ts only as defaultLeagueFor's fallback for an unmapped country - and the test
-     * above proves no club's country is unmapped, so no table can ever be drawn for them.
-     */
-    expect(hasTable('euro_elite')).toBe(false);
-    expect(hasTable('euro_strong')).toBe(false);
-  });
-
-  it('keeps every table club inside a league its own data declares', () => {
-    for (const [leagueId, clubs] of Object.entries(TABLE_CLUBS_BY_LEAGUE)) {
-      expect(LEAGUE_SHAPES[leagueId], leagueId).toBeDefined();
-      expect(clubs.length, leagueId).toBeGreaterThan(0);
-      // And the league genuinely exists with a country.
-      expect(getLeague(leagueId).country.length).toBeGreaterThan(0);
-    }
-  });
-
-  it('carries a versioned snapshot', () => {
-    expect(WORLD_DATA_VERSION).toMatch(/^\d{4}\.\d+$/);
-  });
-});
-
-/* ================================================================== */
-/* The placeholder ban                                                 */
-/* ================================================================== */
-
-describe('v0.6.3 no user-visible club may be a placeholder', () => {
-  it('bans placeholder names across the whole club world', () => {
-    const offenders: string[] = [];
-    for (const club of ALL_CLUBS) {
-      if (isPlaceholderName(club.name)) offenders.push(`club ${club.id}: ${club.name}`);
-    }
-    for (const club of allTableClubs()) {
-      if (isPlaceholderName(club.name)) offenders.push(`table ${club.id}: ${club.name}`);
-    }
-    expect(offenders).toEqual([]);
-  });
-
-  it('bans generated ids of the old filler scheme', () => {
-    for (const club of allTableClubs()) {
-      expect(club.id, club.id).not.toMatch(/^filler_/);
-      expect(club.id, club.id).toMatch(/^[a-z][a-z0-9_]+$/);
-    }
-  });
-
-  it('never renders a placeholder row in any real table', () => {
-    /*
-     * The runtime proof, through the same path the UI uses. A table is drawn for every tabled
-     * league at every phase, and every row must carry a real name. This is the test that fails
-     * if anyone reintroduces a pad loop, whatever the data says.
-     */
-    for (const [leagueId] of Object.entries(LEAGUE_SHAPES)) {
-      const anchor = modelledIn(leagueId)[0];
-      if (!anchor) continue; // cy_first: covered by the direct membership assertions above.
-      const career = careerAt(anchor, leagueId);
-      const projection = projectSeason(
-        career.world,
-        anchor,
-        career.currentSeason,
-        null,
-        career,
-        createRng(42),
-      );
-      expect(projection, leagueId).not.toBeNull();
-      for (const phase of ['early', 'mid', 'late', 'end'] as const) {
-        const table = buildTable(career.world, projection!, phase);
-        expect(table.rows.length, leagueId).toBe(LEAGUE_SHAPES[leagueId]!.size);
-        for (const row of table.rows) {
-          expect(isPlaceholderName(row.name), `${leagueId}/${phase}: ${row.name}`).toBe(false);
-        }
-      }
-    }
-  });
-});
-
-/* ================================================================== */
-/* Identity integrity                                                  */
-/* ================================================================== */
-
-describe('v0.6.3 club identity is unique and resolvable', () => {
-  it('has no id collisions across modelled clubs, table clubs and reserves', () => {
-    const seen = new Map<string, string>();
-    const collisions: string[] = [];
-    for (const club of ALL_CLUBS) seen.set(club.id, 'club');
-    for (const club of allTableClubs()) {
-      if (seen.has(club.id)) collisions.push(`${club.id} (${seen.get(club.id)} + table)`);
-      else seen.set(club.id, 'table');
-    }
-    expect(collisions).toEqual([]);
-  });
-
-  it('has no duplicate display names inside any one division', () => {
-    /*
-     * The bug this pins: il_leumit listed "מכבי יפו" while the modelled מכבי קביליו יפו mapped
-     * into the same division - one real club, two rows.
-     */
-    for (const [leagueId, shape] of Object.entries(LEAGUE_SHAPES)) {
-      const names = [
-        ...modelledIn(leagueId).map((id) => ALL_CLUBS.find((c) => c.id === id)!.name),
-        ...shape.others.map((c) => c.name),
-      ];
-      expect(new Set(names).size, `${leagueId} has duplicate names`).toBe(names.length);
-    }
-  });
-
-  it('keeps reserves out of every division main list', () => {
-    const memberIds = new Set(
-      Object.values(TABLE_CLUBS_BY_LEAGUE)
-        .flat()
-        .map((c) => c.id),
-    );
-    for (const reserves of Object.values(RESERVE_CLUBS_BY_LEAGUE)) {
-      for (const reserve of reserves) {
-        expect(memberIds.has(reserve.id), reserve.id).toBe(false);
-      }
-    }
-  });
-
-  it('resolves every club - modelled, table, reserve - to a valid visual', () => {
-    const HEX = /^#[0-9a-f]{6}$/i;
-    const everyone = [
-      ...ALL_CLUBS.map((cl) => ({ id: cl.id, name: cl.name })),
-      ...allTableClubs().map((cl) => ({ id: cl.id, name: cl.name })),
-    ];
-    for (const { id, name } of everyone) {
-      const visual = clubVisual(id, name);
-      expect(visual.primary, id).toMatch(HEX);
-      expect(visual.secondary, id).toMatch(HEX);
-      expect(visual.initials.length, id).toBeGreaterThan(0);
-      // A declared asset must be repo-local; remote URLs are banned at the resolver too.
-      if (visual.asset) expect(visual.asset).not.toMatch(/^https?:/i);
-    }
-  });
-
-  it('keeps quality on the shared 0-100 scale everywhere', () => {
-    for (const club of allTableClubs()) {
-      expect(club.quality, club.id).toBeGreaterThan(0);
-      expect(club.quality, club.id).toBeLessThanOrEqual(100);
-    }
-  });
-
-  it('looks table clubs up by id, both directions', () => {
-    expect(tableClubById('inter_milan')?.name).toBe('אינטר');
-    expect(tableClubById('no_such_club')).toBeNull();
-  });
-});
-
-/* ================================================================== */
-/* Transfer-market protection                                          */
-/* ================================================================== */
-
-describe('v0.6.3 more clubs does not mean more transfers', () => {
-  it('never offers a table club - the market draws only from ALL_CLUBS', () => {
-    /*
-     * The whole probability-protection argument rests on one structural fact: the market's
-     * candidate pool is `ALL_CLUBS`, and v0.6.3 added its ~150 named clubs somewhere else.
-     * This test pins that fact through the real engine, so if someone ever merges table clubs
-     * into the market pool, the Europe rate does not quietly double - a test fails and the
-     * question gets asked out loud.
-     */
-    // The signable world: modelled clubs plus the academy-stage external youth clubs.
-    const clubIds = new Set([...ALL_CLUBS.map((c) => c.id), ...EXTERNAL_YOUTH_CLUB_IDS]);
-    const offenders: string[] = [];
-    for (let seed = 1; seed <= 60; seed += 1) {
-      const career = simulateCareer({ playerName: 'ת', position: 'ST', seed, policy: balancedPolicy });
-      for (const record of career.seasonHistory) {
-        if (!clubIds.has(record.clubId)) offenders.push(`seed ${seed}: played for ${record.clubId}`);
-      }
-      for (const trophy of career.trophies) {
-        if (!clubIds.has(trophy.clubId)) offenders.push(`seed ${seed}: trophy at ${trophy.clubId}`);
-      }
-    }
-    expect(offenders).toEqual([]);
-  });
-
-  it('static: transferEngine and marketEngine do not import the table-club dataset', () => {
-    const fs = require('node:fs') as typeof import('node:fs');
-    const path = require('node:path') as typeof import('node:path');
-    for (const file of ['transferEngine.ts', 'marketEngine.ts']) {
-      const source = fs.readFileSync(path.resolve(__dirname, `../src/game/${file}`), 'utf8');
-      expect(source, `${file} must not draw destinations from worldClubs`).not.toContain(
-        "from '../data/worldClubs'",
-      );
-    }
-  });
-});
-
-/* ================================================================== */
-
-function careerAt(clubId: string, _leagueId: string, seed = 5): Career {
+function careerAt(clubId: string, seed = 5): Career {
   const base = createCareer({ playerName: 'ת', position: 'ST', seed });
   return {
     ...base,
@@ -284,3 +53,284 @@ function careerAt(clubId: string, _leagueId: string, seed = 5): Career {
     currentSeason: 2044,
   };
 }
+
+/* ================================================================== */
+/* Membership completeness                                             */
+/* ================================================================== */
+
+describe('v0.6.4 every league carries its complete, real membership', () => {
+  it('makes size and membership the same fact', () => {
+    /*
+     * v0.6.3 declared a `size` literal and asserted membership matched it. v0.6.4 derives size
+     * FROM membership, so they cannot disagree - this asserts the derivation is wired, rather
+     * than that two independent numbers happen to agree.
+     */
+    for (const [leagueId, shape] of Object.entries(LEAGUE_SHAPES)) {
+      expect(shape.size, leagueId).toBe(LEAGUE_MEMBERSHIP[leagueId]?.length);
+      expect(shape.size, leagueId).toBeGreaterThan(0);
+    }
+  });
+
+  it('matches the verified 2026/27 snapshot sizes', () => {
+    const expected: Record<string, number> = {
+      il_premier: 14,
+      il_leumit: 16,
+      it_seriea: 20,
+      en_premier: 20,
+      es_laliga: 20,
+      de_bundesliga: 18,
+      nl_eredivisie: 18,
+      be_pro: 18,
+      pt_primeira: 18,
+      at_bundesliga: 12,
+      gr_superleague: 14,
+      cy_first: 14,
+    };
+    for (const [leagueId, size] of Object.entries(expected)) {
+      expect(LEAGUE_MEMBERSHIP[leagueId]?.length, leagueId).toBe(size);
+    }
+    expect(Object.keys(LEAGUE_MEMBERSHIP).sort()).toEqual(Object.keys(expected).sort());
+  });
+
+  it('resolves every member to a real, active club', () => {
+    for (const [leagueId, ids] of Object.entries(LEAGUE_MEMBERSHIP)) {
+      for (const id of ids) {
+        expect(CLUBS[id], `${leagueId}: ${id}`).toBeDefined();
+        expect(isInactiveClub(id), `${leagueId}: ${id} is inactive`).toBe(false);
+      }
+    }
+  });
+
+  it('never lists a club in two divisions', () => {
+    const seen = new Map<string, string>();
+    for (const [leagueId, ids] of Object.entries(LEAGUE_MEMBERSHIP)) {
+      for (const id of ids) {
+        expect(seen.has(id), `${id} in ${seen.get(id)} and ${leagueId}`).toBe(false);
+        seen.set(id, leagueId);
+      }
+    }
+  });
+
+  it('declares a shape for every league an active club can play in', () => {
+    for (const club of ACTIVE_CLUBS) {
+      if (club.tier === 'academy' || club.tier === 'youth') continue;
+      const leagueId = defaultLeagueFor(club.tier, club.country, club.id);
+      expect(hasTable(leagueId), `${club.id} -> ${leagueId}`).toBe(true);
+    }
+  });
+
+  it('leaves the generic euro buckets tableless and unreachable', () => {
+    expect(hasTable('euro_elite')).toBe(false);
+    expect(hasTable('euro_strong')).toBe(false);
+  });
+
+  it('carries a versioned, named snapshot', () => {
+    expect(WORLD_DATA_VERSION).toBe('2026.2');
+    expect(WORLD_SNAPSHOT_SEASON).toBe('2026/27');
+  });
+});
+
+/* ================================================================== */
+/* Snapshot accuracy - the specific v0.6.3 errors                      */
+/* ================================================================== */
+
+describe('v0.6.4 the snapshot errors v0.6.3 shipped are fixed', () => {
+  it('puts the promoted Israeli clubs in the top flight', () => {
+    // v0.6.3 had these in Liga Leumit, or (Maccabi Petah Tikva) in no division at all.
+    for (const id of ['hapoel_petah_tikva', 'hapoel_ramat_gan', 'maccabi_petah_tikva']) {
+      expect(snapshotLeagueOf(id), id).toBe('il_premier');
+    }
+  });
+
+  it('removes Hapoel Hadera from the top flight', () => {
+    // v0.6.3 modelled it as an `israeli_mid` top-flight club. It is in neither division now.
+    expect(snapshotLeagueOf('hapoel_hadera')).toBeNull();
+    expect(isInactiveClub('hapoel_hadera')).toBe(true);
+  });
+
+  it('relegates F.C. Ashdod and Maccabi Bnei Reineh to Liga Leumit', () => {
+    expect(snapshotLeagueOf('ms_ashdod')).toBe('il_leumit');
+    expect(snapshotLeagueOf('maccabi_bnei_raina')).toBe('il_leumit');
+  });
+
+  it('gives Cyprus fourteen clubs, not twelve', () => {
+    expect(LEAGUE_MEMBERSHIP.cy_first?.length).toBe(14);
+    expect(LEAGUE_MEMBERSHIP.cy_first).not.toContain('ethnikos_achna');
+    expect(LEAGUE_MEMBERSHIP.cy_first).not.toContain('doxa_katokopias');
+  });
+
+  it('expands the Belgian Pro League to eighteen', () => {
+    expect(LEAGUE_MEMBERSHIP.be_pro?.length).toBe(18);
+  });
+});
+
+/* ================================================================== */
+/* The placeholder ban                                                 */
+/* ================================================================== */
+
+describe('v0.6.4 no user-visible club may be a placeholder', () => {
+  it('bans placeholder names across the whole club world', () => {
+    const offenders = ALL_CLUBS.filter((club) => isPlaceholderName(club.name)).map((c) => c.id);
+    expect(offenders).toEqual([]);
+  });
+
+  it('bans generated ids of the old filler scheme', () => {
+    for (const club of WORLD_CLUBS) {
+      expect(club.id, club.id).not.toMatch(/^filler_/);
+      expect(club.id, club.id).toMatch(/^[a-z][a-z0-9_]+$/);
+    }
+  });
+
+  it('never renders a placeholder or an inactive club in any real table', () => {
+    for (const [leagueId, shape] of Object.entries(LEAGUE_SHAPES)) {
+      const anchor = LEAGUE_MEMBERSHIP[leagueId]![0]!;
+      const career = careerAt(anchor);
+      const projection = projectSeason(
+        career.world,
+        anchor,
+        career.currentSeason,
+        null,
+        career,
+        createRng(42),
+      );
+      expect(projection, leagueId).not.toBeNull();
+      for (const phase of ['early', 'mid', 'late', 'end'] as const) {
+        const table = buildTable(career.world, projection!, phase);
+        expect(table.rows.length, leagueId).toBe(shape.size);
+        for (const row of table.rows) {
+          expect(isPlaceholderName(row.name), `${leagueId}/${phase}: ${row.name}`).toBe(false);
+          expect(isInactiveClub(row.clubId), `${leagueId}: ${row.clubId}`).toBe(false);
+        }
+      }
+    }
+  });
+});
+
+/* ================================================================== */
+/* Identity integrity                                                  */
+/* ================================================================== */
+
+describe('v0.6.4 club identity is unique and resolvable', () => {
+  it('has one record per club id', () => {
+    const ids = ALL_CLUBS.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('has no duplicate display names inside any one division', () => {
+    for (const [leagueId, ids] of Object.entries(LEAGUE_MEMBERSHIP)) {
+      const names = ids.map((id) => getClub(id).name);
+      expect(new Set(names).size, `${leagueId} has duplicate names`).toBe(names.length);
+    }
+  });
+
+  it('resolves every club to a valid visual', () => {
+    const HEX = /^#[0-9a-f]{6}$/i;
+    for (const club of ALL_CLUBS) {
+      const visual = clubVisual(club.id, club.name);
+      expect(visual.primary, club.id).toMatch(HEX);
+      expect(visual.secondary, club.id).toMatch(HEX);
+      expect(visual.initials.length, club.id).toBeGreaterThan(0);
+      if (visual.asset) expect(visual.asset).not.toMatch(/^https?:/i);
+    }
+  });
+
+  it('keeps quality and prestige on the shared 0-100 scale', () => {
+    for (const club of ALL_CLUBS) {
+      expect(club.quality, club.id).toBeGreaterThan(0);
+      expect(club.quality, club.id).toBeLessThanOrEqual(100);
+      expect(club.prestige, club.id).toBeGreaterThanOrEqual(0);
+      expect(club.prestige, club.id).toBeLessThanOrEqual(100);
+      expect(club.seasonGames, club.id).toBeGreaterThan(20);
+    }
+  });
+
+  it('keeps derived competitive chances inside their bands', () => {
+    for (const club of ACTIVE_CLUBS) {
+      for (const chance of [club.titleChance, club.cupChance, club.europeChance]) {
+        expect(Number.isFinite(chance), club.id).toBe(true);
+        expect(chance, club.id).toBeGreaterThanOrEqual(0);
+        expect(chance, club.id).toBeLessThanOrEqual(0.4);
+      }
+    }
+  });
+});
+
+/* ================================================================== */
+/* Inactive clubs (A5, A6)                                             */
+/* ================================================================== */
+
+describe('v0.6.4 an inactive club keeps its identity and loses its place', () => {
+  it('still resolves a name and a badge, so old saves read honestly', () => {
+    for (const id of INACTIVE_CLUB_IDS) {
+      expect(() => getClub(id), id).not.toThrow();
+      expect(getClub(id).name.length, id).toBeGreaterThan(0);
+      expect(clubVisual(id).initials.length, id).toBeGreaterThan(0);
+    }
+  });
+
+  it('is in no division and in no market', () => {
+    const activeIds = new Set(ACTIVE_CLUBS.map((c) => c.id));
+    for (const id of INACTIVE_CLUB_IDS) {
+      expect(snapshotLeagueOf(id), id).toBeNull();
+      expect(activeIds.has(id), `${id} is still in ACTIVE_CLUBS`).toBe(false);
+    }
+  });
+
+  it('is never signed in a real career', () => {
+    const offenders: string[] = [];
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const career = simulateCareer({
+        playerName: 'ת',
+        position: 'ST',
+        seed,
+        policy: balancedPolicy,
+      });
+      for (const record of career.seasonHistory) {
+        if (isInactiveClub(record.clubId)) offenders.push(`seed ${seed}: ${record.clubId}`);
+      }
+    }
+    expect(offenders.slice(0, 5)).toEqual([]);
+  });
+});
+
+/* ================================================================== */
+/* Playable coverage (C6)                                              */
+/* ================================================================== */
+
+describe('v0.6.4 the world is playable, not scenery', () => {
+  it('makes every active division member a possible career destination', () => {
+    /*
+     * The headline of v0.6.4. Under v0.6.3 a Serie A table had twenty clubs and two of them
+     * could sign the player; the other eighteen were `TableClub`s the market could not see.
+     */
+    const marketIds = new Set(ACTIVE_CLUBS.filter((c) => c.isSenior === true).map((c) => c.id));
+    const notPlayable: string[] = [];
+    for (const ids of Object.values(LEAGUE_MEMBERSHIP)) {
+      for (const id of ids) {
+        if (!marketIds.has(id)) notPlayable.push(id);
+      }
+    }
+    expect(notPlayable, 'division members that cannot be signed').toEqual([]);
+  });
+
+  it('has a lot more of them than v0.6.3 did', () => {
+    // v0.6.3: 33 signable senior clubs. This should be a step change, not a trim.
+    const seniors = ACTIVE_CLUBS.filter((c) => c.isSenior === true);
+    expect(seniors.length).toBeGreaterThan(150);
+  });
+
+  it('keeps the ladder: elite, mid and lower clubs all exist in quantity', () => {
+    const seniors = ACTIVE_CLUBS.filter((c) => c.isSenior === true);
+    expect(seniors.filter((c) => c.quality >= 85).length).toBeGreaterThan(5);
+    expect(seniors.filter((c) => c.quality >= 60 && c.quality < 75).length).toBeGreaterThan(40);
+    expect(seniors.filter((c) => c.quality < 50).length).toBeGreaterThan(10);
+  });
+});
+
+describe('v0.6.4 youth clubs stay outside the league world', () => {
+  it('has no external youth club in any division', () => {
+    for (const id of EXTERNAL_YOUTH_CLUB_IDS) {
+      expect(snapshotLeagueOf(id), id).toBeNull();
+    }
+  });
+});

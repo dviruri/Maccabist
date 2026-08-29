@@ -1,20 +1,19 @@
 /**
- * How big each league is and what the places mean (v0.4.6, membership moved out in v0.6.3).
+ * How big each league is and what its places mean (v0.4.6; membership moved out in v0.6.3, and
+ * the size itself became derived in v0.6.4).
  *
- * v0.6.3: the `others` lists that used to live here - eight named clubs for a twenty-club
- * division, with the difference invented at runtime as "קבוצה N" - are gone. Membership now
- * comes complete from `worldClubs.ts`, and `tests/worldData.test.ts` fails the build if any
- * league's modelled clubs plus its table clubs do not equal its declared size exactly.
+ * There is no `others` list any more and no `size` literal. A division's size IS the length of
+ * its membership in `worldClubs.ts` - one number, one place, impossible to disagree with itself.
+ * v0.6.3 kept the two apart and a mismatch was a test failure; v0.6.4 makes the mismatch
+ * unrepresentable.
  *
- * What remains here is the *shape*: how many clubs, and which places mean Europe, relegation
- * or promotion. Club names and colours are used as facts; no crest or club artwork is
- * reproduced (see CLUB_CRESTS.md and the v0.6.3 importer's provenance rules).
+ * What remains here is the shape: which places mean Europe, relegation or promotion.
  */
 
-import { TABLE_CLUBS_BY_LEAGUE, type TableClub } from './worldClubs';
+import { LEAGUE_MEMBERSHIP } from './worldClubs';
 
 export interface LeagueShape {
-  /** Clubs in the division. The completeness validator holds membership to exactly this. */
+  /** Clubs in the division. Derived from the authoritative membership. */
   size: number;
   /** How many places qualify for Europe, from the top. 0 where none are modelled. */
   europePlaces: number;
@@ -22,48 +21,42 @@ export interface LeagueShape {
   relegationPlaces: number;
   /** How many places go up, from the top. 0 in a top division. */
   promotionPlaces: number;
-  /** The named table clubs that complete the division around its modelled Club records. */
-  others: ReadonlyArray<TableClub>;
 }
 
 function shape(
   leagueId: string,
-  size: number,
   europePlaces: number,
   relegationPlaces: number,
   promotionPlaces: number,
 ): LeagueShape {
   return {
-    size,
+    size: (LEAGUE_MEMBERSHIP[leagueId] ?? []).length,
     europePlaces,
     relegationPlaces,
     promotionPlaces,
-    others: TABLE_CLUBS_BY_LEAGUE[leagueId] ?? [],
   };
 }
 
 export const LEAGUE_SHAPES: Record<string, LeagueShape> = {
-  // Nine modelled clubs plus five named table clubs makes fourteen, the real shape.
-  il_premier: shape('il_premier', 14, 3, 2, 0),
-  il_leumit: shape('il_leumit', 16, 0, 2, 2),
-  be_pro: shape('be_pro', 16, 3, 3, 0),
-  nl_eredivisie: shape('nl_eredivisie', 18, 3, 3, 0),
-  at_bundesliga: shape('at_bundesliga', 12, 3, 3, 0),
-  gr_superleague: shape('gr_superleague', 14, 3, 3, 0),
-  cy_first: shape('cy_first', 12, 2, 3, 0),
-  pt_primeira: shape('pt_primeira', 18, 4, 3, 0),
-  de_bundesliga: shape('de_bundesliga', 18, 5, 3, 0),
-  es_laliga: shape('es_laliga', 20, 5, 3, 0),
-  it_seriea: shape('it_seriea', 20, 5, 3, 0),
-  en_premier: shape('en_premier', 20, 5, 3, 0),
+  il_premier: shape('il_premier', 3, 2, 0),
+  il_leumit: shape('il_leumit', 0, 2, 2),
+  be_pro: shape('be_pro', 3, 3, 0),
+  nl_eredivisie: shape('nl_eredivisie', 3, 3, 0),
+  at_bundesliga: shape('at_bundesliga', 3, 3, 0),
+  gr_superleague: shape('gr_superleague', 3, 3, 0),
+  cy_first: shape('cy_first', 2, 3, 0),
+  pt_primeira: shape('pt_primeira', 4, 3, 0),
+  de_bundesliga: shape('de_bundesliga', 5, 3, 0),
+  es_laliga: shape('es_laliga', 5, 3, 0),
+  it_seriea: shape('it_seriea', 5, 3, 0),
+  en_premier: shape('en_premier', 5, 3, 0),
 };
 
 /**
- * The generic career-quality buckets (euro_elite / euro_strong) deliberately have no shape any
- * more. They exist in `leagues.ts` only as `defaultLeagueFor`'s fallback for a club in a country
- * with no modelled league - and every club's country HAS a modelled league, which
- * `tests/worldData.test.ts` asserts. A bucket with no shape has no table, so its old
- * "יריבה אירופית א׳" placeholder rows can never render.
+ * The generic career-quality buckets (euro_elite / euro_strong) deliberately have no shape.
+ * They exist in `leagues.ts` only as `defaultLeagueFor`'s fallback for a club in a country with
+ * no modelled league, and `tests/worldData.test.ts` asserts no club is in that position - so a
+ * table can never be drawn for them.
  */
 
 /** Youth football has no league table in this game; the age group is the unit. */

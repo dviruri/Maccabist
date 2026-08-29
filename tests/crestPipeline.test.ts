@@ -14,10 +14,10 @@ import { describe, expect, it } from 'vitest';
 import { CREST_MANIFEST } from '../src/data/clubCrests.generated';
 import { ALL_CLUBS } from '../src/data/clubs';
 import { clubVisual } from '../src/data/clubVisuals';
-import { allTableClubs } from '../src/data/worldClubs';
+
 
 const ROOT = path.resolve(__dirname, '..');
-const KNOWN_IDS = new Set([...ALL_CLUBS.map((c) => c.id), ...allTableClubs().map((c) => c.id)]);
+const KNOWN_IDS = new Set(ALL_CLUBS.map((c) => c.id));
 
 describe('v0.6.3 the crest manifest is locally real', () => {
   it('points every entry at an existing repo-local file', () => {
@@ -70,10 +70,8 @@ describe('v0.6.3 the crest manifest is locally real', () => {
 
 describe('v0.6.3 every club has exactly one valid display path', () => {
   it('resolves each club to a local asset or a drawable badge - never neither', () => {
-    for (const { id, name } of [
-      ...ALL_CLUBS.map((c) => ({ id: c.id, name: c.name })),
-      ...allTableClubs().map((c) => ({ id: c.id, name: c.name })),
-    ]) {
+    // v0.6.4: one club model, so ALL_CLUBS is the whole world.
+    for (const { id, name } of ALL_CLUBS.map((c) => ({ id: c.id, name: c.name }))) {
       const visual = clubVisual(id, name);
       if (visual.asset) {
         // Real path: the file must exist. ClubCrest still falls back on load error at runtime.

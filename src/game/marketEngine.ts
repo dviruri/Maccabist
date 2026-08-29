@@ -10,7 +10,7 @@
  */
 
 import { agentMarketFactor, clubManagerArchetype } from './peopleEngine';
-import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
+import { ACTIVE_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import { getLeague, leagueLevel, type League } from '../data/leagues';
 import type {
   Career,
@@ -218,7 +218,85 @@ export function clubInterest(career: Career, club: Club, season: number): number
 
 /** Every senior club the player could conceivably move to. */
 export function marketClubs(career: Career): Club[] {
-  return ALL_CLUBS.filter((club) => club.isSenior === true && club.id !== career.currentClubId);
+  /*
+   * v0.6.4: ACTIVE_CLUBS, not ALL_CLUBS. A club that dropped out of the modelled divisions keeps
+   * its identity so old saves read honestly, and must not be signable.
+   */
+  return ACTIVE_CLUBS.filter((club) => club.isSenior === true && club.id !== career.currentClubId);
+}
+
+/* ------------------------------------------------------------------ */
+/* Market-first destination selection (v0.6.4)                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * ## Why this is two steps rather than one
+ *
+ * Until v0.6.4 a destination was one weighted draw across every club in the world. That was fine
+ * when the world had 35 clubs, and became a bug the moment v0.6.4 made ~200 clubs signable: under
+ * a flat draw, a country's probability is proportional to **how many clubs it has**, so unifying
+ * the club model would have quietly doubled the chance of moving to England and halved Cyprus.
+ * More data would have meant a different game.
+ *
+ * So selection is explicitly two decisions:
+ *
+ *   1. WHICH MARKET - weighted by how well the market fits this player, and by the agent's
+ *      contacts. Deliberately independent of club count: a 12-club and a 20-club league with the
+ *      same standing are equally likely doors.
+ *   2. WHICH CLUB INSIDE IT - weighted by the same `clubInterest` as before.
+ *
+ * P(club) = P(market) x P(club | market). Adding ten clubs to Serie A therefore changes *which*
+ * Italian club calls, and not how often Italy calls at all. That is the whole contract, and
+ * `tests/marketSelection.test.ts` measures it rather than trusting it.
+ */
+
+/** How well a market suits this player at all, before any club inside it is considered. */
+function marketFit(career: Career, leagueId: string, pool: readonly Club[]): number {
+  const league = getLeague(leagueId);
+  const level = careerLevel(career);
+
+  /*
+   * A market's standing is its own level, not its best club's - which is what makes this
+   * count-independent. `stretch` lets a player look one step up, the same allowance
+   * `clubInterest` gives inside a market.
+   */
+  const gap = leagueLevel(league) - level;
+  const fit = Math.max(0, 1 - Math.abs(gap - MARKET.stretch) / MARKET.fitWidth);
+  if (fit <= 0) return 0;
+
+  /*
+   * A market with nobody interested is not a market. This reads the pool for *presence* of a
+   * plausible club, never for how many - `some`, not `length`, is the line that keeps club count
+   * out of the market decision.
+   */
+  const reachable = pool.some((club) => clubInterest(career, club, career.currentSeason) > 0.02);
+  return reachable ? fit : 0;
+}
+
+/**
+ * The agent's contacts, at market level.
+ *
+ * v0.5 applied this per club, which under a flat draw was the same thing. Under market-first it
+ * belongs here: an agent opens a *door*, and which club is behind it is football's business. The
+ * contract is unchanged - a specialist makes his markets likelier and others less so, and no
+ * factor is ever zero, so a poorly connected market is unlikely rather than closed.
+ */
+function agentMarketWeight(career: Career, pool: readonly Club[]): number {
+  const sample = pool[0];
+  return sample ? agentMarketFactor(career, sample) : 1;
+}
+
+/** The clubs of each market the player could plausibly join, keyed by league. */
+function marketPools(career: Career, filter?: (club: Club) => boolean): Map<string, Club[]> {
+  const pools = new Map<string, Club[]>();
+  for (const club of marketClubs(career)) {
+    if (filter && !filter(club)) continue;
+    const leagueId = leagueOf(career.world, club.id).id;
+    const pool = pools.get(leagueId);
+    if (pool) pool.push(club);
+    else pools.set(leagueId, [club]);
+  }
+  return pools;
 }
 
 /**
@@ -230,19 +308,20 @@ export function drawDestination(
   rng: Rng,
   filter?: (club: Club) => boolean,
 ): Club | null {
-  const pool = filter ? marketClubs(career).filter(filter) : marketClubs(career);
-  if (pool.length === 0) return null;
-  /*
-   * v0.5, Phase 8: the agent's markets tilt WHICH eligible door opens, after eligibility has
-   * already been decided by the pool above. A Europe specialist makes his Dutch and Belgian
-   * contacts likelier and a domestic step less so; he never adds a club the world's own rules
-   * did not offer, and no factor is ever zero - a poorly connected market is unlikely, not
-   * closed. That is the whole Phase 8 contract in one line.
-   */
-  return rng.weighted(
-    pool,
-    (club) => clubInterest(career, club, career.currentSeason) * agentMarketFactor(career, club),
+  const pools = marketPools(career, filter);
+  if (pools.size === 0) return null;
+
+  // Step 1: the market.
+  const markets = [...pools.keys()];
+  const leagueId = rng.weighted(
+    markets,
+    (id) => marketFit(career, id, pools.get(id)!) * agentMarketWeight(career, pools.get(id)!),
   );
+  if (!leagueId) return null;
+
+  // Step 2: the club inside it.
+  const pool = pools.get(leagueId)!;
+  return rng.weighted(pool, (club) => clubInterest(career, club, career.currentSeason));
 }
 
 /* ------------------------------------------------------------------ */

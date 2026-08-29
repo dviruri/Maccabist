@@ -1,0 +1,580 @@
+{
+ "il_premier": {
+  "expected": 14,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Israeli Premier League",
+    "found": 14,
+    "teams": [
+     "Beitar Jerusalem",
+     "Bnei Sakhnin",
+     "Hapoel Be'er Sheva",
+     "Hapoel Haifa",
+     "Hapoel Jerusalem",
+     "Hapoel Petah Tikva",
+     "Hapoel Ramat Gan",
+     "Hapoel Tel Aviv",
+     "Ironi Kiryat Shmona",
+     "Ironi Tiberias",
+     "Maccabi Haifa",
+     "Maccabi Netanya",
+     "Maccabi Petah Tikva",
+     "Maccabi Tel Aviv"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Israeli Premier League",
+    "found": 14,
+    "teams": [
+     "Beitar Jerusalem",
+     "Bnei Sakhnin",
+     "F.C. Ashdod",
+     "Hapoel Be'er Sheva",
+     "Hapoel Haifa",
+     "Hapoel Jerusalem",
+     "Hapoel Petah Tikva",
+     "Hapoel Tel Aviv",
+     "Ironi Kiryat Shmona",
+     "Ironi Tiberias",
+     "Maccabi Bnei Reineh",
+     "Maccabi Haifa",
+     "Maccabi Netanya",
+     "Maccabi Tel Aviv"
+    ]
+   }
+  }
+ },
+ "il_leumit": {
+  "expected": 16,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Liga Leumit",
+    "found": 16,
+    "teams": [
+     "Bnei Yehuda Tel Aviv",
+     "F.C. Ashdod",
+     "F.C. Kafr Qasim",
+     "F.C. Kiryat Yam",
+     "Hapoel Acre",
+     "Hapoel Afula",
+     "Hapoel Kfar Saba",
+     "Hapoel Kfar Shalem",
+     "Hapoel Ra'anana",
+     "Hapoel Rishon LeZion",
+     "Ironi Modi'in",
+     "Maccabi Akhi Nazareth",
+     "Maccabi Bnei Reineh",
+     "Maccabi Herzliya",
+     "Maccabi Kiryat Gat",
+     "Maccabi Jaffa"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Liga Leumit",
+    "found": 16,
+    "teams": [
+     "Bnei Yehuda Tel Aviv",
+     "F.C. Kafr Qasim",
+     "F.C. Kiryat Yam",
+     "Hapoel Acre",
+     "Hapoel Afula",
+     "Hapoel Hadera",
+     "Hapoel Kfar Saba",
+     "Hapoel Kfar Shalem",
+     "Hapoel Nof HaGalil",
+     "Hapoel Ra'anana",
+     "Hapoel Ramat Gan",
+     "Hapoel Rishon LeZion",
+     "Ironi Modi'in",
+     "Maccabi Herzliya",
+     "Maccabi Jaffa",
+     "Maccabi Petah Tikva"
+    ]
+   }
+  }
+ },
+ "it_seriea": {
+  "expected": 20,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Serie A",
+    "found": 20,
+    "teams": [
+     "Atalanta",
+     "Bologna",
+     "Cagliari",
+     "Como",
+     "Fiorentina",
+     "Frosinone",
+     "Genoa",
+     "AC Milan",
+     "Inter Milan",
+     "Juventus",
+     "Lazio",
+     "Roma",
+     "Lecce",
+     "Monza",
+     "Napoli",
+     "Parma",
+     "Sassuolo",
+     "Torino",
+     "Udinese",
+     "Venezia"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Serie A",
+    "found": 20,
+    "teams": [
+     "Atalanta",
+     "Bologna",
+     "Cagliari",
+     "Como",
+     "Cremonese",
+     "Fiorentina",
+     "Genoa",
+     "Hellas Verona",
+     "AC Milan",
+     "Inter Milan",
+     "Juventus",
+     "Lazio",
+     "Roma",
+     "Lecce",
+     "Napoli",
+     "Parma",
+     "Pisa",
+     "Sassuolo",
+     "Torino",
+     "Udinese"
+    ]
+   }
+  }
+ },
+ "en_premier": {
+  "expected": 20,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Premier League",
+    "found": 20,
+    "teams": [
+     "Arsenal",
+     "Aston Villa",
+     "Bournemouth",
+     "Brentford",
+     "Brighton & Hove Albion",
+     "Chelsea",
+     "Coventry City",
+     "Crystal Palace",
+     "Everton",
+     "Fulham",
+     "Hull City",
+     "Ipswich Town",
+     "Leeds United",
+     "Liverpool",
+     "Manchester City",
+     "Manchester United",
+     "Newcastle United",
+     "Nottingham Forest",
+     "Sunderland",
+     "Tottenham Hotspur"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Premier League",
+    "found": 20,
+    "teams": [
+     "Arsenal",
+     "Aston Villa",
+     "Bournemouth",
+     "Brentford",
+     "Brighton & Hove Albion",
+     "Burnley",
+     "Chelsea",
+     "Crystal Palace",
+     "Everton",
+     "Fulham",
+     "Leeds United",
+     "Liverpool",
+     "Manchester City",
+     "Manchester United",
+     "Newcastle United",
+     "Nottingham Forest",
+     "Sunderland",
+     "Tottenham Hotspur",
+     "West Ham United",
+     "Wolverhampton Wanderers"
+    ]
+   }
+  }
+ },
+ "es_laliga": {
+  "expected": 20,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 La Liga",
+    "found": 20,
+    "teams": [
+     "Alavés",
+     "Athletic Bilbao",
+     "Atlético Madrid",
+     "Barcelona",
+     "Celta Vigo",
+     "Deportivo A Coruña",
+     "Elche",
+     "Espanyol",
+     "Getafe",
+     "Levante",
+     "Málaga",
+     "Osasuna",
+     "Racing Santander",
+     "Rayo Vallecano",
+     "Real Betis",
+     "Real Madrid",
+     "Real Sociedad",
+     "Sevilla",
+     "Valencia",
+     "Villarreal"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 La Liga",
+    "found": 20,
+    "teams": [
+     "Quique Sánchez Flores",
+     "Ernesto Valverde",
+     "Diego Simeone",
+     "Hansi Flick",
+     "Claudio Giráldez",
+     "Eder Sarabia",
+     "Manolo González",
+     "José Bordalás",
+     "Míchel",
+     "Luís Castro",
+     "Martín Demichelis",
+     "Alessio Lisci",
+     "Guillermo Almada",
+     "Iñigo Pérez",
+     "Manuel Pellegrini",
+     "Álvaro Arbeloa",
+     "Pellegrino Matarazzo",
+     "Luis García",
+     "Carlos Corberán",
+     "Marcelino"
+    ]
+   }
+  }
+ },
+ "de_bundesliga": {
+  "expected": 18,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Bundesliga",
+    "found": 18,
+    "teams": [
+     "FC Augsburg",
+     "Union Berlin",
+     "Werder Bremen",
+     "Borussia Dortmund",
+     "SV Elversberg",
+     "Eintracht Frankfurt",
+     "SC Freiburg",
+     "Hamburger SV",
+     "TSG Hoffenheim",
+     "Cologne",
+     "RB Leipzig",
+     "Bayer Leverkusen",
+     "Mainz 05",
+     "Borussia Mönchengladbach",
+     "Bayern Munich",
+     "SC Paderborn",
+     "Schalke 04",
+     "VfB Stuttgart"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Bundesliga",
+    "found": 18,
+    "teams": [
+     "FC Augsburg",
+     "Union Berlin",
+     "Werder Bremen",
+     "Borussia Dortmund",
+     "Eintracht Frankfurt",
+     "SC Freiburg",
+     "Hamburger SV",
+     "Heidenheim",
+     "TSG Hoffenheim",
+     "Cologne",
+     "RB Leipzig",
+     "Bayer Leverkusen",
+     "Mainz 05",
+     "Borussia Mönchengladbach",
+     "Bayern Munich",
+     "FC St. Pauli",
+     "VfB Stuttgart",
+     "VfL Wolfsburg"
+    ]
+   }
+  }
+ },
+ "nl_eredivisie": {
+  "expected": 18,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Eredivisie",
+    "found": 18,
+    "teams": [
+     "ADO Den Haag",
+     "Ajax",
+     "AZ",
+     "Cambuur",
+     "Excelsior",
+     "Feyenoord",
+     "Fortuna Sittard",
+     "Go Ahead Eagles",
+     "Groningen",
+     "Heerenveen",
+     "N.E.C.",
+     "PEC Zwolle",
+     "PSV",
+     "Sparta Rotterdam",
+     "Telstar",
+     "Twente",
+     "Utrecht",
+     "Willem II"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Eredivisie",
+    "found": 18,
+    "teams": [
+     "Ajax",
+     "AZ",
+     "Excelsior",
+     "Feyenoord",
+     "Fortuna Sittard",
+     "Go Ahead Eagles",
+     "Groningen",
+     "Heerenveen",
+     "Heracles Almelo",
+     "NAC Breda",
+     "NEC",
+     "PEC Zwolle",
+     "PSV Eindhoven",
+     "Sparta Rotterdam",
+     "Telstar",
+     "Twente",
+     "Utrecht",
+     "Volendam"
+    ]
+   }
+  }
+ },
+ "be_pro": {
+  "expected": 16,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Belgian Pro League",
+    "found": 18,
+    "teams": [
+     "Anderlecht",
+     "Antwerp",
+     "Beveren",
+     "Cercle Brugge",
+     "Charleroi",
+     "Club Brugge",
+     "Genk",
+     "Gent",
+     "Kortrijk",
+     "La Louvière",
+     "Lommel SK",
+     "Mechelen",
+     "OH Leuven",
+     "Sint-Truiden",
+     "Standard Liège",
+     "Union SG",
+     "Westerlo",
+     "Zulte Waregem"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Belgian Pro League",
+    "found": 16,
+    "teams": [
+     "Anderlecht",
+     "Antwerp",
+     "Cercle Brugge",
+     "Charleroi",
+     "Club Brugge",
+     "Dender EH",
+     "Genk",
+     "Gent",
+     "La Louvière",
+     "Mechelen",
+     "OH Leuven",
+     "Sint-Truiden",
+     "Standard Liège",
+     "Union SG",
+     "Westerlo",
+     "Zulte Waregem"
+    ]
+   }
+  }
+ },
+ "pt_primeira": {
+  "expected": 18,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Primeira Liga",
+    "found": 18,
+    "teams": [
+     "Académico de Viseu",
+     "Alverca",
+     "Arouca",
+     "Benfica",
+     "Braga",
+     "Casa Pia",
+     "Estoril Praia",
+     "Estrela da Amadora",
+     "Famalicão",
+     "Gil Vicente",
+     "Marítimo",
+     "Moreirense",
+     "Nacional",
+     "Porto",
+     "Rio Ave",
+     "Santa Clara",
+     "Sporting CP",
+     "Vitória de Guimarães"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Primeira Liga",
+    "found": 18,
+    "teams": [
+     "Alverca",
+     "Arouca",
+     "AVS",
+     "Benfica",
+     "Braga",
+     "Casa Pia",
+     "Estoril Praia",
+     "Estrela da Amadora",
+     "Famalicão",
+     "Gil Vicente",
+     "Moreirense",
+     "Nacional",
+     "Porto",
+     "Rio Ave",
+     "Santa Clara",
+     "Sporting CP",
+     "Tondela",
+     "Vitória de Guimarães"
+    ]
+   }
+  }
+ },
+ "at_bundesliga": {
+  "expected": 12,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Austrian Football Bundesliga",
+    "error": "attempts exhausted"
+   },
+   "2025-26": {
+    "page": "2025–26 Austrian Football Bundesliga",
+    "error": "attempts exhausted"
+   }
+  }
+ },
+ "gr_superleague": {
+  "expected": 14,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Super League Greece",
+    "found": 14,
+    "teams": [
+     "AEK Athens",
+     "A.E. Kifisia",
+     "Aris",
+     "Asteras Tripolis",
+     "Atromitos",
+     "Iraklis",
+     "Kalamata",
+     "Levadiakos",
+     "OFI",
+     "Olympiacos",
+     "Panathinaikos",
+     "Panetolikos",
+     "PAOK",
+     "Volos"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Super League Greece",
+    "found": 14,
+    "teams": [
+     "AEK Athens",
+     "A.E. Kifisia",
+     "AEL",
+     "Aris",
+     "Asteras Tripolis",
+     "Atromitos",
+     "Levadiakos",
+     "OFI",
+     "Olympiacos",
+     "Panathinaikos",
+     "Panetolikos",
+     "Panserraikos",
+     "PAOK",
+     "Volos"
+    ]
+   }
+  }
+ },
+ "cy_first": {
+  "expected": 14,
+  "seasons": {
+   "2026-27": {
+    "page": "2026–27 Cypriot First Division",
+    "found": 14,
+    "teams": [
+     "AEK Larnaca",
+     "AEL Limassol",
+     "Anorthosis Famagusta",
+     "APOEL",
+     "Apollon Limassol",
+     "Aris Limassol",
+     "Karmiotissa",
+     "Krasava E.N.Y.",
+     "Nea Salamina",
+     "Olympiakos Nicosia",
+     "Omonia 29M",
+     "Omonia Aradippou",
+     "Omonia Nicosia",
+     "Pafos FC"
+    ]
+   },
+   "2025-26": {
+    "page": "2025–26 Cypriot First Division",
+    "found": 14,
+    "teams": [
+     "AEK Larnaca",
+     "AEL Limassol",
+     "Akritas Chlorakas",
+     "Anorthosis Famagusta",
+     "APOEL",
+     "Apollon Limassol",
+     "Aris Limassol",
+     "Enosis Neon Paralimni",
+     "Ethnikos Achnas",
+     "Krasava",
+     "Olympiakos Nicosia",
+     "Omonia Aradippou",
+     "Omonia Nicosia",
+     "Pafos"
+    ]
+   }
+  }
+ }
+}

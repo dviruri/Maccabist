@@ -14,7 +14,7 @@
  * record without touching a single component.
  */
 
-import { tableClubById } from './worldClubs';
+import { worldClubById } from './worldClubs';
 import { importedCrestAsset } from './clubCrests.generated';
 
 export interface ClubVisual {
@@ -140,16 +140,16 @@ export function clubVisual(clubId: string, name?: string): ClubVisual {
   if (declared) return declared;
 
   /*
-   * A table club (v0.6.3): a named division member that is not a transfer destination. Its
-   * colours and initials are declared in worldClubs.ts alongside its membership - one truth per
-   * club - and merged with any imported crest asset here, so ClubCrest needs no second lookup.
+   * A world club (v0.6.3, unified in v0.6.4). Colours and initials are declared in worldClubs.ts
+   * alongside its membership - one truth per club - and merged with any imported crest asset
+   * here, so ClubCrest needs no second lookup.
    */
-  const tableClub = tableClubById(clubId);
-  if (tableClub) {
+  const worldClub = worldClubById(clubId);
+  if (worldClub) {
     return {
-      primary: tableClub.colors?.primary ?? FALLBACK_COLOURS[hashOf(clubId) % FALLBACK_COLOURS.length]!,
-      secondary: tableClub.colors?.secondary ?? '#ffffff',
-      initials: tableClub.initials ?? initialsFor(tableClub.name),
+      primary: worldClub.colors?.primary ?? FALLBACK_COLOURS[hashOf(clubId) % FALLBACK_COLOURS.length]!,
+      secondary: worldClub.colors?.secondary ?? '#ffffff',
+      initials: worldClub.initials ?? initialsFor(worldClub.name),
       asset: importedCrestAsset(clubId) ?? undefined,
     };
   }

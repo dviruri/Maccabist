@@ -42,7 +42,7 @@ import * as path from 'node:path';
 import { CREST_SEEDS, COUNTRY_QIDS, type CrestSeed } from './crestSeeds';
 import { ALL_CLUBS } from '../src/data/clubs';
 import { defaultLeagueFor } from '../src/data/leagues';
-import { tableClubLeague } from '../src/data/worldClubs';
+import { snapshotLeagueOf } from '../src/data/worldClubs';
 
 /* ------------------------------------------------------------------ */
 /* Configuration                                                       */
@@ -378,7 +378,7 @@ async function main(): Promise<void> {
     if (countryFilter && seed.country !== countryFilter) return false;
     if (leagueFilter) {
       const league =
-        tableClubLeague(seed.clubId) ??
+        snapshotLeagueOf(seed.clubId) ??
         (ALL_CLUBS.some((c) => c.id === seed.clubId) ? flagLeagueOfClub(seed.clubId) : null);
       if (league !== leagueFilter) return false;
     }

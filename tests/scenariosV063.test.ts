@@ -14,9 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { CREST_MANIFEST } from '../src/data/clubCrests.generated';
 import { ALL_CLUBS, MACCABI_ID, getClub } from '../src/data/clubs';
 import { clubVisual, getClubCrest } from '../src/data/clubVisuals';
-import { getLeague } from '../src/data/leagues';
-import { LEAGUE_SHAPES } from '../src/data/leagueShape';
-import { allTableClubs, tableClubById, tableClubLeague } from '../src/data/worldClubs';
+import { LEAGUE_MEMBERSHIP } from '../src/data/worldClubs';
 import { createCareer, hydrateCareer } from '../src/game/careerEngine';
 import { cupFinalOpponent, projectCup } from '../src/game/cupEngine';
 import { clubDisplayName } from '../src/game/identity';
@@ -88,10 +86,11 @@ describe('v0.6.3 C. a small market is complete too', () => {
     for (const row of table.rows) expect(row.name, row.clubId).not.toMatch(PLACEHOLDER);
   });
 
-  it('and Cyprus, which has no modelled club at all, is still fully named', () => {
-    const clubs = LEAGUE_SHAPES.cy_first!.others;
-    expect(clubs.length).toBe(12);
-    for (const club of clubs) expect(club.name).not.toMatch(PLACEHOLDER);
+  it('and Cyprus is fully named at its real 2026/27 size', () => {
+    // v0.6.4 corrected the division from 12 clubs to its actual 14.
+    const ids = LEAGUE_MEMBERSHIP.cy_first!;
+    expect(ids.length).toBe(14);
+    for (const id of ids) expect(getClub(id).name).not.toMatch(PLACEHOLDER);
   });
 });
 
@@ -153,9 +152,7 @@ describe('v0.6.3 F. a cup opponent is a real club from the right country', () =>
     for (const id of finalists) {
       const name = clubDisplayName(id);
       expect(name, id).not.toMatch(PLACEHOLDER);
-      const table = tableClubById(id);
-      const country = table ? getLeague(tableClubLeague(id)!).country : getClub(id).country;
-      expect(country, id).toBe('איטליה');
+      expect(getClub(id).country, id).toBe('איטליה');
     }
   });
 });
@@ -195,10 +192,7 @@ describe('v0.6.3 H. ambiguity is refused, not resolved by luck', () => {
 
 describe('v0.6.3 I. the game works offline', () => {
   it('resolves every crest to a local path or a drawn badge - no network anywhere', () => {
-    for (const { id, name } of [
-      ...ALL_CLUBS.map((c) => ({ id: c.id, name: c.name })),
-      ...allTableClubs().map((c) => ({ id: c.id, name: c.name })),
-    ]) {
+    for (const { id, name } of ALL_CLUBS.map((c) => ({ id: c.id, name: c.name }))) {
       const asset = getClubCrest(id);
       if (asset) {
         expect(asset).not.toMatch(/^https?:/i);

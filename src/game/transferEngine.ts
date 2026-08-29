@@ -13,7 +13,7 @@ import {
   negotiateExpectedRole,
 } from './peopleEngine';
 import { stageOrder } from '../data/academy';
-import { ALL_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
+import { ACTIVE_CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import type {
   Career,
   Club,
@@ -579,7 +579,7 @@ export function seniorTransitionOffers(
     ];
 
     if (verdict.path === 'contract_loan') {
-      const destinations = ALL_CLUBS.filter(
+      const destinations = ACTIVE_CLUBS.filter(
         (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low',
       );
       const chosen = rng.weighted(destinations, (c) => interestWeight(career, c) + 0.25);
@@ -612,7 +612,7 @@ export function seniorTransitionOffers(
      * bury him on the bench and quietly end the career. The story continues further down the
      * pyramid, where he actually plays.
      */
-    const destinations = ALL_CLUBS.filter(
+    const destinations = ACTIVE_CLUBS.filter(
       (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low',
     ).filter((c) => c.id !== MACCABI_ID);
     const offers: TransferOffer[] = [];
@@ -659,7 +659,7 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
       recent.every((s) => s.stats.appearances < 10) &&
       career.roleValue < 50;
     if (starved) {
-      const destinations = ALL_CLUBS.filter(
+      const destinations = ACTIVE_CLUBS.filter(
         (c) =>
           c.isSenior &&
           (c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_top'),

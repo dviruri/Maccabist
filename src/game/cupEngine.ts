@@ -1,6 +1,4 @@
-import { ALL_CLUBS, getClub } from '../data/clubs';
-import { getLeague } from '../data/leagues';
-import { allTableClubs, tableClubLeague } from '../data/worldClubs';
+import { ACTIVE_CLUBS, getClub } from '../data/clubs';
 import { rivalryBetween } from '../data/rivalries';
 import { levelContext } from './rules';
 import { clamp, type Rng } from './random';
@@ -138,24 +136,22 @@ function drawFinalOpponent(career: Career, rng: Rng): string | null {
   const own = getClub(career.currentClubId);
 
   /*
-   * v0.6.3: the pool is the whole national club dataset, not just the transfer-eligible clubs.
-   * With `ALL_CLUBS` alone, an Italian final was always against the one other modelled Italian
-   * club - Napoli against Bologna, every time. Table clubs are named, identified division
-   * members, which is everything a finalist needs to be; they still never sign the player.
+   * v0.6.4: the pool is every ACTIVE club of the same country.
+   *
+   * v0.6.3 had to union two collections here because half the football world could not be a
+   * `Club`. Now it can, so this is one filter - and `ACTIVE_CLUBS` is the right list rather than
+   * `ALL_CLUBS`, because a club that dropped out of the modelled divisions is not in the cup.
    */
-  const modelled = ALL_CLUBS.filter((c) => c.id !== own.id && c.country === own.country).map(
-    (c) => ({ id: c.id, quality: c.quality }),
+  const candidates = ACTIVE_CLUBS.filter(
+    (club) =>
+      club.id !== own.id &&
+      club.country === own.country &&
+      club.tier !== 'academy' &&
+      club.tier !== 'youth',
   );
-  const table = allTableClubs()
-    .filter((c) => {
-      const leagueId = tableClubLeague(c.id);
-      return leagueId !== null && getLeague(leagueId).country === own.country;
-    })
-    .map((c) => ({ id: c.id, quality: c.quality }));
-  const candidates = [...modelled, ...table];
   if (candidates.length === 0) return null;
 
-  const weights = candidates.map((c) => Math.max(1, c.quality - 40) ** 1.5);
+  const weights = candidates.map((club) => Math.max(1, club.quality - 40) ** 1.5);
   const total = weights.reduce((a, b) => a + b, 0);
   let pick = rng.next() * total;
   for (let i = 0; i < candidates.length; i += 1) {

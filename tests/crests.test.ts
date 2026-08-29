@@ -13,7 +13,7 @@ import { ALL_CLUBS, MACCABI_ID } from '../src/data/clubs';
 import { CREST_MANIFEST } from '../src/data/clubCrests.generated';
 import { CLUB_VISUALS, clubVisual, getClubCrest, hasRealCrest, initialsFor } from '../src/data/clubVisuals';
 import { defaultLeagueFor } from '../src/data/leagues';
-import { LEAGUE_SHAPES } from '../src/data/leagueShape';
+import { worldClubById } from '../src/data/worldClubs';
 
 /** The clubs a career can actually be at, which is what has to have an identity. */
 const SENIOR_CLUBS = ALL_CLUBS.filter((c) => c.tier !== 'academy' && c.tier !== 'youth');
@@ -32,8 +32,15 @@ describe('every club has a visual identity', () => {
     /*
      * v0.4.7 closed this gap for the thirteen European clubs. Before that a career abroad had a
      * badge whose colour was derived from the club id, which meant nothing.
+     *
+     * v0.6.4: colours now come from either place - `CLUB_VISUALS` for the hand-tuned clubs, or
+     * the club's own `WorldClub` record, which declares them alongside its membership. What
+     * matters is that no senior club falls through to the id hash, so the check is on the
+     * resolved visual rather than on which table it came from.
      */
-    const undeclared = SENIOR_CLUBS.filter((c) => CLUB_VISUALS[c.id] === undefined).map((c) => c.id);
+    const undeclared = SENIOR_CLUBS.filter(
+      (c) => CLUB_VISUALS[c.id] === undefined && worldClubById(c.id)?.colors === undefined,
+    ).map((c) => c.id);
     expect(undeclared).toEqual([]);
   });
 
@@ -41,7 +48,8 @@ describe('every club has a visual identity', () => {
     const israeli = SENIOR_CLUBS.filter((c) => c.country === 'ישראל');
     expect(israeli.length).toBeGreaterThanOrEqual(20);
     for (const club of israeli) {
-      expect(CLUB_VISUALS[club.id], club.id).toBeDefined();
+      const declared = CLUB_VISUALS[club.id] ?? worldClubById(club.id)?.colors;
+      expect(declared, club.id).toBeDefined();
     }
   });
 
@@ -63,11 +71,13 @@ describe('the fallback badge never fails', () => {
     expect(visual.initials.length).toBeGreaterThan(0);
   });
 
-  it('handles a filler club, which has a name but no Club record', () => {
-    const shape = LEAGUE_SHAPES.il_premier;
-    const filler = shape?.others[0];
-    expect(filler).toBeDefined();
-    const visual = clubVisual(`filler_il_premier_${filler?.name}`, filler?.name);
+  it('handles an id with a name but no record at all', () => {
+    /*
+     * v0.6.4 removed filler clubs entirely - every division member is a real Club now. The
+     * property this was really protecting still matters: an unknown id plus a name must still
+     * produce a readable badge, because a very old save can carry one.
+     */
+    const visual = clubVisual('some_unknown_club', 'הפועל עכו');
     expect(visual.initials).not.toBe('?');
   });
 

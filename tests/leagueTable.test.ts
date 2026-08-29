@@ -39,6 +39,15 @@ function project(clubId: string, seed: number, world: WorldState = emptyWorld())
 
 /* ------------------------------------------------------------------ */
 
+/*
+ * v0.6.4: the canonical second-division fixture moved.
+ *
+ * These tests used `hapoel_petah_tikva` as "a Liga Leumit club" - and the 2026/27 snapshot
+ * promoted it to the top flight, which is the world data being corrected rather than the engine
+ * misbehaving. `hapoel_kfar_saba` is a Liga Leumit club in the snapshot and takes over the role.
+ * `hapoel_hadera` likewise stopped being a top-flight club and is now inactive.
+ */
+
 describe('position and outcome are the same fact', () => {
   it('maps every position in a division to an outcome', () => {
     const shape = leagueShape('il_premier');
@@ -104,7 +113,7 @@ describe('the season path', () => {
      * April must finish in a title-race position - otherwise a late title-decider event can be
      * planned for a season that ends in mid-table, which is the bug v0.4.6 was written to kill.
      */
-    for (const clubId of [MACCABI_ID, 'hapoel_hadera', 'hapoel_petah_tikva', 'bnei_sakhnin']) {
+    for (const clubId of [MACCABI_ID, 'hapoel_jerusalem_fc', 'hapoel_kfar_saba', 'bnei_sakhnin']) {
       for (let seed = 1; seed <= 120; seed += 1) {
         const p = project(clubId, seed);
         const shape = leagueShape(p.leagueId);
@@ -130,7 +139,7 @@ describe('the season path', () => {
 
   it('never leaves the table', () => {
     for (let seed = 1; seed <= 200; seed += 1) {
-      const p = project('hapoel_petah_tikva', seed);
+      const p = project('hapoel_kfar_saba', seed);
       for (const phase of PHASES) {
         expect(p.path[phase], `${phase} seed ${seed}`).toBeGreaterThanOrEqual(1);
         expect(p.path[phase], `${phase} seed ${seed}`).toBeLessThanOrEqual(p.leagueSize);
@@ -214,7 +223,7 @@ describe('what the club is fighting for', () => {
 
   it('never claims two incompatible races at once', () => {
     for (let seed = 1; seed <= 200; seed += 1) {
-      for (const clubId of [MACCABI_ID, 'hapoel_hadera', 'hapoel_petah_tikva']) {
+      for (const clubId of [MACCABI_ID, 'hapoel_jerusalem_fc', 'hapoel_kfar_saba']) {
         const p = project(clubId, seed);
         for (const phase of PHASES) {
           const ctx = leagueContextFrom(world, p, phase);
@@ -240,7 +249,7 @@ describe('what the club is fighting for', () => {
 
   it('never puts a second-division club in a European race', () => {
     for (let seed = 1; seed <= 100; seed += 1) {
-      const p = project('hapoel_petah_tikva', seed);
+      const p = project('hapoel_kfar_saba', seed);
       for (const phase of PHASES) {
         expect(leagueContextFrom(world, p, phase).europeRace).toBe(false);
       }
@@ -259,7 +268,7 @@ describe('what the club is fighting for', () => {
 
   it('only calls it a relegation battle near the bottom', () => {
     for (let seed = 1; seed <= 300; seed += 1) {
-      const p = project('hapoel_hadera', seed);
+      const p = project('hapoel_jerusalem_fc', seed);
       const shape = leagueShape(p.leagueId);
       if (!shape) continue;
       for (const phase of PHASES) {
@@ -319,9 +328,10 @@ describe('table coherence across real careers', () => {
       for (let seed = 1; seed <= n; seed += 1) total += project(clubId, seed).finalPosition;
       return total / n;
     };
-    // Maccabi (76) above Bnei Sakhnin (52) above Hapoel Hadera (48), in the same division.
+    // Maccabi (76) above Bnei Sakhnin (52) above Ironi Tiberias (45), in the same division.
+    // v0.6.4: was Hapoel Hadera, which the 2026/27 snapshot puts outside the top flight.
     expect(meanFinish(MACCABI_ID)).toBeLessThan(meanFinish('bnei_sakhnin'));
-    expect(meanFinish('bnei_sakhnin')).toBeLessThan(meanFinish('hapoel_hadera'));
+    expect(meanFinish('bnei_sakhnin')).toBeLessThan(meanFinish('ironi_tiberias'));
   });
 
   it('gives a strong club a real chance of a bad year, and vice versa', () => {
@@ -329,7 +339,7 @@ describe('table coherence across real careers', () => {
     let strugglerGoodYear = 0;
     for (let seed = 1; seed <= 400; seed += 1) {
       if (project(MACCABI_ID, seed).finalPosition > 6) maccabiBadYear += 1;
-      if (project('hapoel_hadera', seed).finalPosition <= 5) strugglerGoodYear += 1;
+      if (project('ironi_tiberias', seed).finalPosition <= 5) strugglerGoodYear += 1;
     }
     // A league where the best squad always wins is not a league.
     expect(maccabiBadYear).toBeGreaterThan(0);
