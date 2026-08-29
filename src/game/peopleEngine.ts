@@ -121,19 +121,138 @@ function withNewPerson(people: PeopleState): PeopleState {
 /* ------------------------------------------------------------------ */
 
 /**
- * Which archetype manages a given club, for this career.
+ * Who would be managing this club, if the player walked in right now? (v0.5.2)
  *
- * Pure and seed-stable, so the transfer screen's "מאמן: מאמין בצעירים" hint and the manager the
- * player actually meets on arrival are the SAME fact read twice (Phase 33). A stored manager in
- * `clubManagers` overrides this - that is what turnover writes.
+ * ONE resolution, used by the transfer preview AND by the arrival that follows it. v0.5.1 had
+ * two: `offerHints` read the club's REMEMBERED manager, while `installManager` separately asked
+ * whether that man had survived the player's absence and generated a successor when he had not.
+ * So an offer to a former club could promise "מאמן: מאמין בצעירים" and deliver a conservative
+ * stranger - the game lying to the player at the exact moment he is deciding.
  *
- * Weighted by club quality: big clubs skew star-driven and conservative, small clubs skew
- * youth-minded - a real pattern, and it makes destination choice matter.
+ * Pure. Mutates nothing, records nothing, and never touches the career's rng stream: every draw
+ * comes from a hash of (seed, club, season), so asking the question cannot change the answer and
+ * cannot change anything else either. That is what makes it safe to call from a preview.
  */
-export function clubManagerArchetype(career: Career, clubId: string): ManagerArchetypeId {
-  const stored = career.people?.clubManagers[clubId];
-  if (stored) return stored.person.archetypeId as ManagerArchetypeId;
+export interface ManagerResolution {
+  person: PersonIdentity;
+  /**
+   * `current`    - he already manages the player's own club right now
+   * `remembered` - the player knew him here, and he survived the absence
+   * `successor`  - the player knew someone here, and that man has gone
+   * `new`        - the player has never been here
+   */
+  source: 'current' | 'remembered' | 'successor' | 'new';
+  previousManagerId?: string;
+  turnoverOccurred: boolean;
+  /** For the debug trace: how long the club was out of sight. */
+  elapsedSeasons: number;
+  /** The continuity probability that was tested, 0-1. 1 when nothing was in doubt. */
+  continuityChance: number;
+}
 
+export function resolveClubManager(
+  career: Career,
+  clubId: string,
+  season: number,
+): ManagerResolution {
+  // The man in front of him right now needs no resolving.
+  const current = career.people?.manager;
+  if (current && current.clubId === clubId) {
+    return {
+      person: current.person,
+      source: 'current',
+      turnoverOccurred: false,
+      elapsedSeasons: 0,
+      continuityChance: 1,
+    };
+  }
+
+  const known = career.people?.clubManagers[clubId];
+  if (!known) {
+    return {
+      person: generateClubManager(career, clubId, stableArchetypeFor(career, clubId), 'first'),
+      source: 'new',
+      turnoverOccurred: false,
+      elapsedSeasons: 0,
+      continuityChance: 1,
+    };
+  }
+
+  const elapsed = Math.max(0, season - known.lastSeenSeason);
+  const continuityChance = elapsed <= 0 ? 1 : MANAGER_SEASON_SURVIVAL ** elapsed;
+  if (elapsed <= 0 || continuityRng(career, known, season).chance(continuityChance)) {
+    return {
+      person: known.person,
+      source: 'remembered',
+      previousManagerId: known.person.id,
+      turnoverOccurred: false,
+      elapsedSeasons: elapsed,
+      continuityChance,
+    };
+  }
+
+  /*
+   * He has gone. The successor's archetype must NOT come from `stableArchetypeFor` - that is a
+   * function of (seed, club) alone, so the "new" man would be the same KIND of manager and the
+   * turnover would be invisible to the player.
+   */
+  return {
+    person: generateClubManager(career, clubId, successorArchetypeFor(career, clubId, season), `s${season}`),
+    source: 'successor',
+    previousManagerId: known.person.id,
+    turnoverOccurred: true,
+    elapsedSeasons: elapsed,
+    continuityChance,
+  };
+}
+
+/**
+ * A club manager's identity, derived from (seed, club, slot) and NOTHING ELSE (v0.5.2).
+ *
+ * Deliberately independent of `personSeq`, unlike agents and personal coaches. Those are created
+ * by an act of the player's, so a running sequence is the natural id; a club's manager exists
+ * whether or not the player ever meets him. More practically: `personSeq` changes when the
+ * player signs an agent, and if it fed this, previewing an offer and then signing an agent
+ * before accepting would silently change who is waiting at the other end. Same club, same
+ * season, same seed - same man, whatever else the career has done in between.
+ */
+function generateClubManager(
+  career: Career,
+  clubId: string,
+  archetypeId: ManagerArchetypeId,
+  slot: string,
+): PersonIdentity {
+  const country = safeClub(clubId)?.country ?? DEFAULT_NAME_COUNTRY;
+  const rng = createRng(career.seed ^ hashString(`clubmgr:${clubId}:${slot}`));
+  const pool = namePoolFor(country);
+  const first = rng.pick(pool.first);
+  const last = rng.pick(pool.last);
+  return {
+    id: `mgr_${clubId}_${slot}`,
+    type: 'club_manager',
+    name: `${first} ${last}`,
+    shortName: last,
+    archetypeId,
+    createdSeason: career.currentSeason,
+    country,
+  };
+}
+
+/** The continuity draw, isolated so preview and commit provably use the same one. */
+function continuityRng(career: Career, known: ClubManagerRecord, season: number): Rng {
+  return createRng(
+    (career.seed ^ hashString(`turnover:${known.person.id}:${known.lastSeenSeason}`)) + season,
+  );
+}
+
+/**
+ * The kind of manager a club hires when the player has never been there.
+ *
+ * A stable function of (seed, club), weighted by club quality - big clubs skew star-driven and
+ * conservative, small clubs youth-minded. Stable is the point: it is what the transfer hint can
+ * honestly promise about a club nobody has visited.
+ */
+function stableArchetypeFor(career: Career, clubId: string): ManagerArchetypeId {
   const club = safeClub(clubId);
   const big = (club?.quality ?? 50) >= 72;
   const weighted: ManagerArchetypeId[] = big
@@ -143,6 +262,26 @@ export function clubManagerArchetype(career: Career, clubId: string): ManagerArc
   const bag = [...weighted.slice(0, 3), ...weighted.slice(0, 3), ...weighted];
   const idx = hashString(`${career.seed}:${clubId}:mgr`) % bag.length;
   return bag[idx] ?? 'disciplinarian';
+}
+
+/** ...and the kind it hires to replace someone. Season-mixed, so a successor is genuinely new. */
+function successorArchetypeFor(
+  career: Career,
+  clubId: string,
+  season: number,
+): ManagerArchetypeId {
+  const all = Object.keys(MANAGER_ARCHETYPES) as ManagerArchetypeId[];
+  const idx = hashString(`${career.seed}:${clubId}:${season}:succ`) % all.length;
+  return all[idx] ?? 'disciplinarian';
+}
+
+/**
+ * The archetype of whoever would be at this club - the one number the transfer hint and the
+ * agent's advice both read, so the two can never disagree with each other or with arrival.
+ */
+export function clubManagerArchetype(career: Career, clubId: string): ManagerArchetypeId {
+  return resolveClubManager(career, clubId, career.currentSeason).person
+    .archetypeId as ManagerArchetypeId;
 }
 
 function safeClub(clubId: string): Club | null {
@@ -203,70 +342,42 @@ export function managerStillThere(
 /* ------------------------------------------------------------------ */
 
 /**
- * Install the manager of the player's current club as the current relationship.
+ * Install whoever the resolver says is at the player's current club (v0.5.2).
  *
- * Reuses the club's remembered manager when the player has met him before (a return can find the
- * same man on the touchline), otherwise generates one. Does NOT set trust - callers do, because
- * arrival trust and coach-change trust follow different existing rules that already work.
+ * Commit only. Every decision - is the man he remembers still here, who replaced him, what kind
+ * of manager the club hires - lives in `resolveClubManager`, which the transfer preview called
+ * first. This function's whole job is to write down the answer the player was already shown.
+ *
+ * Does NOT set trust: callers do, through `initialManagerTrust`, because arrival and a
+ * mid-career replacement carry different carryover.
  */
 export function installManager(career: Career): Career {
   const people = career.people ?? emptyPeopleState();
   const clubId = career.currentClubId;
   const season = career.currentSeason;
 
-  /*
-   * v0.5.1: the club he remembers may have moved on while he was away. `managerStillThere`
-   * decides from how long the absence actually was; a fresh man is generated when it did not
-   * survive. The player's own history with the old manager is untouched either way - it lives
-   * in `managerHistory`, and this map is only ever "who was there last time I looked".
-   */
+  const resolution = resolveClubManager(career, clubId, season);
   const known = people.clubManagers[clubId];
-  const kept = known && managerStillThere(career, known, season) ? known : null;
+  const person = resolution.person;
 
-  /*
-   * Three cases, and they are genuinely different:
-   *
-   *   never been here      -> `clubManagerArchetype`, the stable (seed, club) fact the transfer
-   *                           screen's hint already showed the player. These must agree.
-   *   been here, he stayed -> the same man, same id, same name.
-   *   been here, he went   -> a successor, whose archetype must NOT come from the stable
-   *                           function, or the "new" manager would be the same kind of manager
-   *                           and the turnover would be invisible.
-   */
-  const person =
-    kept?.person ??
-    generatePerson(
-      career,
-      'club_manager',
-      known ? freshArchetypeFor(career, clubId, season) : clubManagerArchetype(career, clubId),
-      safeClub(clubId)?.country ?? DEFAULT_NAME_COUNTRY,
-      known ? `mgr-succ:${clubId}:${season}` : `mgr:${clubId}`,
-    );
-
-  const nextPeople: PeopleState = {
-    ...(kept ? people : withNewPerson(people)),
-    manager: openTenure(person, clubId, season),
-    clubManagers: {
-      ...people.clubManagers,
-      [clubId]: seenNow(person, kept ? kept.installedSeason : season, season),
+  return {
+    ...career,
+    people: {
+      ...people,
+      manager: openTenure(person, clubId, season),
+      clubManagers: {
+        ...people.clubManagers,
+        [clubId]: seenNow(
+          person,
+          // A manager who was already here keeps the date he actually started.
+          known && !resolution.turnoverOccurred ? known.installedSeason : season,
+          season,
+        ),
+      },
     },
   };
-  return { ...career, people: nextPeople };
 }
 
-/**
- * The archetype of a manager who replaced someone off-screen (v0.5.1).
- *
- * Deliberately not `clubManagerArchetype` - that is a stable function of (seed, club), so a
- * successor generated from it would be the same *kind* of manager as the man he replaced, and
- * the turnover would be invisible. Mixing the season in makes the new man genuinely new while
- * staying deterministic.
- */
-function freshArchetypeFor(career: Career, clubId: string, season: number): ManagerArchetypeId {
-  const all = Object.keys(MANAGER_ARCHETYPES) as ManagerArchetypeId[];
-  const idx = hashString(`${career.seed}:${clubId}:${season}:succ`) % all.length;
-  return all[idx] ?? 'disciplinarian';
-}
 
 /**
  * Close the current manager relationship, snapshotting where trust stood (Phase 15).

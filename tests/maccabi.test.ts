@@ -365,17 +365,42 @@ describe('the homecoming', () => {
 });
 
 describe('across whole simulated careers', () => {
-  it('puts a one-club career further up the ladder than an ambitious one, on average', () => {
-    const mean = (policy: typeof balancedPolicy): number => {
-      let total = 0;
-      for (let seed = 1; seed <= 300; seed += 1) {
-        total += maccabiStandingScore(
-          simulateCareer({ playerName: 'ל', position: 'CM', seed, policy }),
-        );
+  it('gives a one-club career a deeper Maccabi record than an ambitious one', () => {
+    /*
+     * v0.5.2: this used to compare `maccabiStandingScore` between the two policies at 300 seeds
+     * and assert loyal > balanced with no margin. That claim is not true of this engine, and was
+     * not true before v0.5.2 either - measured on the unmodified previous commit, loyal 38.96
+     * against balanced 39.83 at 1,200 seeds. It passed at 300 by sample luck, and any change
+     * that nudged trajectories was going to flip it sooner or later.
+     *
+     * The reason is defensible rather than a bug: the standing score rewards what a player
+     * ACHIEVED at Maccabi, and a balanced career develops further, wins more, and can come home
+     * a hero - so it competes with a career that simply stayed. What loyalty actually buys is
+     * the record itself, and that separates the two enormously:
+     *
+     *   loyal     169.1 Maccabi appearances   67.1% never left
+     *   balanced  133.4                        46.6%
+     *
+     * So that is what is asserted now - a structural consequence of the policy with a wide
+     * margin, rather than a coin flip dressed as an invariant. See V052_REPORT.md.
+     */
+    const record = (policy: typeof balancedPolicy) => {
+      let appearances = 0;
+      let neverLeft = 0;
+      const n = 300;
+      for (let seed = 1; seed <= n; seed += 1) {
+        const career = simulateCareer({ playerName: 'ל', position: 'CM', seed, policy });
+        appearances += career.maccabi.appearances;
+        if (!career.maccabi.everLeft) neverLeft += 1;
       }
-      return total / 300;
+      return { appearances: appearances / n, neverLeft: neverLeft / n };
     };
-    expect(mean(loyalPolicy)).toBeGreaterThan(mean(balancedPolicy));
+
+    const loyal = record(loyalPolicy);
+    const balanced = record(balancedPolicy);
+
+    expect(loyal.appearances).toBeGreaterThan(balanced.appearances * 1.1);
+    expect(loyal.neverLeft).toBeGreaterThan(balanced.neverLeft * 1.2);
   });
 
   it('produces every band across a population, and no undefined ones', () => {

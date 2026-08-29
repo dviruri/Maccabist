@@ -707,18 +707,25 @@ export function beginSeason(career: Career): Career {
      * ability deserves, and the club occasionally changes coach - which is the main way a
      * player buried by one bad relationship gets a fresh look.
      */
-    let next = driftTrustTowardsBaseline(career, RECOVERY.seasonDriftToBaseline);
-    const coach = maybeChangeCoach(next, rng);
-    next = coach.career;
     /*
-     * v0.5: the coach change is now a person change. The outgoing manager's relationship is
-     * closed with its trust snapshot, a successor with a different archetype takes over, and
-     * both moments are remembered with the person attached - which is what lets an event years
-     * later say who left, by name, and be right.
+     * v0.5.2: ASK FIRST, THEN ACT. The two paths are genuinely different and must not share a
+     * step.
+     *
+     * v0.5.1 drifted trust and only then asked whether the manager was leaving, so a departing
+     * manager's `finalTrust` - the number his history remembers forever - included a preseason
+     * drift for a season he never coached. A man who lost the dressing room in May was recorded
+     * as having left on a slightly kinder number, because the club's summer happened to him
+     * after he was gone.
+     *
+     * Staying is the only path that drifts. Leaving snapshots exactly where the relationship
+     * stood, and the successor derives his own opinion from scratch.
      */
+    const coach = maybeChangeCoach(career, rng);
+    let next: Career;
     if (coach.changed) {
-      const leaving = next.people?.manager?.person;
-      next = replaceManager(next, rng);
+      const leaving = coach.career.people?.manager?.person;
+      // No drift on this branch: `coach.career.coachTrust` is still the value he actually left on.
+      next = replaceManager(coach.career, rng);
       if (leaving) {
         next = cloneCareer(next);
         next.memories = recordMemory(next, 'manager_left', leaving.name, leaving.id);
@@ -727,6 +734,9 @@ export function beginSeason(career: Career): Career {
           next.memories = recordMemory(next, 'new_manager_page', incoming.name, incoming.id);
         }
       }
+    } else {
+      // He is still here, so the relationship carries on - and carries on drifting.
+      next = driftTrustTowardsBaseline(coach.career, RECOVERY.seasonDriftToBaseline);
     }
     next = advancePeopleSeason(next);
 
