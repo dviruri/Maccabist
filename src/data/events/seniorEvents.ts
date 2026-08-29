@@ -1491,7 +1491,7 @@ export const SENIOR_EVENTS: GameEvent[] = [
               roleValue: 10,
               confidence: 12,
               coachTrust: 7,
-              achievement: 'derby_moment',
+              achievement: 'cup_final_hero',
               flags: ['fan_favourite'],
             },
             modifiers: [

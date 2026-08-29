@@ -9,6 +9,7 @@ import {
   LEGACY_RANK_ICONS,
   LEGACY_RANK_LABELS,
   maccabiArchetypes,
+  maccabiLegacyComponents,
   maccabiLegacyRank,
   maccabiLegacyScore,
 } from '../game/maccabiLegacy';
@@ -36,7 +37,6 @@ interface Props {
 }
 
 export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Element {
-  const legend = career.legend;
   const m = career.maccabi;
   const isKeeper = career.position === 'GK';
   /*
@@ -56,8 +56,11 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
   const europeSeasonCount = breakdown.foreignSeasonsPlayed;
   const europeApps = breakdown.foreign;
 
-  const score = legend?.score ?? 0;
   /*
+   * v0.6.2: `legend.score` is no longer read here. It remains on the career for save
+   * compatibility, the endings prose and existing tests - it simply has no user-facing surface
+   * on this screen any more. See §Compatibility in V062_REPORT.md.
+   *
    * Gold follows the *ending*, not the raw score.
    *
    * The two can disagree - the engine awarded "אגדה ירוקה" to a career scoring 61 - and a poster
@@ -77,6 +80,7 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
   const legacyScore = maccabiLegacyScore(career);
   const archetypes = maccabiArchetypes(career);
   const trophyGroups = trophySummary(career);
+  const legacyComponents = maccabiLegacyComponents(career);
   const appearanceStanding = historicalStanding(career, 'appearances');
 
   return (
@@ -125,18 +129,30 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
           green - showing both without inflating either is the entire point of the feature.
           The existing Legend Score keeps its place; the global career read joins it.
         */}
+        {/*
+          v0.6.2: TWO greatness axes, and only two.
+
+          The poster carried three overlapping scores - מדד אגדה, קריירה עולמית and (further
+          down) מורשת מכבי - and two of them mostly answered the same question. A player should
+          not have to work out the difference between מדד אגדה and מורשת מכבי when both are
+          largely "how big were you at Maccabi".
+
+          So the retirement screen now asks exactly two questions: how great was the career, and
+          what did it mean to Maccabi. `legendScore` survives internally (see §Compatibility in
+          V062_REPORT) but is no longer a user-facing score.
+        */}
         <div className="poster-scores">
           <div className="poster-score">
-            <div className="poster-score-value">
-              <Ltr>{score}</Ltr>
-            </div>
-            <div className="poster-score-label">מדד אגדה</div>
-          </div>
-          <div className="poster-score poster-score-secondary">
             <div className="poster-score-value">
               <Ltr>{globalScore}</Ltr>
             </div>
             <div className="poster-score-label">קריירה עולמית</div>
+          </div>
+          <div className="poster-score">
+            <div className="poster-score-value">
+              <Ltr>{legacyScore}</Ltr>
+            </div>
+            <div className="poster-score-label">מורשת מכבי</div>
           </div>
         </div>
 
@@ -228,13 +244,21 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
               )}
             </div>
           </div>
+          {/*
+            v0.6.2, 3.4: a career written mostly outside the green gets an honest sentence
+            rather than an empty card. Low Maccabi Legacy is a true fact about a career that may
+            have been excellent; the screen says so plainly instead of leaving a blank.
+          */}
+          {appearanceStanding.playerValue === 0 && (
+            <div className="legacy-line">הקריירה שלך נכתבה בעיקר מחוץ לירוק.</div>
+          )}
           {appearanceStanding.playerValue > 0 && (
             <div className="legacy-line">
               {appearanceStanding.brokeRecord
                 ? 'שיא ההופעות של המועדון שייך לך.'
                 : appearanceStanding.rank <= 10
                   ? `מקום ${appearanceStanding.rank} בהופעות בכל הזמנים של מכבי.`
-                  : `${appearanceStanding.playerValue} הופעות ליגה בירוק.`}
+                  : `${appearanceStanding.playerValue} הופעות רשמיות בירוק.`}
             </div>
           )}
         </div>
@@ -313,29 +337,31 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
         </div>
       </section>
 
-      {/* --- legend breakdown --- */}
-      {legend && (
-        <section className="card retirement-block">
-          <div className="stack-sm">
-            <div className="kicker">ממה מורכב מדד האגדה</div>
-            {legend.components.map((component) => (
-              <div key={component.key} className="component-row">
-                <span className="component-name">{component.label}</span>
-                <span className="component-bar">
-                  <span
-                    style={{ width: `${Math.round((component.points / component.max) * 100)}%` }}
-                  />
-                </span>
-                <span className="component-points">
-                  <Ltr>
-                    {component.points.toFixed(1)}/{component.max}
-                  </Ltr>
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/*
+        v0.6.2: the breakdown now explains מורשת מכבי rather than the retired מדד אגדה. Showing
+        the anatomy of a score the player can no longer see would be the third axis returning
+        through the back door.
+      */}
+      <section className="card retirement-block">
+        <div className="stack-sm">
+          <div className="kicker">ממה מורכבת מורשת מכבי</div>
+          {legacyComponents.map((component) => (
+            <div key={component.key} className="component-row">
+              <span className="component-name">{component.label}</span>
+              <span className="component-bar">
+                <span
+                  style={{ width: `${Math.round((component.points / component.max) * 100)}%` }}
+                />
+              </span>
+              <span className="component-points">
+                <Ltr>
+                  {component.points.toFixed(1)}/{component.max}
+                </Ltr>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* --- career timeline --- */}
       <section className="card retirement-block">

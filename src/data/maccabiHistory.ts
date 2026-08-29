@@ -278,7 +278,7 @@ export const MACCABI_PANTHEON: readonly MaccabiHistoricalPlayer[] = [
     appearances: 129,
     goals: 97,
     championships: 1,
-    note: '28 שערי ליגה בעונה אחת - שיא שעדיין עומד.',
+    note: '28 שערים בעונת ליגה אחת - שיא ליגה שעדיין עומד.',
     sourceRefs: ['wiki-players', 'official-records', 'wiki-mizrahi'],
   },
 ];

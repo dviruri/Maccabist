@@ -573,7 +573,16 @@ export type MemoryKind =
   | 'big_mistake'
   | 'confidence_crisis'
   // highs
+  /** An authoritative derby only - never a synonym for "big match" (v0.6.2). */
   | 'derby_hero'
+  /**
+   * A decisive moment in a match that was NOT a derby (v0.6.2).
+   *
+   * Added because `cb_penalty_again` - a redemption-arc penalty with no opponent condition at
+   * all - was recording `derby_hero`. The event text never said דרבי; the memory kind did, and
+   * a string scan of text could never have caught it.
+   */
+  | 'clutch_moment'
   | 'cup_final_hero'
   | 'european_night'
   | 'title_winner'

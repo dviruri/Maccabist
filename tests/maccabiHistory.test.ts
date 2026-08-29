@@ -82,8 +82,7 @@ describe('historical dataset validity (Phase 48)', () => {
         expect(Number.isFinite(value), p.id).toBe(true);
         expect(value, p.id).toBeGreaterThanOrEqual(0);
       }
-      // League goals cannot exceed league appearances for an outfield career... except they
-      // genuinely can not: nobody averages over a goal a game across a career here.
+      // Goals cannot exceed appearances - the contradiction that exposed v0.6's scope error.
       if (p.goals !== undefined && p.appearances !== undefined) {
         expect(p.goals, p.id).toBeLessThanOrEqual(p.appearances);
       }

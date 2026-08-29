@@ -4,6 +4,28 @@ import type { Career } from '../types';
  * Lightweight achievement definitions.
  * `check` runs after every simulated season; each achievement can only fire once.
  */
+/**
+ * What KIND of moment an achievement commemorates (v0.6.2).
+ *
+ * Added because a string scan of event TEXT was too narrow a guard. `sen_cup_final` never used
+ * the word דרבי anywhere - it simply awarded `derby_moment`, and a Hapoel Kfar Saba player who
+ * won a State Cup final against Umm al-Fahm collected "הרגע בדרבי". The text was clean; the
+ * SEMANTICS were not.
+ *
+ * A category is a claim about the context an achievement requires, so the validator can check
+ * that the event granting it actually guarantees that context - typed metadata rather than
+ * grepping for a word.
+ */
+export type AchievementCategory =
+  /** Requires an authoritative derby: rivalry(currentClub, opponent).type === 'localDerby'. */
+  | 'derby'
+  /** Requires a cup competition context. */
+  | 'cup'
+  /** Requires being at Maccabi. */
+  | 'maccabi'
+  /** No contextual requirement - career-shape milestones, development, transfers. */
+  | 'career';
+
 export interface AchievementDefinition {
   id: string;
   name: string;
@@ -11,6 +33,11 @@ export interface AchievementDefinition {
   icon: string;
   /** Celebrations with `major: true` get the big confetti moment. */
   major?: boolean;
+  /**
+   * The context this achievement asserts (v0.6.2). Defaults to 'career' - no requirement -
+   * so only achievements that genuinely claim a context need to declare one.
+   */
+  category?: AchievementCategory;
   check?: (career: Career) => boolean;
 }
 
@@ -121,6 +148,23 @@ export const ACHIEVEMENT_DEFS: AchievementDefinition[] = [
     description: 'שער שהשתיק אצטדיון שלם.',
     icon: '🔥',
     major: true,
+    // v0.6.2: an authoritative derby, or nothing. The validator enforces it.
+    category: 'derby',
+  },
+  {
+    /*
+     * v0.6.2: the cup final needed its own moment.
+     *
+     * `sen_cup_final` was awarding `derby_moment` - "הרגע בדרבי" - for winning a State Cup
+     * final, which for most finalists is simply false. Generic cup heroism is its own thing and
+     * now says so.
+     */
+    id: 'cup_final_hero',
+    name: 'גיבור הגמר',
+    description: 'הרגע שהכריע גמר גביע.',
+    icon: '🏆',
+    major: true,
+    category: 'cup',
   },
   {
     id: 'elite_ability',

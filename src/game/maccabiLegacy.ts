@@ -224,7 +224,7 @@ export function maccabiLegacyComponents(career: Career): LegacyComponent[] {
       label: 'הופעות בירוק',
       points: curve(f.appearances, t.appearances) * w.longevity,
       max: w.longevity,
-      detail: `${f.appearances} הופעות ליגה`,
+      detail: `${f.appearances} הופעות רשמיות`,
     },
     {
       key: 'seasons',
@@ -525,7 +525,9 @@ function playerValueFor(career: Career, category: RecordCategoryId): number {
  *
  * The historical dataset is never mutated - the player's value is compared against it, and the
  * "effective record" for display is simply max(history, player). Ties and breaks are distinct:
- * matching Harazi's 495 equals the record; the 496th appearance breaks it.
+ * matching Harazi's total equals the record; one more appearance breaks it. (The number itself
+ * is deliberately not written here - it lives in the dataset, and a comment that duplicates it
+ * is a comment that goes stale, as this one did when v0.6.1 corrected the scope.)
  */
 export function historicalStanding(career: Career, category: RecordCategoryId): HistoricalStanding {
   const value = playerValueFor(career, category);
@@ -612,18 +614,18 @@ export interface LegacyMilestoneDef {
 const appsAtLeast = (n: number) => (career: Career) => maccabiLegacyFacts(career).appearances >= n;
 
 export const LEGACY_MILESTONES: readonly LegacyMilestoneDef[] = [
-  { id: 'maccabi_apps_50', icon: '🟢', major: false, text: '50 הופעות ליגה במדי מכבי חיפה', due: appsAtLeast(50) },
+  { id: 'maccabi_apps_50', icon: '🟢', major: false, text: '50 הופעות רשמיות במדי מכבי חיפה', due: appsAtLeast(50) },
   {
     id: 'maccabi_apps_100',
     icon: '💚',
     major: true,
-    text: '100 הופעות ליגה בירוק - מועדון המאה',
+    text: '100 הופעות במכבי חיפה - מועדון המאה',
     memory: 'maccabi_century',
     due: appsAtLeast(100),
   },
-  { id: 'maccabi_apps_200', icon: '💚', major: true, text: '200 הופעות ליגה במכבי חיפה', due: appsAtLeast(200) },
-  { id: 'maccabi_apps_300', icon: '⭐', major: true, text: '300 הופעות ליגה במכבי חיפה', due: appsAtLeast(300) },
-  { id: 'maccabi_apps_400', icon: '⭐', major: true, text: '400 הופעות ליגה - בין הגדולים בהיסטוריה', due: appsAtLeast(400) },
+  { id: 'maccabi_apps_200', icon: '💚', major: true, text: '200 הופעות במכבי חיפה', due: appsAtLeast(200) },
+  { id: 'maccabi_apps_300', icon: '⭐', major: true, text: '300 הופעות במכבי חיפה', due: appsAtLeast(300) },
+  { id: 'maccabi_apps_400', icon: '⭐', major: true, text: '400 הופעות במכבי - בין הגדולים בהיסטוריה', due: appsAtLeast(400) },
   {
     id: 'maccabi_top10_apps',
     icon: '📗',
@@ -652,8 +654,8 @@ export const LEGACY_MILESTONES: readonly LegacyMilestoneDef[] = [
     text: 'השווית את שיא ההופעות של אלון חרזי',
     /*
      * >= rather than the display-level `tiedRecord` (which is ===), because a milestone
-     * predicate must be MONOTONIC: a player who tied at 495 and then played a 496th game has
-     * still, forever, once tied the record. The 5,000-career integrity smoke caught the ===
+     * predicate must be MONOTONIC: a player who ties the record and then plays one more game
+     * has still, forever, once tied it. The 5,000-career integrity smoke caught the ===
      * version flagging 0.2% of careers - everyone who tied and then kept playing.
      */
     due: (c) => {

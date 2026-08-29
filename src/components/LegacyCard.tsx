@@ -65,7 +65,7 @@ export function LegacyCard({ career }: { career: Career }): JSX.Element {
       <section className="card-flat legacy-section">
         <div className="kicker">המספרים שלך במכבי</div>
         <div className="legacy-numbers">
-          <LegacyStat value={facts.appearances} label="הופעות ליגה" />
+          <LegacyStat value={facts.appearances} label="הופעות" />
           <LegacyStat value={facts.seasons} label="עונות" />
           {career.position === 'GK' ? (
             <LegacyStat value={facts.cleanSheets} label="שערים נקיים" />
@@ -98,7 +98,7 @@ export function LegacyCard({ career }: { career: Career }): JSX.Element {
           <RecordLadder key={category.id} career={career} categoryId={category.id} />
         ))}
         <div className="legacy-scope-note">
-          הנתונים ההיסטוריים: הופעות ושערי ליגה בלבד, נכון לסוף עונת 2025/26.
+          הנתונים ההיסטוריים: כל המשחקים הרשמיים בבוגרים, נכון לסוף עונת 2025/26.
         </div>
       </section>
 

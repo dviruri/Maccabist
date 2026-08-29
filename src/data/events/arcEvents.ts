@@ -1005,7 +1005,7 @@ export const ARC_EVENTS: GameEvent[] = [
               reputation: 6,
               roleValue: 6,
               coachTrust: 5,
-              remember: 'derby_hero',
+              remember: 'clutch_moment',
               milestone: {
                 id: 'penalty_redemption',
                 icon: '🎯',
