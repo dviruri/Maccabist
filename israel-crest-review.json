@@ -1,0 +1,58 @@
+[
+ {
+  "clubId": "beitar_yavne",
+  "hebrew": "בית\"ר יבנה",
+  "english": "Beitar Yavne",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
+  "clubId": "hapoel_arraba",
+  "hebrew": "הפועל עראבה",
+  "english": "Hapoel Ironi Arraba",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
+  "clubId": "hapoel_bnei_musmus",
+  "hebrew": "הפועל בני מוסמוס",
+  "english": "Hapoel Bnei Musmus",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
+  "clubId": "maccabi_neve_shaanan",
+  "hebrew": "מכבי נווה שאנן",
+  "english": "Maccabi Neve Sha'anan",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
+  "clubId": "maccabi_nujeidat",
+  "hebrew": "מכבי נוג'ידאת",
+  "english": "Maccabi Nujeidat",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
+  "clubId": "mk_kfar_saba",
+  "hebrew": "מ.כ. כפר סבא",
+  "english": "MK Kfar Saba",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
+  "clubId": "tzeirei_tamra",
+  "hebrew": "צעירי טמרה",
+  "english": "Tzeirei Tamra",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
+  "clubId": "tzeirei_tira",
+  "hebrew": "צעירי טירה",
+  "english": "Tzeirei Tira",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ }
+]

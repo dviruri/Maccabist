@@ -18,6 +18,7 @@
     "crests:dry-run": "vite-node scripts/importClubCrests.ts -- --dry-run",
     "crests:import": "vite-node scripts/importClubCrests.ts --",
     "crests:missing": "vite-node scripts/importClubCrests.ts -- --missing-only",
+    "crests:israel": "vite-node scripts/importIsraelCrests.ts --",
     "crests:reclassify": "vite-node scripts/reclassifyCrests.ts --",
     "world:audit": "node scripts/auditLeagues.mjs",
     "world-metrics": "vite-node scripts/worldMetrics.ts --"

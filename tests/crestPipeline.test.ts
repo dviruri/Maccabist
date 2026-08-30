@@ -22,7 +22,7 @@ const KNOWN_IDS = new Set(ALL_CLUBS.map((c) => c.id));
 describe('v0.6.3 the crest manifest is locally real', () => {
   it('points every entry at an existing repo-local file', () => {
     for (const [clubId, entry] of Object.entries(CREST_MANIFEST)) {
-      expect(entry.asset, clubId).toMatch(/^club-crests\/[a-z0-9_]+\.(svg|png)$/);
+      expect(entry.asset, clubId).toMatch(/^club-crests\/[a-z0-9_]+\.(svg|png|webp|gif)$/);
       expect(entry.asset, clubId).not.toMatch(/^https?:/i);
       const file = path.join(ROOT, 'public', entry.asset);
       expect(fs.existsSync(file), `${clubId}: missing ${entry.asset}`).toBe(true);
@@ -41,14 +41,28 @@ describe('v0.6.3 the crest manifest is locally real', () => {
     expect(new Set(assets).size).toBe(assets.length);
   });
 
-  it('records an allow-listed licence on every entry', () => {
+  it('holds each regime to its own rules (v0.6.5)', () => {
     /*
-     * The importer's rule, re-checked where the assets actually ship. If someone hand-edits the
-     * generated file to smuggle in a non-free crest, this is the test that says no.
+     * Two regimes, deliberately separate and separately policed:
+     *
+     *  - free-media (the European pipeline): Commons files, PD/CC0 allow-list, wikimedia only.
+     *  - referential (the Israeli pipeline): non-free club marks ingested at the project
+     *    owner's explicit direction. The rule here is HONESTY, not licence family - the entry
+     *    must say plainly that it is not claimed as free, and must come from one of the
+     *    entity-verified providers.
+     *
+     * A referential entry claiming a PD licence, or a free-media entry from TheSportsDB, is
+     * exactly the kind of quiet drift this test exists to refuse.
      */
     for (const [clubId, entry] of Object.entries(CREST_MANIFEST)) {
-      expect(entry.license, clubId).toMatch(/^(public domain|pd|cc0)/i);
-      expect(entry.provider, clubId).toBe('wikimedia');
+      if (entry.regime === 'free-media') {
+        expect(entry.license, clubId).toMatch(/^(public domain|pd|cc0)/i);
+        expect(entry.provider, clubId).toBe('wikimedia');
+      } else {
+        expect(entry.regime, clubId).toBe('referential');
+        expect(['thesportsdb', 'hewiki'], clubId).toContain(entry.provider);
+        expect(entry.license.toLowerCase(), clubId).not.toMatch(/^(public domain|pd|cc0)/);
+      }
     }
   });
 
@@ -58,10 +72,14 @@ describe('v0.6.3 the crest manifest is locally real', () => {
       string,
       { sourcePage?: string; license?: string; retrievedAt?: string; trademarkNote?: string }
     >;
-    for (const clubId of Object.keys(CREST_MANIFEST)) {
-      const record = provenance[clubId];
+    for (const [clubId, entry] of Object.entries(CREST_MANIFEST)) {
+      const record = provenance[clubId] as (typeof provenance)[string] & { sourceUrl?: string };
       expect(record, `${clubId} has no provenance record`).toBeDefined();
-      expect(record!.sourcePage, clubId).toMatch(/^https:\/\/commons\.wikimedia\.org\//);
+      if (entry.regime === 'free-media') {
+        expect(record!.sourcePage, clubId).toMatch(/^https:\/\/commons\.wikimedia\.org\//);
+      } else {
+        expect(record!.sourceUrl, clubId).toMatch(/^https:\/\//);
+      }
       expect(record!.retrievedAt, clubId).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(record!.trademarkNote, clubId).toBeTruthy();
     }

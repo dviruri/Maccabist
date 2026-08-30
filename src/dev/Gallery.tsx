@@ -22,6 +22,8 @@ import { PeopleCard } from '../components/PeopleCard';
 import { LegacyCard } from '../components/LegacyCard';
 import type { GameActions } from '../state/useGame';
 import { ClubCrest } from '../components/ClubCrest';
+import { getClub } from '../data/clubs';
+import { LEAGUE_MEMBERSHIP } from '../data/worldClubs';
 import { resolveOrigin } from '../game/originEngine';
 import { positionsForOutcome, projectSeason } from '../game/leagueEngine';
 import { leagueShape } from '../data/leagueShape';
@@ -428,6 +430,37 @@ function firstOriginOf(origin: CareerOrigin): Career {
 }
 
 /* A senior season with milestones stamped to it, for the season-memories strip. */
+
+/** v0.6.5 QA grid: the whole Israeli pyramid with live crest resolution. Dev-only. */
+function IsraelClubGallery(): JSX.Element {
+  const divisions: Array<[string, readonly string[]]> = [
+    ['ליגת העל', LEAGUE_MEMBERSHIP.il_premier ?? []],
+    ['הליגה הלאומית', LEAGUE_MEMBERSHIP.il_leumit ?? []],
+    ['ליגה א׳ צפון', LEAGUE_MEMBERSHIP.il_alef_north ?? []],
+    ['ליגה א׳ דרום', LEAGUE_MEMBERSHIP.il_alef_south ?? []],
+  ];
+  return (
+    <div className="stack">
+      {divisions.map(([title, ids]) => (
+        <section key={title} className="card">
+          <h3>{title} ({ids.length})</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+            {ids.map((id) => (
+              <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <ClubCrest clubId={id} name={getClub(id).name} size="medium" />
+                <div>
+                  <div>{getClub(id).name}</div>
+                  <div style={{ opacity: 0.6, direction: 'ltr', fontSize: 10 }}>{id}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 const memorableSeason = (): Career => {
   const career = seniorAtMaccabi();
   const season = career.lastSeasonRecord?.season ?? career.currentSeason;
@@ -818,6 +851,13 @@ export function Gallery(): JSX.Element {
      * between them they are where a crest column would push text into truncation.
      */
     ['table-spain', <LeagueTableCard career={tableCareer('getafe', 5)} defaultOpen />],
+    /*
+     * v0.6.5, E13: every active Israeli club on one screen - crest, name, league. The point is
+     * QA by eye: a wrong badge, a duplicate, a wordmark or a broken transparent background is
+     * visible here in a way no automated test can promise. Data-driven from the membership
+     * lists, so a club added to the pyramid appears without touching this file.
+     */
+    ['israel-clubs', <IsraelClubGallery />],
     ['table-england', <LeagueTableCard career={tableCareer('brighton', 9)} defaultOpen />],
     ['ladder-senior', <StageLadder from="u19" to="senior" />],
     ['ladder-normal', <StageLadder from="children_b" to="children_a" />],

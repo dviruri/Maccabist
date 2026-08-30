@@ -190,12 +190,20 @@ describe('v0.6.4 H. a wordmark or historic badge is never the primary crest', ()
     const provenance = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, '../public/club-crests/manifest.json'), 'utf8'),
     ) as Record<string, { sourceFile: string; verifiedCurrent?: boolean }>;
-    for (const clubId of Object.keys(CREST_MANIFEST)) {
+    for (const [clubId, entry] of Object.entries(CREST_MANIFEST)) {
       const record = provenance[clubId];
       expect(record, clubId).toBeDefined();
-      expect(classifyAsset(record!.sourceFile), `${clubId}: ${record!.sourceFile}`).toBe(
-        'current_primary_crest',
-      );
+      /*
+       * v0.6.5: the Commons-file-title classifier applies to the free-media regime, where the
+       * file title is the evidence we have. Referential (Israeli) entries are verified by
+       * provider semantics instead - TSDB's badge field and hewiki's infobox image are
+       * current-crest slots by construction - and carry verifiedCurrent from the importer.
+       */
+      if (entry.regime === 'free-media') {
+        expect(classifyAsset(record!.sourceFile), `${clubId}: ${record!.sourceFile}`).toBe(
+          'current_primary_crest',
+        );
+      }
       expect(record!.verifiedCurrent, clubId).toBe(true);
     }
   });

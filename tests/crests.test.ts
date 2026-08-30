@@ -153,7 +153,11 @@ describe('no crest is ever loaded from someone else’s server', () => {
   });
 
   it('returns null for a club with no asset', () => {
-    expect(getClubCrest(MACCABI_ID)).toBeNull();
-    expect(hasRealCrest(MACCABI_ID)).toBe(false);
+    /*
+     * v0.6.5: Maccabi Haifa was the exemplar here and now HAS a real crest - which is the whole
+     * point of the release. A documented-tail club takes over the role.
+     */
+    expect(getClubCrest('tzeirei_tamra')).toBeNull();
+    expect(hasRealCrest('tzeirei_tamra')).toBe(false);
   });
 });
