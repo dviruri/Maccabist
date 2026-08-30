@@ -256,6 +256,14 @@ function marketFit(career: Career, leagueId: string, pool: readonly Club[]): num
   const level = careerLevel(career);
 
   /*
+   * Home first (v0.6.4). See MARKET.homeMarketBias: leaving the country is a bigger step than
+   * changing clubs inside it, and this is where that is said out loud instead of being an
+   * artefact of how many clubs each country happened to have in the dataset.
+   */
+  const home = getClub(career.currentClubId).country;
+  const domestic = league.country === home ? MARKET.homeMarketBias : 1;
+
+  /*
    * A market's standing is its own level, not its best club's - which is what makes this
    * count-independent. `stretch` lets a player look one step up, the same allowance
    * `clubInterest` gives inside a market.
@@ -270,7 +278,7 @@ function marketFit(career: Career, leagueId: string, pool: readonly Club[]): num
    * out of the market decision.
    */
   const reachable = pool.some((club) => clubInterest(career, club, career.currentSeason) > 0.02);
-  return reachable ? fit : 0;
+  return reachable ? fit * domestic : 0;
 }
 
 /**

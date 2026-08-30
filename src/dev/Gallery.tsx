@@ -812,6 +812,13 @@ export function Gallery(): JSX.Element {
     ['table-second', <LeagueTableCard career={tableCareer('hapoel_petah_tikva', 5)} />],
     /* v0.6.3: the reported league. Twenty named Serie A rows, real crests where imported. */
     ['table-italy', <LeagueTableCard career={tableCareer('bologna', 7)} defaultOpen />],
+    /*
+     * v0.6.4: the two hardest tables for layout. Spain carries the longest Hebrew club name in
+     * the dataset (דפורטיבו לה קורוניה) and England is twenty rows of Latin-derived names, so
+     * between them they are where a crest column would push text into truncation.
+     */
+    ['table-spain', <LeagueTableCard career={tableCareer('getafe', 5)} defaultOpen />],
+    ['table-england', <LeagueTableCard career={tableCareer('brighton', 9)} defaultOpen />],
     ['ladder-senior', <StageLadder from="u19" to="senior" />],
     ['ladder-normal', <StageLadder from="children_b" to="children_a" />],
     ['ladder-early', <StageLadder from="children_a" to="youth_b" />],

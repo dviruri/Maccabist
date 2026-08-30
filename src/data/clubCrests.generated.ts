@@ -23,7 +23,9 @@ export interface CrestManifestEntry {
 }
 export const CREST_MANIFEST: Record<string, CrestManifestEntry> = {
   ac_milan: { asset: 'club-crests/ac_milan.svg', provider: 'wikimedia', license: "Public domain" },
+  academico_viseu: { asset: 'club-crests/academico_viseu.svg', provider: 'wikimedia', license: "Public domain" },
   altach: { asset: 'club-crests/altach.svg', provider: 'wikimedia', license: "Public domain" },
+  apoel: { asset: 'club-crests/apoel.svg', provider: 'wikimedia', license: "Public domain" },
   atalanta: { asset: 'club-crests/atalanta.png', provider: 'wikimedia', license: "Public domain" },
   austria_lustenau: { asset: 'club-crests/austria_lustenau.svg', provider: 'wikimedia', license: "CC0" },
   austria_wien: { asset: 'club-crests/austria_wien.svg', provider: 'wikimedia', license: "Public domain" },
@@ -33,6 +35,7 @@ export const CREST_MANIFEST: Record<string, CrestManifestEntry> = {
   cercle_brugge: { asset: 'club-crests/cercle_brugge.png', provider: 'wikimedia', license: "Public domain" },
   como: { asset: 'club-crests/como.svg', provider: 'wikimedia', license: "Public domain" },
   dortmund: { asset: 'club-crests/dortmund.svg', provider: 'wikimedia', license: "Public domain" },
+  elversberg: { asset: 'club-crests/elversberg.svg', provider: 'wikimedia', license: "Public domain" },
   estrela_amadora: { asset: 'club-crests/estrela_amadora.svg', provider: 'wikimedia', license: "Public domain" },
   excelsior: { asset: 'club-crests/excelsior.svg', provider: 'wikimedia', license: "Public domain" },
   fc_utrecht: { asset: 'club-crests/fc_utrecht.svg', provider: 'wikimedia', license: "Public domain" },
@@ -53,6 +56,7 @@ export const CREST_MANIFEST: Record<string, CrestManifestEntry> = {
   nac_breda: { asset: 'club-crests/nac_breda.svg', provider: 'wikimedia', license: "Public domain" },
   napoli: { asset: 'club-crests/napoli.svg', provider: 'wikimedia', license: "Public domain" },
   oh_leuven: { asset: 'club-crests/oh_leuven.svg', provider: 'wikimedia', license: "Public domain" },
+  panathinaikos: { asset: 'club-crests/panathinaikos.svg', provider: 'wikimedia', license: "Public domain" },
   parma: { asset: 'club-crests/parma.svg', provider: 'wikimedia', license: "Public domain" },
   pec_zwolle: { asset: 'club-crests/pec_zwolle.svg', provider: 'wikimedia', license: "Public domain" },
   pisa: { asset: 'club-crests/pisa.svg', provider: 'wikimedia', license: "Public domain" },

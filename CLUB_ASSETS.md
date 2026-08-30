@@ -1,86 +1,132 @@
-# Club crest assets — provenance, licensing and coverage (v0.6.3)
+# Club crest assets — pipeline, provenance and coverage (v0.6.4)
 
-This document extends CLUB_CRESTS.md (the v0.4.7 research, which stands unchanged for Israeli
-clubs) with the v0.6.3 automated ingestion pipeline for the European club world.
+Extends CLUB_CRESTS.md (the v0.4.7 licensing research) with the automated ingestion pipeline
+introduced in v0.6.3 and the quality/coverage work of v0.6.4.
 
 ## The pipeline
 
-`scripts/importClubCrests.ts` — a development-time tool, never a runtime dependency:
+`scripts/importClubCrests.ts` — development-time only, never a runtime dependency:
 
 ```
-seed (clubId, English name, aliases, country)      scripts/crestSeeds.ts
+seed (English name + aliases + country)          scripts/crestSeeds.ts
   → Wikidata search (wbsearchentities)
-  → verification: label/alias match + P31 football club + P17 country
+  → verification: label/alias match AND instance-of football club AND country match
   → P154 (logo image) → Commons file
-  → licence check against the allow-list
-  → download to public/club-crests/<clubId>.<ext>
-  → provenance manifest (public/club-crests/manifest.json)
-  → regenerate src/data/clubCrests.generated.ts
+  → ASSET ROLE classification                    scripts/crestRoles.ts
+  → licence check (PD/CC0 family only)
+  → local download to public/club-crests/
+  → provenance manifest + generated runtime module
 ```
 
 ```
-npm run crests:dry-run     report without downloading
-npm run crests:import      full pass (supports -- --league=… / --country=…)
-npm run crests:missing     incremental: only clubs not already imported
+npm run crests:dry-run       report without downloading
+npm run crests:import        full pass (-- --league=… / --country=…)
+npm run crests:missing       incremental: only clubs not already resolved
+npm run crests:reclassify    offline: re-check shipped assets against the role rules
 ```
 
-No API credentials are required — the Wikimedia APIs are anonymous (see `.env.example`).
-Requests carry a descriptive User-Agent, are paced (700ms base, exponential backoff on 429),
-and results are cached in `scripts/.crest-cache.json` (gitignored) so re-runs are incremental.
+No API credentials are required (`.env.example` documents that none exist to leak).
 
-## Provider research (C2)
+## Bounded network policy (v0.6.4)
+
+A previous run stalled in an unbounded wait. Nothing in the pipeline can now:
+
+| control | value |
+|---|---|
+| attempts per request | 5, then unresolved |
+| per-request timeout | 15s (`AbortController`) |
+| backoff | bounded exponential, 0.7s → 11.2s |
+| **per-club total budget** | **45s**, checked before every call |
+| per-page budget (`auditLeagues`) | 60s |
+| on 429 / 5xx | back off, then mark unresolved and continue |
+
+A provider outage costs the run a few unresolved clubs, never its progress. `scenariosV064`
+asserts this statically — a job that never ends is a failure mode no runtime test can catch by
+running it.
+
+## Provider research
 
 | provider | verdict | why |
 |---|---|---|
-| **Wikimedia Commons + Wikidata** | **used** | The only surveyed source with *per-file, machine-readable licence provenance*. A club's P154 logo points at a Commons file whose own licence tag (`LicenseShortName`) is inspectable at retrieval time. Only PD/CC0-family tags are ingested — for club logos this is the PD-textlogo class, marks below the threshold of originality. |
-| TheSportsDB | rejected | Badge images are community-uploaded with no per-file licence provenance; the uploader cannot grant rights over club artwork. Technical access ≠ redistribution rights. |
-| football-data.org | rejected | API terms govern the *data*; the crest files carry no licence grant permitting local redistribution in a bundled game. |
-| Official club sites | rejected | Assets are plainly proprietary; press kits license media use, not embedding in a distributed game. |
-| Image search / logo sites | rejected | The brief's own prohibition — no inspectable provenance at all. |
+| **Wikimedia Commons + Wikidata** | **used** | The only surveyed source with per-file, machine-readable licence provenance. A club's P154 points at a Commons file whose own `LicenseShortName` is inspectable at retrieval. |
+| TheSportsDB | rejected | Community-uploaded badges; the uploader cannot grant rights over club artwork. Technical access ≠ redistribution rights. |
+| football-data.org | rejected | Terms govern the *data*; crest files carry no redistribution grant. |
+| official club media | rejected | Proprietary; press kits license media use, not embedding in a distributed game. |
+| image search / logo sites | rejected | No inspectable provenance, and explicitly out of scope. |
 
-## The licence rule, precisely
+## Licence rule
 
-- **Ingested**: files whose Commons licence tag matches `^(public domain|pd|cc0)` — i.e. below
-  the threshold of originality or explicitly dedicated. Copyright status inspected per file,
-  recorded per file.
-- **Not ingested**: everything else — non-free logos, CC-BY (attribution obligations a badge
-  icon cannot meaningfully satisfy), unknown tags. These clubs keep the generated badge.
-- **Trademark, separately**: a PD copyright status is *not* a trademark licence. Club crests
-  can remain protected trademarks regardless of copyright. Every manifest entry carries a
-  `trademarkNote` saying exactly that; the marks are used here referentially, to identify the
-  clubs the game already names as facts, and any club's asset can be removed by deleting one
-  manifest entry (the generated badge takes over instantly, by architecture).
-- **Israeli clubs**: not attempted. CLUB_CRESTS.md's finding stands — pictorial non-free works,
-  absent from Commons, fair-use rationales that exclude icon use.
+- **Ingested**: Commons licence tag matching `^(public domain|pd|cc0)` — the PD-textlogo class,
+  marks below the threshold of originality, inspected per file.
+- **Not ingested**: everything else. CC BY and CC BY-SA are *refused*, not because attribution is
+  impossible but because the game has no attribution surface yet and share-alike raises questions
+  about the work it is bundled into. Eight clubs are blocked on exactly this and are listed as
+  known-missing rather than quietly taken.
+- **Trademark, separately**: PD status is a *copyright* statement. Club crests can remain
+  protected trademarks regardless. Every manifest entry carries a `trademarkNote` saying so.
+  Usage here is referential — identifying clubs the game already names as facts — and any club's
+  asset can be removed by deleting one manifest entry, with the generated badge taking over by
+  architecture.
 
-## Match confidence (C6)
+## Asset role (v0.6.4, the quality fix)
 
-A candidate is accepted only when it is the **single** entity that passes all three checks:
-label/alias match, instance-of football club, country match. Two passing candidates =
-`ambiguous`, reported for manual review, never auto-picked — "Milan" can never fetch the wrong
-Milan. A reviewed resolution is recorded as `wikidata:` on the seed (with a dated comment), and
-the importer *still* re-verifies that QID on every run.
+v0.6.3 accepted whatever P154 pointed at, and shipped a **wordmark** as AS Roma's badge. Assets
+are now classified and only `current_primary_crest` is used:
+
+| role | used? | caught by |
+|---|---|---|
+| `current_primary_crest` | ✅ | default — P154 is Wikidata asserting "this is the club's logo" |
+| `wordmark` | ❌ | "text logo", "wordmark", "lettering", "logotype" |
+| `historic_crest` | ❌ | "old", "former", "until", "retro", or a year **range** ("2020 - 2021") |
+| `unknown` | ❌ | colour variants ("black", "mono", "inverted"), photographs, credited images |
+
+**A bare year proves nothing.** The first version of this classifier treated any four-digit year
+as historic and rejected `Bologna F.C. 1909 logo.svg`, where 1909 is the founding year printed on
+the badge; crest files are also routinely named for their *adoption* year, which means current.
+Requiring the word "logo" was equally wrong — it rejected `Atalanta BC.png`.
+
+`scripts/crestRoles.ts` is shared by the importer and the offline reclassifier, so the two cannot
+drift apart.
+
+## Alias matching
+
+Seeds carry the names clubs are actually known by (Inter / Internazionale / FC Internazionale
+Milano; Sporting CP / Sporting Lisbon; PSV / PSV Eindhoven). Israeli transliteration varies most,
+so those seeds carry the widest alias sets — Petah Tikva / Petach Tikva / Petah Tiqwa, Acre /
+Akko, Jaffa / Yafo.
+
+Two matching bugs were found and fixed in v0.6.4 while measuring coverage:
+
+- **`Arsenal FC` never matched Wikidata's `Arsenal F.C.`** — normalisation produced `arsenal fc`
+  and `arsenal f c`. A punctuation-free comparison is now made alongside the spaced one.
+- **Barcelona and Chelsea are typed `Q103229495` ("men's association football team")**, which was
+  not in the accepted entity set. Adding it also strengthens the ambiguity guard, since a women's
+  team carries a different class.
+
+## Ambiguity
+
+A candidate is accepted only as the **single** entity passing label-match AND football-club AND
+country-match. Two passing candidates is `ambiguous` — reported to `crest-review.json`, never
+auto-picked. "Milan" can never fetch the wrong Milan. Reviewed resolutions are recorded as dated
+`wikidata:` QIDs on the seed, and the importer **re-verifies them on every run**.
+
+## Israel
+
+v0.6.3 skipped Israeli clubs entirely. v0.6.4 seeds all 30 active ones and runs them through the
+identical gauntlet. The result is a measurement rather than an assumption, and it is reported in
+V064_REPORT.md §23 — including the fact that it is currently zero.
 
 ## Manifests
 
-- `public/club-crests/manifest.json` — full provenance per asset: provider, Wikidata QID, source
-  file, source page URL, licence tag, retrieval date, trademark note.
+- `public/club-crests/manifest.json` — provenance per asset: provider, Wikidata QID, source file,
+  source page, licence, **assetRole**, **verifiedCurrent**, retrieval date, trademark note.
 - `src/data/clubCrests.generated.ts` — the runtime module: clubId → local path + licence.
-  Regenerated by the importer; the game reads nothing else.
-
-`tests/crestPipeline.test.ts` validates both: every entry's file exists locally, licences are
-allow-listed, provenance is complete, no remote URLs exist anywhere in the runtime source, and
-every club in the world resolves to a local asset **or** a drawable generated badge — never
-neither, never a broken image.
+- `crest-review.json` — the manual-review queue: ambiguous, wrong-role and unmatched clubs with
+  the reason each was refused.
 
 ## Fallback
 
-The generated badge (club colours + initials, drawn as SVG by `ClubCrest`) remains the identity
-for every club without a verified asset — and the error fallback for every club with one: a
-failed image load re-renders the badge in place. There is no empty crest state.
-
-## Coverage
-
-See V063_REPORT.md for the per-country table of real assets vs generated badges. Coverage is
-deliberately honest: a club whose crest could not be verified as safely usable ships with the
-generated badge, and the "known missing" list names them.
+The generated badge (club colours + initials, drawn as SVG) is the identity for every club without
+a verified current crest, **and** the error fallback for every club with one — a failed image load
+re-renders the badge in place. There is no empty crest state, no broken image, and no runtime
+hotlink; `getClubCrest` fails closed on any URL-shaped path.

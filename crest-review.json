@@ -1,53 +1,8 @@
 [
  {
-  "clubId": "academico_viseu",
-  "clubName": "Academico de Viseu F.C.",
-  "country": "portugal",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "aek_athens",
-  "clubName": "AEK Athens FC",
-  "country": "greece",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
   "clubId": "ael_limassol",
   "clubName": "AEL Limassol",
   "country": "cyprus",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "alverca",
-  "clubName": "FC Alverca",
-  "country": "portugal",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "apoel",
-  "clubName": "APOEL FC",
-  "country": "cyprus",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "arsenal",
-  "clubName": "Arsenal FC",
-  "country": "england",
   "provider": "wikimedia",
   "reasonForReview": "unmatched",
   "candidates": [],
@@ -65,42 +20,6 @@
   "confidence": "no single verified match"
  },
  {
-  "clubId": "atromitos",
-  "clubName": "Atromitos FC",
-  "country": "greece",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "barcelona",
-  "clubName": "FC Barcelona",
-  "country": "spain",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "charleroi",
-  "clubName": "R. Charleroi SC",
-  "country": "belgium",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "chelsea",
-  "clubName": "Chelsea FC",
-  "country": "england",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
   "clubId": "club_brugge",
   "clubName": "Club Brugge KV",
   "country": "belgium",
@@ -113,9 +32,9 @@
   "confidence": "multiple entities verified"
  },
  {
-  "clubId": "doxa_katokopias",
-  "clubName": "Doxa Katokopias FC",
-  "country": "cyprus",
+  "clubId": "iraklis",
+  "clubName": "Iraklis F.C.",
+  "country": "greece",
   "provider": "wikimedia",
   "reasonForReview": "unmatched",
   "candidates": [],
@@ -151,24 +70,6 @@
   "confidence": "no single verified match"
  },
  {
-  "clubId": "karmiotissa",
-  "clubName": "Karmiotissa FC",
-  "country": "cyprus",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "kifisia",
-  "clubName": "Kifisia FC",
-  "country": "greece",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
   "clubId": "krasava_eny",
   "clubName": "Krasava ENY Ypsonas",
   "country": "cyprus",
@@ -185,6 +86,18 @@
   "reasonForReview": "unmatched",
   "candidates": [],
   "confidence": "no single verified match"
+ },
+ {
+  "clubId": "lommel",
+  "clubName": "Lommel S.K.",
+  "country": "belgium",
+  "provider": "wikimedia",
+  "reasonForReview": "ambiguous",
+  "candidates": [
+   "Q1668203",
+   "Q1669847"
+  ],
+  "confidence": "multiple entities verified"
  },
  {
   "clubId": "maccabi_kabilio_jaffa",
@@ -205,27 +118,9 @@
   "confidence": "no single verified match"
  },
  {
-  "clubId": "panathinaikos",
-  "clubName": "Panathinaikos FC",
-  "country": "greece",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "panserraikos",
-  "clubName": "Panserraikos FC",
-  "country": "greece",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
- },
- {
-  "clubId": "paok",
-  "clubName": "PAOK FC",
-  "country": "greece",
+  "clubId": "omonia_29m",
+  "clubName": "Omonia 29M",
+  "country": "cyprus",
   "provider": "wikimedia",
   "reasonForReview": "unmatched",
   "candidates": [],
@@ -256,6 +151,18 @@
   "confidence": "multiple entities verified"
  },
  {
+  "clubId": "sc_paderborn",
+  "clubName": "SC Paderborn 07",
+  "country": "germany",
+  "provider": "wikimedia",
+  "reasonForReview": "ambiguous",
+  "candidates": [
+   "Q160532",
+   "Q97905966"
+  ],
+  "confidence": "multiple entities verified"
+ },
+ {
   "clubId": "schalke",
   "clubName": "FC Schalke 04",
   "country": "germany",
@@ -278,14 +185,5 @@
    "Q20978060"
   ],
   "confidence": "multiple entities verified"
- },
- {
-  "clubId": "volos",
-  "clubName": "Volos FC",
-  "country": "greece",
-  "provider": "wikimedia",
-  "reasonForReview": "unmatched",
-  "candidates": [],
-  "confidence": "no single verified match"
  }
 ]

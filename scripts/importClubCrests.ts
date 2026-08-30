@@ -418,8 +418,14 @@ function writeManifest(cache: Cache): void {
           sourceFile: entry.file,
           sourcePage: entry.sourceUrl,
           license: entry.license,
-          assetRole: entry.role,
-          verifiedCurrent: entry.role === 'current_primary_crest',
+          /*
+           * Re-derived rather than read from the cache entry (v0.6.4). Entries imported before
+           * roles existed carry no `role`, and writing `undefined` here silently unverified 40
+           * good assets. Classification is pure and cheap, so it is done at write time and the
+           * manifest is correct whatever the cache remembers.
+           */
+          assetRole: entry.role ?? classifyAsset(entry.file),
+          verifiedCurrent: (entry.role ?? classifyAsset(entry.file)) === 'current_primary_crest',
           retrievedAt: entry.retrievedAt,
           trademarkNote:
             'PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.',

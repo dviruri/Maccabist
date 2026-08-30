@@ -1,4 +1,0 @@
-
-> maccabist@0.1.0 crests:missing
-> vite-node scripts/importClubCrests.ts -- --missing-only
-

@@ -6,10 +6,22 @@
     "sourceFile": "Logo of AC Milan.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_of_AC_Milan.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "academico_viseu": {
+    "asset": "club-crests/academico_viseu.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q2410944",
+    "sourceFile": "A.C. Viseu.svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:A.C._Viseu.svg",
+    "license": "Public domain",
+    "assetRole": "current_primary_crest",
+    "verifiedCurrent": true,
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "altach": {
     "asset": "club-crests/altach.svg",
@@ -18,10 +30,22 @@
     "sourceFile": "SCR Altach Logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:SCR_Altach_Logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "apoel": {
+    "asset": "club-crests/apoel.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q131378",
+    "sourceFile": "APOEL (logo with stars).svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:APOEL_(logo_with_stars).svg",
+    "license": "Public domain",
+    "assetRole": "current_primary_crest",
+    "verifiedCurrent": true,
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "atalanta": {
     "asset": "club-crests/atalanta.png",
@@ -30,10 +54,10 @@
     "sourceFile": "Atalanta BC.png",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Atalanta_BC.png",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "austria_lustenau": {
     "asset": "club-crests/austria_lustenau.svg",
@@ -54,10 +78,10 @@
     "sourceFile": "FK Austria Wien logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:FK_Austria_Wien_logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "az_alkmaar": {
     "asset": "club-crests/az_alkmaar.svg",
@@ -66,10 +90,10 @@
     "sourceFile": "AZ Alkmaar.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:AZ_Alkmaar.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "bayern_munich": {
     "asset": "club-crests/bayern_munich.svg",
@@ -78,10 +102,10 @@
     "sourceFile": "FC Bayern München logo (2024).svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:FC_Bayern_M%C3%BCnchen_logo_(2024).svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "bologna": {
     "asset": "club-crests/bologna.svg",
@@ -90,10 +114,10 @@
     "sourceFile": "Bologna F.C. 1909 logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Bologna_F.C._1909_logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "cercle_brugge": {
     "asset": "club-crests/cercle_brugge.png",
@@ -102,10 +126,10 @@
     "sourceFile": "Logo Cercle Brugge 2022.png",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_Cercle_Brugge_2022.png",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "como": {
     "asset": "club-crests/como.svg",
@@ -114,10 +138,10 @@
     "sourceFile": "Calcio Como - logo (Italy, 2019-).svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Calcio_Como_-_logo_(Italy,_2019-).svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "dortmund": {
     "asset": "club-crests/dortmund.svg",
@@ -126,10 +150,22 @@
     "sourceFile": "Borussia Dortmund logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Borussia_Dortmund_logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "elversberg": {
+    "asset": "club-crests/elversberg.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q692691",
+    "sourceFile": "SV Elversberg Logo 2021.svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:SV_Elversberg_Logo_2021.svg",
+    "license": "Public domain",
+    "assetRole": "current_primary_crest",
+    "verifiedCurrent": true,
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "estrela_amadora": {
     "asset": "club-crests/estrela_amadora.svg",
@@ -138,10 +174,10 @@
     "sourceFile": "Símbolo Estrela da Amadora.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:S%C3%ADmbolo_Estrela_da_Amadora.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "excelsior": {
     "asset": "club-crests/excelsior.svg",
@@ -150,10 +186,10 @@
     "sourceFile": "Excelsior Rotterdam logo 2021.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Excelsior_Rotterdam_logo_2021.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "fc_utrecht": {
     "asset": "club-crests/fc_utrecht.svg",
@@ -162,10 +198,10 @@
     "sourceFile": "FC Utrecht.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:FC_Utrecht.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "fiorentina": {
     "asset": "club-crests/fiorentina.svg",
@@ -174,10 +210,10 @@
     "sourceFile": "ACF Fiorentina - logo (Italy, 2022).svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:ACF_Fiorentina_-_logo_(Italy,_2022).svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "genk": {
     "asset": "club-crests/genk.svg",
@@ -186,10 +222,10 @@
     "sourceFile": "KRC Genk Logo 2016.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:KRC_Genk_Logo_2016.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "gladbach": {
     "asset": "club-crests/gladbach.svg",
@@ -198,10 +234,10 @@
     "sourceFile": "Borussia Mönchengladbach logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Borussia_M%C3%B6nchengladbach_logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "hamburg": {
     "asset": "club-crests/hamburg.svg",
@@ -210,10 +246,10 @@
     "sourceFile": "Hamburger SV logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Hamburger_SV_logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "heidenheim": {
     "asset": "club-crests/heidenheim.svg",
@@ -222,10 +258,10 @@
     "sourceFile": "1. FC Heidenheim 1846.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:1._FC_Heidenheim_1846.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "hoffenheim": {
     "asset": "club-crests/hoffenheim.png",
@@ -234,10 +270,10 @@
     "sourceFile": "TSG Logo-Standard 4c.png",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:TSG_Logo-Standard_4c.png",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "inter_milan": {
     "asset": "club-crests/inter_milan.svg",
@@ -246,10 +282,10 @@
     "sourceFile": "FC Internazionale Milano 2021.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:FC_Internazionale_Milano_2021.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "lask": {
     "asset": "club-crests/lask.svg",
@@ -258,10 +294,10 @@
     "sourceFile": "LASK-Logo 2023.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:LASK-Logo_2023.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "lazio": {
     "asset": "club-crests/lazio.svg",
@@ -270,10 +306,10 @@
     "sourceFile": "S.S. Lazio logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:S.S._Lazio_logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "levadiakos": {
     "asset": "club-crests/levadiakos.svg",
@@ -282,10 +318,10 @@
     "sourceFile": "APO Levadiakos (logo).svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:APO_Levadiakos_(logo).svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "leverkusen": {
     "asset": "club-crests/leverkusen.svg",
@@ -294,10 +330,10 @@
     "sourceFile": "Logo TSV Bayer 04 Leverkusen.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_TSV_Bayer_04_Leverkusen.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "liverpool": {
     "asset": "club-crests/liverpool.png",
@@ -306,10 +342,10 @@
     "sourceFile": "Logo Liverpool FC (2024).png",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_Liverpool_FC_(2024).png",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "mainz": {
     "asset": "club-crests/mainz.svg",
@@ -318,10 +354,10 @@
     "sourceFile": "Logo Mainz 05.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_Mainz_05.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "monza": {
     "asset": "club-crests/monza.png",
@@ -342,10 +378,10 @@
     "sourceFile": "Logo NAC Breda.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_NAC_Breda.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "napoli": {
     "asset": "club-crests/napoli.svg",
@@ -354,10 +390,10 @@
     "sourceFile": "SSC Napoli 2024 (deep blue navy).svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:SSC_Napoli_2024_(deep_blue_navy).svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "oh_leuven": {
     "asset": "club-crests/oh_leuven.svg",
@@ -366,10 +402,22 @@
     "sourceFile": "Oud-Heverlee Löwen.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Oud-Heverlee_L%C3%B6wen.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
+  },
+  "panathinaikos": {
+    "asset": "club-crests/panathinaikos.svg",
+    "provider": "wikimedia",
+    "wikidata": "Q4122219",
+    "sourceFile": "Panathinaikos.svg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Panathinaikos.svg",
+    "license": "Public domain",
+    "assetRole": "current_primary_crest",
+    "verifiedCurrent": true,
+    "retrievedAt": "2026-08-29",
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "parma": {
     "asset": "club-crests/parma.svg",
@@ -378,10 +426,10 @@
     "sourceFile": "Logo Parma Calcio 1913 (adozione 2016).svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_Parma_Calcio_1913_(adozione_2016).svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "pec_zwolle": {
     "asset": "club-crests/pec_zwolle.svg",
@@ -390,10 +438,10 @@
     "sourceFile": "PEC Zwolle logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:PEC_Zwolle_logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "pisa": {
     "asset": "club-crests/pisa.svg",
@@ -402,10 +450,10 @@
     "sourceFile": "Logo Pisa Sporting Club.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_Pisa_Sporting_Club.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "rapid_wien": {
     "asset": "club-crests/rapid_wien.svg",
@@ -414,10 +462,10 @@
     "sourceFile": "SK Rapid Wien Logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:SK_Rapid_Wien_Logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "sturm_graz": {
     "asset": "club-crests/sturm_graz.svg",
@@ -426,10 +474,10 @@
     "sourceFile": "SK Sturm Graz.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:SK_Sturm_Graz.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "stuttgart": {
     "asset": "club-crests/stuttgart.svg",
@@ -438,10 +486,10 @@
     "sourceFile": "VfB Stuttgart 1893 Logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:VfB_Stuttgart_1893_Logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "sv_ried": {
     "asset": "club-crests/sv_ried.svg",
@@ -450,10 +498,10 @@
     "sourceFile": "SV Ried.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:SV_Ried.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "tondela": {
     "asset": "club-crests/tondela.svg",
@@ -462,10 +510,10 @@
     "sourceFile": "CD Tondela (logo).svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:CD_Tondela_(logo).svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "udinese": {
     "asset": "club-crests/udinese.svg",
@@ -474,10 +522,10 @@
     "sourceFile": "Udinese Calcio 2010.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:Udinese_Calcio_2010.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "werder_bremen": {
     "asset": "club-crests/werder_bremen.svg",
@@ -486,10 +534,10 @@
     "sourceFile": "SV-Werder-Bremen-Logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:SV-Werder-Bremen-Logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   },
   "wolfsburg": {
     "asset": "club-crests/wolfsburg.svg",
@@ -498,9 +546,9 @@
     "sourceFile": "VfL Wolfsburg logo.svg",
     "sourcePage": "https://commons.wikimedia.org/wiki/File:VfL_Wolfsburg_logo.svg",
     "license": "Public domain",
+    "assetRole": "current_primary_crest",
     "verifiedCurrent": true,
     "retrievedAt": "2026-08-29",
-    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club.",
-    "assetRole": "current_primary_crest"
+    "trademarkNote": "PD/CC0 covers copyright only; the mark may remain a protected trademark of the club."
   }
 }

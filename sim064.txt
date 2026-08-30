@@ -1,6 +1,0 @@
-
-> maccabist@0.1.0 simulate
-> vite-node scripts/simulate.ts -- --careers=50000 --policy=balanced
-
-MACCABIST - career simulation
-50,000 careers per strategy, 1 strategies

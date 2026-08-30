@@ -186,6 +186,31 @@ export const MARKET = {
   peakAge: 28,
   ageDecline: 1.6,
 
+  /* ---- market selection (v0.6.4) ---- */
+  /**
+   * How much likelier the player's own country is than a foreign one, per market.
+   *
+   * v0.6.4 made market selection explicit, and this constant is the piece of design intent that
+   * used to be an accident of the dataset. Under the old flat draw, Israel dominated because it
+   * held 25 of the 33 signable clubs - so "most careers stay home" was true only for as long as
+   * nobody added clubs abroad. v0.6.4 added 165, the accident evaporated, and the abroad rate
+   * went from 33% to 55% in the 50,000-career run.
+   *
+   * Staying home is now stated rather than emergent: leaving the country is a bigger step than
+   * changing clubs inside it, and needs more to justify.
+   *
+   * Calibrated by sweep against the v0.6.3 abroad rate, which is the behaviour five versions of
+   * balancing produced and therefore the thing to preserve:
+   *
+   *     bias   1 -> 54.2% abroad      bias   8 -> 37.6%
+   *     bias   3 -> 46.0%             bias  11 -> 35.1%
+   *     bias   5 -> 42.5%             bias  15 -> 32.9%   <- v0.6.3 was 33.0%
+   *
+   * Unique destination clubs stayed at ~200 across the whole sweep, so restoring the home rate
+   * costs none of the diversity the version was built for.
+   */
+  homeMarketBias: 15,
+
   /* ---- position need ---- */
   /** Every club has at least this much interest in every position. */
   needFloor: 0.25,
