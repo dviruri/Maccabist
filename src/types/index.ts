@@ -1035,6 +1035,12 @@ export interface EventConditions {
    * immersion-breaking events: a Maccabi song in the stands makes no sense at Hapoel Afula.
    */
   clubScope?: ClubScope;
+  /**
+   * The current club's tier must be one of these (v0.6.5). What makes a lower-league event a
+   * lower-league event: `['israeli_alef']` is checked against the club record, never against
+   * prose or league display names.
+   */
+  clubTiers?: ClubTier[];
   isCaptain?: boolean;
   hasLeftMaccabi?: boolean;
   /** Appearances so far this season (mid/late slots) or last season (early slot). */

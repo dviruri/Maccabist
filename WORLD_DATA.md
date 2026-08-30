@@ -1,6 +1,6 @@
 # World data — snapshot, architecture and market design
 
-**`WORLD_DATA_VERSION = '2026.2'` · snapshot season `2026/27`.**
+**`WORLD_DATA_VERSION = '2026.3'` · snapshot season `2026/27` (Israel lower tiers: see below).**
 
 Every modelled league's membership is the real 2026/27 membership, verified per league against
 that competition's own season article by `npm run world:audit`
@@ -79,6 +79,49 @@ They keep their id, name, colours and any imported crest, and `getClub` still re
 a v0.6.3 career that really did play for West Ham still says so. They appear in **no** table, **no**
 market and **no** cup draw. Nothing is deleted and nothing is remapped: rewriting an old career's
 history to the new snapshot would be falsifying it.
+
+
+## The Israeli football pyramid (v0.6.5)
+
+**Primary source: the Israel Football Association** (football.org.il), read through the site's
+own `Components.asmx/LeagueTable` API by `scripts/auditLeagues.mjs`-style bounded fetches. Raw
+audit output is committed as `israel-audit.json`. Wikipedia was used only as a cross-check.
+
+| division | leagueId | snapshot | clubs | IFA source |
+|---|---|---|---|---|
+| ליגת העל | il_premier | **2026/27** (live table) | 14 | league_id=40, season_id=28 |
+| הליגה הלאומית | il_leumit | **2026/27** (live table) | 16 | league_id=45, season_id=28 |
+| ליגה א׳ צפון | il_alef_north | 2025/26 final + observed movements | 16 | league_id=61, season_id=27 |
+| ליגה א׳ דרום | il_alef_south | 2025/26 final + observed movements | 16 | league_id=62, season_id=27 |
+
+**Why two snapshot seasons.** The IFA publishes live 2026/27 tables only for the top two
+divisions at audit time; Liga Alef's 2026/27 tables are not yet up. Liga Alef therefore uses the
+official 2025/26 final membership, adjusted ONLY by movements the 2026/27 top-flight data proves
+(promotions/relegations across the Leumit boundary - all eight observed directly in the live
+tables, zero guessed). Hadera's district assignment (South) is the one deterministic judgement,
+documented in `worldClubs.ts`.
+
+**Deferred: Liga Bet** (4 districts, 64 clubs - 2026/27 membership unpublished, and 64
+semi-professional crests cannot meet the 100% real-crest rule this release enforces for active
+Israeli clubs) and **Liga Gimel** (9 districts; the IFA navigation still links its pages at
+season 2025/26 - no current structure is published at all).
+
+### Movement
+
+`il_leumit.relegatesTo = 'il_alef'` is a **district-resolved sentinel**: `resolveRelegationLeague`
+sends a relegated club to its geographic district via `ALEF_DISTRICT_BY_CLUB`, which covers the
+whole of Leumit and Alef. Alef winners promote to Leumit through the ordinary movement engine.
+The Alef districts have no `relegatesTo` - Liga Bet is below the modelled world, so a
+bottom-placed club has a terrible season and stays. Winning an Alef district is a PROMOTION
+(second-division outcome semantics), never a championship trophy.
+
+### Career mechanics
+
+Every Alef club is a full career destination (`israeli_alef` tier): release and loan pools
+include the tier, market-first selection treats each district as a market whose level (~25) only
+fits players at that career level, and elite protection is automatic - `clubInterest` gives an
+ability-80 star effectively zero fit at a quality-24 club unless his career has genuinely
+collapsed. Six `alef_*` events give the tier a voice, gated on `clubTiers: ['israeli_alef']`.
 
 ## Market-first transfer selection
 

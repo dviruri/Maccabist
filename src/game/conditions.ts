@@ -3,6 +3,7 @@
  * Pure predicate code - no randomness, no state changes.
  */
 
+import { getClub } from '../data/clubs';
 import { stageBand } from '../data/academy';
 import type {
   AgentArchetypeId,
@@ -144,6 +145,8 @@ export function matchesConditions(
   if (c.abroad !== undefined && isPlayingAbroad(career) !== c.abroad) return false;
   if (c.onLoan !== undefined && isOnLoan(career) !== c.onLoan) return false;
   if (c.clubScope && !matchesClubScope(career, c.clubScope)) return false;
+  // v0.6.5: tier gating, for events that only make sense at a semi-professional club.
+  if (c.clubTiers && !c.clubTiers.includes(getClub(career.currentClubId).tier)) return false;
   if (c.isCaptain !== undefined && career.captain !== c.isCaptain) return false;
   if (c.hasLeftMaccabi !== undefined && career.maccabi.everLeft !== c.hasLeftMaccabi) return false;
 

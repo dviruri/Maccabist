@@ -130,3 +130,40 @@ The generated badge (club colours + initials, drawn as SVG) is the identity for 
 a verified current crest, **and** the error fallback for every club with one — a failed image load
 re-renders the badge in place. There is no empty crest state, no broken image, and no runtime
 hotlink; `getClubCrest` fails closed on any URL-shaped path.
+
+## Israeli crest coverage (v0.6.5)
+
+**54 of 62 active Israeli clubs show a real, verified-current crest** - 14/14 ליגת העל, 16/16
+לאומית, 24/32 ליגה א׳. The 8-club tail is documented below.
+
+### The regime, plainly
+
+Israeli club crests are **non-free marks** - v0.4.7's research finding, re-confirmed by
+measurement in v0.6.4 (zero PD logos across every then-active club). The project owner has
+required real Israeli crests across three successive versions, so they are ingested under an
+explicitly separate `referential` regime: full per-asset provenance, a licence status that says
+plainly the asset is NOT claimed as free, a trademark note, and one-line removability. The
+European `free-media` regime (PD/CC0-only) is unchanged, and `crestPipeline.test.ts` polices
+each regime by its own rules - a referential entry claiming a PD licence fails the build.
+
+### Provider cascade
+
+1. **TheSportsDB**, sport-gated: accepted only when `strSport === 'Soccer'`, country Israel, and
+   the name matches the alias set - Maccabi Tel Aviv basketball is structurally unmatchable.
+2. **Hebrew Wikipedia** lead image: entity-first article resolution, football-category required,
+   basketball-category rejected, lead image must classify as a crest (a stadium photo cannot
+   ship as a badge). Oversized originals are re-fetched as 400px renders via MediaWiki's own
+   thumb service.
+3. **Manual curation** (E4): five clubs resolved by human review with the evidence recorded in
+   the seeds - including מכבי אום אל-פחם, whose article states it is also known as
+   צעירי אום אל-פחם, and the REJECTION of אחווה עראבה, a defunct same-town club fuzzy matching
+   would have taken.
+
+### The documented tail (8)
+
+`maccabi_neve_shaanan, tzeirei_tamra, hapoel_arraba, maccabi_nujeidat, hapoel_bnei_musmus,
+tzeirei_tira, beitar_yavne, mk_kfar_saba` - Liga Alef clubs attempted individually through
+TheSportsDB, Hebrew Wikipedia (direct titles and full-text search) and Arabic Wikipedia; none
+has a crest in any structured provider. Their visual identity lives on unscrapable social
+pages, and a guessed badge is worse than the drawn fallback. `tests/israelCrests.test.ts`
+asserts the tail both ways: nothing may join it silently, and a resolved club must leave it.

@@ -10,6 +10,7 @@ import { POSITION_EVENTS } from './positionEvents';
 import { SENIOR_EVENTS } from './seniorEvents';
 import { SENIOR_PHASE_EVENTS } from './seniorPhaseEvents';
 import { SPONTANEOUS_EVENTS } from './spontaneousEvents';
+import { LOWER_LEAGUE_EVENTS } from './lowerLeagueEvents';
 import { WORLD_EVENTS } from './worldEvents';
 
 /**
@@ -20,6 +21,7 @@ import { WORLD_EVENTS } from './worldEvents';
  * varied, and every choice's `outcomes` carry the probabilities.
  */
 export const EVENT_POOL: GameEvent[] = [
+  ...LOWER_LEAGUE_EVENTS,
   ...ACADEMY_EVENTS,
   ...AMBIENT_MACCABI_EVENTS,
   ...ARC_EVENTS,

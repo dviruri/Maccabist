@@ -858,6 +858,8 @@ export function Gallery(): JSX.Element {
      * lists, so a club added to the pyramid appears without touching this file.
      */
     ['israel-clubs', <IsraelClubGallery />],
+    /* v0.6.5: a Liga Alef district table - long Arab-community club names at the narrowest widths. */
+    ['table-alef', <LeagueTableCard career={tableCareer('hapoel_nof_hagalil', 3)} defaultOpen />],
     ['table-england', <LeagueTableCard career={tableCareer('brighton', 9)} defaultOpen />],
     ['ladder-senior', <StageLadder from="u19" to="senior" />],
     ['ladder-normal', <StageLadder from="children_b" to="children_a" />],
