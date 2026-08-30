@@ -75,6 +75,8 @@ describe('v0.6.4 every league carries its complete, real membership', () => {
     const expected: Record<string, number> = {
       il_premier: 14,
       il_leumit: 16,
+      il_alef_north: 16,
+      il_alef_south: 16,
       it_seriea: 20,
       en_premier: 20,
       es_laliga: 20,
@@ -125,7 +127,7 @@ describe('v0.6.4 every league carries its complete, real membership', () => {
   });
 
   it('carries a versioned, named snapshot', () => {
-    expect(WORLD_DATA_VERSION).toBe('2026.2');
+    expect(WORLD_DATA_VERSION).toBe('2026.3');
     expect(WORLD_SNAPSHOT_SEASON).toBe('2026/27');
   });
 });
@@ -143,9 +145,13 @@ describe('v0.6.4 the snapshot errors v0.6.3 shipped are fixed', () => {
   });
 
   it('removes Hapoel Hadera from the top flight', () => {
-    // v0.6.3 modelled it as an `israeli_mid` top-flight club. It is in neither division now.
-    expect(snapshotLeagueOf('hapoel_hadera')).toBeNull();
-    expect(isInactiveClub('hapoel_hadera')).toBe(true);
+    /*
+     * v0.6.3 modelled it as an `israeli_mid` top-flight club. v0.6.4 made it inactive - the
+     * honest state while no third tier existed. v0.6.5 models the tier it actually plays in,
+     * so the club is back: an active Liga Alef South member.
+     */
+    expect(snapshotLeagueOf('hapoel_hadera')).toBe('il_alef_south');
+    expect(isInactiveClub('hapoel_hadera')).toBe(false);
   });
 
   it('relegates F.C. Ashdod and Maccabi Bnei Reineh to Liga Leumit', () => {

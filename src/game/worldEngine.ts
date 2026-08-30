@@ -13,6 +13,7 @@
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { defaultLeagueFor, getLeague, type League } from '../data/leagues';
 import type { Career, ClubSeasonOutcome, ClubSeasonResult, SeasonRecord, WorldState } from '../types';
+import { ALEF_DISTRICT_BY_CLUB } from '../data/worldClubs';
 import { projectCup } from './cupEngine';
 import { projectSeason, settleProjection } from './leagueEngine';
 import { WORLD } from './balance';
@@ -209,7 +210,10 @@ export function applyPromotionRelegation(world: WorldState, result: ClubSeasonRe
   if (result.outcome === 'relegated' && league.relegatesTo) {
     return {
       ...world,
-      clubLeagues: { ...world.clubLeagues, [result.clubId]: league.relegatesTo },
+      clubLeagues: {
+        ...world.clubLeagues,
+        [result.clubId]: resolveRelegationLeague(result.clubId, league.relegatesTo),
+      },
     };
   }
   if (result.outcome === 'promoted' && league.promotesTo) {
@@ -219,6 +223,22 @@ export function applyPromotionRelegation(world: WorldState, result: ClubSeasonRe
     };
   }
   return world;
+}
+
+/**
+ * Where a relegated club actually lands (v0.6.5).
+ *
+ * Liga Alef is regional, so Leumit's trapdoor cannot be one league id - a Haifa-area club goes
+ * north and a Rehovot club goes south. `relegatesTo: 'il_alef'` is a district-resolved sentinel,
+ * and this is the only place it is resolved: by the club's geography in ALEF_DISTRICT_BY_CLUB,
+ * defaulting north for a club the map has never heard of (which the world validator prevents
+ * from being a real case). Deterministic, no yearly-rebalancing model - WORLD_DATA.md records
+ * the limitation.
+ */
+function resolveRelegationLeague(clubId: string, relegatesTo: string): string {
+  if (relegatesTo !== 'il_alef') return relegatesTo;
+  const district = ALEF_DISTRICT_BY_CLUB[clubId] ?? 'north';
+  return district === 'south' ? 'il_alef_south' : 'il_alef_north';
 }
 
 /** Records a club season and applies any division change it caused. */

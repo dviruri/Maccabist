@@ -78,10 +78,16 @@ const claimsTitle = (id: string): boolean => EVENTS_BY_ID[id]?.conditions?.title
 
 /* ================================================================== */
 
+/*
+ * v0.6.5 fixture note: hapoel_hadera was the canonical "weaker top-flight club" here, and the
+ * pyramid moved under it - it now plays two tiers down in Liga Alef, which changes what a move
+ * to or from it means. `hapoel_hadera` fixtures were repointed to `bnei_sakhnin` (a real
+ * mid-table top-flight club); the assertions themselves are unchanged.
+ */
 describe('A. a lower-table club gets no championship decider', () => {
   it('offers no title event to a club heading for the bottom half', () => {
     for (const outcome of ['lower_table', 'relegation_battle', 'mid_table'] as ClubSeasonOutcome[]) {
-      const career = seniorAt('hapoel_hadera', outcome);
+      const career = seniorAt('bnei_sakhnin', outcome);
       expect(isInTitleRace(career), outcome).toBe(false);
       expect(isTitleDeciderEligible(career), outcome).toBe(false);
       expect(eligible(career).filter(claimsTitle), outcome).toEqual([]);
@@ -90,7 +96,7 @@ describe('A. a lower-table club gets no championship decider', () => {
 
   it('is true across every seed, not just a lucky one', () => {
     for (let seed = 1; seed <= 60; seed += 1) {
-      const career = seniorAt('hapoel_hadera', 'relegation_battle', seed);
+      const career = seniorAt('bnei_sakhnin', 'relegation_battle', seed);
       expect(eligible(career).filter(claimsTitle), `seed ${seed}`).toEqual([]);
     }
   });
@@ -131,13 +137,13 @@ describe('A2. a top club gets no relegation crisis', () => {
 
 describe('B. a club with no derby rival gets no derby', () => {
   it('has no modelled local rival for these clubs', () => {
-    for (const clubId of ['hapoel_hadera', 'bnei_sakhnin', 'ironi_kiryat_shmona']) {
+    for (const clubId of ['bnei_sakhnin', 'bnei_sakhnin', 'ironi_kiryat_shmona']) {
       expect(derbyRival(clubId), clubId).toBeNull();
     }
   });
 
   it('offers no derby event there', () => {
-    for (const clubId of ['hapoel_hadera', 'bnei_sakhnin', 'ironi_kiryat_shmona']) {
+    for (const clubId of ['bnei_sakhnin', 'bnei_sakhnin', 'ironi_kiryat_shmona']) {
       const career = seniorAt(clubId, 'mid_table');
       expect(canPlayDerby(career), clubId).toBe(false);
       expect(isDerbyEligible(career), clubId).toBe(false);
@@ -231,7 +237,7 @@ describe('F/G. the side thread and the current club', () => {
   });
 
   it('puts a club in a relegation battle only near the bottom', () => {
-    const career = seniorAt('hapoel_hadera', 'relegation_battle');
+    const career = seniorAt('bnei_sakhnin', 'relegation_battle');
     const context = leagueContextAt(career, 'late');
     const shape = leagueShape(context!.leagueId)!;
     expect(context!.position).toBeGreaterThan(shape.size - shape.relegationPlaces - 3);
@@ -330,7 +336,7 @@ describe('the table never contradicts the season it describes', () => {
     const cases: Array<[string, ClubSeasonOutcome]> = [
       [MACCABI_ID, 'champion'],
       [MACCABI_ID, 'relegation_battle'],
-      ['hapoel_hadera', 'mid_table'],
+      ['bnei_sakhnin', 'mid_table'],
       // v0.6.4: hapoel_petah_tikva was promoted to the top flight by the 2026/27 snapshot,
       // so the second-division scenarios moved to a club that is actually in Liga Leumit.
       ['hapoel_kfar_saba', 'promoted'],

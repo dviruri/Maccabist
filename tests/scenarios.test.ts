@@ -129,6 +129,12 @@ function playThrough(seed: number, policy = balancedPolicy, position: Position =
   return states;
 }
 
+/*
+ * v0.6.5 fixture note: hapoel_hadera was the canonical "weaker top-flight club" here, and the
+ * pyramid moved under it - it now plays two tiers down in Liga Alef, which changes what a move
+ * to or from it means. `hapoel_hadera` fixtures were repointed to `bnei_sakhnin` (a real
+ * mid-table top-flight club); the assertions themselves are unchanged.
+ */
 describe('A. Maccabi academy to a normal senior transition', () => {
   it('never shows academy wording once he is a first-team player', () => {
     let checked = 0;
@@ -235,12 +241,12 @@ describe('D-F. bold play: success, collapse, and recovery', () => {
 
 describe('G-I. move direction reads club level, not only league', () => {
   it('G. a smaller domestic club to Maccabi is upward', () => {
-    expect(moveDirection(seniorAt('hapoel_hadera'), getClub(MACCABI_ID))).toBe('up');
+    expect(moveDirection(seniorAt('bnei_sakhnin'), getClub(MACCABI_ID))).toBe('up');
     expect(isUpwardMove(moveDirection(seniorAt('hapoel_afula'), getClub(MACCABI_ID)))).toBe(true);
   });
 
   it('H. Maccabi to a smaller Israeli club is downward', () => {
-    expect(isDownwardMove(moveDirection(seniorAt(MACCABI_ID), getClub('hapoel_hadera')))).toBe(true);
+    expect(isDownwardMove(moveDirection(seniorAt(MACCABI_ID), getClub('bnei_sakhnin')))).toBe(true);
     expect(moveDirection(seniorAt(MACCABI_ID), getClub('hapoel_afula'))).toBe('major_down');
   });
 

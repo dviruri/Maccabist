@@ -580,7 +580,7 @@ export function seniorTransitionOffers(
 
     if (verdict.path === 'contract_loan') {
       const destinations = ACTIVE_CLUBS.filter(
-        (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low',
+        (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_alef',
       );
       const chosen = rng.weighted(destinations, (c) => interestWeight(career, c) + 0.25);
       if (chosen) {
@@ -613,7 +613,7 @@ export function seniorTransitionOffers(
      * pyramid, where he actually plays.
      */
     const destinations = ACTIVE_CLUBS.filter(
-      (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low',
+      (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_alef',
     ).filter((c) => c.id !== MACCABI_ID);
     const offers: TransferOffer[] = [];
     // The floor stays small so club fit dominates - otherwise every club looks equally likely
@@ -662,7 +662,7 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
       const destinations = ACTIVE_CLUBS.filter(
         (c) =>
           c.isSenior &&
-          (c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_top'),
+          (c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_top' || c.tier === 'israeli_alef'),
       ).filter((c) => c.id !== MACCABI_ID);
       const chosen = rng.weighted(destinations, (c) => interestWeight(career, c) + 0.2);
       if (chosen) return [releaseOffer(chosen)];

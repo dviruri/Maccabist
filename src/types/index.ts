@@ -82,6 +82,8 @@ export type ClubTier =
   | 'israeli_top'
   | 'israeli_mid'
   | 'israeli_low'
+  /** Liga Alef - the third tier, v0.6.5. Semi-professional, regional, and a real career rung. */
+  | 'israeli_alef'
   | 'euro_dev'
   | 'euro_mid'
   | 'euro_top';

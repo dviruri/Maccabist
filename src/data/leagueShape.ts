@@ -40,6 +40,13 @@ function shape(
 export const LEAGUE_SHAPES: Record<string, LeagueShape> = {
   il_premier: shape('il_premier', 3, 2, 0),
   il_leumit: shape('il_leumit', 0, 2, 2),
+  /*
+   * Liga Alef (v0.6.5): one promotion place per district; no modelled relegation because Liga
+   * Bet is below the modelled world - a bottom-placed Alef club has a terrible season and stays,
+   * which WORLD_DATA.md records as a known limitation rather than hiding.
+   */
+  il_alef_north: shape('il_alef_north', 0, 0, 1),
+  il_alef_south: shape('il_alef_south', 0, 0, 1),
   be_pro: shape('be_pro', 3, 3, 0),
   nl_eredivisie: shape('nl_eredivisie', 3, 3, 0),
   at_bundesliga: shape('at_bundesliga', 3, 3, 0),

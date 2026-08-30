@@ -101,6 +101,12 @@ const seniorAt = (clubId: string, over: Partial<Career> = {}): Career => ({
   ...over,
 });
 
+/*
+ * v0.6.5 fixture note: hapoel_hadera was the canonical "weaker top-flight club" here, and the
+ * pyramid moved under it - it now plays two tiers down in Liga Alef, which changes what a move
+ * to or from it means. `hapoel_hadera` fixtures were repointed to `bnei_sakhnin` (a real
+ * mid-table top-flight club); the assertions themselves are unchanged.
+ */
 describe('promotion and relegation', () => {
   const relegation = (clubId: string): ClubSeasonResult => ({
     season: 2042,
@@ -143,18 +149,46 @@ describe('promotion and relegation', () => {
     expect(world.clubLeagues).toEqual({});
   });
 
-  it('never relegates out of the bottom division', () => {
-    const world = applyPromotionRelegation(emptyWorld(), {
+  it('relegates a Leumit club into its correct Alef district (v0.6.5)', () => {
+    /*
+     * The trapdoor is real now. What this test used to prove - that the bottom division has no
+     * relegatesTo - moved down two rungs: the Alef districts are the floor, checked below. What
+     * Leumit relegation must prove instead is DISTRICT truth, because 'il_alef' is a
+     * geography-resolved sentinel and a Rehovot club landing in the northern district would be
+     * a quiet lie about the football map.
+     */
+    const relegated = applyPromotionRelegation(emptyWorld(), {
       season: 2042,
-      clubId: SECOND,
+      clubId: 'hapoel_raanana',
       leagueId: 'il_leumit',
       outcome: 'relegated',
       label: 'ירדה ליגה',
       playerImpact: 0.1,
     });
-    // `il_leumit` has no `relegatesTo`, so the club stays put rather than vanishing.
-    expect(getLeague('il_leumit').relegatesTo).toBeUndefined();
-    expect(leagueOf(world, SECOND).id).toBe('il_leumit');
+    expect(relegated.clubLeagues['hapoel_raanana']).toBe('il_alef_south');
+    const north = applyPromotionRelegation(emptyWorld(), {
+      season: 2042,
+      clubId: 'hapoel_acre',
+      leagueId: 'il_leumit',
+      outcome: 'relegated',
+      label: 'ירדה ליגה',
+      playerImpact: 0.1,
+    });
+    expect(north.clubLeagues['hapoel_acre']).toBe('il_alef_north');
+
+    // And the floor really is the floor.
+    const world = applyPromotionRelegation(emptyWorld(), {
+      season: 2042,
+      clubId: 'ms_tira',
+      leagueId: 'il_alef_north',
+      outcome: 'relegated',
+      label: 'ירדה ליגה',
+      playerImpact: 0.1,
+    });
+    // The Alef districts have no `relegatesTo` (Liga Bet is below the modelled world), so a
+    // bottom-placed club stays put rather than vanishing.
+    expect(getLeague('il_alef_north').relegatesTo).toBeUndefined();
+    expect(leagueOf(world, 'ms_tira').id).toBe('il_alef_north');
   });
 
   it('follows the player when his own club goes down', () => {
@@ -317,8 +351,8 @@ describe('the career ladder', () => {
      * Maccabi Haifa and Maccabi Haifa -> Hapoel Hadera both came out "lateral" because they share
      * a division. A move's direction is about the club's career level.
      */
-    expect(moveDirection(seniorAt('hapoel_hadera'), getClub(TOP))).toBe('up');
-    expect(moveDirection(seniorAt(TOP), getClub('hapoel_hadera'))).toBe('down');
+    expect(moveDirection(seniorAt('bnei_sakhnin'), getClub(TOP))).toBe('up');
+    expect(moveDirection(seniorAt(TOP), getClub('bnei_sakhnin'))).toBe('down');
   });
 
   it('reserves the major bands for genuine leaps', () => {
@@ -326,7 +360,7 @@ describe('the career ladder', () => {
     expect(moveDirection(seniorAt(TOP), getClub(SECOND))).toBe('major_down');
     expect(moveDirection(seniorAt('napoli'), getClub('sturm_graz'))).toBe('major_down');
     // ...and not for a step between neighbours in the same division.
-    expect(moveDirection(seniorAt('hapoel_hadera'), getClub(TOP))).not.toBe('major_up');
+    expect(moveDirection(seniorAt('bnei_sakhnin'), getClub(TOP))).not.toBe('major_up');
   });
 
   it('ranks clubs by league, squad and prestige together', () => {
@@ -334,12 +368,12 @@ describe('the career ladder', () => {
     const level = (id: string): number => clubCareerLevel(career, id);
     expect(level('napoli')).toBeGreaterThan(level('benfica'));
     expect(level('benfica')).toBeGreaterThan(level(TOP));
-    expect(level(TOP)).toBeGreaterThan(level('hapoel_hadera'));
-    expect(level('hapoel_hadera')).toBeGreaterThan(level(SECOND));
+    expect(level(TOP)).toBeGreaterThan(level('bnei_sakhnin'));
+    expect(level('bnei_sakhnin')).toBeGreaterThan(level(SECOND));
   });
 
   it('lowers a club career level when it is relegated', () => {
-    const career = seniorAt('hapoel_hadera');
+    const career = seniorAt('bnei_sakhnin');
     const top = clubCareerLevel(career, TOP);
     const dropped: Career = {
       ...career,
@@ -354,12 +388,12 @@ describe('the career ladder', () => {
     };
     expect(clubCareerLevel(dropped, TOP)).toBeLessThan(top);
     // Still the bigger club, though - a fallen giant is not Hapoel Hadera.
-    expect(clubCareerLevel(dropped, TOP)).toBeGreaterThan(clubCareerLevel(dropped, 'hapoel_hadera'));
+    expect(clubCareerLevel(dropped, TOP)).toBeGreaterThan(clubCareerLevel(dropped, 'bnei_sakhnin'));
   });
 
   it('treats direction as symmetric', () => {
     const pairs: Array<[string, string]> = [
-      ['hapoel_hadera', TOP],
+      ['bnei_sakhnin', TOP],
       [SECOND, 'napoli'],
       ['sturm_graz', 'benfica'],
     ];

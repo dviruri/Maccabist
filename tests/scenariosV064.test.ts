@@ -244,12 +244,16 @@ describe('v0.6.4 K. an old save is not rewritten', () => {
      * modelled divisions - and must not silently relocate the player to a different real club,
      * which is the falsification A6 forbids.
      */
-    const old = player({ currentClubId: 'hapoel_hadera' });
+    /*
+     * v0.6.5: hapoel_hadera was the exemplar and is ACTIVE again (Liga Alef exists now), which
+     * is itself the system working. The remaining inactive Israeli identity takes over the role.
+     */
+    const old = player({ currentClubId: 'sektzia_nes_tziona' });
     const hydrated = hydrateCareer(old);
-    expect(hydrated.currentClubId).toBe('hapoel_hadera');
-    expect(getClub('hapoel_hadera').name).toBe('הפועל חדרה');
-    expect(clubVisual('hapoel_hadera').initials.length).toBeGreaterThan(0);
-    expect(isInactiveClub('hapoel_hadera')).toBe(true);
+    expect(hydrated.currentClubId).toBe('sektzia_nes_tziona');
+    expect(getClub('sektzia_nes_tziona').name.length).toBeGreaterThan(0);
+    expect(clubVisual('sektzia_nes_tziona').initials.length).toBeGreaterThan(0);
+    expect(isInactiveClub('sektzia_nes_tziona')).toBe(true);
   });
 
   it('never offers an inactive club to a new career', () => {

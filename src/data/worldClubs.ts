@@ -38,7 +38,7 @@
  * resolves through `clubVisuals.ts` -> `ClubCrest`.
  */
 
-export const WORLD_DATA_VERSION = '2026.2';
+export const WORLD_DATA_VERSION = '2026.3';
 
 /** The season every membership list below describes. */
 export const WORLD_SNAPSHOT_SEASON = '2026/27';
@@ -141,6 +141,136 @@ const IL_CLUBS: WorldClub[] = [
   { id: 'maccabi_kiryat_gat', name: 'מכבי קרית גת', quality: 30, prestige: 10, colors: c('#c8102e', '#f4d03f') },
   { id: 'ms_kiryat_yam', name: 'מ.ס קרית ים', quality: 29, prestige: 9, colors: c('#1b4f9c', '#f4d03f') },
 ];
+
+
+/**
+ * ליגה א׳ 2026/27 - the third tier, two districts (v0.6.5).
+ *
+ * ## The snapshot, honestly
+ *
+ * The IFA publishes live 2026/27 tables for the top two divisions, and those confirm our
+ * membership exactly. For Liga Alef the 2026/27 tables are NOT yet published at audit time -
+ * the latest complete official data is the 2025/26 final table. So Liga Alef's snapshot is:
+ * **the official 2025/26 membership, adjusted only by movements the 2026/27 top-flight data
+ * proves** - Ahi Nazareth and Kiryat Gat promoted out (they appear in the live Leumit table),
+ * Nof HaGalil and Hadera relegated in (they appear in neither 2026/27 division above).
+ * Promotion from Liga Bet and relegation to it are NOT applied, because Liga Bet is not
+ * modelled and its playoff outcomes are not observable from published data. See WORLD_DATA.md.
+ *
+ * Hadera is assigned to the South district: the Leumit relegation added two clubs to a
+ * northern-heavy map, and Hadera is the border-region club the IFA itself moves between
+ * districts when balancing. Documented as the one deterministic judgement in the snapshot.
+ *
+ * Names: the IFA registry names carry sponsor suffixes ("מכבי נווה שאנן אלדד",
+ * "הפועל בית שאן מסילות"). Display names drop the sponsor, keeping the club.
+ */
+const IL_ALEF_NORTH_MEMBERS = [
+  'hapoel_nof_hagalil',
+  'ms_tira',
+  'maccabi_ata_bialik',
+  'hapoel_karmiel',
+  'maccabi_neve_shaanan',
+  'hapoel_umm_al_fahm',
+  'hapoel_baqa_al_gharbiyye',
+  'hapoel_beit_shean',
+  'tzeirei_umm_al_fahm',
+  'ironi_nesher',
+  'hapoel_migdal_haemek',
+  'tzeirei_tamra',
+  'hapoel_arraba',
+  'maccabi_nujeidat',
+  'hapoel_tirat_carmel',
+  'hapoel_bnei_musmus',
+];
+
+const IL_ALEF_SOUTH_MEMBERS = [
+  'hapoel_hadera',
+  'mk_jerusalem',
+  'ms_dimona',
+  'maccabi_yavne',
+  'maccabi_kiryat_malakhi',
+  'hapoel_ramat_hasharon',
+  'shimshon_tel_aviv',
+  'hapoel_marmorek',
+  'tzeirei_tira',
+  'hapoel_herzliya',
+  'beitar_yavne',
+  'mk_kfar_saba',
+  'mk_holon_yirmiyahu',
+  'hapoel_azor',
+  'maccabi_ironi_ashdod',
+  'nordia_jerusalem',
+];
+
+/** North district: Galilee, the valleys, Haifa bay and the northern Triangle. */
+const IL_ALEF_NORTH_CLUBS: WorldClub[] = [
+  { id: 'ms_tira', name: 'מ.ס. טירה', quality: 30, prestige: 8, colors: c('#c8102e', '#ffffff') },
+  { id: 'maccabi_ata_bialik', name: 'מכבי אתא ביאליק', quality: 27, prestige: 7, colors: c('#1b4f9c', '#f4d03f') },
+  { id: 'hapoel_karmiel', name: 'הפועל עירוני כרמיאל', quality: 28, prestige: 7, colors: c('#c8102e', '#1b4f9c') },
+  { id: 'maccabi_neve_shaanan', name: 'מכבי נווה שאנן', quality: 26, prestige: 7, colors: c('#3aa655', '#f4d03f') },
+  { id: 'hapoel_baqa_al_gharbiyye', name: 'הפועל בקה אל-גרבייה', quality: 27, prestige: 7, colors: c('#3aa655', '#c8102e') },
+  { id: 'tzeirei_umm_al_fahm', name: 'צעירי אום אל-פחם', quality: 26, prestige: 6, colors: c('#1b1b1b', '#3aa655') },
+  { id: 'ironi_nesher', name: 'עירוני נשר', quality: 25, prestige: 6, colors: c('#1b4f9c', '#ffffff') },
+  { id: 'hapoel_migdal_haemek', name: 'הפועל מגדל העמק', quality: 25, prestige: 6, colors: c('#c8102e', '#1b1b1b') },
+  { id: 'tzeirei_tamra', name: 'מ.כ. צעירי טמרה', quality: 24, prestige: 6, colors: c('#c8102e', '#3aa655') },
+  { id: 'hapoel_arraba', name: 'הפועל עירוני עראבה', quality: 24, prestige: 6, colors: c('#3aa655', '#ffffff') },
+  { id: 'maccabi_nujeidat', name: 'מכבי נוג׳ידאת', quality: 23, prestige: 5, colors: c('#f4d03f', '#3aa655') },
+  { id: 'hapoel_tirat_carmel', name: 'הפועל טירת כרמל', quality: 23, prestige: 5, colors: c('#12a0d7', '#ffffff') },
+  { id: 'hapoel_bnei_musmus', name: 'הפועל בני מוסמוס', quality: 25, prestige: 6, colors: c('#3aa655', '#1b1b1b') },
+  // Reactivated from the v0.6.4 inactive list - a real 2025/26 Alef North member.
+  { id: 'hapoel_beit_shean', name: 'הפועל בית שאן', quality: 26, prestige: 7, colors: c('#c8102e', '#ffffff') },
+];
+
+/** South district: greater Tel Aviv, the Shephelah, Jerusalem and the northern Negev. */
+const IL_ALEF_SOUTH_CLUBS: WorldClub[] = [
+  { id: 'mk_jerusalem', name: 'מ.כ. ירושלים', quality: 30, prestige: 8, colors: c('#c8102e', '#1b1b1b') },
+  { id: 'ms_dimona', name: 'מ.ס. דימונה', quality: 29, prestige: 8, colors: c('#1b4f9c', '#ffffff') },
+  { id: 'maccabi_yavne', name: 'מכבי יבנה', quality: 28, prestige: 7, colors: c('#f4d03f', '#1b4f9c') },
+  { id: 'maccabi_kiryat_malakhi', name: 'מכבי קרית מלאכי', quality: 27, prestige: 7, colors: c('#f4d03f', '#c8102e') },
+  { id: 'tzeirei_tira', name: 'מ.כ. צעירי טירה', quality: 26, prestige: 6, colors: c('#3aa655', '#ffffff') },
+  { id: 'hapoel_marmorek', name: 'הפועל מרמורק רחובות', quality: 26, prestige: 7, colors: c('#c8102e', '#f4d03f') },
+  { id: 'hapoel_herzliya', name: 'הפועל הרצליה', quality: 25, prestige: 6, colors: c('#c8102e', '#ffffff') },
+  { id: 'beitar_yavne', name: 'מ.כ. בית"ר יבנה', quality: 25, prestige: 6, colors: c('#f4d03f', '#1b1b1b') },
+  { id: 'mk_kfar_saba', name: 'מ.כ. כפר סבא', quality: 25, prestige: 6, colors: c('#3aa655', '#1b4f9c') },
+  { id: 'mk_holon_yirmiyahu', name: 'מ.כ. חולון', quality: 25, prestige: 6, colors: c('#f4d03f', '#1b1b1b') },
+  { id: 'hapoel_azor', name: 'הפועל אזור', quality: 24, prestige: 6, colors: c('#1b4f9c', '#f4d03f') },
+  { id: 'maccabi_ironi_ashdod', name: 'מכבי עירוני אשדוד', quality: 23, prestige: 5, colors: c('#c8102e', '#f4d03f') },
+  { id: 'nordia_jerusalem', name: 'נורדיה ירושלים', quality: 23, prestige: 5, colors: c('#1b1b1b', '#f4d03f') },
+  // Reactivated from the v0.6.4 inactive list - real 2025/26 Alef South members.
+  { id: 'hapoel_ramat_hasharon', name: 'הפועל רמת השרון', quality: 26, prestige: 7, colors: c('#1b4f9c', '#f4d03f') },
+  { id: 'shimshon_tel_aviv', name: 'שמשון תל אביב', quality: 27, prestige: 7, colors: c('#1b1b1b', '#f4d03f') },
+];
+
+/**
+ * Which Alef district each Israeli club belongs to, geographically.
+ *
+ * Consulted when a club MOVES into Liga Alef at runtime - a relegated Leumit club must land in
+ * the correct district, not an arbitrary one (D5). Covers every club that can plausibly arrive:
+ * the whole Leumit membership plus the Alef clubs themselves. Deterministic and documented
+ * rather than a live model of the IFA's yearly rebalancing.
+ */
+export const ALEF_DISTRICT_BY_CLUB: Record<string, 'north' | 'south'> = {
+  // Current Alef membership
+  ...Object.fromEntries(IL_ALEF_NORTH_MEMBERS.map((id) => [id, 'north' as const])),
+  ...Object.fromEntries(IL_ALEF_SOUTH_MEMBERS.map((id) => [id, 'south' as const])),
+  // Leumit clubs, by geography, in case they come down
+  hapoel_kfar_saba: 'south',
+  maccabi_herzliya: 'south',
+  hapoel_rishon: 'south',
+  bnei_yehuda: 'south',
+  ms_ashdod: 'south',
+  maccabi_bnei_raina: 'north',
+  hapoel_afula: 'north',
+  hapoel_acre: 'north',
+  maccabi_kabilio_jaffa: 'south',
+  ms_kafr_qasim: 'south',
+  hapoel_raanana: 'south',
+  hapoel_kfar_shalem: 'south',
+  ironi_modiin: 'south',
+  maccabi_ahi_nazareth: 'north',
+  maccabi_kiryat_gat: 'south',
+  ms_kiryat_yam: 'north',
+};
 
 /* ================================================================== */
 /* Italy - Serie A, 20                                                 */
@@ -449,10 +579,14 @@ const CY_CLUBS: WorldClub[] = [
  */
 export const INACTIVE_CLUBS: WorldClub[] = [
   /* Israeli clubs that fell below Liga Leumit, or were never top-flight. */
-  { id: 'hapoel_ramat_hasharon', name: 'הפועל רמת השרון', quality: 40, colors: c('#1b4f9c', '#f4d03f'), inactive: true, notPlayableReason: 'not a member of either modelled Israeli division in 2026/27' },
-  { id: 'shimshon_tel_aviv', name: 'שמשון תל אביב', quality: 31, colors: c('#1b1b1b', '#f4d03f'), inactive: true, notPlayableReason: 'below Liga Leumit in 2026/27' },
-  { id: 'hapoel_beit_shean', name: 'הפועל בית שאן', quality: 30, colors: c('#c8102e', '#ffffff'), inactive: true, notPlayableReason: 'below Liga Leumit in 2026/27' },
-  { id: 'hapoel_holon', name: 'הפועל חולון', quality: 42, colors: c('#c8102e', '#f4d03f'), inactive: true, notPlayableReason: 'below Liga Leumit in 2026/27' },
+  /*
+   * v0.6.5: hapoel_ramat_hasharon, shimshon_tel_aviv and hapoel_beit_shean came BACK to life -
+   * all three are 2025/26 Liga Alef members, so modelling the third tier reactivates them with
+   * their existing ids. This is exactly why inactive identities are preserved rather than
+   * deleted. hapoel_holon stays inactive: the Alef club מ.כ. חולון is a different club, not a
+   * renamed Hapoel Holon, and merging identities on a shared city would falsify both.
+   */
+  { id: 'hapoel_holon', name: 'הפועל חולון', quality: 42, colors: c('#c8102e', '#f4d03f'), inactive: true, notPlayableReason: 'below the modelled divisions; distinct from מ.כ. חולון (Liga Alef)' },
   { id: 'boavista', name: 'בואוויסטה', quality: 62, colors: c('#1b1b1b', '#ffffff'), inactive: true, notPlayableReason: 'not in the Primeira Liga in 2026/27' },
   { id: 'vitesse', name: 'ויטסה', quality: 62, colors: c('#f4d03f', '#1b1b1b'), inactive: true, notPlayableReason: 'not in the Eredivisie in 2026/27' },
 
@@ -472,7 +606,6 @@ export const INACTIVE_CLUBS: WorldClub[] = [
   { id: 'doxa_katokopias', name: 'דוקסה', quality: 46, colors: c('#3aa655', '#ffffff'), initials: 'DOX', inactive: true },
   { id: 'ethnikos_achna', name: 'אתניקוס אחנה', quality: 47, colors: c('#f4d03f', '#3aa655'), initials: 'ETH', inactive: true },
   { id: 'girona', name: 'ג׳ירונה', quality: 72, colors: c('#c8102e', '#ffffff'), initials: 'GIR', inactive: true },
-  { id: 'hapoel_herzliya', name: 'הפועל הרצליה', quality: 28, colors: c('#c8102e', '#ffffff'), inactive: true },
   { id: 'heidenheim', name: 'היידנהיים', quality: 63, colors: c('#c8102e', '#1b4f9c'), initials: 'HDH', inactive: true },
   { id: 'hellas_verona', name: 'ורונה', quality: 61, colors: c('#f4d03f', '#1b4f9c'), initials: 'VER', inactive: true },
   { id: 'heracles', name: 'הרקלס אלמלו', quality: 56, colors: c('#1b1b1b', '#ffffff'), initials: 'HER', inactive: true },
@@ -496,10 +629,11 @@ export const INACTIVE_CLUBS: WorldClub[] = [
  * out of the market while their identity, name and history stay intact.
  */
 export const INACTIVE_CLUB_IDS: readonly string[] = [
-  'hapoel_hadera',
-  'hapoel_nof_hagalil',
+  /*
+   * v0.6.5: hapoel_hadera, hapoel_nof_hagalil and hapoel_umm_al_fahm left this list - the third
+   * tier exists now and all three play in it. Nes Tziona remains below the modelled pyramid.
+   */
   'sektzia_nes_tziona',
-  'hapoel_umm_al_fahm',
 ];
 
 /* ================================================================== */
@@ -515,6 +649,8 @@ export const INACTIVE_CLUB_IDS: readonly string[] = [
 export const LEAGUE_MEMBERSHIP: Record<string, readonly string[]> = {
   il_premier: IL_PREMIER_MEMBERS,
   il_leumit: IL_LEUMIT_MEMBERS,
+  il_alef_north: IL_ALEF_NORTH_MEMBERS,
+  il_alef_south: IL_ALEF_SOUTH_MEMBERS,
   it_seriea: IT_SERIEA_MEMBERS,
   en_premier: EN_PREMIER_MEMBERS,
   es_laliga: ES_LALIGA_MEMBERS,
@@ -537,6 +673,8 @@ export const LEAGUE_MEMBERSHIP: Record<string, readonly string[]> = {
  */
 export const WORLD_CLUBS: readonly WorldClub[] = [
   ...IL_CLUBS,
+  ...IL_ALEF_NORTH_CLUBS,
+  ...IL_ALEF_SOUTH_CLUBS,
   ...IT_CLUBS,
   ...EN_CLUBS,
   ...ES_CLUBS,

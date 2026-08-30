@@ -1,0 +1,685 @@
+{
+ "source": "Israel Football Association (football.org.il) - Components.asmx/LeagueTable API",
+ "retrievedAt": "2026-08-30",
+ "seasons": {
+  "28": "2026/27",
+  "27": "2025/26"
+ },
+ "leagues": {
+  "ligat_haal": {
+   "league_id": 40,
+   "season": "2026/27",
+   "clubs": [
+    {
+     "ifa_team_id": "1064",
+     "name": "מכבי  פ\"ת"
+    },
+    {
+     "ifa_team_id": "1068",
+     "name": "מכבי נתניה"
+    },
+    {
+     "ifa_team_id": "1061",
+     "name": "מכבי ת\"א"
+    },
+    {
+     "ifa_team_id": "2182",
+     "name": "הפועל ק\"ש"
+    },
+    {
+     "ifa_team_id": "2171",
+     "name": "הפועל ב\"ש"
+    },
+    {
+     "ifa_team_id": "1005",
+     "name": "מכבי חיפה"
+    },
+    {
+     "ifa_team_id": "2173",
+     "name": "הפועל פ\"ת"
+    },
+    {
+     "ifa_team_id": "4823",
+     "name": "בני סכנין"
+    },
+    {
+     "ifa_team_id": "2170",
+     "name": "הפועל חיפה"
+    },
+    {
+     "ifa_team_id": "2176",
+     "name": "הפועל ת\"א"
+    },
+    {
+     "ifa_team_id": "2175",
+     "name": "הפועל ר\"ג"
+    },
+    {
+     "ifa_team_id": "3595",
+     "name": "בית\"ר י-ם"
+    },
+    {
+     "ifa_team_id": "5981",
+     "name": "הפועל י-ם"
+    },
+    {
+     "ifa_team_id": "5455",
+     "name": "עירוני דורות טבריה"
+    }
+   ]
+  },
+  "liga_leumit": {
+   "league_id": 45,
+   "season": "2026/27",
+   "clubs": []
+  },
+  "liga_leumit_2025_26": {
+   "league_id": 45,
+   "season": "2025/26",
+   "clubs": [
+    {
+     "pos": 1,
+     "ifa_team_id": "1064",
+     "name": "מכבי  פ\"ת"
+    },
+    {
+     "pos": 2,
+     "ifa_team_id": "2175",
+     "name": "הפועל ר\"ג"
+    },
+    {
+     "pos": 3,
+     "ifa_team_id": "1003",
+     "name": "מכבי הרצליה דיוויד יחזקאל"
+    },
+    {
+     "pos": 4,
+     "ifa_team_id": "4669",
+     "name": "בני יהודה ת\"א"
+    },
+    {
+     "pos": 5,
+     "ifa_team_id": "2252",
+     "name": "הפועל כפר שלם"
+    },
+    {
+     "pos": 6,
+     "ifa_team_id": "5785",
+     "name": "מ.ס. קרית ים"
+    },
+    {
+     "pos": 7,
+     "ifa_team_id": "2266",
+     "name": "הפועל כפ\"ס"
+    },
+    {
+     "pos": 8,
+     "ifa_team_id": "2263",
+     "name": "הפועל ראשל\"צ"
+    },
+    {
+     "pos": 9,
+     "ifa_team_id": "5775",
+     "name": "מכבי יפו"
+    },
+    {
+     "pos": 10,
+     "ifa_team_id": "2203",
+     "name": "הפועל רעננה"
+    },
+    {
+     "pos": 11,
+     "ifa_team_id": "2279",
+     "name": "הפועל ע. עפולה"
+    },
+    {
+     "pos": 12,
+     "ifa_team_id": "4837",
+     "name": "מ.ס. כפר קאסם סוהיב"
+    },
+    {
+     "pos": 13,
+     "ifa_team_id": "5994",
+     "name": "עירוני מודיעין"
+    },
+    {
+     "pos": 14,
+     "ifa_team_id": "2184",
+     "name": "הפועל עכו"
+    },
+    {
+     "pos": 15,
+     "ifa_team_id": "2185",
+     "name": "הפ' נוף הגליל"
+    },
+    {
+     "pos": 16,
+     "ifa_team_id": "2186",
+     "name": "הפ' חדרה ש. שוורץ"
+    }
+   ]
+  },
+  "liga_alef_south_2025_26": {
+   "league_id": 62,
+   "season": "2025/26",
+   "clubs": [
+    {
+     "pos": 1,
+     "ifa_team_id": "7521",
+     "name": "מכבי קריית גת"
+    },
+    {
+     "pos": 2,
+     "ifa_team_id": "7348",
+     "name": "מ.כ. ירושלים"
+    },
+    {
+     "pos": 3,
+     "ifa_team_id": "5013",
+     "name": "מ.ס. דימונה"
+    },
+    {
+     "pos": 4,
+     "ifa_team_id": "1002",
+     "name": "מכבי יבנה"
+    },
+    {
+     "pos": 5,
+     "ifa_team_id": "1121",
+     "name": "מכבי קרית מלאכי עירוני"
+    },
+    {
+     "pos": 6,
+     "ifa_team_id": "7066",
+     "name": "מ.כ. צעירי טירה"
+    },
+    {
+     "pos": 7,
+     "ifa_team_id": "6860",
+     "name": "שמשון פזטל ת\"א"
+    },
+    {
+     "pos": 8,
+     "ifa_team_id": "6743",
+     "name": "מ.כ. בית\"ר יבנה"
+    },
+    {
+     "pos": 9,
+     "ifa_team_id": "8012",
+     "name": "מ.כ. כפר סבא"
+    },
+    {
+     "pos": 10,
+     "ifa_team_id": "6837",
+     "name": "מ.כ. חולון ירמיהו"
+    },
+    {
+     "pos": 11,
+     "ifa_team_id": "2211",
+     "name": "הפועל מרמורק רחובות חיים"
+    },
+    {
+     "pos": 12,
+     "ifa_team_id": "2261",
+     "name": "הפועל אזור"
+    },
+    {
+     "pos": 13,
+     "ifa_team_id": "2208",
+     "name": "הפועל הרצליה עירוני"
+    },
+    {
+     "pos": 14,
+     "ifa_team_id": "2194",
+     "name": "הפועל ניר רמה\"ש"
+    },
+    {
+     "pos": 15,
+     "ifa_team_id": "6922",
+     "name": "מ.כ. מכבי ע. אשדוד"
+    },
+    {
+     "pos": 16,
+     "ifa_team_id": "6848",
+     "name": "א.ס. נורדיה ירושלים"
+    }
+   ]
+  },
+  "liga_bet_north_a_2025_26": {
+   "league_id": 71,
+   "season": "2025/26",
+   "clubs": [
+    {
+     "pos": 1,
+     "ifa_team_id": "5584",
+     "name": "בית\"ר נהריה"
+    },
+    {
+     "pos": 2,
+     "ifa_team_id": "7351",
+     "name": "מכבי בני ג'דידה מכר"
+    },
+    {
+     "pos": 3,
+     "ifa_team_id": "7731",
+     "name": "הפועל בני עין מאהל"
+    },
+    {
+     "pos": 4,
+     "ifa_team_id": "8013",
+     "name": "מכבי איחוד בני אבטין"
+    },
+    {
+     "pos": 5,
+     "ifa_team_id": "6928",
+     "name": "מ.ס. בני \"ממבע\" הגולן"
+    },
+    {
+     "pos": 6,
+     "ifa_team_id": "7508",
+     "name": "מ.כ. שפרעם"
+    },
+    {
+     "pos": 7,
+     "ifa_team_id": "2556",
+     "name": "הפועל דיר חנא"
+    },
+    {
+     "pos": 8,
+     "ifa_team_id": "2521",
+     "name": "הפועל איחוד בני סמיע"
+    },
+    {
+     "pos": 9,
+     "ifa_team_id": "7369",
+     "name": "מכבי בני אבו סנאן"
+    },
+    {
+     "pos": 10,
+     "ifa_team_id": "8214",
+     "name": "הפועל בני ג'דידה מכר"
+    },
+    {
+     "pos": 11,
+     "ifa_team_id": "2028",
+     "name": "הפועל כאוכב"
+    },
+    {
+     "pos": 12,
+     "ifa_team_id": "7067",
+     "name": "מכבי אחווה שעב"
+    },
+    {
+     "pos": 13,
+     "ifa_team_id": "7727",
+     "name": "בני מג'אר"
+    },
+    {
+     "pos": 14,
+     "ifa_team_id": "5720",
+     "name": "הפועל בני בענה"
+    },
+    {
+     "pos": 15,
+     "ifa_team_id": "5424",
+     "name": "מ.כ. אחווה כפר מנדא"
+    },
+    {
+     "pos": 16,
+     "ifa_team_id": "7609",
+     "name": "מ.ס. צעירי כפר מנדא"
+    }
+   ]
+  },
+  "liga_bet_north_b_2025_26": {
+   "league_id": 72,
+   "season": "2025/26",
+   "clubs": [
+    {
+     "pos": 1,
+     "ifa_team_id": "6242",
+     "name": "הפועל איחוד בני ג'ת"
+    },
+    {
+     "pos": 2,
+     "ifa_team_id": "7282",
+     "name": "מ.ס. טירת כרמל גל קובי"
+    },
+    {
+     "pos": 3,
+     "ifa_team_id": "2247",
+     "name": "הפועל דלית אל כרמל"
+    },
+    {
+     "pos": 4,
+     "ifa_team_id": "5297",
+     "name": "איחוד בני בקה"
+    },
+    {
+     "pos": 5,
+     "ifa_team_id": "7542",
+     "name": "מ.כ. אור עקיבא"
+    },
+    {
+     "pos": 6,
+     "ifa_team_id": "3586",
+     "name": "בית\"ר חיפה יעקב"
+    },
+    {
+     "pos": 7,
+     "ifa_team_id": "7370",
+     "name": "מ.ס. צעירי חיפה"
+    },
+    {
+     "pos": 8,
+     "ifa_team_id": "6839",
+     "name": "הפועל בני ערערה עארה"
+    },
+    {
+     "pos": 9,
+     "ifa_team_id": "7749",
+     "name": "מ.כ. צופי חיפה רובי"
+    },
+    {
+     "pos": 10,
+     "ifa_team_id": "6834",
+     "name": "מ.ס. צעירי כפר קנא"
+    },
+    {
+     "pos": 11,
+     "ifa_team_id": "7619",
+     "name": "מ.ס. כדורגל משהד"
+    },
+    {
+     "pos": 12,
+     "ifa_team_id": "2124",
+     "name": "הפועל רמות מנשה מגידו"
+    },
+    {
+     "pos": 13,
+     "ifa_team_id": "7268",
+     "name": "מ.כ. כבביר"
+    },
+    {
+     "pos": 14,
+     "ifa_team_id": "6484",
+     "name": "מ.ס. נתניה קולט כהן"
+    },
+    {
+     "pos": 15,
+     "ifa_team_id": "7539",
+     "name": "הפועל יפיע"
+    },
+    {
+     "pos": 16,
+     "ifa_team_id": "5431",
+     "name": "מכבי אחי איכסל"
+    }
+   ]
+  },
+  "liga_bet_south_a_2025_26": {
+   "league_id": 73,
+   "season": "2025/26",
+   "clubs": [
+    {
+     "pos": 1,
+     "ifa_team_id": "2256",
+     "name": "הפ' מחנה יהודה מאיה,אלירן"
+    },
+    {
+     "pos": 2,
+     "ifa_team_id": "7173",
+     "name": "מ.ס. הפועל לוד בני רגב"
+    },
+    {
+     "pos": 3,
+     "ifa_team_id": "1445",
+     "name": "מכבי ע. עמישב פ\"ת אלי"
+    },
+    {
+     "pos": 4,
+     "ifa_team_id": "2575",
+     "name": "הפועל הוד השרון עירוני"
+    },
+    {
+     "pos": 5,
+     "ifa_team_id": "3646",
+     "name": "בית\"ר ר\"ג"
+    },
+    {
+     "pos": 6,
+     "ifa_team_id": "5135",
+     "name": "הכח מכבי עמידר ר\"ג"
+    },
+    {
+     "pos": 7,
+     "ifa_team_id": "2210",
+     "name": "הפועל קרית אונו"
+    },
+    {
+     "pos": 8,
+     "ifa_team_id": "3120",
+     "name": "בית\"ר כ\"ס שלומי"
+    },
+    {
+     "pos": 9,
+     "ifa_team_id": "3596",
+     "name": "בית\"ר ת\"א חולון"
+    },
+    {
+     "pos": 10,
+     "ifa_team_id": "6552",
+     "name": "מ.ס בני יפו אורתודוכסים"
+    },
+    {
+     "pos": 11,
+     "ifa_team_id": "1366",
+     "name": "מכבי ע. כפר יונה"
+    },
+    {
+     "pos": 12,
+     "ifa_team_id": "5556",
+     "name": "בית\"ר פ\"ת זאב רווח"
+    },
+    {
+     "pos": 13,
+     "ifa_team_id": "4032",
+     "name": "א.ס. חולון מור"
+    },
+    {
+     "pos": 14,
+     "ifa_team_id": "4245",
+     "name": "עירוני בית דגן"
+    },
+    {
+     "pos": 15,
+     "ifa_team_id": "5420",
+     "name": "הפועל כ. קאסם שועאע"
+    },
+    {
+     "pos": 16,
+     "ifa_team_id": "7964",
+     "name": "בני ג'לג'וליה"
+    }
+   ]
+  },
+  "liga_bet_south_b_2025_26": {
+   "league_id": 74,
+   "season": "2025/26",
+   "clubs": [
+    {
+     "pos": 1,
+     "ifa_team_id": "7617",
+     "name": "מ.כ. שדרות"
+    },
+    {
+     "pos": 2,
+     "ifa_team_id": "4237",
+     "name": "עירוני בית שמש"
+    },
+    {
+     "pos": 3,
+     "ifa_team_id": "5034",
+     "name": "מ.ס. שיכון המזרח"
+    },
+    {
+     "pos": 4,
+     "ifa_team_id": "8205",
+     "name": "עירוני אשקלון"
+    },
+    {
+     "pos": 5,
+     "ifa_team_id": "5415",
+     "name": "בני אילת"
+    },
+    {
+     "pos": 6,
+     "ifa_team_id": "7262",
+     "name": "מ.ס. רמלה"
+    },
+    {
+     "pos": 7,
+     "ifa_team_id": "1521",
+     "name": "מכבי ע. נתיבות"
+    },
+    {
+     "pos": 8,
+     "ifa_team_id": "6929",
+     "name": "מ.כ. הפועל בני אשדוד"
+    },
+    {
+     "pos": 9,
+     "ifa_team_id": "6551",
+     "name": "מ.כ. ערד"
+    },
+    {
+     "pos": 10,
+     "ifa_team_id": "7290",
+     "name": "מ.ס. הפועל שגב שלום"
+    },
+    {
+     "pos": 11,
+     "ifa_team_id": "7957",
+     "name": "איחוד צעירי אבו גוש"
+    },
+    {
+     "pos": 12,
+     "ifa_team_id": "6467",
+     "name": "מ.ס. הפועל ירוחם"
+    },
+    {
+     "pos": 13,
+     "ifa_team_id": "3627",
+     "name": "בית\"ר ע. קרית גת דודו"
+    },
+    {
+     "pos": 14,
+     "ifa_team_id": "1010",
+     "name": "מכבי ב\"ש"
+    },
+    {
+     "pos": 15,
+     "ifa_team_id": "1011",
+     "name": "מכבי שעריים רחובות"
+    },
+    {
+     "pos": 16,
+     "ifa_team_id": "7972",
+     "name": "מכבי באר יעקב עמית"
+    }
+   ]
+  },
+  "liga_alef_north_2025_26": {
+   "league_id": 61,
+   "season": "2025/26",
+   "clubs": [
+    {
+     "pos": 1,
+     "ifa_team_id": "1844",
+     "name": "מכבי אחי נצרת"
+    },
+    {
+     "pos": 2,
+     "ifa_team_id": "5245",
+     "name": "מ.ס. טירה"
+    },
+    {
+     "pos": 3,
+     "ifa_team_id": "1854",
+     "name": "מכבי אתא ביאליק"
+    },
+    {
+     "pos": 4,
+     "ifa_team_id": "1013",
+     "name": "מכבי נווה שאנן אלדד"
+    },
+    {
+     "pos": 5,
+     "ifa_team_id": "5900",
+     "name": "הפועל עירוני כרמיאל"
+    },
+    {
+     "pos": 6,
+     "ifa_team_id": "2338",
+     "name": "הפועל בני מוסמוס"
+    },
+    {
+     "pos": 7,
+     "ifa_team_id": "5859",
+     "name": "הפועל בית שאן מסילות"
+    },
+    {
+     "pos": 8,
+     "ifa_team_id": "6078",
+     "name": "הפועל ע. בקה אל גרבייה"
+    },
+    {
+     "pos": 9,
+     "ifa_team_id": "7543",
+     "name": "צעירי א.א. פאחם"
+    },
+    {
+     "pos": 10,
+     "ifa_team_id": "5966",
+     "name": "עירוני נשר"
+    },
+    {
+     "pos": 11,
+     "ifa_team_id": "6718",
+     "name": "מ.כ. צעירי טמרה"
+    },
+    {
+     "pos": 12,
+     "ifa_team_id": "7354",
+     "name": "הפועל עירוני עראבה"
+    },
+    {
+     "pos": 13,
+     "ifa_team_id": "2232",
+     "name": "הפועל מגדל העמק"
+    },
+    {
+     "pos": 14,
+     "ifa_team_id": "7078",
+     "name": "מכבי נוג'ידאת אחמד"
+    },
+    {
+     "pos": 15,
+     "ifa_team_id": "6700",
+     "name": "הפועל טירת כרמל"
+    },
+    {
+     "pos": 16,
+     "ifa_team_id": "6301",
+     "name": "הפועל א.א. פאחם"
+    }
+   ]
+  }
+ },
+ "notes": [
+  "Ligat Ha'Al and Liga Leumit 2026/27 tables are live on the IFA site and confirm the v0.6.4 membership exactly (14 + 16).",
+  "Liga Alef and Liga Bet 2026/27 pages exist but their tables/fixtures are not yet published at audit time; the latest complete official season is 2025/26.",
+  "Liga Gimel league pages are still linked at season_id=27 in the IFA navigation - no 2026/27 structure is published at all.",
+  "Cross-boundary movement 2025/26 -> 2026/27 is fully observable from the membership diffs: Maccabi PT + Hapoel RG promoted to the top flight; Nof HaGalil + Hadera relegated from Leumit; Ahi Nazareth (Alef N winners) + Kiryat Gat (Alef S winners) promoted to Leumit; Ashdod + Bnei Reineh relegated into Leumit."
+ ]
+}

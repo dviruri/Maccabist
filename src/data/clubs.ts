@@ -198,17 +198,18 @@ const clubList: Club[] = [
     seasonGames: 36,
   },
   {
+    // v0.6.5: two relegations since this record was tuned; now the strongest club in Alef South.
     id: 'hapoel_hadera',
     name: 'הפועל חדרה',
     country: 'ישראל',
     league: 'ליגת העל',
-    quality: 48,
+    quality: 36,
     prestige: 18,
     development: 56,
-    tier: 'israeli_mid',
+    tier: 'israeli_alef',
     titleChance: 0.002,
     cupChance: 0.04,
-    europeChance: 0.005,
+    europeChance: 0,
     isSenior: true,
     seasonGames: 36,
   },
@@ -260,14 +261,15 @@ const clubList: Club[] = [
     seasonGames: 36,
   },
   {
+    // v0.6.5: relegated from Leumit 2025/26; the benchmark club of Alef North.
     id: 'hapoel_nof_hagalil',
     name: 'הפועל נוף הגליל',
     country: 'ישראל',
     league: 'ליגה לאומית',
-    quality: 39,
+    quality: 34,
     prestige: 10,
     development: 47,
-    tier: 'israeli_low',
+    tier: 'israeli_alef',
     titleChance: 0.05,
     cupChance: 0.01,
     europeChance: 0,
@@ -335,14 +337,15 @@ const clubList: Club[] = [
     seasonGames: 36,
   },
   {
+    // v0.6.5: a 2025/26 Alef North member; quality reflects the tier it actually plays in.
     id: 'hapoel_umm_al_fahm',
     name: 'הפועל אום אל פחם',
     country: 'ישראל',
     league: 'ליגה לאומית',
-    quality: 33,
+    quality: 28,
     prestige: 7,
     development: 45,
-    tier: 'israeli_low',
+    tier: 'israeli_alef',
     titleChance: 0.03,
     cupChance: 0.01,
     europeChance: 0,
@@ -650,6 +653,7 @@ function chanceCurve(strength: number, peak: number, spread: number): number {
 
 function tierFor(quality: number, isIsraeli: boolean, leagueId: string | null): ClubTier {
   if (isIsraeli) {
+    if (leagueId === 'il_alef_north' || leagueId === 'il_alef_south') return 'israeli_alef';
     if (leagueId === 'il_leumit') return 'israeli_low';
     return quality >= 60 ? 'israeli_top' : 'israeli_mid';
   }
@@ -666,7 +670,13 @@ function tierFor(quality: number, isIsraeli: boolean, leagueId: string | null): 
  * figures, and the historical benchmarks depend on them staying that way.
  */
 function seasonGamesFor(quality: number, isIsraeli: boolean, leagueId: string | null): number {
-  const base = isIsraeli ? (leagueId === 'il_leumit' ? 34 : 36) : 36;
+  const base = isIsraeli
+    ? leagueId === 'il_alef_north' || leagueId === 'il_alef_south'
+      ? 31
+      : leagueId === 'il_leumit'
+        ? 34
+        : 36
+    : 36;
   const europe = quality >= 82 ? 12 : quality >= 74 ? 8 : quality >= 66 ? 4 : 0;
   return base + europe;
 }

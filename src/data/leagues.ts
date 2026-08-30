@@ -62,6 +62,35 @@ export const LEAGUES: readonly League[] = [
     visibility: 12,
     development: 52,
     promotesTo: 'il_premier',
+    /*
+     * v0.6.5: the trapdoor is real now. 'il_alef' is a DISTRICT-RESOLVED destination - a
+     * relegated club lands in il_alef_north or il_alef_south by its geography, which
+     * `resolveRelegationLeague` in worldEngine decides from ALEF_DISTRICT_BY_CLUB. The literal
+     * string 'il_alef' is never a league id anywhere else.
+     */
+    relegatesTo: 'il_alef',
+  },
+  {
+    id: 'il_alef_north',
+    name: 'ליגה א׳ צפון',
+    country: 'ישראל',
+    tier: 3,
+    quality: 25,
+    prestige: 6,
+    visibility: 4,
+    development: 46,
+    promotesTo: 'il_leumit',
+  },
+  {
+    id: 'il_alef_south',
+    name: 'ליגה א׳ דרום',
+    country: 'ישראל',
+    tier: 3,
+    quality: 25,
+    prestige: 6,
+    visibility: 4,
+    development: 46,
+    promotesTo: 'il_leumit',
   },
 
   /* ---------------- European stepping stones ---------------- */
@@ -246,6 +275,7 @@ export function defaultLeagueFor(tier: ClubTier, country: string, clubId?: strin
     if (member) return member;
   }
   if (tier === 'academy' || tier === 'youth') return 'il_youth';
+  if (tier === 'israeli_alef') return 'il_alef_north';
   if (tier === 'israeli_low') return 'il_leumit';
   if (tier === 'israeli_top' || tier === 'israeli_mid') return 'il_premier';
 
