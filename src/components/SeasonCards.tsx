@@ -3,6 +3,7 @@ import { trophyIcon } from '../data/trophies';
 import { LEGACY_MILESTONES } from '../game/maccabiLegacy';
 import type { Milestone, Career, SeasonRecord, SeasonStats } from '../types';
 import { cupRunLabel } from '../game/cupEngine';
+import { seasonFixtures } from '../game/leagueTruth';
 import { levelContext } from '../game/rules';
 import { teamDisplayFor, teamDisplayLine } from '../game/identity';
 import { clubSeasonFor, isBadSeason, isGoodSeason } from '../game/worldEngine';
@@ -201,7 +202,12 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
 
         <ClubSeasonLine career={career} season={record.season} />
 
-        <StatBoxes career={career} stats={record.stats} teamGames={levelContext(career).seasonGames} />
+        {/*
+          v0.6.5.2: the minutes denominator is THIS season's schedule. It used to be the player's
+          current level, so scrolling back through history re-scored every old season against
+          wherever he happens to play today.
+        */}
+        <StatBoxes career={career} stats={record.stats} teamGames={seasonFixtures(record)} />
 
         {/*
           מורשת מכבי (v0.6, Phase 29): when this season crossed a legacy milestone, one compact

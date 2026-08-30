@@ -15,7 +15,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { getClub } from '../src/data/clubs';
+import { seasonFixtures } from '../src/game/leagueTruth';
 import { POSITIONS, RETIREMENT, SEASON, WORLD } from '../src/game/balance';
 import {
   createCareer,
@@ -289,8 +289,16 @@ describe('v0.4.5 Phase 0: appearance inflation', () => {
   });
 
   it('never has anyone playing every match of a season', () => {
+    /*
+     * v0.6.5.2: measured against the schedule of the league the season was PLAYED in.
+     *
+     * This used to divide by the club's static `seasonGames`. Once a club is promoted its real
+     * season gets longer (Ligat Ha'Al adds a playoff round) while the static field does not, so
+     * a normal 47-of-48 season read as 0.98 of a 48-game denominator that no longer existed.
+     * The cap is on the share of matches actually available.
+     */
     const shares = seniorSeasons('CM').map(
-      (s) => s.stats.appearances / Math.max(1, getClub(s.clubId).seasonGames),
+      (s) => s.stats.appearances / Math.max(1, seasonFixtures(s)),
     );
     // Rotation, suspensions, knocks and cup rest take games from even a first-choice player.
     expect(Math.max(...shares)).toBeLessThanOrEqual(SEASON.minutesMax + 0.02);
@@ -299,7 +307,7 @@ describe('v0.4.5 Phase 0: appearance inflation', () => {
   it('scales appearances by role the way football does', () => {
     const byRole = new Map<string, number[]>();
     for (const s of seniorSeasons('CM')) {
-      const share = s.stats.appearances / Math.max(1, getClub(s.clubId).seasonGames);
+      const share = s.stats.appearances / Math.max(1, seasonFixtures(s));
       byRole.set(s.role, [...(byRole.get(s.role) ?? []), share]);
     }
     const avg = (role: string): number => {

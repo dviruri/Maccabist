@@ -93,6 +93,15 @@ export interface Club {
   name: string;
   shortName?: string;
   country: string;
+  /**
+   * The league this club was in when the dataset was written.
+   *
+   * NOT AUTHORITATIVE FOR CURRENT STATE (v0.6.5.2). Clubs move: the 2026/27 snapshot itself
+   * relocated several, and promotion/relegation moves more inside a career. Use
+   * `currentLeagueName(world, clubId)` for anything the player reads, and
+   * `SeasonRecord.leagueId` for anything historical. Kept as a display fallback for a club with
+   * no modelled division, and because removing it would be a save-shaped change for no gain.
+   */
   league: string;
   /** Squad strength, 0-100. Drives how hard it is to get minutes. */
   quality: number;
@@ -100,6 +109,15 @@ export interface Club {
   prestige: number;
   /** How well the club develops players, 0-100. */
   development: number;
+  /**
+   * The club's CAREER LEVEL band, not its current competition.
+   *
+   * v0.6.5.2: these are two different facts and `tier` only ever meant the first. It answers
+   * "what kind of move is this for a player" - which is why an Israeli second-division club and
+   * a European development club are separate bands. For "which competition is this club in",
+   * ask `currentLeagueId`. The engine uses `tier` only for market pools and career-ladder
+   * direction, never as a statement about the table a club appears in.
+   */
   tier: ClubTier;
   titleChance: number;
   cupChance: number;
@@ -107,6 +125,14 @@ export interface Club {
   isMaccabi?: boolean;
   /** Only the senior team counts towards the Maccabi legacy stats. */
   isSenior?: boolean;
+  /**
+   * Season fixtures for this club in the league it was DERIVED against.
+   *
+   * NOT AUTHORITATIVE once a club moves (v0.6.5.2). Schedule length belongs to the competition,
+   * not permanently to the club: use `leagueSeasonGames` with the current league for a live
+   * season, and `historicalSeasonGames` for a completed one. Retained as the fallback for clubs
+   * outside a modelled division.
+   */
   seasonGames: number;
 }
 
@@ -220,7 +246,16 @@ export interface SeasonRecord {
   clubName: string;
   /** The age-group / senior team actually played for. */
   teamName: string;
+  /** Display name of the league this season was played in. Historical truth, never re-derived. */
   league: string;
+  /**
+   * The league id this season was played in (v0.6.5.2).
+   *
+   * Optional because pre-v0.6.5.2 saves have only the display name, which `historicalLeagueId`
+   * falls back to resolving. Present going forward so a historical schedule can be looked up
+   * exactly, rather than inferred from wherever the club plays today.
+   */
+  leagueId?: string;
   onLoan: boolean;
   stats: SeasonStats;
   firstHalf: SeasonStats | null;

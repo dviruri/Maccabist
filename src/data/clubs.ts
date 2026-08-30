@@ -1,6 +1,7 @@
 import type { Club, ClubTier } from '../types';
 import { EXTERNAL_YOUTH_CLUBS } from './youthClubs';
 import { getLeague } from './leagues';
+import { leagueSeasonGames } from '../game/leagueSchedule';
 import { leagueShape } from './leagueShape';
 import { WORLD_CLUBS, isInactiveClub, snapshotLeagueOf } from './worldClubs';
 
@@ -663,31 +664,14 @@ function tierFor(quality: number, isIsraeli: boolean, leagueId: string | null): 
 }
 
 /**
- * Matches played in a season, all competitions.
+ * Matches played in a season, all competitions - at derivation time.
  *
- * The same shape the hand-tuned records use: a league fixture count, plus cup football, plus more
- * European nights the stronger the club is. v0.6.1 established that these are all-competition
- * figures, and the historical benchmarks depend on them staying that way.
+ * v0.6.5.2: the formula moved to `game/leagueTruth.ts`, which is now the single authority for
+ * schedule length. What is stored on the Club is a snapshot against the league it was derived
+ * in; anything that needs the truth for a LIVE or a HISTORICAL season asks leagueTruth instead.
  */
 function seasonGamesFor(quality: number, isIsraeli: boolean, leagueId: string | null): number {
-  /*
-   * v0.6.5.1: the league portion is DERIVED from the division's real size, not a literal.
-   *
-   * v0.6.5 hardcoded 31 for Liga Alef from a 16-club assumption. The official snapshot has 18
-   * clubs per district - a double round-robin of 34 matches - so a Liga Alef starter was being
-   * capped as if three fixtures of his season did not exist, which silently deflated
-   * appearances, minutes and every projection built on them.
-   *
-   * `leagueFixtures` is now the authority: (size - 1) * 2. Ligat Ha'Al is the one league that
-   * genuinely plays more than its round-robin, because of the championship/relegation playoff
-   * round, and that allowance is stated here rather than buried in a constant.
-   */
-  const size = leagueId ? (leagueShape(leagueId)?.size ?? 0) : 0;
-  const roundRobin = size > 1 ? (size - 1) * 2 : 30;
-  const playoff = leagueId === 'il_premier' ? 7 : 0;
-  const cup = isIsraeli ? 2 : 3;
-  const europe = quality >= 82 ? 12 : quality >= 74 ? 8 : quality >= 66 ? 4 : 0;
-  return roundRobin + playoff + cup + europe;
+  return leagueSeasonGames(leagueId, quality, isIsraeli);
 }
 
 const worldDerivedClubs = deriveWorldClubs(clubList);

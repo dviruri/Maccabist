@@ -5,6 +5,8 @@
 
 import { stageBand, stageConfig } from '../data/academy';
 import { getClub, isAbroad, isMaccabiSenior, MACCABI_ID } from '../data/clubs';
+import { leagueSeasonGames } from './leagueSchedule';
+import { currentLeagueOf } from './leagueTruth';
 import type { Career, LevelContext, StageBand, TeamRole } from '../types';
 import { COACH_TRUST, POSITIONS, ROLE_LABELS, ROLE_TIERS, SEASON } from './balance';
 import { clamp } from './random';
@@ -66,13 +68,21 @@ export function levelContext(career: Career): LevelContext {
   }
 
   const club = getClub(career.currentClubId);
+  /*
+   * v0.6.5.2: the league and the schedule come from world state, not from the club record.
+   *
+   * `club.league` and `club.seasonGames` are where the club was when the dataset was written.
+   * Once promotion and relegation move it, both are stale - a player relegated with his club
+   * kept being told he was in Ligat Ha'Al, and kept playing that division's fixture count.
+   */
+  const league = currentLeagueOf(career.world, club);
   return {
     teamName: club.name,
-    league: club.league,
+    league: league.name,
     quality: club.quality,
     development: club.development,
     prestige: club.prestige,
-    seasonGames: club.seasonGames,
+    seasonGames: leagueSeasonGames(league.id, club.quality, club.country === 'ישראל'),
     titleChance: club.titleChance,
     cupChance: club.cupChance,
     europeChance: club.europeChance,

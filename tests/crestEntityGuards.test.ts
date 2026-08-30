@@ -16,6 +16,8 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { CREST_MANIFEST } from '../src/data/clubCrests.generated';
+import { getLeague } from '../src/data/leagues';
+import { LEAGUE_MEMBERSHIP } from '../src/data/worldClubs';
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -174,6 +176,75 @@ describe('v0.6.5.1 the shipped importers still carry these gates', () => {
       expect(record!.sourceUrl, clubId).toMatch(/^https?:\/\//);
       expect(record!.retrievedAt, clubId).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(record!.trademarkNote, clubId).toBeTruthy();
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* v0.6.5.2 Checkpoint D: coverage, held where it is                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The crest policy, as a test rather than as a paragraph in a report.
+ *
+ * v0.6.5.2 ran no new import pass; this pins what v0.6.5.1 achieved so a later refactor -
+ * adding a club, renaming an id, regenerating the manifest - cannot quietly drop a badge.
+ *
+ * The two Israeli senior divisions are held at exactly 100%: they are the leagues the game is
+ * about, and a fallback there is a defect. Liga Alef is held at its measured floor and NOT at
+ * 100%, because it genuinely is not complete - nine clubs have no verifiable current crest and
+ * are listed, club by club, in israelCrests.test.ts. Claiming otherwise would be the exact
+ * dishonesty the brief forbids.
+ */
+const EUROPEAN_LEAGUES = [
+  'at_bundesliga', 'be_pro', 'cy_first', 'de_bundesliga', 'en_premier',
+  'es_laliga', 'gr_superleague', 'it_seriea', 'nl_eredivisie', 'pt_primeira',
+] as const;
+
+function coverage(leagueIds: readonly string[]): { have: number; total: number } {
+  const ids = leagueIds.flatMap((id) => LEAGUE_MEMBERSHIP[id] ?? []);
+  return { have: ids.filter((id) => CREST_MANIFEST[id]).length, total: ids.length };
+}
+
+describe('v0.6.5.2 Checkpoint D: crest coverage does not regress', () => {
+  it('holds Ligat Haal at 100% real crests', () => {
+    const { have, total } = coverage(['il_premier']);
+    expect(total).toBe(14);
+    expect(have, 'a Ligat Haal club is showing a procedural fallback').toBe(total);
+  });
+
+  it('holds Liga Leumit at 100% real crests', () => {
+    const { have, total } = coverage(['il_leumit']);
+    expect(total).toBe(16);
+    expect(have, 'a Liga Leumit club is showing a procedural fallback').toBe(total);
+  });
+
+  it('holds Liga Alef at its measured floor, and does not pretend it is complete', () => {
+    const { have, total } = coverage(['il_alef_north', 'il_alef_south']);
+    expect(total).toBe(36);
+    // Measured at v0.6.5.2: 27 of 36. The floor may rise; it may not fall.
+    expect(have).toBeGreaterThanOrEqual(27);
+    // An honest statement of the tail. If this ever fails because Liga Alef IS complete, delete
+    // the assertion and the carve-out in israelCrests.test.ts together - do not weaken it here.
+    expect(have).toBeLessThan(total);
+  });
+
+  it('holds European coverage at its measured floor', () => {
+    const { have, total } = coverage(EUROPEAN_LEAGUES);
+    // Measured at v0.6.5.2: 144 of 152 (94.7%).
+    expect(have / total).toBeGreaterThanOrEqual(0.94);
+  });
+
+  it('points every manifest entry at a file that exists', () => {
+    for (const [clubId, entry] of Object.entries(CREST_MANIFEST)) {
+      expect(fs.existsSync(path.join(ROOT, 'public', entry.asset)), clubId).toBe(true);
+    }
+  });
+
+  it('names a real league for every division it claims to measure', () => {
+    for (const id of [...EUROPEAN_LEAGUES, 'il_premier', 'il_leumit', 'il_alef_north', 'il_alef_south']) {
+      expect(() => getLeague(id)).not.toThrow();
+      expect((LEAGUE_MEMBERSHIP[id] ?? []).length, id).toBeGreaterThan(0);
     }
   });
 });

@@ -11,7 +11,8 @@
  */
 
 import { getClub, MACCABI_ID } from '../data/clubs';
-import { defaultLeagueFor, getLeague, type League } from '../data/leagues';
+import { getLeague, type League } from '../data/leagues';
+import { currentLeagueOf, historicalLeagueId, seasonFixtures } from './leagueTruth';
 import type { Career, ClubSeasonOutcome, ClubSeasonResult, SeasonRecord, WorldState } from '../types';
 import { ALEF_DISTRICT_BY_CLUB, LEAGUE_MEMBERSHIP, isInactiveClub } from '../data/worldClubs';
 import { LEAGUE_SHAPES, leagueShape } from '../data/leagueShape';
@@ -29,12 +30,14 @@ export function emptyWorld(): WorldState {
   return { clubLeagues: {}, clubSeasons: [] };
 }
 
-/** Which league a club is in right now, after any promotions or relegations this career. */
+/**
+ * Which league a club is in right now, after any promotions or relegations this career.
+ *
+ * v0.6.5.2: the resolution itself lives in `leagueTruth`, which UI and offer paths can import
+ * without pulling in the world engine. This stays as the id-taking convenience wrapper.
+ */
 export function leagueOf(world: WorldState, clubId: string): League {
-  const moved = world.clubLeagues[clubId];
-  if (moved) return getLeague(moved);
-  const club = getClub(clubId);
-  return getLeague(defaultLeagueFor(club.tier, club.country, club.id));
+  return currentLeagueOf(world, getClub(clubId));
 }
 
 export function playerLeague(career: Career): League {
@@ -66,8 +69,18 @@ export function clubStrengthVsLeague(world: WorldState, clubId: string): number 
  */
 export function playerImpact(career: Career, record: SeasonRecord | null): number {
   if (!record) return 0;
-  const league = leagueOf(career.world, record.clubId);
-  const games = Math.max(1, getClub(record.clubId).seasonGames);
+  /*
+   * v0.6.5.2: both of these are read from the season being judged, not from today's world.
+   *
+   * The old code took the club's CURRENT league quality and its static `seasonGames`, so a
+   * Liga Alef season played in 2044 was re-scored years later against whatever division the
+   * club had since climbed into - a promotion could retroactively shrink a player's impact in
+   * a season he had already finished.
+   */
+  const club = getClub(record.clubId);
+  const recordLeagueId = historicalLeagueId(record);
+  const league = recordLeagueId ? getLeague(recordLeagueId) : currentLeagueOf(career.world, club);
+  const games = Math.max(1, seasonFixtures(record));
 
   const share = clamp(record.stats.appearances / games, 0, 1);
   if (share < WORLD.impactMinShare) return 0;

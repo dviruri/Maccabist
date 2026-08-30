@@ -25,6 +25,7 @@ import {
   type HalfContext,
 } from './progressionEngine';
 import { dueLegacyMilestones } from './maccabiLegacy';
+import { currentLeagueId } from './leagueTruth';
 import { clamp, round, type Rng } from './random';
 import { ageMinutesModifier, countsForMaccabiLegacy, levelContext, playerLevel } from './rules';
 
@@ -455,6 +456,11 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
     clubName: identity.club,
     teamName: identity.team ?? identity.club,
     league: level.league,
+    /*
+     * v0.6.5.2: the id as well as the name, so this season can be scored years later against the
+     * division it was actually played in rather than wherever the club has since ended up.
+     */
+    leagueId: currentLeagueId(career.world, career.currentClubId) ?? undefined,
     onLoan: career.parentClubId !== null,
     stats: full,
     firstHalf: first,

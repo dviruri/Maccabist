@@ -21,6 +21,7 @@ import type {
   MaccabiRelevance,
   ProgressionResult,
   TransferOffer,
+  WorldState,
 } from '../types';
 import { HOMECOMING, LEAVING, TRANSFERS, YOUTH_TO_SENIOR } from './balance';
 import { nextNaturalStage } from './cohort';
@@ -38,6 +39,7 @@ import {
 import { maccabiRelationship } from './maccabiEngine';
 import { hasMemory, hasTrait } from './memory';
 import { leagueOf } from './worldEngine';
+import { currentLeagueName } from './leagueTruth';
 import { leagueLevel } from '../data/leagues';
 import { applyEffects, cloneCareer, moveToClub } from './progressionEngine';
 import { clamp, type Rng } from './random';
@@ -421,16 +423,25 @@ export function buildReturnHomeOffer(career: Career): TransferOffer {
   };
 }
 
-function releaseOffer(club: Club): TransferOffer {
+/*
+ * v0.6.5.2: every offer names the league the club is in NOW.
+ *
+ * An offer is a statement about the player's next season, so it has to read world state. With
+ * `club.league` a relegated Hapoel Hadera invited the player to "ליגת העל" - a division it had
+ * not played in for years - and the league he actually joined was the right one, so the text
+ * and the game disagreed.
+ */
+function releaseOffer(world: WorldState, club: Club): TransferOffer {
+  const league = currentLeagueName(world, club);
   return {
     id: `release_${club.id}`,
     kind: 'release',
     clubId: club.id,
     clubName: club.name,
-    league: club.league,
+    league,
     country: club.country,
     title: `${club.name} מציעה לך חוזה`,
-    description: `במכבי חיפה החליטו לא להמשיך איתך. ${club.name} מ${club.league} מוכנה לתת לך במה. לא ככה דמיינת את זה, אבל זה כדורגל.`,
+    description: `במכבי חיפה החליטו לא להמשיך איתך. ${club.name} מ${league} מוכנה לתת לך במה. לא ככה דמיינת את זה, אבל זה כדורגל.`,
     acceptEffects: {
       maccabism: -8,
       confidence: -6,
@@ -566,7 +577,7 @@ export function seniorTransitionOffers(
         kind: 'promotion',
         clubId: club.id,
         clubName: club.name,
-        league: club.league,
+        league: currentLeagueName(career.world, club),
         country: club.country,
         title: 'לחתום בבוגרים של מכבי חיפה',
         description:
@@ -589,7 +600,7 @@ export function seniorTransitionOffers(
           kind: 'loan',
           clubId: chosen.id,
           clubName: chosen.name,
-          league: chosen.league,
+          league: currentLeagueName(career.world, chosen),
           country: chosen.country,
           title: `לחתום ולצאת להשאלה ל${chosen.name}`,
           description: `לחתום במכבי ולצאת מיד ל${chosen.name} - שם תשחק כל שבוע במקום לחכות בתור.`,
@@ -619,12 +630,12 @@ export function seniorTransitionOffers(
     // The floor stays small so club fit dominates - otherwise every club looks equally likely
     // to a low-value player, whose real interest weights are all near zero.
     const first = rng.weighted(destinations, (c) => interestWeight(career, c) + RELEASE_INTEREST_FLOOR);
-    if (first) offers.push(releaseOffer(first));
+    if (first) offers.push(releaseOffer(career.world, first));
     const second = rng.weighted(
       destinations.filter((c) => c.id !== first?.id),
       (c) => interestWeight(career, c) + RELEASE_INTEREST_FLOOR,
     );
-    if (second) offers.push(releaseOffer(second));
+    if (second) offers.push(releaseOffer(career.world, second));
     return offers;
   }
 
@@ -665,7 +676,7 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
           (c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_top' || c.tier === 'israeli_alef'),
       ).filter((c) => c.id !== MACCABI_ID);
       const chosen = rng.weighted(destinations, (c) => interestWeight(career, c) + 0.2);
-      if (chosen) return [releaseOffer(chosen)];
+      if (chosen) return [releaseOffer(career.world, chosen)];
     }
   }
 

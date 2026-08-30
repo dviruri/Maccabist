@@ -14,7 +14,8 @@
  * be reasoned about.
  */
 
-import { getClub, MACCABI_ID } from '../data/clubs';
+import { seasonFixtures } from './leagueTruth';
+import { MACCABI_ID } from '../data/clubs';
 import { ACHIEVEMENT_DEFS } from '../data/achievements';
 import { hasDerby } from '../data/rivalries';
 import { AGENT_ARCHETYPES, COACH_SPECIALTIES, MANAGER_ARCHETYPES, specialtiesFor } from '../data/people';
@@ -114,14 +115,21 @@ export interface IntegrityViolation {
   detail: string;
 }
 
-/** How many matches a club could plausibly have played, with headroom for cups. */
+/**
+ * How many matches a club could plausibly have played that season, with headroom for cups.
+ *
+ * v0.6.5.2: from the league the season was played in. Using the club's current schedule made
+ * the validator's ceiling move with promotion - a legitimate 34-game top-flight season could be
+ * flagged as impossible once the club was relegated to a shorter division.
+ */
 function plausibleFixtures(record: SeasonRecord): number {
   try {
-    return getClub(record.clubId).seasonGames + 12;
+    return seasonFixtures(record) + 12;
   } catch {
     return 60;
   }
 }
+
 
 /**
  * Every contradiction in a career.
@@ -238,7 +246,7 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
      */
     const fixtures = (() => {
       try {
-        return getClub(record.clubId).seasonGames;
+        return seasonFixtures(record);
       } catch {
         return 0;
       }
