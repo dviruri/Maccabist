@@ -213,7 +213,13 @@ type Resolution =
   | { status: 'error'; message: string };
 
 async function download(url: string, clubId: string, dryRun: boolean): Promise<string> {
-  const ext = /\.svg(\?|$)/i.test(url) ? 'svg' : /\.webp(\?|$)/i.test(url) ? 'webp' : 'png';
+  const ext = /\.svg(\?|$)/i.test(url)
+    ? 'svg'
+    : /\.webp(\?|$)/i.test(url)
+      ? 'webp'
+      : /\.gif(\?|$)/i.test(url)
+        ? 'gif'
+        : 'png';
   const asset = `club-crests/${clubId}.${ext}`;
   if (!dryRun) {
     let buffer = (await fetchBounded(url, false)) as Buffer;

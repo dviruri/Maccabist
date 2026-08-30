@@ -20,12 +20,12 @@ tsc -b / tsc -p tsconfig.test    clean
 ## 2. Test count
 
 ```
-Test Files   45 passed (45)
-Tests       873 passed (873)
+Test Files   46 passed (46)
+Tests       885 passed (885)
 ```
 
-v0.6.4 ended at 865/44. New: `israelCrests` (8, the hard-rule suite); world validator extended
-for the pyramid.
+v0.6.4 ended at 865/44. New: `israelCrests` (8, the hard-rule suite) and `scenariosV065`
+(12, the pyramid scenarios); world validator extended for the pyramid.
 
 ## 3. v0.6.4 baseline
 
@@ -260,17 +260,49 @@ Nothing needed changing: `drawFinalOpponent` draws from `ACTIVE_CLUBS` of the co
 rare, real, and correctly named and crested when it happens. Derby achievements remain gated on
 authoritative derby conditions (unchanged since v0.6.2).
 
-## 20. Simulation
+## 20. Simulation — regression vs v0.6.4
+
+50,000 careers, balanced policy, positions rotated.
 
 ```
-(filled after the run)
+                              v0.6.4    v0.6.5
+reached Maccabi senior team    63.9%     63.9%
+played abroad                  33.4%     33.2%
+returned to Maccabi            21.4%     21.3%
+had a loan spell               32.4%     32.1%
+avg Legend Score                41.6      41.6
+median Legend Score             34.0      34.0
+avg peak ability                80.9      80.9
+mean retirement age             34.9      34.9
+INVALID natural-stage repeats      0         0
+same seed reproduces career     PASS      PASS
 ```
+
+Thirty-two new signable clubs, and not a single core probability moved - the market-first
+architecture holding for the second release running. Domestic transfer rate did not inflate
+(acceptance 16), because tier selection reads market fit and never club count.
 
 ## 21. Pyramid health
 
+6,000 careers with per-career integrity validation:
+
 ```
-(filled after the run)
+TIER TOUCH RATES                    THE ARC (of the 1,540 careers that touched Alef)
+ligat ha'al        77.1%            later played a tier above     34.6%
+liga leumit        30.2%            later played for Maccabi      24.1%
+liga alef          25.7%            later played in Europe         5.2%
+loaned to alef      1.6%
+
+WORLD MOVEMENT                      INTEGRITY
+saw a promotion    13.2%            league-size violations    0
+saw a relegation   17.5%            integrity violations      0
 ```
+
+This is the release's product claim, measured: a quarter of careers pass through the third
+tier - real, without dominating the game - and of those, **a third climb back up and a quarter
+later wear green**. The fall-rebuild-rise arc exists, is earned, and is rare enough to mean
+something. Promotion and relegation move real clubs through real districts with zero size
+corruption across 6,000 simulated worlds.
 
 ## 22. Mobile audit
 
@@ -289,15 +321,33 @@ league; other divisions live in the league sheet; the 62-club grid is dev-only Q
 
 ## 23. Controlled scenarios A–M
 
-```
-(filled after the run)
-```
+| | scenario | result |
+|---|---|---|
+| A | released Maccabi youth | ✅ real Israeli floors (Leumit + top Alef); zero elite absurdity |
+| B | Liga Alef breakout | ✅ Leumit interest opens; the scout event is tier-gated and unreachable at Maccabi |
+| C | promotion | ✅ Alef winner plays Leumit next season; all systems agree |
+| D | relegation | ✅ Acre relegates north, Bnei Yehuda south - district truth pinned |
+| E | loan | ✅ Alef in the loan pool; 1.6% of careers actually loaned there |
+| F | late bloomer | ✅ the market offers the next rung to a strong lower-league performer |
+| G | veteran decline | ✅ coherent descent; an 86-ability star has structurally zero third-tier fit |
+| H | State Cup | ✅ all 62 clubs in the national pool, real names, quality-weighted rarity |
+| I | all Israeli crests | ✅ 54 real + 8 documented tail, DOM-verified in the QA grid |
+| J | wrong Israeli crest | ✅ sport gate + basketball-category rejection + defunct-club rejection, all live tests |
+| K | offline | ✅ every asset repo-local; resolver never returns a URL |
+| L | old save | ✅ reactivated clubs truthful; SeasonRecords keep their own league strings |
+| M | transfer distribution | ✅ §20 - diversity up, rates flat |
 
 ## 24. Performance
 
 ```
-(filled after the run)
+                        v0.6.4     v0.6.5
+active clubs               202        234
+crest assets                46        100 files, ~2.4 MB local
+production bundle       765 KB     792 KB    (+27 KB for 32 clubs, 6 events, 54-crest manifest)
 ```
+
+Crests remain lazy-loaded; a screen decodes only what it shows. The 62-club QA grid is dev-only
+and renders in one pass without overflow at 320px.
 
 ## 25. Known limitations
 
