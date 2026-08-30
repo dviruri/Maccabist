@@ -26,10 +26,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -37,17 +37,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # v0.7.1: the suite runs BEFORE the build, in the same job as the deploy.
+      #
+      # Until now the pipeline installed and built, so a red suite still shipped. Steps run in
+      # order and a non-zero exit stops the job, so a failing test now stops the deployment -
+      # the artifact is never uploaded and the live site keeps the last good version.
+      #
+      # `npm test` is `tsc -p tsconfig.test.json && vitest run`, and `npm run build` is
+      # `tsc -b && vite build`, so both TypeScript projects are already type-checked by these
+      # two steps; a separate typecheck step would be a third redundant compile.
+      #
+      # One job, one `npm ci`: splitting verification into its own job would mean installing
+      # dependencies twice for no gain, since the deploy needs the same tree anyway.
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./dist
 
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

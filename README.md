@@ -17,6 +17,12 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
+**Current stable release: v0.7.1.** v0.7 added the Collection / Meta / Visual Career layer -
+Career Archive, Trophy Cabinet, Club Album, Individual Honors, Season Cards v2, Retirement v2
+and the shareable career poster (see `V07_REPORT.md`); v0.7.1 is a stabilization patch covering
+CI, versioning and release hygiene only (`V071_REPORT.md`). The next feature release is **v0.8 —
+European Competitions**, which is not started.
+
 ---
 
 ## Install & run
