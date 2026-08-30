@@ -1,6 +1,6 @@
 # World data — snapshot, architecture and market design
 
-**`WORLD_DATA_VERSION = '2026.3'` · snapshot season `2026/27` (Israel lower tiers: see below).**
+**`WORLD_DATA_VERSION = '2026.4'` · snapshot season `2026/27`.**
 
 Every modelled league's membership is the real 2026/27 membership, verified per league against
 that competition's own season article by `npm run world:audit`
@@ -91,29 +91,63 @@ audit output is committed as `israel-audit.json`. Wikipedia was used only as a c
 |---|---|---|---|---|
 | ליגת העל | il_premier | **2026/27** (live table) | 14 | league_id=40, season_id=28 |
 | הליגה הלאומית | il_leumit | **2026/27** (live table) | 16 | league_id=45, season_id=28 |
-| ליגה א׳ צפון | il_alef_north | 2025/26 final + observed movements | 16 | league_id=61, season_id=27 |
-| ליגה א׳ דרום | il_alef_south | 2025/26 final + observed movements | 16 | league_id=62, season_id=27 |
+| ליגה א׳ צפון | il_alef_north | **2026/27** (official fixtures) | **18** | league_id=61, season_id=28 |
+| ליגה א׳ דרום | il_alef_south | **2026/27** (official fixtures) | **18** | league_id=62, season_id=28 |
 
-**Why two snapshot seasons.** The IFA publishes live 2026/27 tables only for the top two
-divisions at audit time; Liga Alef's 2026/27 tables are not yet up. Liga Alef therefore uses the
-official 2025/26 final membership, adjusted ONLY by movements the 2026/27 top-flight data proves
-(promotions/relegations across the Leumit boundary - all eight observed directly in the live
-tables, zero guessed). Hadera's district assignment (South) is the one deterministic judgement,
-documented in `worldClubs.ts`.
+**v0.6.5.1 correction: Liga Alef is 18 clubs per district, not 16.** v0.6.5 built the tier from
+the 2025/26 final tables because the 2026/27 standings were unpublished. They still are - but the
+official 2026/27 **fixtures** are published, and they carry the membership
+(`LeagueGamesList`, `data-team1`/`data-team2`).
+
+The size is independently provable from the round dropdown: a single round-robin runs n-1 rounds,
+and the IFA lists **13** for Ligat Ha'Al (14 clubs), **15** for Liga Leumit (16) and **17 for both
+Alef districts (18)**. The two leagues verifiable against live tables both match, which is what
+makes the inference safe for the two that are not.
+
+Membership changes, each cross-validated against the 2025/26 Liga Bet final tables: North gained
+Beitar Nahariya (won Bet North A) and Hapoel Bnei Jatt (won Bet North B); South gained Hapoel
+Mahane Yehuda (won Bet South A), Ironi Beit Shemesh and MK Sderot (top two of Bet South B), and
+lost Beitar Yavne, whose identity is preserved as inactive. Hadera's district assignment (South)
+remains the one deterministic judgement.
+
+### Schedule
+
+Season fixtures are **derived from division size**, not hardcoded: `(size - 1) * 2`, plus a
+stated playoff allowance for Ligat Ha'Al and a cup allowance. v0.6.5 hardcoded 31 games for Liga
+Alef from the 16-club assumption; an 18-club double round-robin is 34, so a Liga Alef starter was
+being capped as if three fixtures of his season did not exist - silently deflating appearances,
+minutes and every projection built on them. Deriving it means the error cannot recur when a
+league changes size.
 
 **Deferred: Liga Bet** (4 districts, 64 clubs - 2026/27 membership unpublished, and 64
 semi-professional crests cannot meet the 100% real-crest rule this release enforces for active
 Israeli clubs) and **Liga Gimel** (9 districts; the IFA navigation still links its pages at
 season 2025/26 - no current structure is published at all).
 
-### Movement
+### Movement — atomic transitions (v0.6.5.1)
 
-`il_leumit.relegatesTo = 'il_alef'` is a **district-resolved sentinel**: `resolveRelegationLeague`
-sends a relegated club to its geographic district via `ALEF_DISTRICT_BY_CLUB`, which covers the
-whole of Leumit and Alef. Alef winners promote to Leumit through the ordinary movement engine.
-The Alef districts have no `relegatesTo` - Liga Bet is below the modelled world, so a
-bottom-placed club has a terrible season and stays. Winning an Alef district is a PROMOTION
-(second-division outcome semantics), never a championship trophy.
+**The bug this replaced.** v0.6.5 mutated one club's league in isolation:
+`clubLeagues[promoted] = 'il_leumit'`, with nothing balancing the destination. Promote a Liga
+Alef club and Liga Leumit held **17**; `buildTable` rendered `shape.size` rows and the
+seventeenth club silently vanished from the division it had just been promoted into.
+
+Movements are now **data, applied as one transition**, followed by `settlePyramid` - a single
+top-down pass that balances each tier against the one below. Two rules keep it football-shaped:
+
+- a club moving **down** goes to its own geographic district (`ALEF_DISTRICT_BY_CLUB`);
+- a club moving **up** is drawn from an **over-full** district first, so the promotion that
+  fills the tier above is the same movement that empties the tier below - the real swap.
+
+Clubs that moved in the transition are **locked out of balancing**: without that, relegating
+Hapoel Acre made it the strongest club in Alef North and promoted it straight back.
+
+**The invariant.** `assertLeagueSizes` runs after every transition, and `membership()` in
+leagueEngine asserts before building any table. Neither truncates. A world that disagrees with
+itself throws instead of rendering a clean-looking lie. Verified over **100 world histories x 30
+seasons = 3,000 transitions**: zero size violations, zero duplicates, zero clubs in two leagues.
+
+Winning an Alef district is a PROMOTION (second-division outcome semantics), never a
+championship trophy.
 
 ### Career mechanics
 

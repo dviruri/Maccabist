@@ -167,3 +167,57 @@ TheSportsDB, Hebrew Wikipedia (direct titles and full-text search) and Arabic Wi
 has a crest in any structured provider. Their visual identity lives on unscrapable social
 pages, and a guessed badge is worse than the drawn fallback. `tests/israelCrests.test.ts`
 asserts the tail both ways: nothing may join it silently, and a resolved club must leave it.
+
+
+## v0.6.5.1 — European completion and the two regimes
+
+Coverage after the v0.6.5.1 pass:
+
+| league | before | after |
+|---|---|---|
+| England | 5% | **95%** |
+| Spain | 0% | **95%** |
+| Germany | 56% | **100%** |
+| Italy | 55% | **100%** |
+| Portugal | 11% | **100%** |
+| Austria | 58% | **100%** |
+| Cyprus | 7% | **100%** |
+| Netherlands | 22% | **94%** |
+| Belgium | 17% | **89%** |
+| Greece | 14% | **79%** |
+| **Europe** | **23.8%** | **95.3%** (164/172) |
+| Israel | 86% | 86% (57/66) |
+
+### Why a second regime rather than more retries
+
+The Commons pipeline is structurally capped: v0.6.4 measured that 142 clubs have no PD logo on
+their Wikidata entity, because English and Spanish crests are non-free pictorial marks Commons
+does not host. `importEuroCrests.ts` therefore applies the same `referential` regime v0.6.5
+established for Israel - non-free club marks, full per-asset provenance, no claim of free
+licensing, removable per entry. The regimes stay separate in the manifest and
+`crestPipeline.test.ts` polices each by its own rules.
+
+### Wrong-entity protection, proven on live data
+
+A candidate is accepted only when it is Soccer, in the right country, name-matched against the
+club's alias set, male, and not flagged as a women's / youth / reserve / B side. On the live
+sweep this refused:
+
+- **Nottingham Forest** - the name-matching entity was a **netball** team
+- **Kalamata** - **volleyball**
+- **Deportivo** - matched "Deportivo Fabril", the **reserve** side
+
+`tests/crestEntityGuards.test.ts` (11 tests) pins the gate against fabricated payloads with no
+network: basketball Maccabi Tel Aviv, Arsenal Women/Ladies, Ajax U19/Reserves/B, Valencia of
+Venezuela, and a verified club with no badge.
+
+Two provider quirks were found by measuring rather than assuming: TheSportsDB calls it **"The
+Netherlands"**, which alone rejected all fourteen Dutch clubs, and ten more clubs were hidden
+behind missing aliases (Köln, Nacional de Madeira, Nea Salamis Famagusta, Krasava Ypsonas...).
+
+### Asset size
+
+26 MB -> **14 MB**. `scripts/optimizeCrests.ts` re-fetches oversized rasters at display size
+through each provider's **own** resizing endpoint (TheSportsDB `/preview`, MediaWiki
+`thumb.php`) - the same asset at the size it is actually drawn, not a re-encode or a crop, so
+provenance is untouched. 131 files shrunk, 11.6 MB saved, SVGs left alone.

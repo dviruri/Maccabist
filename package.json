@@ -18,6 +18,7 @@
     "crests:dry-run": "vite-node scripts/importClubCrests.ts -- --dry-run",
     "crests:import": "vite-node scripts/importClubCrests.ts --",
     "crests:missing": "vite-node scripts/importClubCrests.ts -- --missing-only",
+    "world-sim": "vite-node scripts/worldTransitionSim.ts --",
     "pyramid-metrics": "vite-node scripts/pyramidMetrics.ts --",
     "crests:euro": "vite-node scripts/importEuroCrests.ts --",
     "crests:israel": "vite-node scripts/importIsraelCrests.ts --",
