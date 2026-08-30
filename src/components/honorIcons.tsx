@@ -162,10 +162,78 @@ export function RisingStarIcon(props: IconProps): JSX.Element {
 }
 
 /* ------------------------------------------------------------------ */
+/* UEFA competition marks (v0.8)                                       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Original marks, not UEFA artwork. The competition names and official logos are UEFA
+ * trademarks whose redistribution terms cannot be confirmed for inclusion in this repository,
+ * so the brief's fallback applies: a clean asset layer (see `competitionAssets.ts`) ready to
+ * serve an official file if one is ever licensed in, and tasteful original identifiers
+ * meanwhile. Visual hierarchy is deliberate: the Champions League mark is the gold standard,
+ * the Europa League substantial, the Conference green - a real campaign, not a consolation.
+ */
+
+/** ליגת האלופות: a crowned star in a champion's ring. The highest prestige tier. */
+export function ChampionsLeagueMark(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9.4" fill="none" stroke={GOLD} strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="9.4" fill="none" stroke={GOLD_DEEP} strokeWidth="0.5" strokeDasharray="1.6 2.4" />
+      <path d="M12 5.6l1.9 3.9 4.3.6-3.1 3 .7 4.3-3.8-2-3.8 2 .7-4.3-3.1-3 4.3-.6L12 5.6z" fill={GOLD} stroke={GOLD_DEEP} strokeWidth="0.7" />
+    </Svg>
+  );
+}
+
+/** הליגה האירופית: a silver orb on a rising arc. */
+export function EuropaLeagueMark(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="11" r="6.6" fill="none" stroke={SILVER} strokeWidth="1.6" />
+      <circle cx="12" cy="11" r="3" fill={SILVER} />
+      <path d="M4 19c4.5 2.4 11.5 2.4 16 0" stroke={GOLD} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </Svg>
+  );
+}
+
+/** הקונפרנס ליג: a green hex badge - a meaningful European campaign for the clubs it serves. */
+export function ConferenceLeagueMark(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <path d="M12 3.4l7 4v9.2l-7 4-7-4V7.4l7-4z" fill="none" stroke={GREEN} strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3.1" fill={GREEN} />
+    </Svg>
+  );
+}
+
+export function CompetitionMark({
+  competition,
+  size,
+  className,
+}: IconProps & { competition: 'uefa_champions_league' | 'uefa_europa_league' | 'uefa_conference_league' }): JSX.Element {
+  switch (competition) {
+    case 'uefa_champions_league':
+      return <ChampionsLeagueMark size={size} className={className} />;
+    case 'uefa_europa_league':
+      return <EuropaLeagueMark size={size} className={className} />;
+    case 'uefa_conference_league':
+      return <ConferenceLeagueMark size={size} className={className} />;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Dispatch                                                            */
 /* ------------------------------------------------------------------ */
 
-export type TrophyIconKind = 'plate' | 'cup' | 'promotion' | 'continental' | 'youth';
+export type TrophyIconKind =
+  | 'plate'
+  | 'cup'
+  | 'promotion'
+  | 'continental'
+  | 'youth'
+  | 'ucl'
+  | 'uel'
+  | 'uecl';
 
 /**
  * The semantic mapping from typed trophies to icon families. One place, so a league title can
@@ -180,8 +248,17 @@ export function trophyIconKind(trophyId: string): TrophyIconKind {
     case 'foreign_cup':
     case 'super_cup':
       return 'cup';
-    case 'european_run':
+    // v0.8: real UEFA trophies carry their own competition marks. The legacy rolled ids keep
+    // rendering for pre-v0.8 careers: the old champions_league roll shows the UCL mark it
+    // always claimed to be, the generic run keeps the laurel.
+    case 'uefa_champions_league':
     case 'champions_league':
+      return 'ucl';
+    case 'uefa_europa_league':
+      return 'uel';
+    case 'uefa_conference_league':
+      return 'uecl';
+    case 'european_run':
       return 'continental';
     case 'youth_championship':
       return 'youth';
@@ -204,6 +281,12 @@ export function TrophyKindIcon({ kind, size, className }: IconProps & { kind: Tr
       return <ContinentalIcon size={size} className={className} />;
     case 'youth':
       return <YouthPennantIcon size={size} className={className} />;
+    case 'ucl':
+      return <ChampionsLeagueMark size={size} className={className} />;
+    case 'uel':
+      return <EuropaLeagueMark size={size} className={className} />;
+    case 'uecl':
+      return <ConferenceLeagueMark size={size} className={className} />;
   }
 }
 

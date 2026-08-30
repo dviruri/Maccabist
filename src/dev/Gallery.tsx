@@ -12,6 +12,7 @@ import {
 } from '../components/MaccabiCards';
 import { CareerTimeline } from '../components/CareerTimeline';
 import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
+import { EuropeCard, EuropeJourneySummary } from '../components/EuropeCards';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { TrophyCabinet } from '../components/TrophyCabinet';
 import { buildArchivedCareer } from '../game/archive';
@@ -44,7 +45,7 @@ import { resolveEventChoice } from '../game/eventEngine';
 import { createRng } from '../game/random';
 import { generateOffers } from '../game/transferEngine';
 import { recordMaccabiSeason } from '../game/worldEngine';
-import type { Career, CareerOrigin, IndividualHonor, SeasonRecord } from '../types';
+import type { Career, CareerOrigin, EuropeanJourney, IndividualHonor, SeasonRecord } from '../types';
 
 /**
  * A component gallery, for looking at screens (v0.4.5).
@@ -282,6 +283,113 @@ function PosterPreview(): JSX.Element {
   if (!src) return <div data-poster="loading">מייצר פוסטר…</div>;
   return <img data-poster="ready" src={src} alt="פוסטר קריירה 9:16" style={{ width: '100%' }} />;
 }
+
+/**
+ * v0.8: the canonical European journey fixture - the story the release is named for. An
+ * Israeli champion enters UCL qualifying, survives a round, falls to the Europa League, falls
+ * again to the Conference, and makes the knockouts there.
+ */
+const galleryJourney = (): EuropeanJourney => ({
+  season: 2049,
+  clubId: MACCABI_ID,
+  steps: [
+    { kind: 'entered', competition: 'uefa_champions_league', entry: 'ucl_q1', reason: 'champion' },
+    {
+      kind: 'tie',
+      tie: {
+        stage: 'ucl_q1', competition: 'uefa_champions_league', opponentId: 'fld_ludogorets',
+        opponentName: 'לודוגורץ',
+        legs: [{ for: 2, against: 1, home: true }, { for: 1, against: 1, home: false }],
+        aggFor: 3, aggAgainst: 2, won: true,
+      },
+    },
+    {
+      kind: 'tie',
+      tie: {
+        stage: 'ucl_q2', competition: 'uefa_champions_league', opponentId: 'fld_red_star',
+        opponentName: 'הכוכב האדום',
+        legs: [{ for: 0, against: 1, home: true }, { for: 1, against: 2, home: false }],
+        aggFor: 1, aggAgainst: 3, won: false,
+      },
+    },
+    { kind: 'dropped', from: 'uefa_champions_league', to: 'uefa_europa_league', toEntry: 'uel_q3' },
+    {
+      kind: 'tie',
+      tie: {
+        stage: 'uel_q3', competition: 'uefa_europa_league', opponentId: 'fld_fenerbahce',
+        opponentName: 'פנרבחצ׳ה',
+        legs: [{ for: 1, against: 1, home: true }, { for: 0, against: 2, home: false }],
+        aggFor: 1, aggAgainst: 3, won: false,
+      },
+    },
+    { kind: 'dropped', from: 'uefa_europa_league', to: 'uefa_conference_league', toEntry: 'uecl_po' },
+    {
+      kind: 'tie',
+      tie: {
+        stage: 'uecl_po', competition: 'uefa_conference_league', opponentId: 'fld_hajduk',
+        opponentName: 'האידוק ספליט',
+        legs: [{ for: 3, against: 0, home: true }, { for: 1, against: 2, home: false }],
+        aggFor: 4, aggAgainst: 2, won: true,
+      },
+    },
+    {
+      kind: 'league_phase', competition: 'uefa_conference_league', position: 12, points: 10,
+      won: 3, drawn: 1, lost: 2, goalsFor: 9, goalsAgainst: 7,
+    },
+    {
+      kind: 'tie',
+      tie: {
+        stage: 'ko_playoff', competition: 'uefa_conference_league', opponentId: 'fld_legia',
+        opponentName: 'לגיה ורשה',
+        legs: [{ for: 2, against: 0, home: true }, { for: 0, against: 1, home: false }],
+        aggFor: 2, aggAgainst: 1, won: true,
+      },
+    },
+    {
+      kind: 'tie',
+      tie: {
+        stage: 'r16', competition: 'uefa_conference_league', opponentId: 'fld_basel',
+        opponentName: 'באזל',
+        legs: [{ for: 1, against: 1, home: true }, { for: 0, against: 0, home: false }],
+        aggFor: 1, aggAgainst: 2, won: false, decidedBy: 'extra_time',
+      },
+    },
+  ],
+  finalCompetition: 'uefa_conference_league',
+  furthest: 'r16',
+  matches: 15,
+  wonCompetition: null,
+  reachedFinal: false,
+  reachedSemiFinal: false,
+  reachedLeaguePhase: true,
+});
+
+/** A senior career whose current season carries the journey, for the EuropeCard scene. */
+const europeanSeasonCareer = (): Career => {
+  const base = seniorAtMaccabi();
+  return {
+    ...base,
+    currentSeason: 2049,
+    world: {
+      ...base.world,
+      europe: {
+        coefficients: { associations: {}, clubs: {} },
+        history: [],
+        current: {
+          season: 2049,
+          entries: [],
+          winners: {
+            uefa_champions_league: { clubId: 'real_madrid', name: 'ריאל מדריד' },
+            uefa_europa_league: { clubId: 'fld_galatasaray', name: 'גלאטסראיי' },
+            uefa_conference_league: { clubId: 'fld_copenhagen', name: 'קופנהגן' },
+          },
+          playerJourney: galleryJourney(),
+          maccabiJourney: null,
+        },
+      },
+    },
+  };
+};
 
 /** v0.7: a believable honors list for the meta scenes. */
 const galleryHonors = (): IndividualHonor[] => [
@@ -1028,6 +1136,9 @@ export function Gallery(): JSX.Element {
     />],
     ['album', <ClubAlbum entries={buildAlbum([buildArchivedCareer(retiredLegend())])} />],
     ['poster', <PosterPreview />],
+    /* v0.8: the European journey surfaces. */
+    ['europe-card', <EuropeCard career={europeanSeasonCareer()} />],
+    ['europe-summary', <div className="card"><EuropeJourneySummary journey={galleryJourney()} /></div>],
     ['journey', <CareerJourney
       seasons={buildArchivedCareer(retiredLegend()).seasons.slice(-8)}
       position="ST"

@@ -164,6 +164,16 @@ export function SeasonCardV2({
             )}
           </div>
 
+          {season.europe && (
+            <div className="scv2-detail-row scv2-euro-row">
+              <span>
+                אירופה: {season.europe.reachedLeaguePhase ? 'שלב הליגה' : 'מוקדמות'} ·{' '}
+                <Ltr>{season.europe.matches}</Ltr> משחקים
+                {season.europe.wonCompetition ? ' · 🏆' : ''}
+              </span>
+            </div>
+          )}
+
           {/* D2: each spell's own football, then the totals - never all of it under one badge. */}
           {moved && (
             <div className="scv2-segments">

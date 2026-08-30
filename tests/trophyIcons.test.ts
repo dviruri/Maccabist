@@ -37,13 +37,17 @@ describe('Scenario H/I: the icon matches the silverware', () => {
 
   it('covers every typed trophy with a deliberate icon kind', () => {
     for (const id of Object.keys(TROPHY_DEFS)) {
-      expect(['plate', 'cup', 'continental', 'youth'], id).toContain(trophyIconKind(id));
+      expect(['plate', 'cup', 'continental', 'youth', 'ucl', 'uel', 'uecl'], id).toContain(trophyIconKind(id));
     }
   });
 
-  it('reserves the continental slot without naming a UEFA competition', () => {
+  it('gives each UEFA competition its own mark (v0.8), original and not UEFA artwork', () => {
+    expect(trophyIconKind('uefa_champions_league')).toBe('ucl');
+    expect(trophyIconKind('uefa_europa_league')).toBe('uel');
+    expect(trophyIconKind('uefa_conference_league')).toBe('uecl');
+    // The legacy rolled ids keep rendering for pre-v0.8 careers.
+    expect(trophyIconKind('champions_league')).toBe('ucl');
     expect(trophyIconKind('european_run')).toBe('continental');
-    expect(trophyIconKind('champions_league')).toBe('continental');
     const source = read('src/components/honorIcons.tsx');
     expect(source).not.toMatch(/UEFA trophy|starball artwork/i);
   });

@@ -367,6 +367,13 @@ export interface SeasonRecord {
    * none until hydration backfills a single legacy segment. Totals reconcile with `stats`.
    */
   segments?: SeasonSegment[];
+  /**
+   * The club's European journey this season (v0.8). Written at settlement, stored forever -
+   * the same law as `teamGames`: a 2044 Conference League run stays a 2044 Conference League
+   * run whatever later versions do to the competition format. Absent when the club played no
+   * European football, and on every pre-v0.8 record.
+   */
+  europe?: EuropeanJourney;
   onLoan: boolean;
   stats: SeasonStats;
   firstHalf: SeasonStats | null;
@@ -701,7 +708,140 @@ export interface CupSeasonState {
   finalOpponentId: string | null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Europe (v0.8)                                                       */
+/* ------------------------------------------------------------------ */
+
+export type UefaCompetitionId =
+  | 'uefa_champions_league'
+  | 'uefa_europa_league'
+  | 'uefa_conference_league';
+
+/** Why a club holds its European place. */
+export type UefaEntryReasonKind = 'champion' | 'cup_winner' | 'league_position' | 'titleholder';
+
+/**
+ * One club's European place for a season - the OUTPUT of domestic football, never a roll.
+ *
+ * `entry` is either a node id in the qualification graph or 'league_phase'. The distinction
+ * the brief insists on lives here: an Israeli champion's entry is `ucl_q1`, which the UI must
+ * present as מוקדמות ליגת האלופות - never as העפלה לליגת האלופות.
+ */
+export interface EuropeanEntry {
+  clubId: string;
+  clubName: string;
+  association: string;
+  competition: UefaCompetitionId;
+  entry: string;
+  reason: UefaEntryReasonKind;
+  /** For league_position entries, which position earned it. */
+  position?: number;
+}
+
+/** A two-legged qualifying or knockout tie, compact. */
+export interface EuropeanTie {
+  /** Graph node id for qualifying; stage id for knockouts ('ko_playoff'|'r16'|'qf'|'sf'|'final'). */
+  stage: string;
+  competition: UefaCompetitionId;
+  opponentId: string;
+  opponentName: string;
+  /** Leg scores from this club's perspective; the final has one leg. */
+  legs: { for: number; against: number; home: boolean }[];
+  aggFor: number;
+  aggAgainst: number;
+  won: boolean;
+  /** How a level aggregate was decided. No away-goals rule exists in this world. */
+  decidedBy?: 'extra_time' | 'penalties';
+}
+
+/** One chapter of the season's European story, in order. */
+export type EuropeanStep =
+  | { kind: 'entered'; competition: UefaCompetitionId; entry: string; reason: UefaEntryReasonKind }
+  | { kind: 'tie'; tie: EuropeanTie }
+  | { kind: 'dropped'; from: UefaCompetitionId; to: UefaCompetitionId; toEntry: string }
+  | {
+      kind: 'league_phase';
+      competition: UefaCompetitionId;
+      position: number;
+      points: number;
+      won: number;
+      drawn: number;
+      lost: number;
+      goalsFor: number;
+      goalsAgainst: number;
+    }
+  | { kind: 'champion'; competition: UefaCompetitionId };
+
+/**
+ * A club-season's whole European journey, from entry to exit or trophy (v0.8).
+ *
+ * This is the record the brief calls for: not "which competition", but the story - entered UCL
+ * qualifying, lost, dropped to the Europa League, lost again, landed in the Conference, reached
+ * the knockouts. Stored per season for the player's club, rendered in the season summary,
+ * carried into the archive.
+ */
+export interface EuropeanJourney {
+  season: number;
+  clubId: string;
+  steps: EuropeanStep[];
+  /** The competition the club ended the season in. */
+  finalCompetition: UefaCompetitionId;
+  /** Furthest stage reached, as a stable id: a graph node, 'league_phase', 'ko_playoff', 'r16', 'qf', 'sf', 'final', 'champion'. */
+  furthest: string;
+  /** European matches actually played - the season's continental fixture count. */
+  matches: number;
+  wonCompetition: UefaCompetitionId | null;
+  reachedFinal: boolean;
+  reachedSemiFinal: boolean;
+  /** Reached any league phase - the "we are IN Europe proper" milestone. */
+  reachedLeaguePhase: boolean;
+}
+
+/** The season's European results the world keeps: winners always, journeys for clubs the career watches. */
+export interface EuropeanSeasonState {
+  season: number;
+  /** Every modeled club's resolved entry (field clubs excluded - they are competition scenery). */
+  entries: EuropeanEntry[];
+  winners: Record<UefaCompetitionId, { clubId: string; name: string }>;
+  /** The player club's journey, when it had one. */
+  playerJourney: EuropeanJourney | null;
+  /** Maccabi's journey when the player is elsewhere - the club the game always watches. */
+  maccabiJourney: EuropeanJourney | null;
+}
+
+/**
+ * Rolling European reputation (v0.8): one number per association and per club, decayed each
+ * season and fed by that season's results - an exponential window approximating UEFA's
+ * five-season coefficient. This is what lets the world EVOLVE: a league that keeps winning in
+ * Europe climbs the access bands; a club that keeps qualifying becomes seeded.
+ */
+export interface UefaCoefficients {
+  associations: Record<string, number>;
+  clubs: Record<string, number>;
+}
+
+export interface EuropeState {
+  /** This season's Europe, simulated at preseason alongside the league projection. */
+  current?: EuropeanSeasonState | null;
+  /** Next season's entries, resolved at settlement from this season's domestic results. */
+  nextEntries?: EuropeanEntry[];
+  /**
+   * The access-list depth pool resolved with them: next-best-placed clubs of strong
+   * associations, used only to complete league phases to 36. Persisted because it derives from
+   * settled tables that no longer exist by the following preseason.
+   */
+  nextStandby?: EuropeanEntry[];
+  coefficients: UefaCoefficients;
+  /** Past winners, newest last, trimmed - the world's European history. */
+  history: { season: number; winners: Record<UefaCompetitionId, { clubId: string; name: string }> }[];
+}
+
 export interface WorldState {
+  /**
+   * Europe (v0.8). Optional: pre-v0.8 saves have none, and `hydrateCareer` initialises the
+   * shell so old careers keep loading; their next preseason starts a real European season.
+   */
+  europe?: EuropeState;
   /**
    * The player's club's season, decided at preseason (v0.4.6). Optional: v0.4.5.1 saves have
    * none, and `hydrateCareer` projects one deterministically rather than leaving it null.
@@ -2025,6 +2165,8 @@ export interface ArchivedSeason {
   leagueId?: string;
   teamGames?: number;
   segments?: SeasonSegment[];
+  /** The club's European journey that season, when it had one (v0.8). */
+  europe?: EuropeanJourney;
   onLoan: boolean;
   stats: SeasonStats;
   ability: number;

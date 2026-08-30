@@ -18,6 +18,13 @@ import { hasCoherentIdentity } from './identity';
 import { historicalLeagueId, seasonFixtures } from './leagueTruth';
 import { legacySegment } from './segmentEngine';
 import { evaluateSeasonHonors } from './honorsEngine';
+import { emptyEuropeState, resolveNextEntries } from './uefaEngine';
+import { UEFA_COMPETITIONS } from '../data/uefa';
+
+/** Hebrew competition name, for milestone copy. */
+function uefaCompetitionName(id: keyof typeof UEFA_COMPETITIONS): string {
+  return UEFA_COMPETITIONS[id].name;
+}
 import { EVENTS_BY_ID } from '../data/events';
 import { TRAIT_DEFS } from '../data/traits';
 import type {
@@ -140,6 +147,11 @@ export function hydrateCareer(career: Career): Career {
   // v0.7: fields older saves cannot have. Defaults, not migrations.
   if (!Array.isArray(next.honors)) next = { ...next, honors: [] };
   if (next.firstHalfContext === undefined) next = { ...next, firstHalfContext: null };
+  // v0.8: the Europe shell. A pre-v0.8 save simply has no European history yet; its next
+  // preseason starts a real European season from last year's tables.
+  if (!next.world.europe) {
+    next = { ...next, world: { ...next.world, europe: emptyEuropeState() } };
+  }
 
   /*
    * Backfill historical season truth, once (v0.6.5.3).
@@ -285,7 +297,13 @@ export function hydrateCareer(career: Career): Career {
     next.trophies.filter((t) => t.clubId === MACCABI_ID && ids.includes(t.id)).length;
   const championships = countMaccabi('championship');
   const cups = countMaccabi('cup');
-  const europeanRuns = countMaccabi('european_run', 'champions_league');
+  const europeanRuns = countMaccabi(
+    'european_run',
+    'champions_league',
+    'uefa_champions_league',
+    'uefa_europa_league',
+    'uefa_conference_league',
+  );
   if (
     next.maccabi.championships !== championships ||
     next.maccabi.cups !== cups ||
@@ -765,6 +783,60 @@ function advanceSeasonFlow(career: Career): Career {
         const seasonHonors = evaluateSeasonHonors(next, next.lastSeasonRecord);
         if (seasonHonors.length > 0) next.honors = [...next.honors, ...seasonHonors];
       }
+
+      /*
+       * European milestones (v0.8): the handful of moments a career timeline should remember.
+       * `addMilestone` dedupes by id, so the firsts fire once; the finals and trophies carry
+       * the season in their id because reaching two finals is two memories, not one.
+       */
+      const euro = next.lastSeasonRecord?.europe;
+      if (euro) {
+        next = addMilestone(next, {
+          id: 'first_european_campaign',
+          icon: '🌍',
+          text: 'קמפיין אירופי ראשון',
+          major: false,
+        });
+        if (euro.reachedLeaguePhase) {
+          next = addMilestone(next, {
+            id: 'first_european_league_phase',
+            icon: '⭐',
+            text: 'שלב הליגה האירופי הראשון',
+            major: true,
+          });
+        }
+        if (euro.reachedFinal) {
+          next = addMilestone(next, {
+            id: `european_final_${euro.season}`,
+            icon: '🏟️',
+            text: `גמר אירופי — ${uefaCompetitionName(euro.finalCompetition)}`,
+            major: true,
+          });
+        }
+        if (euro.wonCompetition) {
+          next = addMilestone(next, {
+            id: `european_trophy_${euro.season}`,
+            icon: '🏆',
+            text: `זכייה ב${uefaCompetitionName(euro.wonCompetition)}`,
+            major: true,
+          });
+        }
+      }
+    }
+
+    /*
+     * Next summer's Europe is decided by THIS season's domestic football (v0.8). Resolved here,
+     * at settlement, while the settled tables still exist - by next preseason the projections
+     * cover a new year and the evidence is gone. Deliberately outside the academy gate: Europe
+     * belongs to the world, and the world plays on while the player is fifteen.
+     */
+    {
+      const europe = next.world.europe ?? emptyEuropeState();
+      const resolved = resolveNextEntries(next, next.currentSeason);
+      next.world = {
+        ...next.world,
+        europe: { ...europe, nextEntries: resolved.entries, nextStandby: resolved.standby },
+      };
     }
 
     next.lastSeasonDeltas = seasonDeltas(next);

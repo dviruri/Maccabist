@@ -40,6 +40,30 @@ export const TROPHY_DEFS: Record<string, TrophyDefinition> = {
     weight: TROPHY_WEIGHTS.championsLeague,
     icon: '⭐',
   },
+  /*
+   * v0.8: real UEFA trophies, awarded ONLY by the competition simulation - a club must enter,
+   * qualify, survive the knockouts and win the final. The legacy `european_run` and
+   * `champions_league` ids above are retired from awarding (they were season-end rolls) but
+   * kept so pre-v0.8 careers keep rendering the trophies they were shown winning.
+   */
+  uefa_champions_league: {
+    id: 'uefa_champions_league',
+    name: 'ליגת האלופות',
+    weight: TROPHY_WEIGHTS.championsLeague,
+    icon: '⭐',
+  },
+  uefa_europa_league: {
+    id: 'uefa_europa_league',
+    name: 'הליגה האירופית',
+    weight: TROPHY_WEIGHTS.europeanRun,
+    icon: '🌍',
+  },
+  uefa_conference_league: {
+    id: 'uefa_conference_league',
+    name: 'הקונפרנס ליג',
+    weight: TROPHY_WEIGHTS.europeanRun * 0.7,
+    icon: '🌍',
+  },
   youth_championship: { id: 'youth_championship', name: 'אליפות הנוער', weight: 0.15, icon: '🎽' },
   youth_cup: { id: 'youth_cup', name: 'גביע הנוער', weight: 0.1, icon: '🎗️' },
 };

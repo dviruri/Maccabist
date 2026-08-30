@@ -4,6 +4,7 @@ import { CareerTimeline } from '../components/CareerTimeline';
 import { CompactHub } from '../components/CompactHub';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
+import { EuropeCard } from '../components/EuropeCards';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { Sheet } from '../components/Sheet';
 import { PeopleCard } from '../components/PeopleCard';
@@ -81,6 +82,13 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
       {/* ---------- primary gameplay layer ---------- */}
       <CompactHub career={career} onOpenCareer={() => setSheet('history')} />
       <SeasonStrip career={career} onOpenTable={() => setSheet('table')} />
+
+      {/*
+        v0.8: the season's European situation, when there is one. Qualifying is summer football,
+        so by the time the league starts this card can tell the whole summer story - including
+        where each defeat dropped us - and state the autumn honestly.
+      */}
+      <EuropeCard career={career} />
 
       {/*
         The five-dot season-phase strip is gone from here (v0.4.7). Its one piece of information -

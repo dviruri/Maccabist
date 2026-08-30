@@ -4,6 +4,7 @@ import { LEGACY_MILESTONES } from '../game/maccabiLegacy';
 import type { Milestone, Career, SeasonRecord, SeasonStats } from '../types';
 import { cupRunLabel } from '../game/cupEngine';
 import { HONOR_LABELS, honorStatLabel } from '../game/honorsEngine';
+import { EuropeJourneySummary } from './EuropeCards';
 import { HonorIcon } from './honorIcons';
 import { seasonFixtures } from '../game/leagueTruth';
 import { levelContext } from '../game/rules';
@@ -203,6 +204,18 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
         </div>
 
         <ClubSeasonLine career={career} season={record.season} />
+
+        {/*
+          The European journey (v0.8): the season summary tells the whole story - entry,
+          qualifying ties with their drop-downs, the league-phase standing, the knockouts, and
+          a trophy if the final was won. Read from the record, where settlement stored it.
+        */}
+        {record.europe && (
+          <div className="euro-summary-block">
+            <div className="kicker">אירופה</div>
+            <EuropeJourneySummary journey={record.europe} />
+          </div>
+        )}
 
         {/*
           Individual honors (v0.7, B10). The reveal lives inside the season summary - the award

@@ -17,11 +17,12 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.7.1.** v0.7 added the Collection / Meta / Visual Career layer -
-Career Archive, Trophy Cabinet, Club Album, Individual Honors, Season Cards v2, Retirement v2
-and the shareable career poster (see `V07_REPORT.md`); v0.7.1 is a stabilization patch covering
-CI, versioning and release hygiene only (`V071_REPORT.md`). The next feature release is **v0.8 —
-European Competitions**, which is not started.
+**Current stable release: v0.8.0 — Europe.** v0.8 adds a real European club competition
+ecosystem: domestic results earn UEFA qualification, a connected qualifying graph drops losers
+down through Champions League → Europa League → Conference League, three 36-club league phases
+feed seeded knockouts, and a European trophy exists only as the conclusion of that simulated
+journey (`V08_REPORT.md`). v0.7 added the Collection / Meta / Visual Career layer
+(`V07_REPORT.md`); v0.7.1 was release hygiene (`V071_REPORT.md`).
 
 ---
 
@@ -780,6 +781,8 @@ references them.
 ## Not in this version
 
 No auth, no backend, no Base44 integration, no leaderboards, no monetisation, no match-level
-simulation, no share card. The football world is simulated at **season** level only: clubs have
-seasons, divisions and promotion/relegation, but there are no fixtures, tables or squads. `src/services/storage.ts` is a small interface specifically so it can
+simulation. The domestic football world is simulated at **season** level: clubs have seasons,
+divisions and promotion/relegation, without per-match fixtures or squads; European competitions
+(v0.8) are simulated at **tie and league-phase** level, still without individual match detail
+beyond scores. `src/services/storage.ts` is a small interface specifically so it can
 be swapped for a real service later.
