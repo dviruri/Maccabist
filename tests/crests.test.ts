@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { ALL_CLUBS, MACCABI_ID } from '../src/data/clubs';
+import { ALL_CLUBS } from '../src/data/clubs';
 import { CREST_MANIFEST } from '../src/data/clubCrests.generated';
 import { CLUB_VISUALS, clubVisual, getClubCrest, hasRealCrest, initialsFor } from '../src/data/clubVisuals';
 import { defaultLeagueFor } from '../src/data/leagues';
