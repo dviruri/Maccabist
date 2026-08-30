@@ -49,7 +49,7 @@ export function careerLevel(career: Career): number {
   const form = last ? (last.stats.rating - 58) * MARKET.ratingWeight : 0;
   // v0.6.5.2: the denominator is last season's own schedule, not the club's current one.
   const minutes = last
-    ? clamp(last.stats.appearances / Math.max(1, seasonFixtures(last)), 0, 1) *
+    ? clamp(last.stats.appearances / Math.max(1, seasonFixtures(last, career.world)), 0, 1) *
       MARKET.minutesWeight
     : 0;
 
@@ -396,7 +396,7 @@ export function careerTrajectory(career: Career): MoveDirection {
 export function isStagnating(career: Career): boolean {
   const last = career.lastSeasonRecord;
   if (!last) return false;
-  const games = Math.max(1, seasonFixtures(last));
+  const games = Math.max(1, seasonFixtures(last, career.world));
   return last.stats.appearances / games < MARKET.stagnationShare;
 }
 

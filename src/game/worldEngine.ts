@@ -78,9 +78,9 @@ export function playerImpact(career: Career, record: SeasonRecord | null): numbe
    * a season he had already finished.
    */
   const club = getClub(record.clubId);
-  const recordLeagueId = historicalLeagueId(record);
+  const recordLeagueId = historicalLeagueId(record, career.world);
   const league = recordLeagueId ? getLeague(recordLeagueId) : currentLeagueOf(career.world, club);
-  const games = Math.max(1, seasonFixtures(record));
+  const games = Math.max(1, seasonFixtures(record, career.world));
 
   const share = clamp(record.stats.appearances / games, 0, 1);
   if (share < WORLD.impactMinShare) return 0;

@@ -207,7 +207,7 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
           current level, so scrolling back through history re-scored every old season against
           wherever he happens to play today.
         */}
-        <StatBoxes career={career} stats={record.stats} teamGames={seasonFixtures(record)} />
+        <StatBoxes career={career} stats={record.stats} teamGames={seasonFixtures(record, career.world)} />
 
         {/*
           מורשת מכבי (v0.6, Phase 29): when this season crossed a legacy milestone, one compact

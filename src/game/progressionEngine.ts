@@ -115,6 +115,7 @@ export function cloneCareer(career: Career): Career {
     lastSeasonDeltas: [...career.lastSeasonDeltas],
     lastAchievements: [...career.lastAchievements],
     firstHalfStats: career.firstHalfStats ? { ...career.firstHalfStats } : null,
+    firstHalfGames: career.firstHalfGames,
   };
 }
 

@@ -36,7 +36,7 @@ import {
   LEAGUE_TROPHY_IDS,
   seniorSeasons,
 } from './truth';
-import type { Career, SeasonRecord } from '../types';
+import type { Career, SeasonRecord, WorldState } from '../types';
 
 export type IntegrityCode =
   /** starts exceeded appearances in a season record. */
@@ -57,6 +57,10 @@ export type IntegrityCode =
   | 'promotion_contradiction'
   /** a relegation memory with no relegation in the world record. */
   | 'relegation_contradiction'
+  /** stored historical teamGames is not a positive integer (v0.6.5.3). */
+  | 'invalid_team_games'
+  /** more appearances than the team played matches that season (v0.6.5.3). */
+  | 'appearances_exceed_team_games'
   /** a season with an on-field event and no appearances. */
   | 'on_field_without_appearance'
   /** a cup trophy stored with a league trophy id, or vice versa. */
@@ -122,9 +126,9 @@ export interface IntegrityViolation {
  * the validator's ceiling move with promotion - a legitimate 34-game top-flight season could be
  * flagged as impossible once the club was relegated to a shorter division.
  */
-function plausibleFixtures(record: SeasonRecord): number {
+function plausibleFixtures(record: SeasonRecord, world?: WorldState): number {
   try {
-    return seasonFixtures(record) + 12;
+    return seasonFixtures(record, world) + 12;
   } catch {
     return 60;
   }
@@ -153,13 +157,41 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
         record.season,
       );
     }
-    const ceiling = plausibleFixtures(record);
+    const ceiling = plausibleFixtures(record, career.world);
     if (record.stats.appearances > ceiling) {
       push(
         'appearances_exceed_fixtures',
         `${record.stats.appearances} appearances against a plausible ceiling of ${ceiling}`,
         record.season,
       );
+    }
+
+    /*
+     * Stored historical truth is well-formed (v0.6.5.3).
+     *
+     * Only checked when the field is present: a pre-v0.6.5.3 record that has not been through
+     * hydration legitimately has none, and reporting that as a contradiction would flag every
+     * old save rather than a real defect.
+     *
+     * The appearance bound is against `teamGames` itself with no headroom - unlike the ceiling
+     * above, which pads for cup football, this number already includes the season's cup and
+     * European allowance because it is the exact figure the season was simulated over. A player
+     * cannot appear in more matches than his team played.
+     */
+    if (record.teamGames !== undefined) {
+      if (!Number.isInteger(record.teamGames) || record.teamGames <= 0) {
+        push(
+          'invalid_team_games',
+          `stored teamGames of ${record.teamGames} is not a positive integer`,
+          record.season,
+        );
+      } else if (record.stats.appearances > record.teamGames) {
+        push(
+          'appearances_exceed_team_games',
+          `${record.stats.appearances} appearances in a ${record.teamGames} match season`,
+          record.season,
+        );
+      }
     }
   }
 
@@ -246,7 +278,7 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
      */
     const fixtures = (() => {
       try {
-        return seasonFixtures(record);
+        return seasonFixtures(record, career.world);
       } catch {
         return 0;
       }

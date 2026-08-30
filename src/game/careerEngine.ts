@@ -15,6 +15,7 @@
 import { FIRST_STAGE, stageConfig } from '../data/academy';
 import { MACCABI_ACADEMY_ID, MACCABI_ID, getClub } from '../data/clubs';
 import { hasCoherentIdentity } from './identity';
+import { historicalLeagueId, seasonFixtures } from './leagueTruth';
 import { EVENTS_BY_ID } from '../data/events';
 import { TRAIT_DEFS } from '../data/traits';
 import type {
@@ -132,6 +133,34 @@ export function hydrateCareer(career: Career): Career {
    */
   if (!hasCoherentIdentity(next) && next.academyStage === 'senior') {
     next = { ...next, currentClubId: MACCABI_ID };
+  }
+
+  /*
+   * Backfill historical season truth, once (v0.6.5.3).
+   *
+   * Records written before this version have no `teamGames`, and records written before v0.6.5.2
+   * have no `leagueId` either. `seasonFixtures` can resolve both at read time, but resolving on
+   * every read means the answer still depends on code that may change again. Writing the
+   * resolved values into the save turns them into stored facts, which is the entire point of the
+   * version - after this runs, that career's history is settled and no future schedule change
+   * can move it.
+   *
+   * The resolution itself is the shared resolver, so migration and runtime cannot disagree. It
+   * uses the career's OWN world - its `clubSeasons` - and never the club's current league.
+   *
+   * Deliberately additive: `SCHEMA_VERSION` is unchanged, nothing is removed, and a record that
+   * already carries both fields is left exactly as it is.
+   */
+  if (next.seasonHistory.some((r) => r.teamGames === undefined || r.leagueId === undefined)) {
+    const history = next.seasonHistory.map((record) => {
+      if (record.teamGames !== undefined && record.leagueId !== undefined) return record;
+      const leagueId = record.leagueId ?? historicalLeagueId(record, next.world) ?? undefined;
+      const teamGames = record.teamGames ?? seasonFixtures(record, next.world);
+      return { ...record, leagueId, teamGames };
+    });
+    next = { ...next, seasonHistory: history };
+    const last = history[history.length - 1];
+    if (next.lastSeasonRecord && last) next = { ...next, lastSeasonRecord: last };
   }
 
   /*
@@ -426,6 +455,7 @@ export function createCareer(input: NewCareerInput): Career {
     pendingOffers: [],
 
     firstHalfStats: null,
+    firstHalfGames: null,
     /*
      * A fresh career opens its own participation ledger (v0.4.8), so `hydrateCareer` stays a pure
      * migration for old saves rather than something every new career also passes through.
@@ -768,6 +798,7 @@ export function beginSeason(career: Career): Career {
     next.lastAchievements = [];
     next.lastProgression = null;
     next.firstHalfStats = null;
+    next.firstHalfGames = null;
     /*
      * A fresh participation ledger (v0.4.8). Nothing has been played, so on-field events for the
      * early slot are judged on the noise-free projection rather than on last season's football.
@@ -1002,6 +1033,7 @@ export function advanceYear(career: Career): Career {
     next.plannedEvents = [];
     next.pendingOffers = [];
     next.firstHalfStats = null;
+    next.firstHalfGames = null;
     next = applyAutomaticMoves(next);
 
     const checked = checkAchievements(next);

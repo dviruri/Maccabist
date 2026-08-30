@@ -1,3 +1,4 @@
+import { stageConfig } from '../data/academy';
 import { getClub } from '../data/clubs';
 import { defaultLeagueFor, getLeague, type League } from '../data/leagues';
 import { LEAGUE_MEMBERSHIP } from '../data/worldClubs';
@@ -89,15 +90,37 @@ export function currentSeasonGames(world: WorldState, club: Club): number {
 /**
  * The league a completed season was played in.
  *
- * `SeasonRecord.leagueId` is written at settlement from the league the club was actually in that
- * year (v0.6.5.2). Records from older saves have only the display NAME, so this falls back to
- * resolving that name - and returns null rather than guessing when even that fails.
+ * Resolution order, strongest evidence first (v0.6.5.3):
  *
- * It deliberately does NOT consult the current world. Deriving a historical league from where
- * the club plays today is the exact mistake this module exists to prevent.
+ *   1. `record.leagueId` - written at settlement. Stored fact.
+ *   2. `world.clubSeasons` - the world's own record of that club in that season. Also stored
+ *      fact, just kept somewhere else, and it outranks display text because it is an id rather
+ *      than a name that may have been copied from a stale static field.
+ *   3. `record.league` display name - last resort for a pre-v0.6.5.2 save.
+ *
+ * It deliberately does NOT consult the CURRENT league of the club at any point. Deriving a
+ * historical league from where the club plays today is the exact mistake this module exists to
+ * prevent, and no amount of missing evidence makes it acceptable - the function returns null
+ * instead.
  */
-export function historicalLeagueId(record: SeasonRecord): string | null {
+export function historicalLeagueId(record: SeasonRecord, world?: WorldState): string | null {
   if (record.leagueId) return record.leagueId;
+
+  /*
+   * v0.6.5.3: the world's own history beats the record's display text.
+   *
+   * Pre-v0.6.5.2 records took their league NAME from `levelContext`, which read the club's stale
+   * static field - so a season at Hapoel Hadera could be stamped "ליגת העל" when the club was in
+   * Liga Alef and the world knew it. `clubSeasons` holds a leagueId written by the world engine
+   * at the time, which is the better witness. Only a unique match counts; an ambiguous one is
+   * treated as no evidence rather than a coin flip.
+   */
+  const matches = (world?.clubSeasons ?? []).filter(
+    (entry) => entry.season === record.season && entry.clubId === record.clubId,
+  );
+  const unique = matches.length === 1 ? matches[0] : null;
+  if (unique?.leagueId) return unique.leagueId;
+
   for (const leagueId of Object.keys(LEAGUE_MEMBERSHIP)) {
     try {
       if (getLeague(leagueId).name === record.league) return leagueId;
@@ -111,39 +134,69 @@ export function historicalLeagueId(record: SeasonRecord): string | null {
 /**
  * How many games that completed season held.
  *
- * Used for every historical denominator - `playerImpact`'s minutes share, the integrity
- * validator's appearance ceiling, the market's last-season minutes read. Before v0.6.5.2 these
- * all used the club's CURRENT static `seasonGames`, so a career's 2044 Liga Alef season was
- * re-judged years later against whatever league the club had since been promoted into.
- *
- * `clubQuality` is passed in rather than looked up, so this module stays free of the club
- * dataset and cannot form an import cycle with it.
+ * `clubQuality` is passed in rather than looked up, so this stays usable from a caller that
+ * already holds the club.
  */
 export function historicalSeasonGames(
   record: SeasonRecord,
   clubQuality: number,
   isIsraeli: boolean,
   fallbackSeasonGames: number,
+  world?: WorldState,
 ): number {
-  const leagueId = historicalLeagueId(record);
+  const leagueId = historicalLeagueId(record, world);
   if (!leagueId) return fallbackSeasonGames;
   return leagueSeasonGames(leagueId, clubQuality, isIsraeli);
 }
 
 /**
- * Fixtures in a completed season, resolved from the record alone.
+ * Fixtures in a completed season. The one resolver every historical consumer goes through.
  *
- * The convenience form of `historicalSeasonGames` for the common case where the caller has a
- * record and nothing else: every historical denominator in the game - impact, valuation,
- * stagnation, the integrity ceiling, the season card's minutes box - should go through this so
- * they cannot drift apart. Falls back to the club's stored schedule for a record whose league
- * cannot be resolved, and to a plain season length for a club that no longer exists.
+ * ## Why a stored number, and not a calculation
+ *
+ * v0.6.5.2 stopped history being scored against the club's CURRENT division. It left the count
+ * itself still being *reconstructed* - from the league's size, the club's quality and the
+ * schedule rules as they exist right now. That is a query, and a query answers with today's
+ * data. Reshape Liga Alef, add a playoff round, restate a club's quality, and a season that
+ * finished in 2044 quietly returns a different number than it did last version.
+ *
+ * A season that happened is a fact. If he played 16 team games in טרום ב׳, that season must
+ * always say 16.
+ *
+ * ## Order, strongest evidence first
+ *
+ *   1. `record.teamGames` - stored at settlement, from the halves he actually played. Nothing
+ *      overrides it, including a later change to the schedule rules. This is the whole point.
+ *   2. Academy stage - the schedule of an age group is a property of the age group, not of the
+ *      club. Before v0.6.5.3 every academy season fell through to `getClub('maccabi_academy')
+ *      .seasonGames`, so a טרום ב׳ season (16 games) and a נוער season (32) were both scored
+ *      against the same generic number.
+ *   3. The historical league - `record.leagueId`, or the world's own `clubSeasons` entry, or the
+ *      recorded display name, in that order of trust.
+ *   4. Legacy fallback - the club's static field, for a pre-v0.6.5.2 record whose league cannot
+ *      be established at all. Wrong in the ways this version documents, but it loads.
+ *
+ * At no point does it consult the club's current league.
  */
-export function seasonFixtures(record: SeasonRecord): number {
+export function seasonFixtures(record: SeasonRecord, world?: WorldState): number {
+  if (typeof record.teamGames === 'number' && record.teamGames > 0) return record.teamGames;
+
+  if (record.academyStage && record.academyStage !== 'senior') {
+    const stage = stageConfig(record.academyStage);
+    if (stage?.seasonGames) return stage.seasonGames;
+  }
+
   try {
     const club = getClub(record.clubId);
-    return historicalSeasonGames(record, club.quality, club.country === 'ישראל', club.seasonGames);
+    return historicalSeasonGames(
+      record,
+      club.quality,
+      club.country === 'ישראל',
+      club.seasonGames,
+      world,
+    );
   } catch {
+    // The club no longer exists in the dataset. A plain season length beats crashing on load.
     return 38;
   }
 }

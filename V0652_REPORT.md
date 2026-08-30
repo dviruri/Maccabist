@@ -185,6 +185,10 @@ over, and a check that every manifest entry points at a file that exists.
 
 ## 10. Verification
 
+> **Correction (v0.6.5.3):** the test count below is 927, taken from a full-suite run that was
+> started before the last six Checkpoint D crest tests were added. The v0.6.5.2 tree holds
+> **933**. The suite was green at both counts; only the number was stale.
+
 ```
 tests                     927 passed / 927   (49 files)
 typecheck (src)           clean

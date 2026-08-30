@@ -256,6 +256,20 @@ export interface SeasonRecord {
    * exactly, rather than inferred from wherever the club plays today.
    */
   leagueId?: string;
+  /**
+   * How many matches the team played this season (v0.6.5.3). Immutable historical fact.
+   *
+   * Written at settlement as the sum of the two halves the player actually lived through, so it
+   * is the SAME denominator the engine used to generate his appearances, starts and minutes -
+   * not a second formula that could drift from it. That matters when a mid-season move changes
+   * the level between halves: the halves are summed, never re-derived from the end state.
+   *
+   * Once written this must never change. A future version may reshape Liga Alef, add a playoff
+   * round or restate a club's quality; a season that has already happened keeps its own number.
+   * Optional only because saves written before v0.6.5.3 have none, and `hydrateCareer` backfills
+   * those once from the best historical evidence available.
+   */
+  teamGames?: number;
   onLoan: boolean;
   stats: SeasonStats;
   firstHalf: SeasonStats | null;
@@ -1764,6 +1778,16 @@ export interface Career {
 
   /** Stats accumulated in the first half of the season in progress. */
   firstHalfStats: SeasonStats | null;
+  /**
+   * Fixtures the first half of this season was simulated over (v0.6.5.3).
+   *
+   * Kept alongside `firstHalfStats` for the same reason: the two halves are simulated against
+   * separately-resolved levels, so if anything moves the player between them - an academy event
+   * that sends him to an external youth side - the season's true fixture count is the sum of
+   * what each half actually used. Null outside a season in progress, and in saves from before
+   * v0.6.5.3, where settlement falls back to halving the closing level.
+   */
+  firstHalfGames: number | null;
   /**
    * What he has actually played this season (v0.4.8).
    *

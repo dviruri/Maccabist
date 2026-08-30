@@ -341,6 +341,8 @@ export function playFirstHalf(career: Career, rng: Rng): Career {
   );
   next = cloneCareer(next);
   next.firstHalfStats = half.stats;
+  // v0.6.5.3: remembered, not re-derived, so settlement can sum the halves actually played.
+  next.firstHalfGames = games;
   /*
    * The participation ledger (v0.4.8). From here on, the mid and late slots can ask a factual
    * question instead of a projected one: did he actually play?
@@ -368,6 +370,17 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   const level = levelContext(career);
   const games = level.seasonGames - Math.round(level.seasonGames / 2);
   const half = simulateHalfStats(career, rng, games);
+  /*
+   * The season's true fixture count (v0.6.5.3): what the first half used plus what this half
+   * used, rather than the closing level halved and doubled back.
+   *
+   * They are the same number in the ordinary case. They are not when something moved the player
+   * between the halves - an academy event sending him to an external youth side - and in that
+   * case this sum is the only figure that matches the football he was actually simulated
+   * through. A save mid-season from before v0.6.5.3 has no stored first half, so it falls back
+   * to halving the closing level, which is exactly what it was simulated with.
+   */
+  const teamGames = (career.firstHalfGames ?? Math.round(level.seasonGames / 2)) + games;
   const first = career.firstHalfStats ?? EMPTY_STATS;
   let full = mergeStats(first, half.stats);
 
@@ -461,6 +474,12 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
      * division it was actually played in rather than wherever the club has since ended up.
      */
     leagueId: currentLeagueId(career.world, career.currentClubId) ?? undefined,
+    /*
+     * v0.6.5.3: stored, so this season can never be recalculated. `seasonFixtures` prefers it
+     * over every derivation, which is what makes a completed season immune to a later change in
+     * league size, playoff shape or club quality.
+     */
+    teamGames,
     onLoan: career.parentClubId !== null,
     stats: full,
     firstHalf: first,
@@ -505,6 +524,7 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   next.seasonHistory.push(record);
   next.lastSeasonRecord = record;
   next.firstHalfStats = null;
+  next.firstHalfGames = null;
 
   /*
    * Maccabi Legacy milestones (v0.6). Checked here because this is the moment the season
