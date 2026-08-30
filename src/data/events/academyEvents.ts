@@ -654,7 +654,17 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             effects: {
               maccabism: -18,
               ability: 2.5,
-              transferTo: 'maccabi_netanya',
+              /*
+               * v0.7 pre-flight: the YOUTH side, not the senior club.
+               *
+               * This pointed at 'maccabi_netanya' - the Liga Leumit senior club - so a teenager
+               * choosing "לעבור" was made a senior professional on the spot: `moveToClub` sets
+               * `academyStage = 'senior'` for any `isSenior` target. The event's own text says
+               * מחלקת נוער של מועדון מתחרה. Same defect class as the Hapoel Afula bug fixed in
+               * v0.4.1 (see resolveDestination); this one had survived because the id looked
+               * plausible.
+               */
+              transferTo: 'youth_maccabi_netanya',
               flags: ['released_by_maccabi'],
             },
           },

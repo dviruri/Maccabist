@@ -57,10 +57,18 @@ export type IntegrityCode =
   | 'promotion_contradiction'
   /** a relegation memory with no relegation in the world record. */
   | 'relegation_contradiction'
+  /** a season's segments do not sum to its settled totals (v0.7). */
+  | 'segment_totals_mismatch'
+  /** a segment's competition lines do not sum to the segment (v0.7). */
+  | 'competition_totals_mismatch'
+  /** a segment claims more fixtures than the season stored (v0.7). */
+  | 'segment_games_mismatch'
   /** stored historical teamGames is not a positive integer (v0.6.5.3). */
   | 'invalid_team_games'
   /** more appearances than the team played matches that season (v0.6.5.3). */
   | 'appearances_exceed_team_games'
+  /** an individual honor pointing at a season the career never played (v0.7). */
+  | 'honor_without_season'
   /** a season with an on-field event and no appearances. */
   | 'on_field_without_appearance'
   /** a cup trophy stored with a league trophy id, or vice versa. */
@@ -178,6 +186,73 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
      * European allowance because it is the exact figure the season was simulated over. A player
      * cannot appear in more matches than his team played.
      */
+    /*
+     * Segment truth (v0.7): the parts must BE the whole. Segments were written at settlement
+     * from the same halves that produced the totals, so any mismatch is a defect, not noise.
+     * Only additive stats reconcile; rating is an average and injuredGames stays season-level.
+     */
+    if (record.segments && record.segments.length > 0) {
+      const sum = { appearances: 0, starts: 0, goals: 0, assists: 0, cleanSheets: 0, goalsConceded: 0 };
+      let segmentGames = 0;
+      for (const segment of record.segments) {
+        segmentGames += segment.teamGames;
+        sum.appearances += segment.stats.appearances;
+        sum.starts += segment.stats.starts;
+        sum.goals += segment.stats.goals;
+        sum.assists += segment.stats.assists;
+        sum.cleanSheets += segment.stats.cleanSheets;
+        sum.goalsConceded += segment.stats.goalsConceded;
+
+        const compSum = { appearances: 0, starts: 0, goals: 0, assists: 0, cleanSheets: 0, goalsConceded: 0 };
+        let compGames = 0;
+        for (const comp of segment.competitions) {
+          compGames += comp.teamGames;
+          compSum.appearances += comp.appearances;
+          compSum.starts += comp.starts;
+          compSum.goals += comp.goals;
+          compSum.assists += comp.assists;
+          compSum.cleanSheets += comp.cleanSheets;
+          compSum.goalsConceded += comp.goalsConceded;
+        }
+        const compBroken =
+          compSum.appearances !== segment.stats.appearances ||
+          compSum.starts !== segment.stats.starts ||
+          compSum.goals !== segment.stats.goals ||
+          compSum.assists !== segment.stats.assists ||
+          compSum.cleanSheets !== segment.stats.cleanSheets ||
+          compSum.goalsConceded !== segment.stats.goalsConceded ||
+          compGames !== segment.teamGames;
+        if (compBroken) {
+          push(
+            'competition_totals_mismatch',
+            `${segment.clubName}: competition lines do not sum to the segment`,
+            record.season,
+          );
+        }
+      }
+      const broken =
+        sum.appearances !== record.stats.appearances ||
+        sum.starts !== record.stats.starts ||
+        sum.goals !== record.stats.goals ||
+        sum.assists !== record.stats.assists ||
+        sum.cleanSheets !== record.stats.cleanSheets ||
+        sum.goalsConceded !== record.stats.goalsConceded;
+      if (broken) {
+        push(
+          'segment_totals_mismatch',
+          `segments sum to ${sum.appearances} apps / ${sum.goals} goals, season settled at ${record.stats.appearances} / ${record.stats.goals}`,
+          record.season,
+        );
+      }
+      if (record.teamGames !== undefined && segmentGames !== record.teamGames) {
+        push(
+          'segment_games_mismatch',
+          `segments hold ${segmentGames} fixtures, season stored ${record.teamGames}`,
+          record.season,
+        );
+      }
+    }
+
     if (record.teamGames !== undefined) {
       if (!Number.isInteger(record.teamGames) || record.teamGames <= 0) {
         push(
@@ -192,6 +267,21 @@ export function validateCareerIntegrity(career: Career): IntegrityViolation[] {
           record.season,
         );
       }
+    }
+  }
+
+  /*
+   * Individual honors point at real seasons (v0.7). The honor itself is a stored fact and is
+   * never re-derived - but a stored fact about a season that never happened is corruption, not
+   * history, and that is worth catching at load.
+   */
+  for (const honor of career.honors ?? []) {
+    if (!career.seasonHistory.some((r) => r.season === honor.season)) {
+      push(
+        'honor_without_season',
+        `${honor.type} recorded for season ${honor.season}, which has no season record`,
+        honor.season,
+      );
     }
   }
 

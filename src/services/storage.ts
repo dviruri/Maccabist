@@ -5,16 +5,20 @@
  * swapped for a backend repository (Base44, an API, whatever) without touching the UI.
  */
 
+import { buildArchivedCareer } from '../game/archive';
 import { hydrateCareer, SCHEMA_VERSION } from '../game/careerEngine';
-import type { Career, CareerSummary, MetaProgress } from '../types';
+import type { ArchivedCareer, Career, CareerSummary, MetaProgress } from '../types';
 
 const CAREER_KEY = 'maccabist:career:v1';
 const META_KEY = 'maccabist:meta:v1';
+const ARCHIVE_KEY = 'maccabist:archive:v1';
 /** Set when a save from an older schema had to be dropped, so the UI can explain itself. */
 const LEGACY_FLAG = 'maccabist:legacy-save-dropped';
 
 /** Meta progression survives schema changes - it is a small, stable shape. */
 const META_VERSION = 1;
+/** Archive snapshots are self-contained; the version gates the envelope, not the careers. */
+const ARCHIVE_VERSION = 1;
 
 export interface GameRepository {
   loadCareer(): Career | null;
@@ -26,6 +30,13 @@ export interface GameRepository {
   loadMeta(): MetaProgress;
   saveMeta(meta: MetaProgress): void;
   recordFinishedCareer(career: Career): MetaProgress;
+  /** Every finished career, newest first. */
+  loadArchive(): ArchivedCareer[];
+  /** Freezes a finished career into the archive. Idempotent: saving twice upserts by id. */
+  archiveCareer(career: Career): ArchivedCareer[];
+  deleteArchivedCareer(archiveId: string): ArchivedCareer[];
+  /** Wipes archive AND meta progression. Does NOT touch an active career. */
+  resetMetaAndArchive(): void;
 }
 
 export const emptyMeta: MetaProgress = {
@@ -160,6 +171,14 @@ function createLocalRepository(): GameRepository {
     saveMeta: (meta) => write(META_KEY, META_VERSION, meta),
     recordFinishedCareer(career) {
       const meta = this.loadMeta();
+      /*
+       * v0.7: idempotent by career id.
+       *
+       * The old guard against double-counting was a React ref, which resets on reload - so
+       * reopening the app on the retirement screen counted the same career again. The recent
+       * list is the durable memory of what was already recorded; a career it knows is a no-op.
+       */
+      if (meta.recentCareers.some((c) => c.id === career.id)) return meta;
       const summary = summariseCareer(career);
       const score = summary.legendScore;
       const next: MetaProgress = {
@@ -171,6 +190,30 @@ function createLocalRepository(): GameRepository {
       };
       this.saveMeta(next);
       return next;
+    },
+    loadArchive() {
+      return readRaw<ArchivedCareer[]>(ARCHIVE_KEY, ARCHIVE_VERSION).data ?? [];
+    },
+    archiveCareer(career) {
+      /*
+       * Upsert by the career's own id (v0.7, Scenario J). Retiring writes the snapshot;
+       * reopening the retirement screen writes the same snapshot over itself. Exactly one
+       * entry per career, however many times the app is closed and reopened on that screen.
+       */
+      const existing = this.loadArchive().filter((a) => a.archiveId !== career.id);
+      const next = [buildArchivedCareer(career), ...existing];
+      write(ARCHIVE_KEY, ARCHIVE_VERSION, next);
+      return next;
+    },
+    deleteArchivedCareer(archiveId) {
+      const next = this.loadArchive().filter((a) => a.archiveId !== archiveId);
+      write(ARCHIVE_KEY, ARCHIVE_VERSION, next);
+      return next;
+    },
+    resetMetaAndArchive() {
+      // The active career is deliberately untouched: resetting history must not kill a run.
+      remove(ARCHIVE_KEY);
+      remove(META_KEY);
     },
   };
 }

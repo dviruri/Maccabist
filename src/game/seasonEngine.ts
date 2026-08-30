@@ -26,6 +26,7 @@ import {
 } from './progressionEngine';
 import { dueLegacyMilestones } from './maccabiLegacy';
 import { currentLeagueId } from './leagueTruth';
+import { buildSeasonSegments, type SegmentHalf } from './segmentEngine';
 import { clamp, round, type Rng } from './random';
 import { ageMinutesModifier, countsForMaccabiLegacy, levelContext, playerLevel } from './rules';
 
@@ -344,6 +345,23 @@ export function playFirstHalf(career: Career, rng: Rng): Career {
   // v0.6.5.3: remembered, not re-derived, so settlement can sum the halves actually played.
   next.firstHalfGames = games;
   /*
+   * v0.7: WHERE the half was played, remembered alongside how much of it. A mid-season event
+   * can move the player before the second half, and settlement builds one honest segment per
+   * spell only because this context was captured while it was still true.
+   */
+  {
+    const identity = currentTeamDisplay(next);
+    next.firstHalfContext = {
+      clubId: next.currentClubId,
+      clubName: identity.club,
+      league: level.league,
+      leagueId: currentLeagueId(next.world, next.currentClubId),
+      academyStage: next.academyStage,
+      onLoan: next.parentClubId !== null,
+      role: next.role,
+    };
+  }
+  /*
    * The participation ledger (v0.4.8). From here on, the mid and late slots can ask a factual
    * question instead of a projected one: did he actually play?
    */
@@ -456,6 +474,32 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
 
   const identity = currentTeamDisplay(career);
 
+  /*
+   * v0.7: the season's segments - one per spell, from the halves the engine actually simulated.
+   * Built BEFORE the record so the record can carry them; reconciliation differences (v0.4.8
+   * can credit an event-described appearance) land on the closing segment inside
+   * `buildSeasonSegments`, so segments always sum exactly to the settled stats.
+   */
+  const secondHalfSegment: SegmentHalf = {
+    clubId: career.currentClubId,
+    clubName: identity.club,
+    league: level.league,
+    leagueId: currentLeagueId(career.world, career.currentClubId),
+    academyStage: career.academyStage,
+    onLoan: career.parentClubId !== null,
+    role: next.role,
+    teamGames: games,
+    stats: half.stats,
+  };
+  const firstHalfSegment: SegmentHalf | null = career.firstHalfContext
+    ? {
+        ...career.firstHalfContext,
+        teamGames: career.firstHalfGames ?? Math.round(level.seasonGames / 2),
+        stats: first,
+      }
+    : null;
+  const segments = buildSeasonSegments(firstHalfSegment, secondHalfSegment, full);
+
   const record: SeasonRecord = {
     season: career.currentSeason,
     age: career.age,
@@ -480,6 +524,7 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
      * league size, playoff shape or club quality.
      */
     teamGames,
+    segments,
     onLoan: career.parentClubId !== null,
     stats: full,
     firstHalf: first,
@@ -525,6 +570,7 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
   next.lastSeasonRecord = record;
   next.firstHalfStats = null;
   next.firstHalfGames = null;
+  next.firstHalfContext = null;
 
   /*
    * Maccabi Legacy milestones (v0.6). Checked here because this is the moment the season

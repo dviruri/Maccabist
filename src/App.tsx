@@ -1,4 +1,5 @@
 import { GamePage } from './pages/GamePage';
+import { MetaPage } from './pages/MetaPage';
 import { NewCareerPage } from './pages/NewCareerPage';
 import { RetirementPage } from './pages/RetirementPage';
 import { WelcomePage } from './pages/WelcomePage';
@@ -28,11 +29,14 @@ export function App(): JSX.Element {
         <GamePage career={career} actions={actions} onExit={actions.backToWelcome} />
       )}
 
+      {screen === 'meta' && <MetaPage onBack={actions.backToWelcome} />}
+
       {screen === 'retired' && career?.retired && (
         <RetirementPage
           career={career}
           isBest={(career.legend?.score ?? 0) >= meta.bestLegendScore}
           onNewCareer={actions.openCreate}
+          onOpenMeta={actions.openMeta}
         />
       )}
 
@@ -40,6 +44,7 @@ export function App(): JSX.Element {
         <WelcomePage
           meta={meta}
           savedCareer={career}
+          onOpenMeta={actions.openMeta}
           legacySaveDropped={legacySaveDropped}
           onStart={actions.openCreate}
           onResume={actions.resumeCareer}

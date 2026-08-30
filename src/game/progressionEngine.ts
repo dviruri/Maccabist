@@ -116,6 +116,8 @@ export function cloneCareer(career: Career): Career {
     lastAchievements: [...career.lastAchievements],
     firstHalfStats: career.firstHalfStats ? { ...career.firstHalfStats } : null,
     firstHalfGames: career.firstHalfGames,
+    firstHalfContext: career.firstHalfContext ? { ...career.firstHalfContext } : null,
+    honors: [...(career.honors ?? [])],
   };
 }
 

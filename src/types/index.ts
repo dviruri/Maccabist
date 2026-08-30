@@ -238,6 +238,98 @@ export interface Achievement {
   icon: string;
 }
 
+/**
+ * A competition bucket inside one season segment (v0.7).
+ *
+ * The game does not simulate individual matches, so these lines are written ONCE at settlement
+ * by a seeded split of the segment's stats across the fixture composition the season was
+ * actually generated over - and then never recomputed. Stored history, same rule as
+ * `SeasonRecord.teamGames`.
+ *
+ * `continental_generic` is deliberately anonymous: the schedule has always contained a
+ * continental fixture allowance for strong clubs, but there is no Champions League model in the
+ * game, and these lines must never be presented under a competition that was not simulated.
+ * v0.8 is expected to replace the allowance with real competitions; these stored lines stay as
+ * they are.
+ *
+ * `combined` exists only for pre-v0.7 records, where the true league/cup split was never known.
+ * It says "this is everything, unseparated" rather than inventing a precise breakdown.
+ */
+export type CompetitionId = 'league' | 'cup' | 'continental_generic' | 'youth' | 'combined';
+
+export interface CompetitionLine {
+  competition: CompetitionId;
+  /** Fixtures this competition contributed to the segment's schedule. */
+  teamGames: number;
+  appearances: number;
+  starts: number;
+  goals: number;
+  assists: number;
+  cleanSheets: number;
+  goalsConceded: number;
+}
+
+/**
+ * One meaningful club-period inside a season (v0.7).
+ *
+ * Most seasons have exactly one. A mid-season move - real in this engine: an academy event can
+ * transfer the player between the two simulated halves - produces two, and each keeps the stats
+ * and fixture count of the football actually played there. Season totals reconcile exactly with
+ * the sum of segments; that is asserted by the integrity validator, not hoped.
+ *
+ * NOT a match-by-match database. The engine simulates half-seasons, so a segment is one or two
+ * halves at one club, which is the finest grain the game truthfully knows.
+ */
+export interface SeasonSegment {
+  clubId: string;
+  clubName: string;
+  /** Display name of the competition/league this segment was played in. */
+  league: string;
+  leagueId?: string;
+  academyStage: AcademyStage;
+  onLoan: boolean;
+  /** Fixtures available in this segment - same basis the stats were generated over. */
+  teamGames: number;
+  stats: SeasonStats;
+  role: TeamRole;
+  /**
+   * How trustworthy the competition split is. `engine` lines were written at settlement from
+   * the fixture basis the season used. `legacy_estimate` marks a segment reconstructed from a
+   * pre-v0.7 record, where the split was never known - such segments carry a single `combined`
+   * line and are excluded from retroactive league honors rather than dressed up as precise.
+   */
+  breakdown: 'engine' | 'legacy_estimate';
+  competitions: CompetitionLine[];
+}
+
+export type IndividualHonorType =
+  | 'top_scorer' // מלך השערים
+  | 'assists_leader' // מלך הבישולים
+  | 'player_of_season' // שחקן העונה
+  | 'goalkeeper_of_season' // שוער העונה
+  | 'young_player_of_season'; // השחקן הצעיר של העונה
+
+/**
+ * A league award, won against a simulated field (v0.7).
+ *
+ * Stored at the moment it is decided and never recalculated - a formula change in a future
+ * version must not quietly strip a career of an award it was shown winning. `statValue` is the
+ * number the award was won WITH (league goals for the scoring crown, clean sheets for the
+ * goalkeeper award), kept so the honor can always be rendered as it was earned.
+ */
+export interface IndividualHonor {
+  type: IndividualHonorType;
+  season: number;
+  leagueId: string;
+  /** Display name of the league at the time. */
+  league: string;
+  clubId: string;
+  position: Position;
+  statValue?: number;
+  /** Age at the season, kept for the young-player award's own record. */
+  age: number;
+}
+
 export interface SeasonRecord {
   season: number;
   age: number;
@@ -270,6 +362,11 @@ export interface SeasonRecord {
    * those once from the best historical evidence available.
    */
   teamGames?: number;
+  /**
+   * The club-periods this season was actually made of (v0.7). Optional: pre-v0.7 saves carry
+   * none until hydration backfills a single legacy segment. Totals reconcile with `stats`.
+   */
+  segments?: SeasonSegment[];
   onLoan: boolean;
   stats: SeasonStats;
   firstHalf: SeasonStats | null;
@@ -1752,6 +1849,8 @@ export interface Career {
 
   seasonHistory: SeasonRecord[];
   trophies: Trophy[];
+  /** League awards won against the simulated field (v0.7). Stored facts, never recomputed. */
+  honors: IndividualHonor[];
   achievements: Achievement[];
   eventsHistory: CareerEventResult[];
   flags: CareerFlag[];
@@ -1788,6 +1887,22 @@ export interface Career {
    * v0.6.5.3, where settlement falls back to halving the closing level.
    */
   firstHalfGames: number | null;
+  /**
+   * Where the first half of the in-progress season was played (v0.7).
+   *
+   * Captured when the half is simulated, so settlement can build honest segments even when a
+   * mid-season event has since moved the player. Null outside a season and in older saves,
+   * where settlement falls back to a single whole-season segment at the closing club.
+   */
+  firstHalfContext: {
+    clubId: string;
+    clubName: string;
+    league: string;
+    leagueId: string | null;
+    academyStage: AcademyStage;
+    onLoan: boolean;
+    role: TeamRole;
+  } | null;
   /**
    * What he has actually played this season (v0.4.8).
    *
@@ -1875,6 +1990,96 @@ export interface CareerSummary {
   maccabiAppearances: number;
   championships: number;
   finishedAt: number;
+}
+
+/**
+ * One club spell inside an archived career's journey (v0.7).
+ *
+ * Ordered as the career was lived, so the album and the poster can draw the route. A club the
+ * player returned to appears once with its spells counted - two Maccabi chapters are one entry
+ * with `spells: 2`, which is what the Club Album shows.
+ */
+export interface ArchivedClubSpell {
+  clubId: string;
+  clubName: string;
+  country: string;
+  spells: number;
+  seasons: number;
+  appearances: number;
+  goals: number;
+  assists: number;
+  cleanSheets: number;
+  wonTrophy: boolean;
+  wasCaptain: boolean;
+}
+
+/** A season row inside an archive: the record minus its in-flight half data. */
+export interface ArchivedSeason {
+  season: number;
+  age: number;
+  academyStage: AcademyStage;
+  clubId: string;
+  clubName: string;
+  teamName: string;
+  league: string;
+  leagueId?: string;
+  teamGames?: number;
+  segments?: SeasonSegment[];
+  onLoan: boolean;
+  stats: SeasonStats;
+  ability: number;
+  role: TeamRole;
+  captain: boolean;
+  trophies: Trophy[];
+}
+
+/**
+ * A finished career, frozen (v0.7, Checkpoint C).
+ *
+ * Written ONCE when the career retires and never touched again - the archive does not depend
+ * on the live Career object or on any engine code changing under it. Everything the archive
+ * screens render comes from here. Deliberately smaller than a full Career: no rng state, no
+ * pending events, no world tables - a career that is over has no in-flight state worth keeping.
+ *
+ * Archives are display-only. Nothing in them feeds a future career's ability, rng or offers.
+ */
+export interface ArchivedCareer {
+  /** The career's own id - which is what makes archiving idempotent. */
+  archiveId: string;
+  archivedAt: number;
+  playerName: string;
+  position: Position;
+  startSeason: number;
+  endSeason: number;
+  retirementAge: number;
+  peakAbility: number;
+  globalCareer: number;
+  maccabiLegacy: number;
+  legacyRank: string;
+  endingId: string;
+  endingTitle: string;
+  finalClubId: string;
+  totals: CareerStats & { seasons: number; countries: number };
+  maccabi: {
+    appearances: number;
+    seasons: number;
+    championships: number;
+    cups: number;
+    captainSeasons: number;
+  };
+  clubs: ArchivedClubSpell[];
+  seasons: ArchivedSeason[];
+  trophies: Trophy[];
+  honors: IndividualHonor[];
+  achievements: Achievement[];
+  /** The strongest 4-8 major milestones, chosen at archive time. */
+  highlights: Milestone[];
+  /**
+   * Promotions won, from the career's own memories - which the integrity validator already
+   * cross-checks against world outcomes. Kept for the cabinet's promotion badges (E3): a
+   * promotion is not a championship and must not render as one.
+   */
+  promotions: { season: number; detail?: string }[];
 }
 
 export interface MetaProgress {

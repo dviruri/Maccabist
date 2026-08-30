@@ -9,7 +9,7 @@ import { leagueShape } from '../data/leagueShape';
  */
 
 /**
- * How many matches a club of this quality plays in a season in this league.
+ * The composition of a club's season, by competition (v0.7).
  *
  * The league portion is derived from the division's real size - a double round-robin of
  * `(size - 1) * 2` - so a division that changes size changes its schedule with it. That is the
@@ -17,15 +17,22 @@ import { leagueShape } from '../data/leagueShape';
  * after the division turned out to have 18, silently capping every Liga Alef season by three
  * fixtures.
  *
- * The allowances on top are stated rather than buried: Ligat Ha'Al genuinely plays a
- * championship/relegation playoff round, everyone plays some cup football, and European nights
- * scale with how strong the club is.
+ * Split out of `leagueSeasonGames` so the total and the breakdown cannot disagree - the total
+ * IS the sum of these parts. `continental` is the generic European allowance strong clubs have
+ * always carried; it is not a modelled competition and must never be labelled as one.
  */
-export function leagueSeasonGames(
+export interface ScheduleBreakdown {
+  /** League fixtures, including the championship playoff round where the division has one. */
+  league: number;
+  cup: number;
+  continental: number;
+}
+
+export function leagueScheduleBreakdown(
   leagueId: string | null,
   clubQuality: number,
   isIsraeli: boolean,
-): number {
+): ScheduleBreakdown {
   const size = leagueId ? (leagueShape(leagueId)?.size ?? 0) : 0;
   const roundRobin = size > 1 ? (size - 1) * 2 : 30;
   const playoff = leagueId === 'il_premier' ? 7 : 0;
@@ -40,7 +47,15 @@ export function leagueSeasonGames(
    * playing continental football it could not have been in.
    */
   const qualifies = leagueId ? (leagueShape(leagueId)?.europePlaces ?? 0) > 0 : false;
-  const europe = !qualifies ? 0 : clubQuality >= 82 ? 12 : clubQuality >= 74 ? 8 : clubQuality >= 66 ? 4 : 0;
-  return roundRobin + playoff + cup + europe;
+  const continental = !qualifies ? 0 : clubQuality >= 82 ? 12 : clubQuality >= 74 ? 8 : clubQuality >= 66 ? 4 : 0;
+  return { league: roundRobin + playoff, cup, continental };
 }
 
+export function leagueSeasonGames(
+  leagueId: string | null,
+  clubQuality: number,
+  isIsraeli: boolean,
+): number {
+  const b = leagueScheduleBreakdown(leagueId, clubQuality, isIsraeli);
+  return b.league + b.cup + b.continental;
+}

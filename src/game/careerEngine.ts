@@ -16,6 +16,8 @@ import { FIRST_STAGE, stageConfig } from '../data/academy';
 import { MACCABI_ACADEMY_ID, MACCABI_ID, getClub } from '../data/clubs';
 import { hasCoherentIdentity } from './identity';
 import { historicalLeagueId, seasonFixtures } from './leagueTruth';
+import { legacySegment } from './segmentEngine';
+import { evaluateSeasonHonors } from './honorsEngine';
 import { EVENTS_BY_ID } from '../data/events';
 import { TRAIT_DEFS } from '../data/traits';
 import type {
@@ -135,6 +137,10 @@ export function hydrateCareer(career: Career): Career {
     next = { ...next, currentClubId: MACCABI_ID };
   }
 
+  // v0.7: fields older saves cannot have. Defaults, not migrations.
+  if (!Array.isArray(next.honors)) next = { ...next, honors: [] };
+  if (next.firstHalfContext === undefined) next = { ...next, firstHalfContext: null };
+
   /*
    * Backfill historical season truth, once (v0.6.5.3).
    *
@@ -151,12 +157,24 @@ export function hydrateCareer(career: Career): Career {
    * Deliberately additive: `SCHEMA_VERSION` is unchanged, nothing is removed, and a record that
    * already carries both fields is left exactly as it is.
    */
-  if (next.seasonHistory.some((r) => r.teamGames === undefined || r.leagueId === undefined)) {
+  if (
+    next.seasonHistory.some(
+      (r) => r.teamGames === undefined || r.leagueId === undefined || r.segments === undefined,
+    )
+  ) {
     const history = next.seasonHistory.map((record) => {
-      if (record.teamGames !== undefined && record.leagueId !== undefined) return record;
+      if (record.teamGames !== undefined && record.leagueId !== undefined && record.segments !== undefined) {
+        return record;
+      }
       const leagueId = record.leagueId ?? historicalLeagueId(record, next.world) ?? undefined;
       const teamGames = record.teamGames ?? seasonFixtures(record, next.world);
-      return { ...record, leagueId, teamGames };
+      /*
+       * v0.7: one conservative legacy segment. The old season's true league/cup split was never
+       * known, so it carries a single `combined` line and is excluded from retroactive league
+       * honors - documented honesty beats invented precision.
+       */
+      const segments = record.segments ?? [legacySegment({ ...record, leagueId, teamGames })];
+      return { ...record, leagueId, teamGames, segments };
     });
     next = { ...next, seasonHistory: history };
     const last = history[history.length - 1];
@@ -456,6 +474,8 @@ export function createCareer(input: NewCareerInput): Career {
 
     firstHalfStats: null,
     firstHalfGames: null,
+    firstHalfContext: null,
+    honors: [],
     /*
      * A fresh career opens its own participation ledger (v0.4.8), so `hydrateCareer` stays a pure
      * migration for old saves rather than something every new career also passes through.
@@ -734,6 +754,17 @@ function advanceSeasonFlow(career: Career): Career {
        * covered it.
        */
       next.world = recordMaccabiSeason(next, rng);
+
+      /*
+       * Individual honors (v0.7). Decided HERE, after the club's season has settled, because
+       * שחקן העונה weighs how the team's year ended - evaluated any earlier the outcome would
+       * not exist yet. The field is seeded from career seed + season + league, so this consumes
+       * nothing from the live rng and changes no existing career's path.
+       */
+      if (next.lastSeasonRecord) {
+        const seasonHonors = evaluateSeasonHonors(next, next.lastSeasonRecord);
+        if (seasonHonors.length > 0) next.honors = [...next.honors, ...seasonHonors];
+      }
     }
 
     next.lastSeasonDeltas = seasonDeltas(next);

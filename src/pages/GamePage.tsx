@@ -4,6 +4,7 @@ import { CareerTimeline } from '../components/CareerTimeline';
 import { CompactHub } from '../components/CompactHub';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
+import { CareerJourney } from '../components/SeasonCardV2';
 import { Sheet } from '../components/Sheet';
 import { PeopleCard } from '../components/PeopleCard';
 import { LegacyCard } from '../components/LegacyCard';
@@ -20,7 +21,6 @@ import {
   SeasonResultCard,
   YouthTransitionCard,
 } from '../components/SeasonCards';
-import { Timeline } from '../components/Timeline';
 import { Chip, Logo, Ltr } from '../components/primitives';
 import { EVENTS_BY_ID } from '../data/events';
 import { getLeague } from '../data/leagues';
@@ -150,7 +150,16 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
               <div className="kicker" style={{ marginBottom: 10 }}>
                 הקריירה עד כה
               </div>
-              <Timeline history={career.seasonHistory.slice(-14)} />
+              {/*
+                v0.7 (D5): the journey, not the spreadsheet. Season Cards v2 with era breaks at
+                every club change - the same card the archive renders, so the live career and
+                the archived one tell the story identically.
+              */}
+              <CareerJourney
+                seasons={career.seasonHistory.slice(-14)}
+                position={career.position}
+                honors={career.honors}
+              />
             </section>
           )}
         </div>

@@ -482,6 +482,8 @@ export interface BatchResult {
       seniorCareers: number;
       europe: number;
       majorSuccess: number;
+      /** v0.7: how many careers of this position ever won each award. Fairness check, not a quota. */
+      honors: Record<string, number>;
     }
   >;
   /** v0.4.1: how long careers last, for careers that reached senior football. */
@@ -986,6 +988,7 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
       seniorCareers: 0,
       europe: 0,
       majorSuccess: 0,
+      honors: {},
     };
     pos.count += 1;
     pos.peakAbility += career.peakAbility;
@@ -993,6 +996,10 @@ export function simulateBatch(count: number, options: BatchOptions): BatchResult
     if (career.maccabi.appearances > 0) pos.reachedSeniors += 1;
     if (hasMemory(career, 'first_move_abroad')) pos.europe += 1;
     if (score >= 75) pos.majorSuccess += 1;
+    // v0.7: award fairness is measured, not asserted - a career counts once per award type.
+    for (const type of new Set((career.honors ?? []).map((h) => h.type))) {
+      pos.honors[type] = (pos.honors[type] ?? 0) + 1;
+    }
 
     /*
      * Retirement age only counts for careers that actually reached senior football. Averaging in

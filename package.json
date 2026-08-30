@@ -26,7 +26,8 @@
     "crests:reclassify": "vite-node scripts/reclassifyCrests.ts --",
     "world:audit": "node scripts/auditLeagues.mjs",
     "world-metrics": "vite-node scripts/worldMetrics.ts --",
-    "truth:audit": "vite-node scripts/seasonTruthAudit.ts --"
+    "truth:audit": "vite-node scripts/seasonTruthAudit.ts --",
+    "archive:stress": "vite-node scripts/archiveStress.ts --"
   },
   "dependencies": {
     "react": "^18.3.1",

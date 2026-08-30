@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { EVENTS_BY_ID } from '../data/events';
 import { MACCABI_ACADEMY_ID, MACCABI_ID } from '../data/clubs';
@@ -11,6 +11,11 @@ import {
   SamiOferHeader,
 } from '../components/MaccabiCards';
 import { CareerTimeline } from '../components/CareerTimeline';
+import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
+import { CareerJourney } from '../components/SeasonCardV2';
+import { TrophyCabinet } from '../components/TrophyCabinet';
+import { buildArchivedCareer } from '../game/archive';
+import { renderCareerPoster } from '../services/posterRenderer';
 import { OriginReveal } from '../components/OriginReveal';
 import { StageLadder } from '../components/StageLadder';
 import { LeagueTableCard } from '../components/LeagueTableCard';
@@ -39,7 +44,7 @@ import { resolveEventChoice } from '../game/eventEngine';
 import { createRng } from '../game/random';
 import { generateOffers } from '../game/transferEngine';
 import { recordMaccabiSeason } from '../game/worldEngine';
-import type { Career, CareerOrigin, SeasonRecord } from '../types';
+import type { Career, CareerOrigin, IndividualHonor, SeasonRecord } from '../types';
 
 /**
  * A component gallery, for looking at screens (v0.4.5).
@@ -260,6 +265,32 @@ const inEurope = (): Career => {
 };
 
 /** A retired Maccabi legend, scored by the real Legend engine rather than a made-up number. */
+/**
+ * v0.7: renders the 9:16 poster canvas into an <img>, so Scenario N is something a headless
+ * browser can actually open and measure instead of a claim.
+ */
+function PosterPreview(): JSX.Element {
+  const [src, setSrc] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const archive = buildArchivedCareer({ ...retiredLegend(), honors: galleryHonors() });
+    renderCareerPoster(archive, 'story')
+      .then((canvas) => setSrc(canvas.toDataURL('image/png')))
+      .catch((e: Error) => setError(e.message));
+  }, []);
+  if (error) return <div data-poster="error">{error}</div>;
+  if (!src) return <div data-poster="loading">מייצר פוסטר…</div>;
+  return <img data-poster="ready" src={src} alt="פוסטר קריירה 9:16" style={{ width: '100%' }} />;
+}
+
+/** v0.7: a believable honors list for the meta scenes. */
+const galleryHonors = (): IndividualHonor[] => [
+  { type: 'top_scorer', season: 2046, leagueId: 'il_premier', league: 'ליגת העל', clubId: MACCABI_ID, position: 'ST', statValue: 24, age: 25 },
+  { type: 'top_scorer', season: 2049, leagueId: 'il_premier', league: 'ליגת העל', clubId: MACCABI_ID, position: 'ST', statValue: 27, age: 28 },
+  { type: 'player_of_season', season: 2049, leagueId: 'il_premier', league: 'ליגת העל', clubId: MACCABI_ID, position: 'ST', statValue: 71, age: 28 },
+  { type: 'young_player_of_season', season: 2041, leagueId: 'il_premier', league: 'ליגת העל', clubId: MACCABI_ID, position: 'ST', statValue: 63, age: 20 },
+];
+
 const retiredLegend = (): Career => {
   const career: Career = {
     ...seniorAtMaccabi(),
@@ -989,8 +1020,21 @@ export function Gallery(): JSX.Element {
     /* A season that actually produced milestones, so the "what you will remember" strip renders. */
     ['season-memorable', <SeasonResultCard career={memorableSeason()} onContinue={noop} />],
     ['season-cup-final-lost', <SeasonResultCard career={lostCupFinal()} onContinue={noop} />],
-    ['retirement', <RetirementPage career={retiredLegend()} onNewCareer={noop} isBest />],
-    ['retirement-modest', <RetirementPage career={retiredModest()} onNewCareer={noop} isBest={false} />],
+    /* v0.7 meta surfaces, from the archived snapshot of the same legend fixture. */
+    ['cabinet', <TrophyCabinet
+      trophies={retiredLegend().trophies}
+      honors={galleryHonors()}
+      promotions={[{ season: 2043, detail: 'הפועל חדרה' }]}
+    />],
+    ['album', <ClubAlbum entries={buildAlbum([buildArchivedCareer(retiredLegend())])} />],
+    ['poster', <PosterPreview />],
+    ['journey', <CareerJourney
+      seasons={buildArchivedCareer(retiredLegend()).seasons.slice(-8)}
+      position="ST"
+      honors={galleryHonors()}
+    />],
+    ['retirement', <RetirementPage career={retiredLegend()} onNewCareer={noop} onOpenMeta={noop} isBest />],
+    ['retirement-modest', <RetirementPage career={retiredModest()} onNewCareer={noop} onOpenMeta={noop} isBest={false} />],
     [
       'offers',
       offers.length > 0 ? (

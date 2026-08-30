@@ -9,6 +9,8 @@ interface Props {
   legacySaveDropped: boolean;
   onStart: () => void;
   onResume: () => void;
+  /** חדר הגביעים (v0.7). */
+  onOpenMeta: () => void;
   onDiscard: () => void;
   onDismissLegacyNotice: () => void;
 }
@@ -19,6 +21,7 @@ export function WelcomePage({
   legacySaveDropped,
   onStart,
   onResume,
+  onOpenMeta,
   onDiscard,
   onDismissLegacyNotice,
 }: Props): JSX.Element {
@@ -75,6 +78,11 @@ export function WelcomePage({
 
         <button type="button" className="btn btn-primary" onClick={onStart}>
           {canResume ? 'להתחיל קריירה חדשה' : 'להתחיל קריירה'}
+        </button>
+
+        {/* v0.7: the meta layer, one tap from home - careers, honors, achievements, clubs. */}
+        <button type="button" className="btn btn-ghost" style={{ width: '100%' }} onClick={onOpenMeta}>
+          🏆 חדר הגביעים
         </button>
 
         {canResume && (

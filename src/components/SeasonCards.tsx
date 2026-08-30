@@ -3,6 +3,8 @@ import { trophyIcon } from '../data/trophies';
 import { LEGACY_MILESTONES } from '../game/maccabiLegacy';
 import type { Milestone, Career, SeasonRecord, SeasonStats } from '../types';
 import { cupRunLabel } from '../game/cupEngine';
+import { HONOR_LABELS, honorStatLabel } from '../game/honorsEngine';
+import { HonorIcon } from './honorIcons';
 import { seasonFixtures } from '../game/leagueTruth';
 import { levelContext } from '../game/rules';
 import { teamDisplayFor, teamDisplayLine } from '../game/identity';
@@ -201,6 +203,30 @@ export function SeasonResultCard({ career, onContinue }: SeasonProps): JSX.Eleme
         </div>
 
         <ClubSeasonLine career={career} season={record.season} />
+
+        {/*
+          Individual honors (v0.7, B10). The reveal lives inside the season summary - the award
+          is part of the chapter's ending, not a modal on top of it. Each block is one honor,
+          the way it would be read out: the mark, the crown, the league, the number it was won
+          with. Read from stored honors written at settlement; the card announces, it never
+          decides.
+        */}
+        {career.honors
+          .filter((h) => h.season === record.season)
+          .map((honor, i) => (
+            <div key={`${honor.type}_${i}`} className="honor-reveal">
+              <span className="honor-reveal-icon" aria-hidden>
+                <HonorIcon type={honor.type} size={26} />
+              </span>
+              <span className="honor-reveal-body">
+                <b>{HONOR_LABELS[honor.type]}</b>
+                <span className="honor-reveal-sub">
+                  {honor.league}
+                  {honorStatLabel(honor) ? ` · ${honorStatLabel(honor)}` : ''}
+                </span>
+              </span>
+            </div>
+          ))}
 
         {/*
           v0.6.5.2: the minutes denominator is THIS season's schedule. It used to be the player's

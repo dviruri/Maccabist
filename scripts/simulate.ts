@@ -228,6 +228,19 @@ function reportBatch(name: string, result: BatchResult): void {
     );
   }
 
+  console.log('\n  Individual honors - careers winning at least once, by position (v0.7)');
+  console.log(
+    `    ${pad('pos', 8)}${padStart('PoS', 7)}${padStart('scorer', 8)}${padStart('assists', 9)}${padStart('GKaward', 9)}${padStart('young', 8)}`,
+  );
+  for (const position of POSITION_LIST) {
+    const stats = result.byPosition[position.id];
+    if (!stats) continue;
+    const h = (type: string): string => pct((stats.honors[type] ?? 0) / stats.count);
+    console.log(
+      `    ${pad(position.label, 8)}${padStart(h('player_of_season'), 7)}${padStart(h('top_scorer'), 8)}${padStart(h('assists_leader'), 9)}${padStart(h('goalkeeper_of_season'), 9)}${padStart(h('young_player_of_season'), 8)}`,
+    );
+  }
+
   const topEndings = Object.entries(result.endings)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8);

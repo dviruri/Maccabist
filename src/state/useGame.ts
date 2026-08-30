@@ -20,7 +20,7 @@ import {
 import { storage } from '../services/storage';
 import type { Career, MetaProgress } from '../types';
 
-export type Screen = 'welcome' | 'create' | 'game' | 'retired';
+export type Screen = 'welcome' | 'create' | 'game' | 'retired' | 'meta';
 
 export interface GameState {
   career: Career | null;
@@ -34,6 +34,8 @@ export interface GameState {
 export interface GameActions {
   openCreate(): void;
   backToWelcome(): void;
+  /** חדר הגביעים - the career archive and collection (v0.7). */
+  openMeta(): void;
   startCareer(input: NewCareerInput): void;
   resumeCareer(): void;
   abandonCareer(): void;
@@ -70,10 +72,18 @@ export function useGame(): GameState {
     if (career) storage.saveCareer(career);
   }, [career]);
 
-  /* Fold a finished career into the meta progression exactly once. */
+  /*
+   * Fold a finished career into the meta progression AND the archive exactly once.
+   *
+   * v0.7: the archive write happens here, at the moment of retirement, not when the user leaves
+   * the retirement screen - closing the app on that screen must not lose the career. Both
+   * operations are idempotent in storage (keyed by career id), so the ref is only an
+   * optimisation; a reload cannot double-count and cannot duplicate an archive entry.
+   */
   useEffect(() => {
     if (!career?.retired || recordedRef.current === career.id) return;
     recordedRef.current = career.id;
+    storage.archiveCareer(career);
     setMeta(storage.recordFinishedCareer(career));
     setScreen('retired');
   }, [career]);
@@ -95,6 +105,7 @@ export function useGame(): GameState {
     () => ({
       openCreate: () => setScreen('create'),
       backToWelcome: () => setScreen('welcome'),
+      openMeta: () => setScreen('meta'),
       startCareer: (input) => {
         const fresh = createCareer(input);
         recordedRef.current = null;

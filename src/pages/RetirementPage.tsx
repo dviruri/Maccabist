@@ -1,7 +1,10 @@
 import { CareerTimeline } from '../components/CareerTimeline';
+import { HonorIcon, TrophyKindIcon, trophyIconKind } from '../components/honorIcons';
 import { Timeline } from '../components/Timeline';
+import { buildArchivedCareer } from '../game/archive';
+import { HONOR_LABELS } from '../game/honorsEngine';
+import { downloadCareerPoster } from '../services/posterRenderer';
 import { appearanceBreakdown, trophySummary } from '../game/truth';
-import { trophyIcon } from '../data/trophies';
 import {
   globalCareerScore,
   historicalStanding,
@@ -33,10 +36,12 @@ export const LEGENDARY_ENDINGS: readonly string[] = ['legend', 'one_club_icon'];
 interface Props {
   career: Career;
   onNewCareer: () => void;
+  /** חדר הגביעים - where this career now permanently lives (v0.7). */
+  onOpenMeta: () => void;
   isBest: boolean;
 }
 
-export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Element {
+export function RetirementPage({ career, onNewCareer, onOpenMeta, isBest }: Props): JSX.Element {
   const m = career.maccabi;
   const isKeeper = career.position === 'GK';
   /*
@@ -297,7 +302,11 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
             <div className="kicker">התארים שלך</div>
             {trophyGroups.map((group) => (
               <div key={group.id} className="trophy-summary-line">
-                <span aria-hidden>{trophyIcon(group.id)}</span>{' '}
+                {/* v0.7 (E1/E7): the SVG mark, with correct semantics - a title is a PLATE,
+                    a cup is a CUP - instead of an OS emoji. */}
+                <span className="trophy-summary-icon" aria-hidden>
+                  <TrophyKindIcon kind={trophyIconKind(group.id)} size={18} />
+                </span>{' '}
                 <b>{group.name}</b>
                 {group.count > 1 && (
                   <>
@@ -308,6 +317,40 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
                 <span className="trophy-summary-clubs">{group.clubs.join(' · ')}</span>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/*
+        תארים אישיים (v0.7, G5). The honors are stored facts from the honors engine - each one
+        was won against a simulated league field in its own season, and this is the career-level
+        roll call. Position-aware by construction: a keeper's line here says שוער העונה.
+      */}
+      {career.honors.length > 0 && (
+        <section className="card retirement-block">
+          <div className="stack-sm">
+            <div className="kicker">
+              תארים אישיים — <Ltr>{career.honors.length}</Ltr>
+            </div>
+            {(['player_of_season', 'top_scorer', 'assists_leader', 'goalkeeper_of_season', 'young_player_of_season'] as const)
+              .map((type) => ({ type, wins: career.honors.filter((h) => h.type === type) }))
+              .filter((g) => g.wins.length > 0)
+              .map((g) => (
+                <div key={g.type} className="trophy-summary-line">
+                  <span className="trophy-summary-icon" aria-hidden>
+                    <HonorIcon type={g.type} size={18} />
+                  </span>{' '}
+                  {g.wins.length > 1 && (
+                    <>
+                      ×<Ltr>{g.wins.length}</Ltr>{' '}
+                    </>
+                  )}
+                  <b>{HONOR_LABELS[g.type]}</b>
+                  <span className="trophy-summary-clubs">
+                    {[...new Set(g.wins.map((h) => h.league))].join(' · ')}
+                  </span>
+                </div>
+              ))}
           </div>
         </section>
       )}
@@ -385,12 +428,38 @@ export function RetirementPage({ career, onNewCareer, isBest }: Props): JSX.Elem
         </section>
       )}
 
+      {/* v0.7 (H): the poster, drawn from the same archived snapshot חדר הגביעים keeps. */}
+      <section className="card retirement-block">
+        <div className="stack-sm">
+          <div className="kicker">לשתף את הקריירה</div>
+          <div className="archive-poster-buttons">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => void downloadCareerPoster(buildArchivedCareer(career), 'story')}
+            >
+              פוסטר לסטורי (9:16)
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => void downloadCareerPoster(buildArchivedCareer(career), 'square')}
+            >
+              פוסטר מרובע (1:1)
+            </button>
+          </div>
+        </div>
+      </section>
+
       <button
         type="button"
         className="btn btn-primary retirement-cta"
         onClick={onNewCareer}
       >
         קריירה חדשה
+      </button>
+      <button type="button" className="btn btn-ghost" style={{ width: '100%' }} onClick={onOpenMeta}>
+        🏆 הקריירה נשמרה בחדר הגביעים
       </button>
       <p className="faint retirement-footnote">
         יאללה, עוד קריירה אחת.

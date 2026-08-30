@@ -1,0 +1,304 @@
+import { getClubCrest, clubVisual } from '../data/clubVisuals';
+import { HONOR_LABELS } from '../game/honorsEngine';
+import { trophyIconKind } from '../components/honorIcons';
+import type { ArchivedCareer, IndividualHonorType } from '../types';
+
+/**
+ * The shareable career poster (v0.7, Checkpoint H).
+ *
+ * Drawn on a canvas, in the app, from the archived snapshot - no server, no html2canvas, no
+ * dependency. Two formats: 9:16 for a story, 1:1 for a square post. The design is Maccabist's
+ * own: the green/black identity, gold for silverware, the club route told in crests.
+ *
+ * Position-aware (H3): a keeper's poster leads with clean sheets, a defender's does not
+ * apologise for his goal count. Trophy semantics hold here too (H2/E1): the league-title count
+ * is drawn next to a PLATE mark, the cup count next to a CUP - the same language as the
+ * cabinet, in miniature.
+ *
+ * Crests draw from the real asset when it loads and fall back to the same generated
+ * shield-and-initials the app uses, so the poster can never contain a broken image.
+ */
+
+export type PosterFormat = 'story' | 'square';
+
+const SIZES: Record<PosterFormat, { w: number; h: number }> = {
+  story: { w: 1080, h: 1920 },
+  square: { w: 1080, h: 1080 },
+};
+
+const INK = {
+  bg0: '#070907',
+  bg1: '#0e1a10',
+  green: '#0fa64a',
+  greenBright: '#29d96a',
+  white: '#f2f6f3',
+  soft: '#9fb0a5',
+  gold: '#ffc94a',
+  goldDeep: '#c99a1e',
+  line: '#232c26',
+};
+
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+/** The crest, or the generated shield when the asset is missing - never a hole. */
+async function drawCrest(
+  ctx: CanvasRenderingContext2D,
+  clubId: string,
+  clubName: string,
+  x: number,
+  y: number,
+  size: number,
+): Promise<void> {
+  const asset = getClubCrest(clubId);
+  if (asset) {
+    const img = await loadImage(asset);
+    if (img) {
+      const ratio = Math.min(size / img.width, size / img.height);
+      const w = img.width * ratio;
+      const h = img.height * ratio;
+      ctx.drawImage(img, x + (size - w) / 2, y + (size - h) / 2, w, h);
+      return;
+    }
+  }
+  const visual = clubVisual(clubId, clubName);
+  ctx.save();
+  ctx.beginPath();
+  const r = size / 2;
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + size, y + size * 0.28);
+  ctx.lineTo(x + size * 0.86, y + size * 0.82);
+  ctx.lineTo(x + r, y + size);
+  ctx.lineTo(x + size * 0.14, y + size * 0.82);
+  ctx.lineTo(x, y + size * 0.28);
+  ctx.closePath();
+  ctx.fillStyle = visual.primary;
+  ctx.fill();
+  ctx.strokeStyle = visual.secondary;
+  ctx.lineWidth = size * 0.06;
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `700 ${size * 0.34}px "Heebo", "Segoe UI", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(visual.initials, x + r, y + size * 0.54);
+  ctx.restore();
+}
+
+/** The plate/cup marks, in miniature. Same semantics as the SVG system. */
+function drawTrophyMark(ctx: CanvasRenderingContext2D, kind: string, x: number, y: number, s: number): void {
+  ctx.save();
+  if (kind === 'plate') {
+    ctx.beginPath();
+    ctx.arc(x + s / 2, y + s / 2, s * 0.42, 0, Math.PI * 2);
+    ctx.fillStyle = INK.gold;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + s / 2, y + s / 2, s * 0.26, 0, Math.PI * 2);
+    ctx.strokeStyle = INK.goldDeep;
+    ctx.lineWidth = s * 0.06;
+    ctx.stroke();
+  } else if (kind === 'cup') {
+    ctx.fillStyle = INK.gold;
+    ctx.fillRect(x + s * 0.28, y + s * 0.12, s * 0.44, s * 0.4);
+    ctx.fillRect(x + s * 0.44, y + s * 0.52, s * 0.12, s * 0.18);
+    ctx.fillRect(x + s * 0.3, y + s * 0.7, s * 0.4, s * 0.12);
+  } else {
+    // promotion: the upward badge, in green.
+    ctx.fillStyle = INK.greenBright;
+    ctx.beginPath();
+    ctx.moveTo(x + s / 2, y + s * 0.1);
+    ctx.lineTo(x + s * 0.85, y + s * 0.5);
+    ctx.lineTo(x + s * 0.62, y + s * 0.5);
+    ctx.lineTo(x + s * 0.62, y + s * 0.85);
+    ctx.lineTo(x + s * 0.38, y + s * 0.85);
+    ctx.lineTo(x + s * 0.38, y + s * 0.5);
+    ctx.lineTo(x + s * 0.15, y + s * 0.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** The stat lines this position leads with (H3). */
+function statLines(archive: ArchivedCareer): [string, string][] {
+  const t = archive.totals;
+  const lines: [string, string][] = [[String(t.appearances), 'הופעות']];
+  if (archive.position === 'GK') {
+    lines.push([String(t.cleanSheets), 'שערים נקיים']);
+  } else if (archive.position === 'CB' || archive.position === 'FB') {
+    lines.push([String(t.seasons), 'עונות'], [String(t.goals + t.assists), 'שערים ובישולים']);
+  } else {
+    lines.push([String(t.goals), 'שערים'], [String(t.assists), 'בישולים']);
+  }
+  return lines.slice(0, 3);
+}
+
+const POSITION_TEXT: Record<string, string> = {
+  GK: 'שוער',
+  CB: 'בלם',
+  FB: 'מגן',
+  CM: 'קשר',
+  WG: 'כנף',
+  ST: 'חלוץ',
+};
+
+export async function renderCareerPoster(
+  archive: ArchivedCareer,
+  format: PosterFormat,
+): Promise<HTMLCanvasElement> {
+  const { w, h } = SIZES[format];
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const story = format === 'story';
+  const cx = w / 2;
+  const rtlFont = (weight: number, px: number): string => `${weight} ${px}px "Heebo", "Segoe UI", sans-serif`;
+
+  /* background: black to deep green wash, with a subtle pitch line */
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, INK.bg0);
+  grad.addColorStop(0.55, INK.bg1);
+  grad.addColorStop(1, INK.bg0);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(41, 217, 106, 0.12)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, story ? h * 0.42 : h * 0.4, w * 0.42, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.direction = 'rtl';
+
+  /* wordmark */
+  let y = story ? 130 : 90;
+  ctx.fillStyle = INK.green;
+  ctx.font = rtlFont(800, story ? 44 : 38);
+  ctx.fillText('מכביסט', cx, y);
+  ctx.fillStyle = INK.soft;
+  ctx.font = rtlFont(400, story ? 26 : 22);
+  y += story ? 42 : 34;
+  ctx.fillText('מהילדים לאגדה', cx, y);
+
+  /* name + identity */
+  y += story ? 130 : 90;
+  ctx.fillStyle = INK.white;
+  ctx.font = rtlFont(800, story ? 84 : 66);
+  ctx.fillText(archive.playerName, cx, y);
+  y += story ? 56 : 46;
+  ctx.fillStyle = INK.soft;
+  ctx.font = rtlFont(400, story ? 32 : 27);
+  const years = `${archive.startSeason}–${archive.endSeason}`;
+  ctx.fillText(`${POSITION_TEXT[archive.position] ?? archive.position} · ${years}`, cx, y);
+
+  /* the two axes - and only two */
+  y += story ? 120 : 84;
+  const axisGap = w * 0.24;
+  ctx.font = rtlFont(800, story ? 92 : 72);
+  ctx.fillStyle = INK.greenBright;
+  ctx.fillText(String(archive.globalCareer), cx + axisGap, y);
+  ctx.fillStyle = INK.gold;
+  ctx.fillText(String(archive.maccabiLegacy), cx - axisGap, y);
+  y += story ? 46 : 40;
+  ctx.font = rtlFont(400, story ? 28 : 24);
+  ctx.fillStyle = INK.soft;
+  ctx.fillText('קריירה עולמית', cx + axisGap, y);
+  ctx.fillText('מורשת מכבי', cx - axisGap, y);
+
+  /* club route, in crests */
+  const route = archive.clubs.slice(0, 6);
+  const crest = story ? 108 : 84;
+  const gap = Math.min(story ? 40 : 28, (w - 120 - route.length * crest) / Math.max(1, route.length - 1));
+  const routeWidth = route.length * crest + (route.length - 1) * gap;
+  y += story ? 110 : 70;
+  let x = cx + routeWidth / 2 - crest; // rtl: first club on the right
+  for (let i = 0; i < route.length; i += 1) {
+    await drawCrest(ctx, route[i]!.clubId, route[i]!.clubName, x, y, crest);
+    if (i < route.length - 1) {
+      ctx.fillStyle = INK.soft;
+      ctx.font = rtlFont(400, crest * 0.34);
+      ctx.fillText('←', x - gap / 2 - 2, y + crest * 0.62);
+    }
+    x -= crest + gap;
+  }
+  y += crest + (story ? 100 : 66);
+
+  /* silverware counts, with the correct marks */
+  const plateCount = archive.trophies.filter((t) => trophyIconKind(t.id) === 'plate').length;
+  const cupCount = archive.trophies.filter((t) => trophyIconKind(t.id) === 'cup').length;
+  const marks: { kind: string; count: number; label: string }[] = [
+    { kind: 'plate', count: plateCount, label: 'אליפויות' },
+    { kind: 'cup', count: cupCount, label: 'גביעים' },
+    { kind: 'promotion', count: archive.promotions.length, label: 'עליות' },
+  ].filter((m) => m.count > 0);
+  if (marks.length > 0) {
+    const markSize = story ? 64 : 52;
+    const cell = w / (marks.length + 1);
+    marks.forEach((mark, i) => {
+      const mx = w - cell * (i + 1);
+      drawTrophyMark(ctx, mark.kind, mx - markSize / 2, y - markSize * 0.7, markSize);
+      ctx.fillStyle = INK.white;
+      ctx.font = rtlFont(800, story ? 44 : 36);
+      ctx.fillText(String(mark.count), mx, y + markSize * 0.62);
+      ctx.fillStyle = INK.soft;
+      ctx.font = rtlFont(400, story ? 24 : 21);
+      ctx.fillText(mark.label, mx, y + markSize * 0.62 + (story ? 34 : 28));
+    });
+    y += markSize + (story ? 130 : 96);
+  }
+
+  /* individual honors, compact */
+  const honorCounts = new Map<IndividualHonorType, number>();
+  for (const honor of archive.honors) honorCounts.set(honor.type, (honorCounts.get(honor.type) ?? 0) + 1);
+  const honorLines = [...honorCounts.entries()].slice(0, 3);
+  if (honorLines.length > 0 && (story || marks.length === 0)) {
+    ctx.font = rtlFont(600, story ? 30 : 25);
+    for (const [type, count] of honorLines) {
+      ctx.fillStyle = INK.gold;
+      ctx.fillText(`${count > 1 ? `×${count} ` : ''}${HONOR_LABELS[type]}`, cx, y);
+      y += story ? 44 : 36;
+    }
+    y += story ? 40 : 20;
+  }
+
+  /* position-aware totals */
+  const lines = statLines(archive);
+  const cell = w / (lines.length + 1);
+  ctx.font = rtlFont(800, story ? 52 : 42);
+  lines.forEach((line, i) => {
+    const mx = w - cell * (i + 1);
+    ctx.fillStyle = INK.white;
+    ctx.font = rtlFont(800, story ? 52 : 42);
+    ctx.fillText(line[0], mx, y);
+    ctx.fillStyle = INK.soft;
+    ctx.font = rtlFont(400, story ? 24 : 21);
+    ctx.fillText(line[1], mx, y + (story ? 36 : 30));
+  });
+  y += story ? 120 : 86;
+
+  /* the legacy title closes the poster */
+  if (archive.endingTitle) {
+    ctx.fillStyle = INK.greenBright;
+    ctx.font = rtlFont(800, story ? 44 : 34);
+    ctx.fillText(archive.endingTitle, cx, Math.min(y, h - (story ? 90 : 60)));
+  }
+
+  return canvas;
+}
+
+/** Renders and hands the poster to the user as a PNG download. */
+export async function downloadCareerPoster(archive: ArchivedCareer, format: PosterFormat): Promise<void> {
+  const canvas = await renderCareerPoster(archive, format);
+  const link = document.createElement('a');
+  link.download = `maccabist_${archive.playerName}_${format}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
