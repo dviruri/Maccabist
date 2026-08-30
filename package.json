@@ -19,7 +19,9 @@
     "crests:import": "vite-node scripts/importClubCrests.ts --",
     "crests:missing": "vite-node scripts/importClubCrests.ts -- --missing-only",
     "pyramid-metrics": "vite-node scripts/pyramidMetrics.ts --",
+    "crests:euro": "vite-node scripts/importEuroCrests.ts --",
     "crests:israel": "vite-node scripts/importIsraelCrests.ts --",
+    "crests:optimize": "vite-node scripts/optimizeCrests.ts --",
     "crests:reclassify": "vite-node scripts/reclassifyCrests.ts --",
     "world:audit": "node scripts/auditLeagues.mjs",
     "world-metrics": "vite-node scripts/worldMetrics.ts --"

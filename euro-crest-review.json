@@ -1,0 +1,50 @@
+[
+ {
+  "clubId": "nottingham_forest",
+  "name": "נוטינגהאם פורסט",
+  "league": "en_premier",
+  "status": "unresolved"
+ },
+ {
+  "clubId": "sint_truiden",
+  "name": "סינט טרויידן",
+  "league": "be_pro",
+  "status": "unresolved"
+ },
+ {
+  "clubId": "union_sg",
+  "name": "יוניון סן ז'ילואז",
+  "league": "be_pro",
+  "status": "unresolved"
+ },
+ {
+  "clubId": "volos",
+  "name": "וולוס",
+  "league": "gr_superleague",
+  "status": "unresolved"
+ },
+ {
+  "clubId": "kifisia",
+  "name": "קיפיסיה",
+  "league": "gr_superleague",
+  "status": "unresolved"
+ },
+ {
+  "clubId": "deportivo_la_coruna",
+  "name": "דפורטיבו לה קורוניה",
+  "league": "es_laliga",
+  "status": "unresolved"
+ },
+ {
+  "clubId": "willem_ii",
+  "name": "וילם השני",
+  "league": "nl_eredivisie",
+  "status": "unresolved"
+ },
+ {
+  "clubId": "kalamata",
+  "name": "קלמטה",
+  "league": "gr_superleague",
+  "status": "unresolved"
+ }
+]

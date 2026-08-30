@@ -24,6 +24,7 @@ import type { GameActions } from '../state/useGame';
 import { ClubCrest } from '../components/ClubCrest';
 import { getClub } from '../data/clubs';
 import { LEAGUE_MEMBERSHIP } from '../data/worldClubs';
+import { CREST_MANIFEST } from '../data/clubCrests.generated';
 import { resolveOrigin } from '../game/originEngine';
 import { positionsForOutcome, projectSeason } from '../game/leagueEngine';
 import { leagueShape } from '../data/leagueShape';
@@ -430,6 +431,65 @@ function firstOriginOf(origin: CareerOrigin): Career {
 }
 
 /* A senior season with milestones stamped to it, for the season-memories strip. */
+
+/**
+ * v0.6.5.1 (D15): the crest QA grid for EVERY modelled league.
+ *
+ * Each club shows its resolved crest, its name and its coverage state, so a wrong badge, a
+ * duplicate, a wordmark or a broken transparent background is visible by eye - which no
+ * automated test can promise. Data-driven from the membership lists, so a club added to any
+ * division appears here without touching this file.
+ */
+function CrestCoverageGallery({ leagues }: { leagues: Array<[string, readonly string[]]> }): JSX.Element {
+  return (
+    <div className="stack">
+      {leagues.map(([title, ids]) => {
+        const real = ids.filter((id) => CREST_MANIFEST[id]).length;
+        return (
+          <section key={title} className="card">
+            <h3>
+              {title} ({real}/{ids.length} real)
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
+              {ids.map((id) => {
+                const entry = CREST_MANIFEST[id];
+                const state = entry ? (entry.regime === 'free-media' ? 'PD' : 'REF') : 'FALLBACK';
+                return (
+                  <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                    <ClubCrest clubId={id} name={getClub(id).name} size="medium" />
+                    <div style={{ minWidth: 0 }}>
+                      <div>{getClub(id).name}</div>
+                      <div style={{ opacity: 0.6, direction: 'ltr', fontSize: 10 }}>
+                        {id} · {state}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Every modelled European league, for the same visual QA. */
+function EuropeClubGallery(): JSX.Element {
+  const leagues: Array<[string, readonly string[]]> = [
+    ['England', LEAGUE_MEMBERSHIP.en_premier ?? []],
+    ['Spain', LEAGUE_MEMBERSHIP.es_laliga ?? []],
+    ['Germany', LEAGUE_MEMBERSHIP.de_bundesliga ?? []],
+    ['Italy', LEAGUE_MEMBERSHIP.it_seriea ?? []],
+    ['Netherlands', LEAGUE_MEMBERSHIP.nl_eredivisie ?? []],
+    ['Belgium', LEAGUE_MEMBERSHIP.be_pro ?? []],
+    ['Portugal', LEAGUE_MEMBERSHIP.pt_primeira ?? []],
+    ['Austria', LEAGUE_MEMBERSHIP.at_bundesliga ?? []],
+    ['Greece', LEAGUE_MEMBERSHIP.gr_superleague ?? []],
+    ['Cyprus', LEAGUE_MEMBERSHIP.cy_first ?? []],
+  ];
+  return <CrestCoverageGallery leagues={leagues} />;
+}
 
 /** v0.6.5 QA grid: the whole Israeli pyramid with live crest resolution. Dev-only. */
 function IsraelClubGallery(): JSX.Element {
@@ -858,6 +918,7 @@ export function Gallery(): JSX.Element {
      * lists, so a club added to the pyramid appears without touching this file.
      */
     ['israel-clubs', <IsraelClubGallery />],
+    ['europe-clubs', <EuropeClubGallery />],
     /* v0.6.5: a Liga Alef district table - long Arab-community club names at the narrowest widths. */
     ['table-alef', <LeagueTableCard career={tableCareer('hapoel_nof_hagalil', 3)} defaultOpen />],
     ['table-england', <LeagueTableCard career={tableCareer('brighton', 9)} defaultOpen />],
