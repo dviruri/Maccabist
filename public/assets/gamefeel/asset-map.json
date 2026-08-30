@@ -1,0 +1,12 @@
+{
+  "version": "0.9-art-pack-3",
+  "root": "/assets/gamefeel/",
+  "palette": ["black", "pink", "purple", "blue"],
+  "characterArtRule": "No baked-in shirt numbers, names, scores, ages, ratings or other dynamic text.",
+  "dynamicDataRule": "Render all names, shirt numbers, ages, ratings, scores, dates, club names, seasons and statistics in code.",
+  "ageMapping": {
+    "youth": "children/early academy",
+    "teen": "נערים/נוער",
+    "adult": "senior"
+  }
+}

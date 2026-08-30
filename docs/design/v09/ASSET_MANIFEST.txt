@@ -1,0 +1,86 @@
+Maccabist v0.9 Complete Assets (fixed palette edition)
+
+Root runtime folder:
+public/assets/gamefeel/
+
+Players
+- players/adult/outfield-hero.webp
+- players/adult/outfield-celebration.webp
+- players/adult/goalkeeper-hero.webp
+- players/adult/goalkeeper-save.webp
+- players/teen/outfield-hero.webp
+- players/teen/outfield-celebration.webp
+- players/teen/goalkeeper-ready.webp
+- players/youth/outfield-hero.webp
+- players/youth/outfield-celebration.webp
+- players/youth/goalkeeper-ready.webp
+
+Backgrounds
+- backgrounds/stadium-home-dark.webp
+- backgrounds/stadium-neutral-night.webp
+- backgrounds/stadium-matchday-crowd.webp
+- backgrounds/stadium-europe-night.webp
+- backgrounds/stadium-trophy-ceremony.webp
+- backgrounds/stadium-training.webp
+
+People
+- people/agent.webp
+- people/coach.webp
+- people/scout.webp
+- people/club-director.webp
+- people/journalist.webp
+
+Transfer
+- transfer/holding-shirt.webp
+- transfer/reveal-silhouette.webp
+- transfer/handshake.webp
+- transfer/contract-signing.webp
+- transfer/press-presentation.webp
+
+Moments
+- moments/debut.webp
+- moments/championship.webp
+- moments/cup-win.webp
+- moments/europe-qualification.webp
+- moments/relegation.webp
+- moments/retirement.webp
+
+Trophies
+- trophies/trophy-league.png
+- trophies/trophy-cup.png
+- trophies/trophy-champions-generic.png
+- trophies/trophy-europa-generic.png
+- trophies/trophy-conference-generic.png
+
+Awards
+- awards/award-top-scorer.png
+- awards/award-assists.png
+- awards/award-player-season.png
+- awards/award-goalkeeper-season.png
+- awards/award-young-player.png
+
+UI
+- ui/rating-badge-empty.png
+- ui/crest-frame-empty.png
+- ui/timeline-node.png
+- ui/laurel-left.png
+- ui/laurel-right.png
+- ui/vs-ornament.png
+- ui/arrow-next.png
+- ui/notification-ring.png
+
+Overlays
+- overlays/green-smoke.png
+- overlays/confetti-green.png
+- overlays/confetti-gold.png
+- overlays/trophy-glow.png
+- overlays/star-lights.png
+- overlays/vignette.png
+
+Docs / concepts
+- docs/design/v09/ui-concepts/01-home-career-hub.png
+- docs/design/v09/ui-concepts/02-matchday-live.png
+- docs/design/v09/ui-concepts/03-transfer-decision.png
+- docs/design/v09/ui-concepts/04-career-journey.png
+- docs/design/v09/PLACEMENT_GUIDE.md
+- docs/design/v09/VISUAL_BIBLE.md
