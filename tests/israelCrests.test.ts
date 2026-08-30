@@ -31,28 +31,50 @@ const ACTIVE_ISRAELI: readonly string[] = [
 ];
 
 /**
- * The documented tail (v0.6.5): active clubs for which NO provider in the cascade produced a
- * verifiable current crest. Each was attempted individually - TheSportsDB entity search
- * (sport-gated), Hebrew Wikipedia direct titles AND full-text search, Arabic Wikipedia for the
- * Arab-community clubs - and none has a crest in any of them. These are semi-professional clubs
- * whose only visual identity lives on unscrapable social pages, and inventing or guessing a
- * badge would be worse than the drawn fallback. The exact avenues tried are recorded per club
- * in israel-crest-review.json and summarised in V065_REPORT.md.
+ * The documented tail: active clubs for which NO provider produced a verifiable current crest.
+ *
+ * v0.6.5.1 re-ran the full cascade on every one of these and added the two clubs the expanded
+ * division brought in. Avenues exhausted per club: TheSportsDB entity search (sport-gated),
+ * Hebrew Wikipedia by direct title AND full-text search, Arabic Wikipedia for the
+ * Arab-community clubs, and Wikidata entity lookup. Maccabi Nujeidat (Q48842078) and Ironi Beit
+ * Shemesh (Q18352175) DO have verified Wikidata entities - Israeli football clubs, correctly
+ * typed - and both carry no logo and no Commons category at all.
+ *
+ * Four plausible-looking candidates were REJECTED rather than accepted, which is the whole
+ * point of the discipline:
+ *
+ *   בית"ר כפר סבא   - a real Kfar Saba club, but it plays Liga Bet. Not מ.כ. כפר סבא.
+ *   הפועל בועיינה    - same joint municipality as Maccabi Nujeidat, different society.
+ *   מועדון ספורט טירה - that is ms_tira (already resolved), not מ.כ. צעירי טירה.
+ *   אחווה עראבה      - defunct ("הייתה"), not the current Hapoel Arraba.
+ *
+ * Accepting any of them would have raised the coverage number by falsifying a club's identity.
+ * The list is asserted BOTH ways below so it can neither grow silently nor hide a club that has
+ * since been resolved.
  */
 export const UNRESOLVED_ACTIVE_ISRAELI_CRESTS: readonly string[] = [
+  // Liga Alef North
   'maccabi_neve_shaanan',
   'tzeirei_tamra',
   'hapoel_arraba',
   'maccabi_nujeidat',
   'hapoel_bnei_musmus',
+  'hapoel_bnei_jatt',
+  // Liga Alef South
   'tzeirei_tira',
-  'beitar_yavne',
   'mk_kfar_saba',
+  'ironi_beit_shemesh',
 ];
 
 describe('v0.6.5 every active Israeli club has a real crest', () => {
-  it('covers all four divisions - 62 active clubs', () => {
-    expect(ACTIVE_ISRAELI.length).toBe(62);
+  it('covers all four divisions, derived from world truth', () => {
+    /*
+     * v0.6.5.1: never a hardcoded count. Liga Alef expanded 16 -> 18 per district, so the active
+     * Israeli set went 62 -> 66, and a test that pinned the old number would have had to be
+     * "fixed" every time the world got more truthful.
+     */
+    expect(ACTIVE_ISRAELI.length).toBe(66);
+    expect(new Set(ACTIVE_ISRAELI).size).toBe(ACTIVE_ISRAELI.length);
   });
 
   it('was attempted for every single one - no blanket skip anywhere', () => {
@@ -92,7 +114,7 @@ describe('v0.6.5 every active Israeli club has a real crest', () => {
       expect(ACTIVE_ISRAELI, clubId).toContain(clubId);
       expect(CREST_MANIFEST[clubId], `${clubId} is resolved - remove it from the tail`).toBeUndefined();
     }
-    expect(UNRESOLVED_ACTIVE_ISRAELI_CRESTS.length).toBeLessThanOrEqual(8);
+    expect(UNRESOLVED_ACTIVE_ISRAELI_CRESTS.length).toBeLessThanOrEqual(9);
   });
 
   it('marks every Israeli asset referential, with honest licensing language', () => {

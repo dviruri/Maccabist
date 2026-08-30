@@ -75,8 +75,8 @@ describe('v0.6.4 every league carries its complete, real membership', () => {
     const expected: Record<string, number> = {
       il_premier: 14,
       il_leumit: 16,
-      il_alef_north: 16,
-      il_alef_south: 16,
+      il_alef_north: 18,
+      il_alef_south: 18,
       it_seriea: 20,
       en_premier: 20,
       es_laliga: 20,
@@ -127,7 +127,7 @@ describe('v0.6.4 every league carries its complete, real membership', () => {
   });
 
   it('carries a versioned, named snapshot', () => {
-    expect(WORLD_DATA_VERSION).toBe('2026.3');
+    expect(WORLD_DATA_VERSION).toBe('2026.4');
     expect(WORLD_SNAPSHOT_SEASON).toBe('2026/27');
   });
 });

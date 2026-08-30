@@ -1198,5 +1198,41 @@
     "retrievedAt": "2026-08-30",
     "licenseStatus": "non-free club mark; referential use at project-owner direction (v0.6.5 hard rule); not claimed as freely licensed",
     "trademarkNote": "club crests are protected marks of their clubs; identification only, removable per-asset"
+  },
+  "beitar_nahariya": {
+    "asset": "club-crests/beitar_nahariya.svg",
+    "provider": "hewiki",
+    "regime": "referential",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/he/2/29/Fc_ironibeitar_nahariya_logo.svg?utm_source=he.wikipedia.org&utm_campaign=api&utm_content=original",
+    "sourceRef": "hewiki article \"בית\"ר נהריה\" lead image Fc_ironibeitar_nahariya_logo.svg",
+    "assetRole": "current_primary_crest",
+    "verifiedCurrent": true,
+    "retrievedAt": "2026-08-30",
+    "licenseStatus": "non-free club mark; referential use at project-owner direction (v0.6.5 hard rule); not claimed as freely licensed",
+    "trademarkNote": "club crests are protected marks of their clubs; identification only, removable per-asset"
+  },
+  "hapoel_mahane_yehuda": {
+    "asset": "club-crests/hapoel_mahane_yehuda.png",
+    "provider": "hewiki",
+    "regime": "referential",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/he/6/6a/HapoelMahaneYehuda2013.png?utm_source=he.wikipedia.org&utm_campaign=api&utm_content=original",
+    "sourceRef": "hewiki article \"הפועל מחנה יהודה\" lead image HapoelMahaneYehuda2013.png",
+    "assetRole": "current_primary_crest",
+    "verifiedCurrent": true,
+    "retrievedAt": "2026-08-30",
+    "licenseStatus": "non-free club mark; referential use at project-owner direction (v0.6.5 hard rule); not claimed as freely licensed",
+    "trademarkNote": "club crests are protected marks of their clubs; identification only, removable per-asset"
+  },
+  "mk_sderot": {
+    "asset": "club-crests/mk_sderot.png",
+    "provider": "hewiki",
+    "regime": "referential",
+    "sourceUrl": "https://upload.wikimedia.org/wikipedia/he/c/c9/HapoelSderotFC.png?utm_source=he.wikipedia.org&utm_campaign=api&utm_content=original",
+    "sourceRef": "hewiki article \"הפועל שדרות\" lead image HapoelSderotFC.png",
+    "assetRole": "current_primary_crest",
+    "verifiedCurrent": true,
+    "retrievedAt": "2026-08-30",
+    "licenseStatus": "non-free club mark; referential use at project-owner direction (v0.6.5 hard rule); not claimed as freely licensed",
+    "trademarkNote": "club crests are protected marks of their clubs; identification only, removable per-asset"
   }
 }

@@ -25,7 +25,7 @@
 import { CLUBS, getClub, MACCABI_ID } from '../data/clubs';
 import { getLeague } from '../data/leagues';
 import { hasTable, leagueShape, type LeagueShape } from '../data/leagueShape';
-import { LEAGUE_MEMBERSHIP, isInactiveClub } from '../data/worldClubs';
+
 import type {
   Career,
   ClubSeasonOutcome,
@@ -39,7 +39,7 @@ import type {
 } from '../types';
 import { WORLD } from './balance';
 import { clamp, createRng, type Rng } from './random';
-import { clubStrengthVsLeague, leagueOf, playerImpact } from './worldEngine';
+import { clubStrengthVsLeague, leagueMembership, leagueOf, playerImpact } from './worldEngine';
 
 /* ------------------------------------------------------------------ */
 /* Position <-> outcome                                                */
@@ -229,42 +229,32 @@ export function settleProjection(
 /**
  * Every club in a division this season.
  *
- * v0.6.4: one list, read from the authoritative membership. There is no filler tier any more -
- * `LEAGUE_MEMBERSHIP` names every club in every division, so this walks that list and resolves
- * each id. In-career promotion and relegation still override it through `world.clubLeagues`,
- * which is why a club is only kept if the world has not moved it somewhere else, and why a club
- * the world has moved INTO this division is added.
+ * v0.6.5.1: reads `leagueMembership` in worldEngine - one answer to "who is in this league",
+ * shared with the balancer and the size invariant, so the table cannot disagree with the world
+ * about who exists. It then ASSERTS the count.
  *
- * THE "קבוצה N" GENERATOR THAT USED TO LIVE HERE IS GONE (v0.6.3) AND CANNOT COME BACK: there is
- * nothing left to pad, because the data is complete by construction and the size is the length
- * of the list itself.
+ * The old version returned whatever it found and `buildTable` sliced to `shape.size`. That is
+ * how a promoted club vanished: the world said seventeen, the table drew sixteen, and nothing
+ * anywhere said the two disagreed. Truncation is exactly the kind of quiet repair v0.4.8 exists
+ * to forbid, so this throws instead.
  */
 function membership(
   world: WorldState,
   leagueId: string,
 ): Array<{ clubId: string; name: string; quality: number }> {
-  const rows: Array<{ clubId: string; name: string; quality: number }> = [];
-  const seen = new Set<string>();
+  const shape = leagueShape(leagueId);
+  const ids = leagueMembership(world, leagueId);
 
-  const add = (clubId: string): void => {
-    if (seen.has(clubId) || isInactiveClub(clubId)) return;
-    const club = CLUBS[clubId];
-    if (!club) return;
-    seen.add(clubId);
-    rows.push({ clubId, name: club.shortName ?? club.name, quality: club.quality });
-  };
-
-  // The snapshot membership, minus anyone the career has since moved elsewhere.
-  for (const clubId of LEAGUE_MEMBERSHIP[leagueId] ?? []) {
-    const moved = world.clubLeagues[clubId];
-    if (moved !== undefined && moved !== leagueId) continue;
-    add(clubId);
-  }
-  // Plus anyone the career has moved into this division.
-  for (const [clubId, movedTo] of Object.entries(world.clubLeagues)) {
-    if (movedTo === leagueId) add(clubId);
+  if (shape && ids.length !== shape.size) {
+    throw new Error(
+      `league membership corrupt: ${leagueId} holds ${ids.length} clubs, expected ${shape.size}`,
+    );
   }
 
+  const rows = ids.map((clubId) => {
+    const club = CLUBS[clubId]!;
+    return { clubId, name: club.shortName ?? club.name, quality: club.quality };
+  });
   rows.sort((a, b) => b.quality - a.quality);
   return rows;
 }

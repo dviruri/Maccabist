@@ -1,8 +1,6 @@
 [
  {
   "clubId": "beitar_yavne",
-  "hebrew": "בית\"ר יבנה",
-  "english": "Beitar Yavne",
   "status": "unresolved",
   "reason": "no provider produced a verified current crest"
  },
@@ -14,9 +12,23 @@
   "reason": "no provider produced a verified current crest"
  },
  {
+  "clubId": "hapoel_bnei_jatt",
+  "hebrew": "הפועל איחוד בני ג'ת",
+  "english": "Hapoel Bnei Jatt",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
   "clubId": "hapoel_bnei_musmus",
   "hebrew": "הפועל בני מוסמוס",
   "english": "Hapoel Bnei Musmus",
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest"
+ },
+ {
+  "clubId": "ironi_beit_shemesh",
+  "hebrew": "עירוני בית שמש",
+  "english": "Ironi Beit Shemesh",
   "status": "unresolved",
   "reason": "no provider produced a verified current crest"
  },

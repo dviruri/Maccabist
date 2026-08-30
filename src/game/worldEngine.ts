@@ -13,7 +13,9 @@
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { defaultLeagueFor, getLeague, type League } from '../data/leagues';
 import type { Career, ClubSeasonOutcome, ClubSeasonResult, SeasonRecord, WorldState } from '../types';
-import { ALEF_DISTRICT_BY_CLUB } from '../data/worldClubs';
+import { ALEF_DISTRICT_BY_CLUB, LEAGUE_MEMBERSHIP, isInactiveClub } from '../data/worldClubs';
+import { LEAGUE_SHAPES, leagueShape } from '../data/leagueShape';
+import { CLUBS } from '../data/clubs';
 import { projectCup } from './cupEngine';
 import { projectSeason, settleProjection } from './leagueEngine';
 import { WORLD } from './balance';
@@ -204,23 +206,229 @@ export function simulateClubSeason(
  * Moves a club between divisions after its season. Returns the world state; unchanged unless
  * the club actually went up or down.
  */
+/**
+ * One club's movement between divisions.
+ *
+ * v0.6.5.1: movements are DATA now, applied as a set, because applying them one at a time was
+ * the bug. `toLeague` may be the district-resolved sentinel `'il_alef'`.
+ */
+export interface LeagueMovement {
+  clubId: string;
+  fromLeague: string;
+  toLeague: string;
+  reason: 'promoted' | 'relegated';
+}
+
+/**
+ * Every club currently in a division, after any movement this career has caused.
+ *
+ * The single reader of "who is in this league right now" - `buildTable`, the balancer and the
+ * invariant all go through it, so they cannot disagree about the answer.
+ */
+export function leagueMembership(world: WorldState, leagueId: string): string[] {
+  const members: string[] = [];
+  for (const clubId of LEAGUE_MEMBERSHIP[leagueId] ?? []) {
+    const moved = world.clubLeagues[clubId];
+    if (moved !== undefined && moved !== leagueId) continue;
+    if (isInactiveClub(clubId)) continue;
+    members.push(clubId);
+  }
+  for (const [clubId, movedTo] of Object.entries(world.clubLeagues)) {
+    if (movedTo === leagueId && !members.includes(clubId) && !isInactiveClub(clubId)) {
+      members.push(clubId);
+    }
+  }
+  return members;
+}
+
+/**
+ * The hard invariant (v0.6.5.1, B3): every active league holds exactly its declared size.
+ *
+ * Throws. A world that violates this is not a world the game can render honestly, and the whole
+ * point of this patch is that a corrupted division stops being something you find out about by
+ * noticing a club has quietly vanished from a table.
+ */
+export function assertLeagueSizes(world: WorldState): void {
+  for (const leagueId of Object.keys(LEAGUE_SHAPES)) {
+    const shape = leagueShape(leagueId);
+    if (!shape) continue;
+    const members = leagueMembership(world, leagueId);
+    if (members.length !== shape.size) {
+      throw new Error(
+        `league membership corrupt: ${leagueId} holds ${members.length} clubs, expected ${shape.size}`,
+      );
+    }
+  }
+}
+
+/**
+ * The Israeli pyramid, top down. The only place tier adjacency is stated.
+ *
+ * European leagues have no modelled tier below, so they never appear here - and never need
+ * balancing, because nothing can move in or out of them.
+ */
+const PYRAMID: ReadonlyArray<readonly string[]> = [
+  ['il_premier'],
+  ['il_leumit'],
+  ['il_alef_north', 'il_alef_south'],
+];
+
+/**
+ * Settles the whole pyramid after a transition, top down, in one pass.
+ *
+ * ## Why top-down and not per-league
+ *
+ * The first attempt balanced each wrong-sized league independently and the repairs fought each
+ * other: filling Leumit's gap from Liga Alef pulled a club out of a district that was ALREADY
+ * over-full, so fixing one division broke two. Deficits only ever propagate downwards, so one
+ * ordered pass settles everything - fix the top tier against the one below it, then that tier
+ * against the one below that.
+ *
+ * Two rules make the result football-shaped rather than merely arithmetic:
+ *
+ *   - a club moving DOWN goes to its own geographic district (`resolveRelegationLeague`);
+ *   - a club moving UP is drawn from an OVER-FULL district first, so the promotion that fills
+ *     the tier above is the same movement that empties the tier below. That is the real swap:
+ *     somebody comes down, somebody goes up, and both divisions end the right size.
+ *
+ * `locked` holds the clubs the transition itself moved. They are excluded from both directions,
+ * because a club that just moved must not be used to repair the hole it made - without this,
+ * relegating Acre left Leumit short, made Acre the strongest club in Alef North, and promoted
+ * it straight back.
+ */
+function settlePyramid(world: WorldState, locked: ReadonlySet<string>): WorldState {
+  let clubLeagues = { ...world.clubLeagues };
+  const current = (): WorldState => ({ ...world, clubLeagues });
+  const quality = (id: string): number => CLUBS[id]?.quality ?? 0;
+  const sizeOf = (leagueId: string): number => leagueShape(leagueId)?.size ?? 0;
+
+  for (let tier = 0; tier < PYRAMID.length - 1; tier += 1) {
+    const upper = PYRAMID[tier]!;
+    const lower = PYRAMID[tier + 1]!;
+
+    for (const leagueId of upper) {
+      const members = leagueMembership(current(), leagueId);
+      const delta = members.length - sizeOf(leagueId);
+
+      if (delta > 0) {
+        // Too many: the weakest surplus drops into the tier below, by district.
+        const surplus = members
+          .filter((id) => !locked.has(id))
+          .sort((a, b) => quality(a) - quality(b))
+          .slice(0, delta);
+        for (const clubId of surplus) {
+          clubLeagues[clubId] =
+            lower.length > 1 ? resolveRelegationLeague(clubId, 'il_alef') : lower[0]!;
+        }
+      } else if (delta < 0) {
+        /*
+         * Too few: promote from below, preferring a district that is itself over-full. That
+         * single preference is what turns two separate repairs into one real swap.
+         */
+        const overFull = lower.filter(
+          (id) => leagueMembership(current(), id).length > sizeOf(id),
+        );
+        const sources = overFull.length > 0 ? overFull : lower;
+        const pool = sources.flatMap((id) => leagueMembership(current(), id));
+        const incoming = pool
+          .filter((id) => !locked.has(id))
+          .sort((a, b) => quality(b) - quality(a))
+          .slice(0, -delta);
+        for (const clubId of incoming) clubLeagues[clubId] = leagueId;
+      }
+    }
+  }
+
+  /*
+   * The floor tier can still be split wrong between districts - a club relegated south while
+   * the northern district is the one carrying a surplus. Only reachable through unusual
+   * movement sets; resolved by moving the surplus district's weakest club sideways, which is
+   * the same thing the IFA does when it rebalances the regions.
+   */
+  const floor = PYRAMID[PYRAMID.length - 1]!;
+  for (let pass = 0; pass < 4; pass += 1) {
+    const over = floor.find((id) => leagueMembership(current(), id).length > sizeOf(id));
+    const under = floor.find((id) => leagueMembership(current(), id).length < sizeOf(id));
+    if (!over || !under) break;
+    const movable = leagueMembership(current(), over)
+      .filter((id) => !locked.has(id))
+      .sort((a, b) => quality(a) - quality(b))[0];
+    if (!movable) break;
+    clubLeagues[movable] = under;
+  }
+
+  return { ...world, clubLeagues };
+}
+
+/**
+ * Applies a whole season's movements as ONE world transition.
+ *
+ * ## The bug this replaces
+ *
+ * v0.6.5 mutated one club at a time - `clubLeagues[promoted] = 'il_leumit'` - with nothing
+ * balancing the destination. Promote a Liga Alef club and Liga Leumit held seventeen; `buildTable`
+ * then rendered `shape.size` rows and the seventeenth club silently disappeared from the division
+ * it had just been promoted into. Two systems disagreeing, with the disagreement swallowed.
+ *
+ * ## What replaces it
+ *
+ * A transition takes every movement at once and then **balances each division that ends up wrong
+ * size**: an over-full league sends its weakest surplus down, an under-full one pulls the
+ * strongest club up from the tier below. Both deterministic, both district-aware. Afterwards the
+ * invariant runs, so a transition either produces a coherent world or throws.
+ *
+ * This is not a playoff model and does not pretend to be. It is the smallest thing that keeps
+ * "every league holds exactly the clubs it should" true after arbitrary movement.
+ */
+export function applySeasonMovements(
+  world: WorldState,
+  season: number,
+  movements: readonly LeagueMovement[],
+): WorldState {
+  void season;
+  const clubLeagues = { ...world.clubLeagues };
+  for (const move of movements) {
+    if (isInactiveClub(move.clubId)) continue;
+    clubLeagues[move.clubId] =
+      move.toLeague === 'il_alef'
+        ? resolveRelegationLeague(move.clubId, 'il_alef')
+        : move.toLeague;
+  }
+
+  const locked = new Set(movements.map((m) => m.clubId));
+  const next = settlePyramid({ ...world, clubLeagues }, locked);
+  assertLeagueSizes(next);
+  return next;
+}
+
+/**
+ * Single-club entry point, kept for the season pipeline.
+ *
+ * Season settlement records one club result at a time, so this wraps it into a one-movement
+ * transition - which means it balances and asserts exactly like a multi-club one. Keeping the
+ * old signature is what let the fix land without touching the season pipeline at all.
+ */
 export function applyPromotionRelegation(world: WorldState, result: ClubSeasonResult): WorldState {
   const league = getLeague(result.leagueId);
-
   if (result.outcome === 'relegated' && league.relegatesTo) {
-    return {
-      ...world,
-      clubLeagues: {
-        ...world.clubLeagues,
-        [result.clubId]: resolveRelegationLeague(result.clubId, league.relegatesTo),
+    return applySeasonMovements(world, result.season, [
+      {
+        clubId: result.clubId,
+        fromLeague: result.leagueId,
+        toLeague: league.relegatesTo,
+        reason: 'relegated',
       },
-    };
+    ]);
   }
   if (result.outcome === 'promoted' && league.promotesTo) {
-    return {
-      ...world,
-      clubLeagues: { ...world.clubLeagues, [result.clubId]: league.promotesTo },
-    };
+    return applySeasonMovements(world, result.season, [
+      {
+        clubId: result.clubId,
+        fromLeague: result.leagueId,
+        toLeague: league.promotesTo,
+        reason: 'promoted',
+      },
+    ]);
   }
   return world;
 }
@@ -232,8 +440,7 @@ export function applyPromotionRelegation(world: WorldState, result: ClubSeasonRe
  * north and a Rehovot club goes south. `relegatesTo: 'il_alef'` is a district-resolved sentinel,
  * and this is the only place it is resolved: by the club's geography in ALEF_DISTRICT_BY_CLUB,
  * defaulting north for a club the map has never heard of (which the world validator prevents
- * from being a real case). Deterministic, no yearly-rebalancing model - WORLD_DATA.md records
- * the limitation.
+ * from being a real case).
  */
 function resolveRelegationLeague(clubId: string, relegatesTo: string): string {
   if (relegatesTo !== 'il_alef') return relegatesTo;

@@ -74,6 +74,14 @@ export const ISRAEL_CREST_SEEDS: readonly IsraelCrestSeed[] = [
   { clubId: 'maccabi_nujeidat', english: 'Maccabi Nujeidat', aliases: ["Maccabi Nujeidat Bu'eine"], hebrew: ['מכבי נוג\'ידאת', 'מכבי נוג׳ידאת בועיינה'] },
   { clubId: 'hapoel_tirat_carmel', english: 'Hapoel Tirat Carmel', aliases: ['Hapoel Tirat HaCarmel'], hebrew: ['הפועל טירת הכרמל', 'הפועל טירת כרמל'] },
   { clubId: 'hapoel_bnei_musmus', english: 'Hapoel Bnei Musmus', aliases: ['Bnei Musmus'], hebrew: ['הפועל בני מוסמוס'] },
+  // v0.6.5.1: promoted from Liga Bet as the division expanded to 18.
+  { clubId: 'beitar_nahariya', english: 'Beitar Nahariya', aliases: ['Beitar Nahariyya'], hebrew: ['בית"ר נהריה'] },
+  {
+    clubId: 'hapoel_bnei_jatt',
+    english: 'Hapoel Bnei Jatt',
+    aliases: ['Hapoel Ihud Bnei Jatt', 'Bnei Jatt'],
+    hebrew: ["הפועל איחוד בני ג'ת", "הפועל בני ג'ת"],
+  },
 
   /* ---------------- ליגה א׳ דרום ---------------- */
   { clubId: 'hapoel_hadera', english: 'Hapoel Hadera', hebrew: ['הפועל חדרה'] },
@@ -86,10 +94,13 @@ export const ISRAEL_CREST_SEEDS: readonly IsraelCrestSeed[] = [
   { clubId: 'hapoel_marmorek', english: 'Hapoel Marmorek', aliases: ['Hapoel Marmorek Rehovot'], hebrew: ['הפועל מרמורק'] },
   { clubId: 'tzeirei_tira', english: 'Tzeirei Tira', aliases: ['MK Tzeirei Tira'], hebrew: ['צעירי טירה', 'מ.כ. צעירי טירה'] },
   { clubId: 'hapoel_herzliya', english: 'Hapoel Herzliya', aliases: ['Hapoel Hertzliya'], hebrew: ['הפועל הרצליה'] },
-  { clubId: 'beitar_yavne', english: 'Beitar Yavne', aliases: ["Beitar Ezra Yavne"], hebrew: ['בית"ר יבנה'] },
   { clubId: 'mk_kfar_saba', english: 'MK Kfar Saba', aliases: ['Moadon Kaduregel Kfar Saba'], hebrew: ['מ.כ. כפר סבא'] },
   { clubId: 'mk_holon_yirmiyahu', english: 'MK Holon Yirmiyahu', aliases: ['MK Holon'], hebrew: ['מ.כ. חולון ירמיהו', 'מ.כ. חולון'] },
   { clubId: 'hapoel_azor', english: 'Hapoel Azor', hebrew: ['הפועל אזור'] },
   { clubId: 'maccabi_ironi_ashdod', english: 'Maccabi Ironi Ashdod', aliases: ['Maccabi Ashdod'], hebrew: ['מכבי עירוני אשדוד', 'מכבי אשדוד'] },
+  // v0.6.5.1: promoted from Liga Bet as the division expanded to 18.
+  { clubId: 'hapoel_mahane_yehuda', english: 'Hapoel Mahane Yehuda', aliases: ['Hapoel Mahane Yehuda Jerusalem'], hebrew: ['הפועל מחנה יהודה'] },
+  { clubId: 'ironi_beit_shemesh', english: 'Ironi Beit Shemesh', aliases: ['Hapoel Beit Shemesh'], hebrew: ['עירוני בית שמש', 'הפועל בית שמש'] },
+  { clubId: 'mk_sderot', english: 'MK Sderot', aliases: ['Hapoel Sderot', 'Maccabi Sderot'], hebrew: ['מ.כ. שדרות', 'הפועל שדרות'] },
   { clubId: 'nordia_jerusalem', english: 'AS Nordia Jerusalem', aliases: ['Nordia Jerusalem'], hebrew: ['בית"ר נורדיה ירושלים' /* reviewed: IFA registry name א.ס. נורדיה ירושלים confirmed in article intro */, 'נורדיה ירושלים'] },
 ];

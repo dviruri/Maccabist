@@ -28,6 +28,14 @@
  *
  * ## The snapshot
  *
+ * v0.6.5.1 correction: Liga Alef is **18 clubs per district**, not 16. v0.6.5 built the tier
+ * from the 2025/26 final tables because the 2026/27 standings were unpublished - but the
+ * official 2026/27 FIXTURES were published, and they carry the membership. The round dropdown
+ * proves the size independently: a single round-robin runs n-1 rounds, and the IFA lists 13 for
+ * Ligat Ha'Al (14 clubs), 15 for Liga Leumit (16) and **17 for both Alef districts (18)**. The
+ * two leagues we can verify against live tables both match, which is what makes the inference
+ * safe for the two we cannot.
+ *
  * **2026/27**, verified per league against the competition's own season article by
  * `scripts/auditLeagues.mjs` (bounded-retry, reproducible; raw output in `league-audit.json`).
  * Every modelled league's 2026/27 membership was determined at audit time. Where a club left the
@@ -38,7 +46,7 @@
  * resolves through `clubVisuals.ts` -> `ClubCrest`.
  */
 
-export const WORLD_DATA_VERSION = '2026.3';
+export const WORLD_DATA_VERSION = '2026.4';
 
 /** The season every membership list below describes. */
 export const WORLD_SNAPSHOT_SEASON = '2026/27';
@@ -165,6 +173,8 @@ const IL_CLUBS: WorldClub[] = [
  * "הפועל בית שאן מסילות"). Display names drop the sponsor, keeping the club.
  */
 const IL_ALEF_NORTH_MEMBERS = [
+  'beitar_nahariya',
+  'hapoel_bnei_jatt',
   'hapoel_nof_hagalil',
   'ms_tira',
   'maccabi_ata_bialik',
@@ -184,6 +194,9 @@ const IL_ALEF_NORTH_MEMBERS = [
 ];
 
 const IL_ALEF_SOUTH_MEMBERS = [
+  'hapoel_mahane_yehuda',
+  'ironi_beit_shemesh',
+  'mk_sderot',
   'hapoel_hadera',
   'mk_jerusalem',
   'ms_dimona',
@@ -194,7 +207,6 @@ const IL_ALEF_SOUTH_MEMBERS = [
   'hapoel_marmorek',
   'tzeirei_tira',
   'hapoel_herzliya',
-  'beitar_yavne',
   'mk_kfar_saba',
   'mk_holon_yirmiyahu',
   'hapoel_azor',
@@ -219,6 +231,14 @@ const IL_ALEF_NORTH_CLUBS: WorldClub[] = [
   { id: 'hapoel_bnei_musmus', name: 'הפועל בני מוסמוס', quality: 25, prestige: 6, colors: c('#3aa655', '#1b1b1b') },
   // Reactivated from the v0.6.4 inactive list - a real 2025/26 Alef North member.
   { id: 'hapoel_beit_shean', name: 'הפועל בית שאן', quality: 26, prestige: 7, colors: c('#c8102e', '#ffffff') },
+  /*
+   * v0.6.5.1: promoted from Liga Bet for 2026/27, as the division expanded 16 -> 18. Both won
+   * their Bet district in 2025/26 (Nahariya took Bet North A, Bnei Jatt took Bet North B), which
+   * is how the official fixture list and the previous season's final tables cross-validate.
+   * Promoted sides get the lowest quality band in the tier - they have to prove it.
+   */
+  { id: 'beitar_nahariya', name: 'בית"ר נהריה', quality: 24, prestige: 6, colors: c('#f4d03f', '#1b1b1b') },
+  { id: 'hapoel_bnei_jatt', name: 'הפועל בני ג׳ת', quality: 23, prestige: 5, colors: c('#3aa655', '#ffffff') },
 ];
 
 /** South district: greater Tel Aviv, the Shephelah, Jerusalem and the northern Negev. */
@@ -230,7 +250,6 @@ const IL_ALEF_SOUTH_CLUBS: WorldClub[] = [
   { id: 'tzeirei_tira', name: 'מ.כ. צעירי טירה', quality: 26, prestige: 6, colors: c('#3aa655', '#ffffff') },
   { id: 'hapoel_marmorek', name: 'הפועל מרמורק רחובות', quality: 26, prestige: 7, colors: c('#c8102e', '#f4d03f') },
   { id: 'hapoel_herzliya', name: 'הפועל הרצליה', quality: 25, prestige: 6, colors: c('#c8102e', '#ffffff') },
-  { id: 'beitar_yavne', name: 'מ.כ. בית"ר יבנה', quality: 25, prestige: 6, colors: c('#f4d03f', '#1b1b1b') },
   { id: 'mk_kfar_saba', name: 'מ.כ. כפר סבא', quality: 25, prestige: 6, colors: c('#3aa655', '#1b4f9c') },
   { id: 'mk_holon_yirmiyahu', name: 'מ.כ. חולון', quality: 25, prestige: 6, colors: c('#f4d03f', '#1b1b1b') },
   { id: 'hapoel_azor', name: 'הפועל אזור', quality: 24, prestige: 6, colors: c('#1b4f9c', '#f4d03f') },
@@ -239,6 +258,14 @@ const IL_ALEF_SOUTH_CLUBS: WorldClub[] = [
   // Reactivated from the v0.6.4 inactive list - real 2025/26 Alef South members.
   { id: 'hapoel_ramat_hasharon', name: 'הפועל רמת השרון', quality: 26, prestige: 7, colors: c('#1b4f9c', '#f4d03f') },
   { id: 'shimshon_tel_aviv', name: 'שמשון תל אביב', quality: 27, prestige: 7, colors: c('#1b1b1b', '#f4d03f') },
+  /*
+   * v0.6.5.1: promoted from Liga Bet for 2026/27. Mahane Yehuda won Bet South A, Beit Shemesh
+   * and Sderot came up from Bet South B - all three are top-two finishers in the official
+   * 2025/26 Bet tables, which is the cross-check that the fixture-derived membership is right.
+   */
+  { id: 'hapoel_mahane_yehuda', name: 'הפועל מחנה יהודה', quality: 25, prestige: 6, colors: c('#1b4f9c', '#f4d03f') },
+  { id: 'ironi_beit_shemesh', name: 'עירוני בית שמש', quality: 24, prestige: 6, colors: c('#3aa655', '#ffffff') },
+  { id: 'mk_sderot', name: 'מ.כ. שדרות', quality: 23, prestige: 5, colors: c('#c8102e', '#1b1b1b') },
 ];
 
 /**
@@ -578,6 +605,11 @@ const CY_CLUBS: WorldClub[] = [
  * stay exactly as they were; `INACTIVE_CLUB_IDS` below is what removes them from play.
  */
 export const INACTIVE_CLUBS: WorldClub[] = [
+  /*
+   * v0.6.5.1: relegated out of Liga Alef South for 2026/27 (absent from the official fixture
+   * list). Identity preserved rather than deleted - a v0.6.5 career may have played there.
+   */
+  { id: 'beitar_yavne', name: 'מ.כ. בית"ר יבנה', quality: 25, colors: c('#f4d03f', '#1b1b1b'), inactive: true, notPlayableReason: 'relegated below Liga Alef for 2026/27' },
   /* Israeli clubs that fell below Liga Leumit, or were never top-flight. */
   /*
    * v0.6.5: hapoel_ramat_hasharon, shimshon_tel_aviv and hapoel_beit_shean came BACK to life -

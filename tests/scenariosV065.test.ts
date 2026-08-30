@@ -134,7 +134,10 @@ describe('v0.6.5 E. a loan can land in the third tier', () => {
     const pool = ACTIVE_CLUBS.filter(
       (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_alef',
     );
-    expect(pool.filter((c) => c.tier === 'israeli_alef').length).toBe(32);
+    // v0.6.5.1: derived from world truth, not a literal - the division expanded 16 -> 18.
+    expect(pool.filter((c) => c.tier === 'israeli_alef').length).toBe(
+      (LEAGUE_MEMBERSHIP.il_alef_north?.length ?? 0) + (LEAGUE_MEMBERSHIP.il_alef_south?.length ?? 0),
+    );
   });
 });
 
@@ -180,7 +183,9 @@ describe('v0.6.5 H. the State Cup reaches the third tier', () => {
     const israelis = ACTIVE_CLUBS.filter(
       (c) => c.country === 'ישראל' && c.tier !== 'academy' && c.tier !== 'youth',
     );
-    expect(israelis.length).toBe(62);
+    const expectedIsraeli = (['il_premier', 'il_leumit', 'il_alef_north', 'il_alef_south'] as const)
+      .reduce((sum, id) => sum + (LEAGUE_MEMBERSHIP[id]?.length ?? 0), 0);
+    expect(israelis.length).toBe(expectedIsraeli);
     for (const id of ALEF_IDS) {
       expect(israelis.some((c) => c.id === id), id).toBe(true);
       expect(getClub(id).name).not.toMatch(/קבוצה\s*\d/);

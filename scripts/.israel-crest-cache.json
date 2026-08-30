@@ -524,5 +524,42 @@
   "sourceRef": "hewiki article \"הפועל הרצליה\" lead image Hapoel_herzlya.gif",
   "retrievedAt": "2026-08-30",
   "checkedAt": "2026-08-30"
+ },
+ "beitar_nahariya": {
+  "status": "imported",
+  "provider": "hewiki",
+  "asset": "club-crests/beitar_nahariya.svg",
+  "sourceUrl": "https://upload.wikimedia.org/wikipedia/he/2/29/Fc_ironibeitar_nahariya_logo.svg?utm_source=he.wikipedia.org&utm_campaign=api&utm_content=original",
+  "sourceRef": "hewiki article \"בית\"ר נהריה\" lead image Fc_ironibeitar_nahariya_logo.svg",
+  "retrievedAt": "2026-08-30",
+  "checkedAt": "2026-08-30"
+ },
+ "hapoel_bnei_jatt": {
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest",
+  "checkedAt": "2026-08-30"
+ },
+ "hapoel_mahane_yehuda": {
+  "status": "imported",
+  "provider": "hewiki",
+  "asset": "club-crests/hapoel_mahane_yehuda.png",
+  "sourceUrl": "https://upload.wikimedia.org/wikipedia/he/6/6a/HapoelMahaneYehuda2013.png?utm_source=he.wikipedia.org&utm_campaign=api&utm_content=original",
+  "sourceRef": "hewiki article \"הפועל מחנה יהודה\" lead image HapoelMahaneYehuda2013.png",
+  "retrievedAt": "2026-08-30",
+  "checkedAt": "2026-08-30"
+ },
+ "ironi_beit_shemesh": {
+  "status": "unresolved",
+  "reason": "no provider produced a verified current crest",
+  "checkedAt": "2026-08-30"
+ },
+ "mk_sderot": {
+  "status": "imported",
+  "provider": "hewiki",
+  "asset": "club-crests/mk_sderot.png",
+  "sourceUrl": "https://upload.wikimedia.org/wikipedia/he/c/c9/HapoelSderotFC.png?utm_source=he.wikipedia.org&utm_campaign=api&utm_content=original",
+  "sourceRef": "hewiki article \"הפועל שדרות\" lead image HapoelSderotFC.png",
+  "retrievedAt": "2026-08-30",
+  "checkedAt": "2026-08-30"
  }
 }
