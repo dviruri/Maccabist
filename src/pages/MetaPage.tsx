@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
 import { ClubCrest } from '../components/ClubCrest';
 import { Ltr } from '../components/primitives';
+import { JourneyTimeline, TrophyShowcase } from '../components/JourneyTimeline';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { TrophyCabinet } from '../components/TrophyCabinet';
 import { storage } from '../services/storage';
@@ -115,7 +116,21 @@ function ArchiveDetail({
         </div>
       </section>
 
+      {/* v0.9: the life-story timeline replaces the one-line route as the journey's face. */}
       <section className="card-flat">
+        <div className="kicker">מסע הקריירה</div>
+        <JourneyTimeline seasons={archive.seasons} honors={archive.honors} />
+      </section>
+
+      {/* v0.9: the trophy showcase - big art, counted - above the cabinet's detail rows. */}
+      {(archive.trophies.length > 0 || archive.honors.length > 0) && (
+        <section className="card-flat">
+          <div className="kicker">חדר הגביעים</div>
+          <TrophyShowcase trophies={archive.trophies} honors={archive.honors} />
+        </section>
+      )}
+
+      <section className="card-flat" hidden>
         <div className="kicker">המסע</div>
         <div className="archive-route">
           {archive.clubs.map((club, i) => (
@@ -180,7 +195,12 @@ function HonorsTab({ archives }: { archives: readonly ArchivedCareer[] }): JSX.E
   const trophies = archives.flatMap((a) => a.trophies);
   const honors = archives.flatMap((a) => a.honors);
   const promotions = archives.flatMap((a) => a.promotions);
-  return <TrophyCabinet trophies={trophies} honors={honors} promotions={promotions} />;
+  return (
+    <div className="stack">
+      <TrophyShowcase trophies={trophies} honors={honors} />
+      <TrophyCabinet trophies={trophies} honors={honors} promotions={promotions} />
+    </div>
+  );
 }
 
 /** Achievements across careers: a presentation layer over stored achievements (F1). */

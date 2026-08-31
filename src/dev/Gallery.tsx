@@ -15,6 +15,7 @@ import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
 import { EuropeCard, EuropeJourneySummary } from '../components/EuropeCards';
 import { CareerHomeScene } from '../components/CareerHome';
 import { DecisionScreen } from '../components/DecisionScreen';
+import { JourneyTimeline, TrophyShowcase } from '../components/JourneyTimeline';
 import { MatchdayExperience } from '../components/Matchday';
 import { CinematicBackdrop, MomentShell, PlayerHero } from '../components/gamefeel';
 import { getMomentArt } from '../ui/playerArt';
@@ -1151,6 +1152,8 @@ export function Gallery(): JSX.Element {
       onOpenCareer={noop}
     />],
     ['gf-matchday', <MatchdayExperience career={midSeasonCareer()} onContinue={noop} />],
+    ['gf-journey', <div className="card"><JourneyTimeline seasons={buildArchivedCareer(retiredLegend()).seasons} honors={galleryHonors()} /></div>],
+    ['gf-showcase', <div className="card"><TrophyShowcase trophies={retiredLegend().trophies} honors={galleryHonors()} /></div>],
     ['gf-decision', <DecisionScreen
       career={euro}
       offers={loanOffers()}

@@ -519,3 +519,97 @@
 .gf-dec-page-btn:disabled { opacity: 0.35; cursor: default; }
 .gf-dec-page-count { font-weight: 800; color: var(--text-secondary); }
 .gf-dec-footnote { margin: 0; text-align: center; color: var(--text-tertiary); font-size: 11.5px; }
+
+/* ---- v0.9 phase 5: journey + trophy showcase ---- */
+.gf-journey { display: grid; gap: 0; }
+.gf-journey-row {
+  display: grid;
+  grid-template-columns: 22px 52px 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+.gf-journey-rail { position: relative; display: flex; justify-content: center; }
+.gf-journey-node {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--green-primary);
+  box-shadow: var(--gf-glow-green);
+  margin-top: 22px;
+  flex: none;
+  z-index: 1;
+}
+.gf-journey-line {
+  position: absolute;
+  top: 30px;
+  bottom: -6px;
+  width: 2px;
+  background: linear-gradient(to bottom, rgba(41, 217, 106, 0.6), rgba(41, 217, 106, 0.15));
+}
+.gf-journey-age {
+  align-self: start;
+  margin-top: 20px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--green-bright);
+  white-space: nowrap;
+}
+.gf-journey-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--gf-glass);
+  border: 1px solid var(--gf-glass-border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.gf-journey-academy { opacity: 0.85; }
+.gf-journey-body { display: grid; gap: 3px; min-width: 0; }
+.gf-journey-club { font-weight: 900; font-size: 14.5px; overflow-wrap: anywhere; }
+.gf-journey-tag {
+  margin-inline-start: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  border: 1px solid var(--gf-glass-border);
+  border-radius: 999px;
+  padding: 1px 7px;
+  vertical-align: middle;
+}
+.gf-journey-return { color: var(--green-bright); border-color: rgba(41, 217, 106, 0.5); }
+.gf-journey-range { color: var(--text-secondary); font-size: 12px; }
+.gf-journey-marks { display: flex; gap: 10px; font-size: 12px; color: var(--gold); font-weight: 800; }
+
+.gf-showcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+.gf-showcase-card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 201, 74, 0.12), transparent 70%),
+    var(--gf-glass-strong);
+  border: 1px solid rgba(255, 201, 74, 0.35);
+  border-radius: var(--gf-radius);
+  padding: 12px 8px 10px;
+  text-align: center;
+}
+.gf-showcase-euro {
+  border-color: rgba(120, 170, 255, 0.45);
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(120, 170, 255, 0.14), transparent 70%),
+    var(--gf-glass-strong);
+}
+.gf-showcase-art {
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+}
+.gf-showcase-label { font-weight: 900; font-size: 13px; }
+.gf-showcase-caption { font-size: 11.5px; color: var(--text-secondary); }
+.gf-showcase-count { color: var(--gold); font-weight: 900; }

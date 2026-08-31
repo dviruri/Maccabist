@@ -7,6 +7,7 @@ import { buildMatchday } from '../game/matchdayPresenter';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { EuropeCard } from '../components/EuropeCards';
+import { JourneyTimeline } from '../components/JourneyTimeline';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { Sheet } from '../components/Sheet';
 import { PeopleCard } from '../components/PeopleCard';
@@ -187,6 +188,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
                 every club change - the same card the archive renders, so the live career and
                 the archived one tell the story identically.
               */}
+              <JourneyTimeline seasons={career.seasonHistory} honors={career.honors} />
               <CareerJourney
                 seasons={career.seasonHistory.slice(-14)}
                 position={career.position}
