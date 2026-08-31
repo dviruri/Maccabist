@@ -19,6 +19,8 @@ const clubList: Club[] = [
   /* ---------------- Maccabi Haifa pathway ---------------- */
   {
     id: MACCABI_ACADEMY_ID,
+    // The children's department wears the Maccabi Haifa crest - it IS Maccabi Haifa.
+    crestOwnerId: MACCABI_ID,
     name: 'מכבי חיפה - מחלקת ילדים',
     shortName: 'מכבי חיפה ילדים',
     country: 'ישראל',
@@ -35,6 +37,7 @@ const clubList: Club[] = [
   },
   {
     id: MACCABI_YOUTH_ID,
+    crestOwnerId: MACCABI_ID,
     name: 'מכבי חיפה - נוער',
     shortName: 'מכבי חיפה נוער',
     country: 'ישראל',

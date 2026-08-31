@@ -14,6 +14,7 @@
  * record without touching a single component.
  */
 
+import { CLUBS } from './clubs';
 import { worldClubById } from './worldClubs';
 import { importedCrestAsset } from './clubCrests.generated';
 
@@ -130,12 +131,36 @@ export function initialsFor(name: string): string {
 }
 
 /**
+ * Whose branding this club wears (v0.9.1).
+ *
+ * The single rule: a club with a `crestOwnerId` wears that club's crest and colours; every other
+ * club wears its own. One hop only - a parent is always a real senior club, so there is no chain
+ * to follow and no cycle to guard against.
+ *
+ * Deliberately branding-only. `LEAGUE_MEMBERSHIP`, tables, age groups and career history all keep
+ * reading the club's own id: the youth team remains its own football entity.
+ */
+export function crestOwnerOf(clubId: string): string {
+  // CLUBS already contains the external youth clubs, so one lookup covers every entity.
+  return CLUBS[clubId]?.crestOwnerId ?? clubId;
+}
+
+/**
  * The visual identity for any club id, including filler clubs that have no Club record.
  *
  * Never returns null and never returns a broken image, because there is no image — a badge is
  * drawn from these values. That is the whole reason the system is built this way.
  */
 export function clubVisual(clubId: string, name?: string): ClubVisual {
+  /*
+   * v0.9.1: branding inheritance. A youth or academy side wearing a parent club's crest must
+   * also wear its colours and initials - a Maccabi Haifa youth team with the senior crest but a
+   * hash-generated purple badge beside it would be the same inconsistency in a smaller place.
+   * Resolved first, so every branch below sees the owner's id.
+   */
+  const owner = crestOwnerOf(clubId);
+  if (owner !== clubId) return clubVisual(owner, name);
+
   const declared = CLUB_VISUALS[clubId];
   if (declared) return declared;
 
@@ -179,8 +204,10 @@ export function clubVisual(clubId: string, name?: string): ClubVisual {
  * would make the game's appearance depend on someone else's server and licence.
  */
 export function getClubCrest(clubId: string): string | null {
+  // v0.9.1: a club that wears a parent's branding resolves the parent's crest file.
+  const owner = crestOwnerOf(clubId);
   // v0.6.3: a hand-declared asset wins; otherwise the importer's manifest is consulted.
-  const asset = CLUB_VISUALS[clubId]?.asset ?? importedCrestAsset(clubId) ?? undefined;
+  const asset = CLUB_VISUALS[owner]?.asset ?? importedCrestAsset(owner) ?? undefined;
   if (!asset) return null;
   if (/^https?:/i.test(asset)) {
     /*

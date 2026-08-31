@@ -13,6 +13,7 @@ import type { Club } from '../types';
 export const EXTERNAL_YOUTH_CLUBS: readonly Club[] = [
   {
     id: 'youth_hapoel_haifa',
+    crestOwnerId: 'hapoel_haifa',
     name: 'הפועל חיפה',
     country: 'ישראל',
     league: 'מחלקת נוער',
@@ -27,6 +28,7 @@ export const EXTERNAL_YOUTH_CLUBS: readonly Club[] = [
   },
   {
     id: 'youth_maccabi_netanya',
+    crestOwnerId: 'maccabi_netanya',
     name: 'מכבי נתניה',
     country: 'ישראל',
     league: 'מחלקת נוער',
@@ -40,6 +42,7 @@ export const EXTERNAL_YOUTH_CLUBS: readonly Club[] = [
     seasonGames: 20,
   },
   {
+    // Standalone regional academies: no senior parent in the world, so no inherited branding.
     id: 'youth_krayot',
     name: 'בית״ר קריות',
     country: 'ישראל',
@@ -69,6 +72,7 @@ export const EXTERNAL_YOUTH_CLUBS: readonly Club[] = [
   },
   {
     id: 'youth_hapoel_afula',
+    crestOwnerId: 'hapoel_afula',
     name: 'הפועל עפולה',
     country: 'ישראל',
     league: 'מחלקת נוער',

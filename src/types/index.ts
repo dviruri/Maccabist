@@ -126,6 +126,17 @@ export interface Club {
   /** Only the senior team counts towards the Maccabi legacy stats. */
   isSenior?: boolean;
   /**
+   * The club whose BRANDING this club wears (v0.9.1).
+   *
+   * An academy or youth side is its own football entity - its own league, table, age group and
+   * career history - but it wears the parent club's crest and colours, because in the real world
+   * it is the same club. Set it for a youth/academy side that belongs to a modelled senior club;
+   * leave it unset for a standalone regional academy, which has an identity of its own.
+   *
+   * Branding only. Nothing about membership, results or history reads this field.
+   */
+  crestOwnerId?: string;
+  /**
    * Season fixtures for this club in the league it was DERIVED against.
    *
    * NOT AUTHORITATIVE once a club moves (v0.6.5.2). Schedule length belongs to the competition,

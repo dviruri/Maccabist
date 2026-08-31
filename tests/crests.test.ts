@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ALL_CLUBS } from '../src/data/clubs';
 import { CREST_MANIFEST } from '../src/data/clubCrests.generated';
-import { CLUB_VISUALS, clubVisual, getClubCrest, hasRealCrest, initialsFor } from '../src/data/clubVisuals';
+import { crestOwnerOf, CLUB_VISUALS, clubVisual, getClubCrest, hasRealCrest, initialsFor } from '../src/data/clubVisuals';
 import { defaultLeagueFor } from '../src/data/leagues';
 import { worldClubById } from '../src/data/worldClubs';
 
@@ -118,9 +118,17 @@ describe('no crest is ever loaded from someone else’s server', () => {
     const handDeclared = Object.entries(CLUB_VISUALS).filter(([, v]) => v.asset !== undefined);
     expect(handDeclared.map(([id]) => id)).toEqual([]);
 
-    // And every asset-bearing club is manifest-backed, not scattered.
+    /*
+     * And every asset-bearing club is manifest-backed, not scattered.
+     *
+     * v0.9.1: through the crest OWNER. A youth side that inherits its parent's branding shows a
+     * real crest whose provenance is the parent's manifest entry - that is still fully
+     * provenanced, just attributed where the asset actually came from. The invariant is
+     * unchanged in force: no crest may be displayed without a manifest record behind it.
+     */
     for (const id of Object.keys(CLUB_VISUALS).filter((clubId) => hasRealCrest(clubId))) {
-      expect(CREST_MANIFEST[id], `${id} has an asset with no manifest entry`).toBeDefined();
+      const owner = crestOwnerOf(id);
+      expect(CREST_MANIFEST[owner], `${id} (crest owner ${owner}) has an asset with no manifest entry`).toBeDefined();
     }
   });
 
