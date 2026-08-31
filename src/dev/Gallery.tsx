@@ -1278,6 +1278,7 @@ export function Gallery(): JSX.Element {
     ['gf-matchday-half', <MatchdaySceneDemo at="half_time" />],
     ['gf-matchday-ft', <MatchdaySceneDemo revealAll />],
     ['gf-moment-uefa', <CareerMomentScreen
+      career={seniorAtMaccabi()}
       moment={{
         key: 'demo',
         backdrop: 'europe-night',
@@ -1286,10 +1287,12 @@ export function Gallery(): JSX.Element {
         kicker: 'עונת 2049/50 · מכבי חיפה',
         title: 'זכייה בקונפרנס ליג!',
         subtitle: 'הלילה הזה ייכנס להיסטוריה.',
+        mood: 'celebration',
       }}
       onContinue={noop}
     />],
     ['gf-moment-relegation', <CareerMomentScreen
+      career={{ ...seniorAtMaccabi(), currentClubId: 'hapoel_hadera' }}
       moment={{
         key: 'demo2',
         backdrop: 'home-dark',
@@ -1297,6 +1300,22 @@ export function Gallery(): JSX.Element {
         kicker: 'עונת 2044/45 · הפועל חדרה',
         title: 'ירידת ליגה.',
         subtitle: 'ערב קשה. מה שתעשה מחר יגדיר אותך.',
+        mood: 'hero',
+      }}
+      onContinue={noop}
+    />],
+    /* A youth-band moment, so the age resolver's youth character is audited on a moment too. */
+    ['gf-moment-debut', <CareerMomentScreen
+      career={{ ...createCareer({ playerName: 'אורי דביר', position: 'ST', seed: 42 }), age: 17, academyStage: 'senior', currentClubId: MACCABI_ID }}
+      moment={{
+        key: 'demo3',
+        backdrop: 'matchday-crowd',
+        art: getMomentArt('debut'),
+        kicker: 'עונת 2039/40 · מכבי חיפה',
+        title: 'הופעת הבכורה בבוגרים',
+        subtitle: 'הרגע שכל ילד במחלקת הנוער חולם עליו.',
+        clubId: MACCABI_ID,
+        mood: 'celebration',
       }}
       onContinue={noop}
     />],

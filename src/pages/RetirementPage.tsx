@@ -1,5 +1,5 @@
 import { CinematicBackdrop } from '../components/gamefeel';
-import { getMomentArt } from '../ui/playerArt';
+import { getCareerPlayerArt, getMomentArt } from '../ui/playerArt';
 import { CareerTimeline } from '../components/CareerTimeline';
 import { HonorIcon, TrophyKindIcon, trophyIconKind } from '../components/honorIcons';
 import { Timeline } from '../components/Timeline';
@@ -96,8 +96,25 @@ export function RetirementPage({ career, onNewCareer, onOpenMeta, isBest }: Prop
        * v0.9: retirement opens as the end of a career - the pack's retirement art under the
        * ceremony lights, before the poster and the numbers. Same facts, given their weight.
        */}
-      <CinematicBackdrop backdrop="trophy-ceremony" className="gf-retire-scene">
-        <img className="gf-moment-art" src={getMomentArt('retirement')} alt="" aria-hidden loading="eager" />
+      {/*
+        v0.9.3, Phase 5: the retiring player is HIM.
+
+        The pack's retirement art is a scene with a generic footballer in it, so a career's last
+        screen was showing somebody else. Same treatment as every other major moment: the scene
+        becomes a defocused atmospheric layer and the career player - resolved from his real
+        retirement age and position - holds the foreground.
+      */}
+      <CinematicBackdrop backdrop="trophy-ceremony" className="gf-retire-scene gf-moment-with-player">
+        <div className="gf-moment-stage">
+          <img className="gf-moment-art" src={getMomentArt('retirement')} alt="" aria-hidden loading="eager" />
+          <img
+            className="gf-moment-player"
+            src={getCareerPlayerArt({ age: career.retirementAge ?? career.age, position: career.position })}
+            alt=""
+            aria-hidden
+            loading="eager"
+          />
+        </div>
         <div className="gf-moment-text">
           <div className="gf-kicker">
             {/* years are an LTR run - unwrapped they render 2055-2039 in RTL */}

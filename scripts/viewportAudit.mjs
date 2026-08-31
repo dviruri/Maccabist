@@ -68,8 +68,9 @@ const SCENES = [
   { id: 'gf-decision', bare: 'shell', need: ['.gf-dec-title', '.gf-dec-actions', '.gf-btn-primary'] },
   { id: 'gf-play-decision', bare: '1', need: ['.gf-dec-title', '.gf-btn-primary', '.gf-bottomnav'] },
   { id: 'gf-moment', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
-  { id: 'gf-moment-uefa', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
-  { id: 'gf-moment-relegation', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
+  { id: 'gf-moment-uefa', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
+  { id: 'gf-moment-relegation', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
+  { id: 'gf-moment-debut', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
 ];
 
 /** Safe area / rounding slack. A phone's own inset is legitimately a few pixels. */

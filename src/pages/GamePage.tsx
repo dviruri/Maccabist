@@ -116,6 +116,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
     return (
       <div className="gf-moment-screen">
         <CareerMomentScreen
+          career={career}
           moment={ceremony}
           onContinue={() => setCeremoniesSeen((seen) => [...seen, ceremony.key])}
         />
@@ -446,6 +447,7 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
       if (pending) {
         return (
           <CareerMomentScreen
+            career={career}
             moment={pending}
             onContinue={() => setRevealed((seen) => [...seen, pending.key])}
           />

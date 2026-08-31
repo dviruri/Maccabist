@@ -1022,6 +1022,8 @@
   -webkit-mask-image: radial-gradient(ellipse 70% 62% at 50% 42%, #000 52%, transparent 100%);
   mask-image: radial-gradient(ellipse 70% 62% at 50% 42%, #000 52%, transparent 100%);
 }
+/* the retirement hero uses the Phase 5 composition, at its own stage height */
+.gf-retire-scene.gf-moment-with-player .gf-moment-stage { height: clamp(210px, 32vh, 290px); }
 /* the feed faces are photographic crops - a ring and a soft inner edge seat them in the panel */
 .gf-feed-face { box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.55); }
 
@@ -1343,4 +1345,93 @@
   border-right: 3px solid rgba(41, 217, 106, 0.6);
   border-radius: 14px;
   padding: 7px 9px;
+}
+
+/* =====================================================================
+   v0.9.3 PHASE 5 — THE CAREER PLAYER, ON HIS OWN MOMENTS
+   The pack's moment artwork is a SCENE, and several of those scenes
+   contain a generic player. Drawn alone, a career's biggest night showed
+   somebody else. So when a moment is about the player, the supplied art
+   moves to the leading side as atmosphere and HIS art - resolved from
+   his real age and position - holds the other half of the stage.
+   ===================================================================== */
+.gf-moment-with-player .gf-moment-stage {
+  display: block;
+  position: relative;
+  height: clamp(200px, 34vh, 300px);
+  overflow: hidden;
+}
+/*
+ * Two kinds of moment art, two compositions - decided by what the art IS.
+ *
+ * A SCENE (a relegation night, a championship celebration, a press presentation) contains its
+ * own generic player. Placed beside the career player it read as a pasted rectangle with a
+ * second footballer in it, which is worse than the problem it was fixing. So a scene becomes a
+ * full-stage atmospheric layer BEHIND him - which is what the brief asked for in the first place.
+ */
+.gf-moment-with-player .gf-moment-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  /*
+   * Dimmed AND defocused. At 0.5 with no blur the scene's own generic footballer still read as a
+   * second person standing behind the career player. A shallow blur turns him into depth of
+   * field, which is what a background layer is supposed to be.
+   */
+  opacity: 0.34;
+  filter: saturate(0.8) blur(2.5px);
+}
+/*
+ * A TROPHY or an award is an object on a transparent background - no person in it, nothing to
+ * dim. It keeps the leading (right, in RTL) half of the stage, crisp, with the player beside it.
+ */
+.gf-moment-with-player .gf-moment-art[src*="/trophies/"],
+.gf-moment-with-player .gf-moment-art[src*="/awards/"] {
+  inset: 0 0 auto auto;
+  width: auto;
+  height: 100%;
+  max-width: 56%;
+  object-fit: contain;
+  opacity: 1;
+  filter: none;
+}
+/*
+ * The player: upper body, cropped the same way as every other hero in the game - anchored to the
+ * top and scaled about a point below the head, so the frame's overflow takes the legs and the
+ * face stays where it was.
+ */
+.gf-moment-player {
+  position: absolute;
+  top: 0;
+  /* centred over a scene; moved aside only when a trophy is holding the other half */
+  left: 50%;
+  width: 60%;
+  height: auto;
+  transform-origin: 50% 6%;
+  transform: translateX(-50%) scale(1.35);
+  z-index: var(--z-panel);
+  filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.8));
+  animation: gf-rise var(--gf-t-enter) ease-out;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
+}
+/* the moment is a scene, so it ends with one headline, one line and one button */
+.gf-moment .gf-scene-content { min-height: min(72vh, 600px); gap: 12px; }
+.gf-moment-with-player .gf-moment-text { gap: 4px; }
+/* beside a trophy: he takes the trailing half, cropped the same way */
+.gf-moment-art[src*="/trophies/"] ~ .gf-moment-player,
+.gf-moment-art[src*="/awards/"] ~ .gf-moment-player {
+  left: -8%;
+  width: 54%;
+  transform: scale(1.4);
+}
+@media (max-width: 350px) {
+  .gf-moment-player { width: 66%; transform: translateX(-50%) scale(1.3); }
+  .gf-moment-art[src*="/trophies/"] ~ .gf-moment-player { width: 58%; left: -12%; transform: scale(1.3); }
+  .gf-moment-with-player .gf-moment-art[src*="/trophies/"] { max-width: 52%; }
 }

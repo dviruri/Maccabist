@@ -2,7 +2,13 @@ import { UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
 import { getClub } from '../data/clubs';
 import { clubDisplayName } from '../game/identity';
 import type { Career, UefaCompetitionId } from '../types';
-import { getMomentArt, getTransferArt, getTrophyArt, type TrophyArtId } from '../ui/playerArt';
+import {
+  getCareerPlayerArt,
+  getMomentArt,
+  getTransferArt,
+  getTrophyArt,
+  type TrophyArtId,
+} from '../ui/playerArt';
 import { seasonLabel } from '../ui/format';
 import { ClubCrest } from './ClubCrest';
 import { MomentShell } from './gamefeel';
@@ -33,6 +39,14 @@ export interface CareerMoment {
   subtitle: string;
   /** Club whose crest belongs on the moment, when the moment is about arriving somewhere. */
   clubId?: string;
+  /**
+   * How the career player should be drawn on this moment (v0.9.3, Phase 5).
+   *
+   * `celebration` for a night he celebrates, `hero` for one he does not - a relegation moment
+   * with a celebrating player would be the moment system lying, which is the same reason
+   * relegation never gets confetti. `none` for a moment he is not visually part of.
+   */
+  mood: 'celebration' | 'hero' | 'none';
 }
 
 /**
@@ -57,6 +71,7 @@ export function deriveArrivalMoment(career: Career): CareerMoment | null {
     title: `${career.playerName} ב${clubName}`,
     subtitle: 'פרק חדש מתחיל.',
     clubId: career.currentClubId,
+    mood: 'celebration',
   };
 }
 
@@ -73,6 +88,7 @@ export function deriveDebutMoment(career: Career): CareerMoment | null {
     title: 'הופעת הבכורה בבוגרים',
     subtitle: 'הרגע שכל ילד במחלקת הנוער חולם עליו.',
     clubId: record?.clubId,
+    mood: 'celebration',
   };
 }
 
@@ -114,6 +130,7 @@ export function deriveSeasonMoments(career: Career): CareerMoment[] {
         kicker: `${season} · ${clubName}`,
         title: `זכייה ${inCompetition(UEFA_COMPETITIONS[competition].name)}!`,
         subtitle: 'הלילה הזה ייכנס להיסטוריה.',
+        mood: 'celebration',
       });
     }
   }
@@ -127,6 +144,7 @@ export function deriveSeasonMoments(career: Career): CareerMoment[] {
       kicker: `${season} · ${clubName}`,
       title: 'אלופים!',
       subtitle: 'עונה שלמה של עבודה - וזה הרגע.',
+      mood: 'celebration',
     });
   }
 
@@ -139,6 +157,7 @@ export function deriveSeasonMoments(career: Career): CareerMoment[] {
       kicker: `${season} · ${clubName}`,
       title: 'הגביע שלנו!',
       subtitle: 'משחק אחד, תואר אחד, זיכרון לכל החיים.',
+      mood: 'celebration',
     });
   }
 
@@ -155,6 +174,7 @@ export function deriveSeasonMoments(career: Career): CareerMoment[] {
       kicker: `${season} · ${clubName}`,
       title: 'שלב הליגה האירופי!',
       subtitle: `${UEFA_COMPETITIONS[record.europe.finalCompetition].name} — לילות אירופיים אמיתיים.`,
+      mood: 'celebration',
     });
   }
 
@@ -170,6 +190,8 @@ export function deriveSeasonMoments(career: Career): CareerMoment[] {
       kicker: `${season} · ${clubName}`,
       title: 'ירידת ליגה.',
       subtitle: 'ערב קשה. מה שתעשה מחר יגדיר אותך.',
+      /* No celebration pose on a relegation night, for the same reason there is no confetti. */
+      mood: 'hero',
     });
   }
 
@@ -177,9 +199,16 @@ export function deriveSeasonMoments(career: Career): CareerMoment[] {
 }
 
 export function CareerMomentScreen({
+  career,
   moment,
   onContinue,
 }: {
+  /**
+   * The career the moment belongs to (v0.9.3, Phase 5). Needed for one reason: to draw the
+   * PLAYER, resolved from his real age and position, instead of leaving the pack's generic
+   * figure to stand in for him on his own biggest night.
+   */
+  career: Career;
   moment: CareerMoment;
   onContinue: () => void;
 }): JSX.Element {
@@ -188,6 +217,11 @@ export function CareerMomentScreen({
       backdrop={moment.backdrop}
       overlay={moment.overlay}
       art={moment.art}
+      playerArt={
+        moment.mood === 'none'
+          ? undefined
+          : getCareerPlayerArt({ age: career.age, position: career.position, context: moment.mood })
+      }
       kicker={moment.kicker}
       title={moment.title}
       subtitle={moment.subtitle}

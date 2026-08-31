@@ -173,13 +173,26 @@ export function GameButton({
 /* ------------------------------------------------------------------ */
 
 /**
- * The full-screen frame every "big career moment" renders inside (Phase 6 fills it): backdrop,
- * optional celebration overlay, a stage for art, and a title block. Big event ≠ another card.
+ * The full-screen frame every "big career moment" renders inside: backdrop, optional celebration
+ * overlay, a stage for art, and a title block. Big event != another card.
+ *
+ * ## The career player, on his own moments (v0.9.3, Phase 5)
+ *
+ * The moment artwork in the pack is a SCENE, and several of those scenes contain a generic
+ * player - a championship celebration, a debut, a press presentation. Drawn alone, a career's
+ * biggest night therefore showed somebody else. The brief's rule: use the supplied artwork as
+ * background atmosphere and overlay the actual career player, resolved through `ui/playerArt` by
+ * his real age and position, so the moment is visibly happening to THIS player.
+ *
+ * `playerArt` is what turns that on. When it is present the moment art recedes to atmosphere and
+ * the player holds the foreground. When it is absent - or when the art is a trophy, which is a
+ * transparent object rather than a scene with a person in it - the art keeps the stage.
  */
 export function MomentShell({
   backdrop,
   overlay,
   art,
+  playerArt,
   kicker,
   title,
   subtitle,
@@ -191,6 +204,11 @@ export function MomentShell({
   overlay?: 'confetti-green' | 'confetti-gold' | 'green-smoke' | 'star-lights';
   /** A full art path (moment / transfer / trophy art), already resolved by the caller. */
   art?: string;
+  /**
+   * The career player's own art, from the age+position resolver. Present means the moment is
+   * about him: he takes the foreground and `art` becomes the scene behind him.
+   */
+  playerArt?: string;
   kicker?: string;
   title: string;
   subtitle?: string;
@@ -199,12 +217,24 @@ export function MomentShell({
   continueLabel?: string;
 }): JSX.Element {
   const [artFailed, setArtFailed] = useState(false);
+  const [playerFailed, setPlayerFailed] = useState(false);
+  const withPlayer = Boolean(playerArt) && !playerFailed;
   return (
-    <CinematicBackdrop backdrop={backdrop} className="gf-moment">
+    <CinematicBackdrop backdrop={backdrop} className={`gf-moment${withPlayer ? ' gf-moment-with-player' : ''}`}>
       {overlay && <img className="gf-moment-overlay" src={getOverlay(overlay)} alt="" aria-hidden loading="lazy" />}
       <div className="gf-moment-stage">
         {art && !artFailed && (
           <img className="gf-moment-art" src={art} alt="" aria-hidden onError={() => setArtFailed(true)} />
+        )}
+        {playerArt && !playerFailed && (
+          <img
+            className="gf-moment-player"
+            src={playerArt}
+            alt=""
+            aria-hidden
+            loading="eager"
+            onError={() => setPlayerFailed(true)}
+          />
         )}
       </div>
       <div className="gf-moment-text">
