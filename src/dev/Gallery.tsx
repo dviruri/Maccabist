@@ -1314,6 +1314,21 @@ export function Gallery(): JSX.Element {
       onExit={noop}
     />],
     /*
+     * v0.9.4, Phase 3: a goalkeeper's own home. His kit is one of four colours, chosen from
+     * (seed, club, season), and it must be the same colour on every screen for that season.
+     */
+    ['gf-play-home-gk', <GamePage
+      career={{ ...homeCareer(), position: 'GK' }}
+      actions={noopActions}
+      onExit={noop}
+    />],
+    /* And a boy in the academy: youth artwork, wearing the parent club's inherited colours. */
+    ['gf-play-home-youth', <GamePage
+      career={{ ...academyBoy(), phase: 'preseason', seasonPoint: 'preseason' }}
+      actions={noopActions}
+      onExit={noop}
+    />],
+    /*
      * v0.9.4: the home screen's third contextual state - an offer already on the table, before the
      * offseason beat makes it a decision. The slot has a priority, so this scene must show the
      * urgent panel and NOT the feed.

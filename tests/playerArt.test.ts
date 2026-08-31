@@ -76,7 +76,14 @@ describe('context fallbacks', () => {
   });
 });
 
-describe('the v0.9 palette rules hold (v0.9.1 regression)', () => {
+describe('the palette rules hold (v0.9.1 regression, restated in v0.9.4)', () => {
+  /*
+   * v0.9.4 changed the product rule for PLAYER KITS: an outfield shirt is the club's colour, reds
+   * and yellows included, so "no red player kit" is gone and `tests/clubKit.test.ts` asserts the
+   * replacement. What did NOT change is this: the game's own chrome - panels, prestige, buttons,
+   * section rules - stays out of red. A club colour arriving through `ui/kit.ts` is a fact about a
+   * club; a red border in the stylesheet would be a design choice, and that is still not allowed.
+   */
   it('the game-feel stylesheet uses no red for prestige', () => {
     const css = fs.readFileSync(path.join(ROOT, 'src/styles/gamefeel.css'), 'utf8');
     // The one allowed warm colour is the destructive-action text, which is not prestige UI.
@@ -89,8 +96,9 @@ describe('the v0.9 palette rules hold (v0.9.1 regression)', () => {
   });
 
   it('resolves character art only from the neutral pack folders', () => {
-    // The pack's character palette is black/pink/purple/blue by construction; the guarantee the
-    // code can make is that it never reaches outside those folders for a player render.
+    // The pack's artwork is black/pink/purple/blue by construction; the club's colour is composited
+    // on at render time (v0.9.4), never baked in, so the resolver still never reaches outside these
+    // folders for a player.
     for (const age of [10, 16, 25]) {
       for (const position of ['GK', 'ST'] as const) {
         const art = getCareerPlayerArt({ age, position });
@@ -98,6 +106,16 @@ describe('the v0.9 palette rules hold (v0.9.1 regression)', () => {
         expect(art).toMatch(/\/(youth|teen|adult)\//);
       }
     }
+  });
+
+  it('names no club colour in the art resolver', () => {
+    /*
+     * The separation v0.9.4 rests on: `playerArt` knows about poses and age bands, `ui/kit.ts`
+     * knows about colour, and neither knows the other's business. A hex literal here would be a
+     * club colour in the wrong file.
+     */
+    const source = fs.readFileSync(path.join(ROOT, 'src/ui/playerArt.ts'), 'utf8');
+    expect(source).not.toMatch(/#[0-9a-fA-F]{6}/);
   });
 });
 

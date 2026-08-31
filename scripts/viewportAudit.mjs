@@ -61,6 +61,8 @@ const SCENES = [
   { id: 'gf-play-home', bare: '1', need: ['.gf-hero-name', '.gf-next', '.gf-bottomnav', '.btn-primary'] },
   { id: 'gf-play-home-euro', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.gf-context-euro'] },
   { id: 'gf-play-home-offer', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.gf-context-urgent'] },
+  { id: 'gf-play-home-gk', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-kit'] },
+  { id: 'gf-play-home-youth', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-kit'] },
   { id: 'gf-play-championship', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary'] },
   { id: 'gf-home', bare: 'shell', need: ['.gf-hero-name', '.gf-next'] },
   { id: 'gf-matchday', bare: '1', need: ['.gf-board-num', '.gf-md-controls', '.gf-btn-primary'] },

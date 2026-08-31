@@ -132,6 +132,32 @@ describe('a youth side wears its parent club', () => {
 });
 
 describe('the goalkeeper wears his own kit', () => {
+  it('is blue, pink, purple or black BY COLOUR, not merely by name', () => {
+    /*
+     * The invariant with teeth. Naming a key 'blue' proves nothing; this checks the hue each of
+     * the four actually has, so the goalkeeper palette cannot drift into the reds and yellows that
+     * v0.9.4 opened up for outfield shirts.
+     */
+    const bands: Record<string, [number, number]> = {
+      blue: [200, 250],
+      purple: [255, 285],
+      pink: [300, 345],
+    };
+    for (const name of GOALKEEPER_COLOURS) {
+      const { r, g, b } = hex(GOALKEEPER_KITS[name].primary);
+      if (name === 'black') {
+        /* Achromatic and dark: the one colour with no hue to check. */
+        expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(20);
+        expect(luminanceOf(GOALKEEPER_KITS[name].primary)).toBeLessThan(0.17);
+        continue;
+      }
+      const [low, high] = bands[name]!;
+      const hue = hueDegrees(r, g, b);
+      expect(hue, `${name} is ${Math.round(hue)}deg`).toBeGreaterThanOrEqual(low);
+      expect(hue, `${name} is ${Math.round(hue)}deg`).toBeLessThanOrEqual(high);
+    }
+  });
+
   it('is always one of exactly four colours', () => {
     const allowed = new Set(GOALKEEPER_COLOURS.map((c) => GOALKEEPER_KITS[c].primary));
     for (let seed = 1; seed <= 60; seed += 1) {
@@ -235,6 +261,19 @@ describe('the recolour touches the kit and nothing else', () => {
     expect(body).toContain('mix-blend-mode: screen');
   });
 });
+
+function hueDegrees(r: number, g: number, b: number): number {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return 0;
+  let h: number;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h *= 60;
+  return h < 0 ? h + 360 : h;
+}
 
 /** Comments are not code. This assertion flagged its own explanation on the first run. */
 function stripComments(source: string): string {
