@@ -830,6 +830,18 @@ const loanOffers = (): Career['pendingOffers'] => [
 ];
 
 /**
+ * A career that has just moved (v0.9.4): last season at Maccabi Haifa, this preseason at Torino,
+ * so `deriveArrivalMoment` fires and the signing scene shows the NEW kit.
+ */
+const signingCareer = (): Career => ({
+  ...tableCareer('bologna', 9),
+  phase: 'preseason',
+  seasonPoint: 'preseason',
+  currentSeason: 2045,
+  seasonHistory: [seasonRecord({ season: 2044, clubId: MACCABI_ID, clubName: 'מכבי חיפה' })],
+});
+
+/**
  * A settled season that produced a championship (v0.9.4), for the full-screen moment scene. The
  * cup state is cleared so the cup-final matchday does not claim the beat first, which it correctly
  * would otherwise.
@@ -1313,6 +1325,26 @@ export function Gallery(): JSX.Element {
       actions={noopActions}
       onExit={noop}
     />],
+    /*
+     * v0.9.4, Phase 7: the two club-colour families the preview sheets check in isolation, now in
+     * the game itself - a red club and a yellow/blue one. The crest and the shirt must agree.
+     */
+    ['gf-play-home-red', <GamePage
+      career={{ ...tableCareer('hapoel_haifa', 6), phase: 'preseason', seasonPoint: 'preseason', seasonHistory: [seasonRecord({ clubId: 'hapoel_haifa', clubName: 'הפועל חיפה' })] }}
+      actions={noopActions}
+      onExit={noop}
+    />],
+    ['gf-play-home-yellow', <GamePage
+      career={{ ...tableCareer('maccabi_tel_aviv', 4), phase: 'preseason', seasonPoint: 'preseason', seasonHistory: [seasonRecord({ clubId: 'maccabi_tel_aviv', clubName: 'מכבי תל אביב' })] }}
+      actions={noopActions}
+      onExit={noop}
+    />],
+    /*
+     * The signing: the moment AFTER acceptance, which is where the new shirt is supposed to land.
+     * The previous season was at Maccabi Haifa, so the arrival fires and he is already in Torino's
+     * colours - the decision screen showed him in green.
+     */
+    ['gf-play-signing', <GamePage career={signingCareer()} actions={noopActions} onExit={noop} />],
     /*
      * v0.9.4, Phase 3: a goalkeeper's own home. His kit is one of four colours, chosen from
      * (seed, club, season), and it must be the same colour on every screen for that season.
