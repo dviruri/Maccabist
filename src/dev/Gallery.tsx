@@ -400,11 +400,18 @@ const europeanSeasonCareer = (): Career => {
 };
 
 /** v0.9.1: the matchday screen needs its prebuilt presentation, like the real caller. */
-function MatchdaySceneDemo(): JSX.Element {
+function MatchdaySceneDemo({ revealAll = false }: { revealAll?: boolean }): JSX.Element {
   const career = midSeasonCareer();
   const matchday = buildMatchday(career);
   if (!matchday) return <div>no matchday</div>;
-  return <MatchdayExperience career={career} matchday={matchday} onContinue={() => undefined} />;
+  return (
+    <MatchdayExperience
+      career={career}
+      matchday={matchday}
+      autoReveal={revealAll}
+      onContinue={() => undefined}
+    />
+  );
 }
 
 /** v0.7: a believable honors list for the meta scenes. */
@@ -1162,6 +1169,7 @@ export function Gallery(): JSX.Element {
       onOpenCareer={noop}
     />],
     ['gf-matchday', <MatchdaySceneDemo />],
+    ['gf-matchday-ft', <MatchdaySceneDemo revealAll />],
     ['gf-moment-uefa', <CareerMomentScreen
       moment={{
         key: 'demo',

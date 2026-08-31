@@ -38,13 +38,16 @@ export function MatchdayExperience({
   career,
   matchday,
   onContinue,
+  autoReveal = false,
 }: {
   career: Career;
   /** THE fixture's matchday, built by the caller so the screen and the router agree. */
   matchday: MatchdayPresentation;
   onContinue: () => void;
+  /** Preview-only: start at full time, so the gallery can inspect the conclusion. */
+  autoReveal?: boolean;
 }): JSX.Element {
-  const [revealed, setRevealed] = useState(0);
+  const [revealed, setRevealed] = useState(autoReveal ? matchday.moments.length : 0);
 
   const { fixture, moments } = matchday;
   const total = moments.length;
@@ -154,10 +157,23 @@ export function MatchdayExperience({
       )}
 
       {done && (
-        <div className="gf-md-facts">
-          {/* the anchor to truth: the real half numbers this matchday was drawn from */}
-          {matchday.factsLine}
-        </div>
+        <>
+          {/* v0.9.2: full time is a conclusion - the verdict first, then the numbers. */}
+          <div className="gf-md-ft">
+            {shownFor > shownAgainst ? 'ניצחון' : shownFor < shownAgainst ? 'הפסד' : 'תיקו'}
+          </div>
+          <div className="gf-md-ft-sub">
+            {fixture.kind === 'cup_final'
+              ? shownFor > shownAgainst
+                ? 'הגביע שלנו.'
+                : 'הגמר אבד.'
+              : `${fixture.competition} · ${fixture.opponentName}`}
+          </div>
+          <div className="gf-md-facts">
+            {/* the anchor to truth: the real numbers this matchday was drawn from */}
+            {matchday.factsLine}
+          </div>
+        </>
       )}
 
       <div className="gf-md-controls">
