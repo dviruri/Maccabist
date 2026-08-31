@@ -175,25 +175,62 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
       </main>
 
       {/* ---------- one tap to everything else ---------- */}
-      <nav className="play-nav" aria-label="מידע נוסף">
+      {/*
+        v0.9.1: a fixed bottom bar, mobile-first, from the concept. Five destinations - the
+        existing sheets, not new ones - with the active state obvious, RTL order preserved by
+        the document direction, and safe-area inset honoured so it clears a phone's home bar.
+        `play-nav-spacer` below keeps page content from sitting underneath it.
+      */}
+      <nav className="gf-bottomnav" aria-label="ניווט">
         {table && (
-          <button type="button" className="play-nav-btn" onClick={() => setSheet('table')}>
-            טבלה
+          <button
+            type="button"
+            className={`gf-bn-btn${sheet === 'table' ? ' gf-bn-active' : ''}`}
+            aria-current={sheet === 'table' ? 'page' : undefined}
+            onClick={() => setSheet(sheet === 'table' ? null : 'table')}
+          >
+            <span className="gf-bn-icon" aria-hidden>▦</span>
+            <span className="gf-bn-label">טבלה</span>
           </button>
         )}
-        <button type="button" className="play-nav-btn" onClick={() => setSheet('timeline')}>
-          סיפור הקריירה
+        <button
+          type="button"
+          className={`gf-bn-btn${sheet === 'timeline' ? ' gf-bn-active' : ''}`}
+          aria-current={sheet === 'timeline' ? 'page' : undefined}
+          onClick={() => setSheet(sheet === 'timeline' ? null : 'timeline')}
+        >
+          <span className="gf-bn-icon" aria-hidden>◈</span>
+          <span className="gf-bn-label">הסיפור</span>
         </button>
-        <button type="button" className="play-nav-btn" onClick={() => setSheet('history')}>
-          הקריירה
+        <button
+          type="button"
+          className={`gf-bn-btn${sheet === null ? ' gf-bn-active' : ''}`}
+          aria-current={sheet === null ? 'page' : undefined}
+          onClick={() => setSheet(null)}
+        >
+          <span className="gf-bn-icon" aria-hidden>⌂</span>
+          <span className="gf-bn-label">בית</span>
         </button>
-        <button type="button" className="play-nav-btn" onClick={() => setSheet('people')}>
-          האנשים שלי
+        <button
+          type="button"
+          className={`gf-bn-btn${sheet === 'history' ? ' gf-bn-active' : ''}`}
+          aria-current={sheet === 'history' ? 'page' : undefined}
+          onClick={() => setSheet(sheet === 'history' ? null : 'history')}
+        >
+          <span className="gf-bn-icon" aria-hidden>≡</span>
+          <span className="gf-bn-label">הקריירה</span>
         </button>
-        <button type="button" className="play-nav-btn" onClick={() => setSheet('legacy')}>
-          מורשת
+        <button
+          type="button"
+          className={`gf-bn-btn${sheet === 'people' || sheet === 'legacy' ? ' gf-bn-active' : ''}`}
+          aria-current={sheet === 'people' ? 'page' : undefined}
+          onClick={() => setSheet(sheet === 'people' ? 'legacy' : 'people')}
+        >
+          <span className="gf-bn-icon" aria-hidden>☗</span>
+          <span className="gf-bn-label">מועדון</span>
         </button>
       </nav>
+      <div className="gf-bottomnav-spacer" aria-hidden />
 
       {/*
         The sheets render nothing at all while closed, so a fourteen-row table and a full career
