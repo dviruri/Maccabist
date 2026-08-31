@@ -1775,3 +1775,52 @@
   min-height: 0;
   align-content: center;
 }
+
+/*
+ * v0.9.4, Phase 7: the smoke was drowning the signing.
+ *
+ * `green-smoke` at the shared 0.8 turned an arrival at Bologna into a green screen with a maroon
+ * shirt somewhere in it - the club he has just joined was the one thing hardest to see. Confetti
+ * and star lights are sparse and stay where they are; smoke fills the frame, so it gets less.
+ */
+.gf-moment-overlay[src*="green-smoke"] { opacity: 0.45; }
+
+/*
+ * v0.9.4, Phase 7: the offer's headline was being CROPPED at short heights.
+ *
+ * `.gf-dec-hero` is a flex item in the detail column, so with space short it shrank below its own
+ * content - and its `overflow: hidden`, which exists to crop the player's legs, then cut 43px off
+ * the headline. Measured at 360x640: the headline wanted 122..296 and the hero stopped at 249, so
+ * "הצעה מטורינו" read "הצעה". Cropping a headline to make a screen fit is exactly what the brief
+ * forbids.
+ *
+ * Two changes: the hero never shrinks, and at short heights it has less to hold - the league and
+ * country line goes, because it is already one of the chips directly underneath.
+ */
+.gf-dec-hero { flex: none; }
+@media (max-height: 660px) {
+  .gf-dec-where { display: none; }
+  .gf-dec-crest { transform: scale(1.2); margin: 4px 0 2px; }
+}
+
+@media (max-height: 660px) {
+  /*
+   * v0.9.4, Phase 7: two collisions the screenshots found at 320x568.
+   *
+   * The matchday's "מה קרה במשחק" button is absolutely placed at the foot of the stage, and at
+   * this height the stage is 120px while a big moment is three lines of display type - so the
+   * button sat ON the words. The history is genuinely secondary (the scoreboard carries the score
+   * and the moment carries the event), so it stands down here rather than overlapping the thing it
+   * is a footnote to.
+   */
+  .gf-md-history-open { display: none; }
+  /*
+   * And the offer's detail region really does scroll at this height, so it says so: the last of it
+   * fades rather than ending flat, which is the only cue a user gets that the comparison and the
+   * agent's line are a short scroll below.
+   */
+  .gf-dec-body {
+    -webkit-mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
+  }
+}
