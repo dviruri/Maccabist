@@ -628,3 +628,13 @@
   text-align: center;
   gap: 10px;
 }
+
+/* ---- v0.9 phase 8: restrained motion ---- */
+.gf-md-numbers { animation: gf-score-pop var(--gf-t-enter) ease-out; }
+@keyframes gf-score-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); text-shadow: 0 0 26px rgba(41, 217, 106, 0.6); }
+  100% { transform: scale(1); }
+}
+.gf-feed-item:first-child { animation: gf-rise var(--gf-t-enter) ease-out; }
+.gf-showcase-card { animation: gf-rise var(--gf-t-enter) ease-out; }

@@ -84,7 +84,8 @@ export function MatchdayExperience({
             <div className="gf-md-minute">
               {revealed === 0 ? 'לפני שריקה' : done ? 'סיום' : <Ltr>{`'${lastMinute}`}</Ltr>}
             </div>
-            <div className="gf-md-numbers">
+            {/* keyed on the score so a goal retriggers the pulse - one beat, not a loop */}
+            <div className="gf-md-numbers" key={`${shownFor}:${shownAgainst}`}>
               <Ltr>
                 {shownFor}:{shownAgainst}
               </Ltr>
