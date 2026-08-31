@@ -1195,6 +1195,7 @@ export function Gallery(): JSX.Element {
       fromClub="מכבי חיפה"
     />],
     ['gf-home-focused', <CareerHomeScene career={{ ...seniorAtMaccabi(), phase: 'event' }} focused onOpenCareer={noop} />],
+    ['gf-hero-gk', <CinematicBackdrop backdrop="home-dark"><PlayerHero career={{ ...seniorAtMaccabi(), position: 'GK' }} /></CinematicBackdrop>],
     ['gf-hero-youth-gk', <CinematicBackdrop backdrop="training"><PlayerHero career={{ ...createCareer({ playerName: 'אורי דביר', position: 'GK', seed: 42 }), age: 11 }} /></CinematicBackdrop>],
     ['gf-moment', <MomentShell
       backdrop="trophy-ceremony"
