@@ -2,6 +2,8 @@ import { useState } from 'react';
 
 import { CareerTimeline } from '../components/CareerTimeline';
 import { CareerHomeScene } from '../components/CareerHome';
+import { MatchdayExperience } from '../components/Matchday';
+import { buildMatchday } from '../game/matchdayPresenter';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { EuropeCard } from '../components/EuropeCards';
@@ -288,8 +290,26 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
       );
     }
 
-    case 'mid_season':
+    case 'mid_season': {
+      /*
+       * v0.9: the matchday first, then the numbers. The presenter derives one representative
+       * match from the real first half; revealing it costs nothing and touches nothing - a save
+       * made mid-reveal resumes cleanly because the reveal is component state, exactly like the
+       * event reel above. The half summary keeps its own continue into the engine.
+       */
+      const matchdayKey = `md_${career.currentSeason}`;
+      // Academy halves and table-less contexts have no matchday to present - the summary must
+      // render directly, or this phase would show nothing and strand the player.
+      if (buildMatchday(career) && !revealed.includes(matchdayKey)) {
+        return (
+          <MatchdayExperience
+            career={career}
+            onContinue={() => setRevealed((seen) => [...seen, matchdayKey])}
+          />
+        );
+      }
       return <MidSeasonCard career={career} onContinue={actions.continueMidSeason} />;
+    }
 
     case 'season_result':
       return <SeasonResultCard career={career} onContinue={actions.continueSeason} />;

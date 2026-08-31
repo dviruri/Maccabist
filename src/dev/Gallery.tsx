@@ -14,6 +14,7 @@ import { CareerTimeline } from '../components/CareerTimeline';
 import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
 import { EuropeCard, EuropeJourneySummary } from '../components/EuropeCards';
 import { CareerHomeScene } from '../components/CareerHome';
+import { MatchdayExperience } from '../components/Matchday';
 import { CinematicBackdrop, MomentShell, PlayerHero } from '../components/gamefeel';
 import { getMomentArt } from '../ui/playerArt';
 import { CareerJourney } from '../components/SeasonCardV2';
@@ -1148,6 +1149,7 @@ export function Gallery(): JSX.Element {
       focused={false}
       onOpenCareer={noop}
     />],
+    ['gf-matchday', <MatchdayExperience career={midSeasonCareer()} onContinue={noop} />],
     ['gf-home-focused', <CareerHomeScene career={{ ...seniorAtMaccabi(), phase: 'event' }} focused onOpenCareer={noop} />],
     ['gf-hero-youth-gk', <CinematicBackdrop backdrop="training"><PlayerHero career={{ ...createCareer({ playerName: 'אורי דביר', position: 'GK', seed: 42 }), age: 11 }} /></CinematicBackdrop>],
     ['gf-moment', <MomentShell
