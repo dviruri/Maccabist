@@ -17,7 +17,10 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.1 — State Integrity.** v0.9.1 fixes continuity found in
+**Current stable release: v0.9.2 — Compact Game UI.** v0.9.2 puts the domestic cup final at the
+end of the season where it belongs, and tightens the presentation into a game: close upper-body
+player heroes, a dominant scoreboard, one focused match moment at a time, and a denser career
+home (`V092_REPORT.md`). **v0.9.1 — State Integrity:** v0.9.1 fixes continuity found in
 playtesting (one authoritative match fixture shared by every screen, current vs next-season
 European state kept apart, parent-club crest inheritance), makes matchday a dedicated
 full-screen experience, and completes the deferred v0.9 items — signing and debut ceremonies,
