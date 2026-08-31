@@ -17,7 +17,14 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.2 — Compact Game UI.** v0.9.2 puts the domestic cup final at the
+**Current stable release: v0.9.3 — One Screen Game Flow.** v0.9.3 makes the main career flow
+behave like a game rather than a long web page: every primary screen — home, matchday, career
+decision, major moment — fits one viewport at 320x568 through 430x932, matchday became a
+four-state machine showing one state at a time, a decision owns the screen with no home content
+under it, the career player is drawn on his own big moments, and each navigation button opens
+exactly one destination. It also fixes a real presentation bug playtesting found: the scoreboard
+could pair a number with the wrong club, because the pairing was left to RTL text direction
+(`V093_REPORT.md`). **v0.9.2 — Compact Game UI:** v0.9.2 puts the domestic cup final at the
 end of the season where it belongs, and tightens the presentation into a game: close upper-body
 player heroes, a dominant scoreboard, one focused match moment at a time, and a denser career
 home (`V092_REPORT.md`). **v0.9.1 — State Integrity:** v0.9.1 fixes continuity found in

@@ -13,13 +13,13 @@ import {
 import { CareerTimeline } from '../components/CareerTimeline';
 import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
 import { EuropeCard, EuropeJourneySummary } from '../components/EuropeCards';
-import { CareerHomeScene } from '../components/CareerHome';
+import { CareerFeedFull, CareerHomeScene } from '../components/CareerHome';
 import { DecisionScreen } from '../components/DecisionScreen';
 import { CareerMomentScreen } from '../components/CareerMoments';
 import { JourneyTimeline, TrophyShowcase } from '../components/JourneyTimeline';
 import { MatchdayExperience } from '../components/Matchday';
 import { buildMatchday } from '../game/matchdayPresenter';
-import { CinematicBackdrop, MomentShell, PlayerHero } from '../components/gamefeel';
+import { CinematicBackdrop, GameSectionTitle, MomentShell, PlayerHero } from '../components/gamefeel';
 import { getMomentArt, getTrophyArt } from '../ui/playerArt';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { TrophyCabinet } from '../components/TrophyCabinet';
@@ -1120,6 +1120,23 @@ export function Gallery(): JSX.Element {
     /* v0.5: the people screen, with every relationship populated so the layout is stressed. */
     ['sheet-people', <Sheet open title="האנשים שלי" onClose={noop}>
       <PeopleCard career={peopleCareer()} />
+    </Sheet>],
+    /*
+     * v0.9.3, Phase 6: the two destinations that GAINED content, as sheets. Worth their own
+     * scenes because "one button, one destination" is checked by a test but composition is not.
+     */
+    ['sheet-club', <Sheet open title="המועדון שלי" onClose={noop}>
+      <div className="stack">
+        <PeopleCard career={peopleCareer()} />
+        <GameSectionTitle>מורשת מכבי</GameSectionTitle>
+        <LegacyCard career={legacyCareer()} />
+      </div>
+    </Sheet>],
+    ['sheet-story', <Sheet open title="סיפור הקריירה" onClose={noop}>
+      <div className="stack">
+        <CareerFeedFull career={midSeasonCareer()} />
+        <CareerTimeline career={retiredLegend()} defaultOpen />
+      </div>
     </Sheet>],
     /* v0.6: the legacy screen, on a career deep enough to light every section. */
     ['sheet-legacy', <Sheet open title="מורשת מכבי" onClose={noop}>
