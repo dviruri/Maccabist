@@ -17,7 +17,12 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.0 — Game Feel.** v0.9 rebuilds the presentation layer around a
+**Current stable release: v0.9.1 — State Integrity.** v0.9.1 fixes continuity found in
+playtesting (one authoritative match fixture shared by every screen, current vs next-season
+European state kept apart, parent-club crest inheritance), makes matchday a dedicated
+full-screen experience, and completes the deferred v0.9 items — signing and debut ceremonies,
+bottom navigation, restyled poster and the 36-club European standings (`V091_REPORT.md`).
+**v0.9.0 — Game Feel:** v0.9 rebuilds the presentation layer around a
 cinematic career experience: a player hero home, a staged matchday reveal, full-screen career
 decisions, a life-story journey timeline, an art trophy room, big-moment ceremonies and
 European nights (`V09_REPORT.md`). **v0.8 — Europe:** v0.8 adds a real European club competition
