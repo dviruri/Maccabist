@@ -2247,6 +2247,15 @@ export interface ArchivedCareer {
   trophies: Trophy[];
   honors: IndividualHonor[];
   achievements: Achievement[];
+  /**
+   * The career's own rng seed (v0.9.4). Optional, because archives written before v0.9.4 have
+   * none.
+   *
+   * Presentation only, and for exactly one thing: a goalkeeper's kit colour is a stable hash of
+   * (seed, club, season), so without the seed the share poster would put a retired keeper in a
+   * different shirt from the one his career was played in. An outfield kit does not depend on it.
+   */
+  seed?: number;
   /** The strongest 4-8 major milestones, chosen at archive time. */
   highlights: Milestone[];
   /**

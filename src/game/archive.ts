@@ -130,6 +130,12 @@ export function buildArchivedCareer(career: Career): ArchivedCareer {
   return {
     archiveId: career.id,
     archivedAt: Date.now(),
+    /*
+     * v0.9.4, presentation only: a goalkeeper's kit colour is a stable hash of (seed, club,
+     * season), so the share poster needs the seed to put a retired keeper in the shirt his career
+     * was actually played in. Nothing reads it for gameplay.
+     */
+    seed: career.seed,
     playerName: career.playerName,
     position: career.position,
     startSeason: career.startSeason,

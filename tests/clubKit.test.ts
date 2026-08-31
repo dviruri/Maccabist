@@ -262,6 +262,77 @@ describe('the recolour touches the kit and nothing else', () => {
   });
 });
 
+describe('v0.9.4 Phase 5: one component, and the right club on every screen', () => {
+  const read = (file: string): string =>
+    stripComments(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+
+  it('routes every character presentation through PlayerRender', () => {
+    /*
+     * Club recolouring applied separately in five places is five chances for the same player to be
+     * wearing two different shirts. Only PlayerRender resolves character art for the DOM; the
+     * poster is the one exception and it is a canvas, where CSS compositing does not exist.
+     */
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+        entry.isDirectory() ? walk(path.join(dir, entry.name)) : [path.join(dir, entry.name)],
+      );
+    const offenders = [
+      ...walk(path.join(ROOT, 'src/components')),
+      ...walk(path.join(ROOT, 'src/pages')),
+    ]
+      .filter((file) => file.endsWith('.tsx') && !file.endsWith('PlayerRender.tsx'))
+      .filter((file) => {
+        const text = stripComments(fs.readFileSync(file, 'utf8'));
+        return text.includes('getCareerPlayerArt') || text.includes('resolvePlayerArt');
+      });
+    expect(offenders).toEqual([]);
+  });
+
+  it('shows the CURRENT club on a transfer offer, never the destination', () => {
+    /*
+     * He has not signed anything. Putting him in the destination's shirt while he is still deciding
+     * would tell him the decision was already made - and the arrival ceremony, which fires after he
+     * accepts, is where the new shirt is supposed to land.
+     */
+    const decision = read('src/components/DecisionScreen.tsx');
+    const render = decision.slice(decision.indexOf('<PlayerRender'));
+    const props = render.slice(0, render.indexOf('/>'));
+    expect(props).toContain('clubId={career.currentClubId}');
+    expect(props).not.toContain('offer.clubId');
+  });
+
+  it('switches to the NEW club only once the move has happened', () => {
+    // The arrival moment fires at the first preseason AFTER the move, so currentClubId is already
+    // the new club by then - the reveal is a consequence of the transfer, not a preview of it.
+    const moments = read('src/components/CareerMoments.tsx');
+    const arrival = moments.slice(moments.indexOf('export function deriveArrivalMoment'));
+    expect(arrival.slice(0, arrival.indexOf('\n}'))).toContain('kitClubId: career.currentClubId');
+  });
+
+  it('never changes the matchday shirt for the venue or the reading direction', () => {
+    const matchday = read('src/components/Matchday.tsx');
+    const render = matchday.slice(matchday.indexOf('<PlayerRender'));
+    const props = render.slice(0, render.indexOf('/>'));
+    expect(props).toContain('clubId={career.currentClubId}');
+    expect(props).not.toContain('fixture.home');
+    expect(props).not.toContain('homeClubId');
+  });
+
+  it('composites the same kit onto the share poster, where CSS cannot reach', () => {
+    const poster = read('src/services/posterRenderer.ts');
+    expect(poster).toContain('resolvePlayerKit');
+    expect(poster).toContain('garmentMask');
+    /* Mask first, club colour into it, then screened on - the canvas spelling of the CSS. */
+    expect(poster).toContain("'source-in'");
+    expect(poster).toContain("'screen'");
+  });
+
+  it('archives the seed, so a retired goalkeeper keeps his colour', () => {
+    const archive = read('src/game/archive.ts');
+    expect(archive).toContain('seed: career.seed');
+  });
+});
+
 function hueDegrees(r: number, g: number, b: number): number {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);

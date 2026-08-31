@@ -5,9 +5,10 @@ import { withHebrewPrefix } from '../game/identity';
 import { EXPECTED_ROLE_LABELS } from '../game/marketEngine';
 import type { Career, TransferOffer } from '../types';
 import { roleText } from '../ui/format';
-import { getCareerPlayerArt, getPersonArt } from '../ui/playerArt';
+import { getPersonArt } from '../ui/playerArt';
 import { ClubCrest } from './ClubCrest';
 import { CinematicBackdrop, GameButton } from './gamefeel';
+import { PlayerRender } from './PlayerRender';
 import { DIRECTION_LABELS } from './OffersCard';
 import { Sheet } from './Sheet';
 
@@ -104,7 +105,7 @@ export function DecisionScreen({
 }): JSX.Element {
   const [index, setIndex] = useState(0);
   const [details, setDetails] = useState(false);
-  const heroArt = getCareerPlayerArt({ age: career.age, position: career.position });
+
   const offer = offers[Math.min(index, offers.length - 1)]!;
   const mandatory = offers.some((o) => o.mandatory);
   const agent = career.people?.agent;
@@ -140,7 +141,21 @@ export function DecisionScreen({
             player himself as an upper-body crop on the left - the home hero's technique.
           */}
           <div className="gf-dec-hero">
-          <img className="gf-dec-art" src={heroArt} alt="" aria-hidden loading="eager" />
+          {/*
+            His CURRENT club's colours, not the offer's (v0.9.4).
+
+            He has not signed anything. Putting him in Torino's shirt while he is still deciding
+            whether to join Torino would tell him the decision was already made - and the arrival
+            ceremony, which fires after he accepts, is where the new shirt is supposed to land.
+          */}
+          <PlayerRender
+            className="gf-dec-art"
+            age={career.age}
+            position={career.position}
+            clubId={career.currentClubId}
+            seed={career.seed}
+            season={career.currentSeason}
+          />
           <div className="gf-dec-headline">
             {/*
               No separate club line here: the crest names the club and so does the headline, and

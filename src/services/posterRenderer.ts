@@ -1,7 +1,8 @@
 import { getClubCrest, clubVisual } from '../data/clubVisuals';
 import { HONOR_LABELS } from '../game/honorsEngine';
 import { trophyIconKind } from '../components/honorIcons';
-import { getCareerPlayerArt } from '../ui/playerArt';
+import { resolvePlayerArt } from '../ui/playerArt';
+import { resolvePlayerKit, type KitPalette } from '../ui/kit';
 import type { ArchivedCareer, IndividualHonorType } from '../types';
 
 /**
@@ -210,9 +211,30 @@ export async function renderCareerPoster(
     ctx.drawImage(backdrop, (w - bw) / 2, 0, bw, bh);
     ctx.restore();
   }
-  const art = await loadImage(
-    getCareerPlayerArt({ age: archive.retirementAge, position: archive.position, context: 'hero' }),
-  );
+  /*
+   * The player, and his kit (v0.9.4).
+   *
+   * The poster is a canvas, not the DOM, so `PlayerRender`'s CSS compositing is unavailable - but
+   * the rule it enforces is not optional here either. The same garment mask and the same club
+   * palette are applied with `globalCompositeOperation`, so the shared poster shows the shirt the
+   * game shows. A missing mask degrades to the artwork's own kit rather than to a coloured block.
+   */
+  const artInput = { age: archive.retirementAge, position: archive.position, context: 'hero' as const };
+  const resolved = resolvePlayerArt(artInput);
+  const art = await loadImage(resolved.src);
+  const kitMask = await loadImage(resolved.garmentMask);
+  const kit = resolvePlayerKit({
+    position: archive.position,
+    clubId: archive.finalClubId,
+    /*
+     * `seed` is optional on the archive: anything written before v0.9.4 has none. An outfield kit
+     * does not depend on it at all, and a pre-v0.9.4 goalkeeper simply gets a stable colour of his
+     * own rather than the one his live career used - which is the honest degradation, since the
+     * number to reproduce it was never stored.
+     */
+    seed: archive.seed ?? 0,
+    season: archive.endSeason,
+  });
 
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
@@ -367,6 +389,7 @@ export async function renderCareerPoster(
       ctx.shadowBlur = 46;
       ctx.drawImage(art, ax, ay, artW, artH);
       ctx.restore();
+      if (kitMask) drawKit(ctx, kitMask, kit, ax, ay, artW, artH);
       // a floor of light under his feet, so he is standing somewhere
       const floor = ctx.createRadialGradient(cx, h - (story ? 30 : 20), 6, cx, h - (story ? 30 : 20), artW * 0.7);
       floor.addColorStop(0, 'rgba(41, 217, 106, 0.22)');
@@ -386,4 +409,41 @@ export async function downloadCareerPoster(archive: ArchivedCareer, format: Post
   link.download = `maccabist_${archive.playerName}_${format}.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
+}
+
+/**
+ * The club kit, composited onto a canvas (v0.9.4).
+ *
+ * The DOM does this with `mask-image` and `mix-blend-mode: screen`; a canvas needs the same two
+ * steps written out. An offscreen canvas holds the mask, `source-in` fills it with the club's
+ * colour, and the result is screened onto the poster - so the shirt gets the colour, the fabric
+ * keeps its folds, and the mask keeps the colour off his face exactly as it does in the game.
+ */
+function drawKit(
+  ctx: CanvasRenderingContext2D,
+  mask: HTMLImageElement,
+  kit: KitPalette,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  const paint = (colour: string, alpha: number): void => {
+    const layer = document.createElement('canvas');
+    layer.width = Math.max(1, Math.round(w));
+    layer.height = Math.max(1, Math.round(h));
+    const lc = layer.getContext('2d');
+    if (!lc) return;
+    lc.drawImage(mask, 0, 0, layer.width, layer.height);
+    lc.globalCompositeOperation = 'source-in';
+    lc.fillStyle = colour;
+    lc.fillRect(0, 0, layer.width, layer.height);
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(layer, x, y, w, h);
+    ctx.restore();
+  };
+  paint(kit.primary, kit.strength);
+  if (kit.needsLift) paint(kit.secondary, 0.22);
 }

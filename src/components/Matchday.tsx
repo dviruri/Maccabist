@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { matchScoreViewAfter, matchVerdict, verdictLabel } from '../game/matchScore';
 import type { MatchMoment, MatchdayPresentation } from '../game/matchdayPresenter';
 import type { Career } from '../types';
-import { getCareerPlayerArt } from '../ui/playerArt';
 import { MatchScoreboard } from './MatchScoreboard';
+import { PlayerRender } from './PlayerRender';
 import { CinematicBackdrop, GameButton } from './gamefeel';
 import { Ltr } from './primitives';
 
@@ -94,11 +94,12 @@ export function MatchdayExperience({
    */
   const view = matchScoreViewAfter(fixture, moments, revealed);
   const isKeeper = career.position === 'GK';
-  const art = getCareerPlayerArt({
-    age: career.age,
-    position: career.position,
-    context: done && matchday.played ? (isKeeper ? 'save' : 'celebration') : 'hero',
-  });
+  /*
+   * The pose changes with the state; the KIT never does (v0.9.4). He wears his club's colours at
+   * kickoff, at half time and at full time, home or away - a shirt that changed with the venue or
+   * with the reading direction would be the same class of lie as a reversed scoreline.
+   */
+  const context = done && matchday.played ? (isKeeper ? 'save' : 'celebration') : 'hero';
 
   /*
    * Pacing (v0.9.1): ONE meaningful moment per primary tap - v0.9 advanced two, which made the
@@ -153,7 +154,15 @@ export function MatchdayExperience({
           behind the state text, which is why the text carries its own shadow.
         */}
         <div className={`gf-md-stage gf-md-stage-${state}`}>
-          <img className="gf-md-art" src={art} alt="" aria-hidden />
+          <PlayerRender
+            className="gf-md-art"
+            age={career.age}
+            position={career.position}
+            clubId={career.currentClubId}
+            seed={career.seed}
+            season={career.currentSeason}
+            context={context}
+          />
 
           {state === 'preview' && (
             <p className="gf-md-status">
