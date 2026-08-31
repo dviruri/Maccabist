@@ -272,10 +272,16 @@ export function deriveCareerFeed(career: Career): FeedItem[] {
     if (item && item.text && !items.some((existing) => existing.text === item.text)) items.push(item);
   };
 
+  /*
+   * Priority order (v0.9.3). The home screen shows only the first two, so the order became a
+   * product decision rather than a cosmetic one: the agent's business and the coach's read are
+   * what a player acts on, the club's own state is context, and media colour is the last thing
+   * that should displace either. `clubItem` moved above `mediaItem` for exactly that reason.
+   */
   push(agentItem(career));
   push(coachItem(career));
-  push(mediaItem(career));
   push(clubItem(career));
+  push(mediaItem(career));
 
   if (items.length < 4) {
     const milestone = [...career.milestones]

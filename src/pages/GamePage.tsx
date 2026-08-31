@@ -39,7 +39,7 @@ import { clubDisplayName } from '../game/identity';
 import { currentTable } from '../game/leagueEngine';
 import type { GameActions } from '../state/useGame';
 import type { Career } from '../types';
-import { headlineTitle, olderGroupLine, seasonLabel, seasonPhaseSteps } from '../ui/format';
+import { olderGroupLine, seasonLabel, seasonPhaseSteps } from '../ui/format';
 
 interface Props {
   career: Career;
@@ -156,26 +156,28 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         lesson, kept). CompactHub's information lives on in the hero; the full PlayerHub still
         opens from the same tap.
       */}
+      {/*
+        v0.9.3, Phase 2: HOME IS ONE SCREEN.
+
+        The league strip, the Europe card and the season-phase strip used to sit here, under the
+        home scene and above the season's active state - three blocks of secondary information
+        between the player and the thing he came to do. Measured at 390x844 the document wanted
+        1096px.
+
+        They are not gone; they moved to the destinations they already had. The league situation
+        is a chip on the home scene that opens the table sheet, where `SeasonStrip` now renders
+        above the table itself. Europe is a chip that opens the Europe sheet, where the full
+        `EuropeCard` now renders above the 36-club standings. Nothing is duplicated: each fact
+        has exactly one full rendering, in exactly one place.
+      */}
       <CareerHomeScene
         career={career}
         focused={FOCUSED_PHASES.has(career.phase)}
         onOpenCareer={() => setSheet('history')}
+        onOpenTable={() => setSheet('table')}
+        onOpenEurope={() => setSheet('europe')}
+        onOpenFeed={() => setSheet('timeline')}
       />
-      <SeasonStrip career={career} onOpenTable={() => setSheet('table')} />
-
-      {/*
-        v0.8: the season's European situation, when there is one. Qualifying is summer football,
-        so by the time the league starts this card can tell the whole summer story - including
-        where each defeat dropped us - and state the autumn honestly.
-      */}
-      <EuropeCard career={career} onOpenStandings={() => setSheet('europe')} />
-
-      {/*
-        The five-dot season-phase strip is gone from here (v0.4.7). Its one piece of information -
-        which part of the season this is - is now a word inside SeasonStrip, and it kept an academy
-        career's context too, where there is no league table for the strip to show.
-      */}
-      {!career.retired && !currentTable(career) && <SeasonProgress career={career} />}
 
       <main className="play-main">
         <PhaseView career={career} actions={actions} />
@@ -249,12 +251,26 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         subtitle={table ? `מחזור ${table.rows[0]?.played ?? ''}` : undefined}
         onClose={close}
       >
+        {/*
+          v0.9.3: the season strip leads the table sheet. It is the same component that used to
+          sit on the home screen - what the table MEANS, above what it says - and it carries the
+          Maccabi line for a player who is somewhere else, which the home chip cannot.
+        */}
+        <SeasonStrip career={career} onOpenTable={() => undefined} />
+        {!career.retired && !table && <SeasonProgress career={career} />}
         <LeagueTableCard career={career} defaultOpen inSheet />
       </Sheet>
 
       {/* v0.5, Phase 27: the people screen - one tap away, never above the active event. */}
       {/* v0.9.1: the 36-club league-phase tables, one tap from the Europe card. */}
-      <Sheet open={sheet === 'europe'} title="שלב הליגה באירופה" onClose={close}>
+      <Sheet open={sheet === 'europe'} title="אירופה" onClose={close}>
+        {/*
+          v0.8: the season's European situation. Qualifying is summer football, so by the time
+          the league starts this card can tell the whole summer story - including where each
+          defeat dropped us - and state the autumn honestly. v0.9.3 moved it off the home screen
+          to here, in front of the 36-club table it was always the summary of.
+        */}
+        <EuropeCard career={career} onOpenStandings={() => setSheet('europe')} />
         <EuropeStandings career={career} />
       </Sheet>
 
@@ -449,28 +465,35 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
   }
 }
 
+/**
+ * The season's one action (v0.9.3, Phase 2).
+ *
+ * This was a card: a kicker, a title, a paragraph, a chip and a button - 204px on the home
+ * screen, and every line of it said something the screen already said. The title was the club
+ * (in the hero) and the season (in the topbar); the paragraph was flavour on a beat the player
+ * passes through thirty times in a career.
+ *
+ * What survives is what is genuinely once-only or genuinely new: the first preseason of a
+ * career, which happens exactly once and deserves its sentence, and the older-age-group chip,
+ * which is a real change in the player's situation. Everything else is the button - which is the
+ * point of the beat, and now the only obvious thing on the screen to press.
+ */
 function PreSeasonCard({ career, onStart }: { career: Career; onStart: () => void }): JSX.Element {
   const older = olderGroupLine(career);
   const first = career.seasonHistory.length === 0;
 
   return (
-    <article className="card">
-      <div className="stack">
-        <div className="kicker">{first ? 'הצעד הראשון' : 'לפני העונה'}</div>
-        <h2 className="card-title">
-          {headlineTitle(career)} · <Ltr>{seasonLabel(career.currentSeason)}</Ltr>
-        </h2>
-        <p className="card-body">
-          {first
-            ? 'האימון הראשון שלך במגרשי האימונים של מכבי חיפה. מכאן זו דרך ארוכה מאוד.'
-            : `עוד עונה במדים הירוקים. אתה בן ${career.age}.`}
+    <div className="play-action">
+      {first && (
+        <p className="play-action-line">
+          האימון הראשון שלך במגרשי האימונים של מכבי חיפה. מכאן זו דרך ארוכה מאוד.
         </p>
-        {older && <Chip>{older}</Chip>}
-        <button type="button" className="btn btn-primary" onClick={onStart}>
-          להתחיל את העונה
-        </button>
-      </div>
-    </article>
+      )}
+      {older && <Chip>{older}</Chip>}
+      <button type="button" className="btn btn-primary" onClick={onStart}>
+        להתחיל את העונה
+      </button>
+    </div>
   );
 }
 

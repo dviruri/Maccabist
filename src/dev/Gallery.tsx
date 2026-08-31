@@ -808,6 +808,19 @@ const loanOffers = (): Career['pendingOffers'] => [
   },
 ];
 
+/**
+ * The home screen's own state (v0.9.3): a settled senior career at the start of a season, with
+ * a real projection behind it - no event pending, so the home is the full scene rather than the
+ * compact hero a decision collapses it to.
+ */
+const homeCareer = (): Career => ({
+  ...tableCareer(MACCABI_ID, 3),
+  phase: 'preseason',
+  seasonPoint: 'preseason',
+  seasonHistory: [seasonRecord()],
+  lastSeasonRecord: seasonRecord(),
+});
+
 const midSeasonCareer = (): Career => {
   const base = tableCareer(MACCABI_ID, 3);
   return {
@@ -964,7 +977,8 @@ function useOverflowProbe(enabled: boolean, pinnedWidth: string | null, need: st
           if (!el) return `${selector}=NONE`;
           const r = el.getBoundingClientRect();
           if (r.width === 0 && r.height === 0) return `${selector}=HIDDEN`;
-          return r.top >= -1 && r.bottom <= vh + 1 ? `${selector}=OK` : `${selector}=CUT(${Math.round(r.top)}..${Math.round(r.bottom)})`;
+          const where = `${Math.round(r.top)}..${Math.round(r.bottom)}`;
+          return r.top >= -1 && r.bottom <= vh + 1 ? `${selector}=OK(${where})` : `${selector}=CUT(${where})`;
         })
         .join(' ');
 
@@ -1203,6 +1217,20 @@ export function Gallery(): JSX.Element {
       career={{ ...tableCareer(MACCABI_ID, 1), seasonPoint: 'midseason', firstHalfStats: { appearances: 12, starts: 11, goals: 6, assists: 3, cleanSheets: 0, goalsConceded: 0, rating: 67, injuredGames: 0 } }}
       focused={false}
       onOpenCareer={noop}
+      onOpenTable={noop}
+      onOpenEurope={noop}
+      onOpenFeed={noop}
+    />],
+    /*
+     * v0.9.3: the WHOLE home screen, not just its scene - topbar, hero, status, next match,
+     * feed, the season's own action and the bottom nav, exactly as the game assembles them.
+     * The one-screen claim is about this, so this is what the viewport audit measures.
+     */
+    ['gf-play-home', <GamePage career={homeCareer()} actions={noopActions} onExit={noop} />],
+    ['gf-play-home-euro', <GamePage
+      career={{ ...homeCareer(), ...europeanSeasonCareer(), phase: 'preseason', seasonPoint: 'preseason' }}
+      actions={noopActions}
+      onExit={noop}
     />],
     ['gf-matchday', <MatchdaySceneDemo />],
     ['gf-matchday-ft', <MatchdaySceneDemo revealAll />],
@@ -1238,7 +1266,14 @@ export function Gallery(): JSX.Element {
       onDecline={noop}
       fromClub="מכבי חיפה"
     />],
-    ['gf-home-focused', <CareerHomeScene career={{ ...seniorAtMaccabi(), phase: 'event' }} focused onOpenCareer={noop} />],
+    ['gf-home-focused', <CareerHomeScene
+      career={{ ...seniorAtMaccabi(), phase: 'event' }}
+      focused
+      onOpenCareer={noop}
+      onOpenTable={noop}
+      onOpenEurope={noop}
+      onOpenFeed={noop}
+    />],
     ['gf-hero-gk', <CinematicBackdrop backdrop="home-dark"><PlayerHero career={{ ...seniorAtMaccabi(), position: 'GK' }} /></CinematicBackdrop>],
     ['gf-hero-youth-gk', <CinematicBackdrop backdrop="training"><PlayerHero career={{ ...createCareer({ playerName: 'אורי דביר', position: 'GK', seed: 42 }), age: 11 }} /></CinematicBackdrop>],
     ['gf-moment', <MomentShell

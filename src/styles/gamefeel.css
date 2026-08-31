@@ -373,27 +373,42 @@
   background:
     linear-gradient(to bottom, rgba(6, 9, 7, 0.2), rgba(6, 9, 7, 0.8)),
     var(--gf-glass);
-  padding: 12px 12px 10px;
+  /* v0.9.3: a strip, not a card. Same facts, roughly half the vertical cost. */
+  padding: 9px 12px 8px;
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 4px;
   text-align: center;
   box-shadow: inset 0 0 40px rgba(15, 166, 74, 0.08);
 }
 .gf-next-euro { border-color: rgba(120, 170, 255, 0.4); box-shadow: inset 0 0 44px rgba(90, 140, 255, 0.12); }
-.gf-next-title { font-size: var(--gf-section); font-weight: 900; letter-spacing: -0.01em; }
+/* the label and the when share one line instead of stacking two */
+.gf-next-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+.gf-next-title { font-size: var(--gf-body); font-weight: 900; letter-spacing: -0.01em; }
+.gf-next-when { color: var(--green-bright); font-weight: 900; font-size: var(--gf-meta); }
 .gf-next-clubs {
   display: flex;
   align-items: flex-start;
   justify-content: center;
   gap: 14px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 2px;
 }
+/*
+ * v0.9.3: crest BESIDE name, not above it. Stacked, a two-word Hebrew club name wrapped to a
+ * second line and the strip paid 25px for it on every home screen.
+ */
 .gf-next-club {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-weight: 900;
   font-size: clamp(13px, 3.8vw, 16px);
   flex: 1;
@@ -402,30 +417,29 @@
 }
 .gf-next-club span { overflow-wrap: anywhere; }
 .gf-next-vs {
-  font-size: clamp(24px, 7vw, 32px);
+  font-size: clamp(20px, 5.6vw, 26px);
   font-weight: 900;
   font-style: italic;
   color: #cfd8d2;
   text-shadow: 0 0 18px rgba(255, 255, 255, 0.25);
-  padding-top: 10px;
+  flex: none;
 }
 .gf-next-caption { color: var(--text-secondary); font-size: var(--gf-meta); }
-.gf-next-timing { color: var(--green-bright); font-weight: 900; font-size: var(--gf-body); }
 
 .gf-feed { display: grid; gap: 7px; }
 .gf-feed-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   background: var(--gf-glass);
   border: 1px solid var(--gf-glass-border);
   border-right: 3px solid rgba(41, 217, 106, 0.6);
   border-radius: 14px;
-  padding: 8px 10px;
+  padding: 7px 9px;
 }
 .gf-feed-face {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   flex: none;
@@ -433,7 +447,7 @@
 }
 .gf-feed-body { display: grid; gap: 2px; min-width: 0; }
 .gf-feed-role { font-size: 11.5px; font-weight: 900; color: var(--green-bright); }
-.gf-feed-text { margin: 0; font-size: var(--gf-body); line-height: 1.4; overflow-wrap: anywhere; }
+.gf-feed-text { margin: 0; font-size: var(--gf-body); line-height: 1.35; overflow-wrap: anywhere; }
 
 /* ---- v0.9 phase 3: matchday ---- */
 .gf-matchday .gf-scene-content { gap: 12px; }
@@ -1081,3 +1095,90 @@
   font-size: var(--gf-meta);
   text-align: center;
 }
+
+/* =====================================================================
+   v0.9.3 PHASE 2 — ONE-SCREEN CAREER HOME
+   Home summarises; it does not archive. The league strip and the Europe
+   card became one tappable chip each, the feed shows two lines, and the
+   hero gave back the height all of that needed.
+   ===================================================================== */
+
+/* the hero is still the subject, at a height that leaves room for a game */
+.gf-hero { min-height: clamp(176px, 21vh, 220px); }
+.gf-hero-compact { min-height: clamp(128px, 18vh, 158px); }
+
+/*
+ * The shell's own rhythm, on the play screen only.
+ *
+ * `.shell` gaps at var(--space-4) between four blocks is 60px of nothing on a phone. The scene
+ * carries its own internal spacing, so the seams between blocks can be tighter without any of
+ * them touching.
+ */
+.shell.play { gap: 9px; }
+
+.gf-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: flex-start;
+}
+.gf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--gf-glass-border);
+  background: var(--gf-glass);
+  color: var(--text-primary);
+  font-size: var(--gf-meta);
+  font-weight: 800;
+  min-width: 0;
+}
+.gf-chip-tap {
+  cursor: pointer;
+  border-color: rgba(41, 217, 106, 0.35);
+}
+.gf-chip-euro { border-color: rgba(120, 170, 255, 0.4); }
+.gf-chip-value {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--green-bright);
+  line-height: 1;
+}
+.gf-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* "עוד" is a link to the story sheet, not a fifth message card */
+.gf-feed-more {
+  justify-self: start;
+  background: none;
+  border: none;
+  color: var(--green-bright);
+  font-weight: 800;
+  font-size: var(--gf-meta);
+  padding: 2px;
+  min-height: 30px;
+  cursor: pointer;
+}
+
+/* the home scene breathes a little less than a document does */
+.play .gf-scene-content { gap: 9px; padding: 12px 12px 13px; }
+
+/*
+ * The home screen's single action. Not a card - a card here would be a bordered rectangle
+ * around one button, which is the "card inside card" habit this release is removing.
+ */
+.play-action {
+  display: grid;
+  justify-items: stretch;
+  gap: 8px;
+}
+.play-action-line {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--gf-body);
+  line-height: 1.4;
+  text-align: center;
+}
+.play-action .chip { justify-self: center; }
