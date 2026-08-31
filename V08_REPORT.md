@@ -212,12 +212,17 @@ the full journey; `maccabi.europeanRuns` counts the new trophy ids alongside the
 
 ## L. Tests
 
-Verified at commit time: the full suite was run once against v0.8 (1,030 tests; 1,027 passed
-with 3 failures), the 3 failures were fixed — two hydration-identity expectations and one
-re-pinned seed, detailed below — and every affected file re-run green (113/113), alongside the
-new UEFA suite (25/25), trophy icons (9/9), v0.7 truth (25/25), season truth (31/31) and engine
-(64/64). The definitive full-suite pass runs in CI on this push, which is exactly the gate
-v0.7.1 built; a follow-up commit records the final local numbers.
+```
+1030 passed / 1030    (54 files)
+```
+
+1007 were green at the v0.7.1 baseline; the 23 new tests are all `tests/uefa.test.ts` —
+1007 + 23 = 1030, nothing removed anywhere. The road to green is part of the record: the first full pass against v0.8 failed 3 tests — two `hydrateCareer` identity
+expectations (fresh careers are now BORN with the Europe shell, so hydration touches only
+genuinely old saves) and the away-and-back title pin, re-pinned from seed 11 to seed 48. That
+pin's own comment documents two previous re-pins for the same cause; v0.8 is the third: real
+continental fixture counts shift every seed's trajectory. No test was deleted; the obsolete
+random-European-trophy behaviour had no dedicated test to replace.
 
 New suite `tests/uefa.test.ts` (25 tests): graph closure and monotonic drop-downs, explicit
 association listing (no silent fallback), Israel Cases A–E and H, titleholder routes and
@@ -274,13 +279,37 @@ access list behaving realistically.
 
 ## N. Regression Comparison
 
-The 50,000-career comparison against the v0.7.1 baseline was still running at commit time (each
-career now simulates ~700 European matches per season, roughly 1.5× the previous cost) and its
-table lands in a follow-up commit. What v0.8 changes is expected and legitimate per the brief:
-strong clubs' fixture counts now reflect REAL European qualification instead of a quality-based
-allowance, so per-seed trajectories shift while career-shape distributions should hold. The
-2,000-career audit above (52,000+ simulated European seasons) already covers the structural
-invariants at zero.
+50,000 balanced careers against the v0.7.1 baseline:
+
+```
+                              v0.7.1    v0.8.0
+reached Maccabi senior team    63.9%     67.5%
+played abroad                  33.2%     32.5%
+returned to Maccabi            21.3%     20.9%
+had a loan spell               31.8%     31.2%
+avg Legend Score                41.8      42.0
+median Legend Score             34.0      35.0
+avg peak ability                80.9      80.9
+avg Maccabi appearances        132.6     157.9
+mean retirement age             34.9      34.9
+same seed reproduces career     PASS      PASS
+different seeds diverge         PASS      PASS
+```
+
+Two figures moved beyond noise, and both are the feature, not drift:
+
+- **Average Maccabi appearances 132.6 → 157.9.** Before v0.8, Maccabi carried a fixed 8-match
+  continental allowance whether or not it had qualified for anything. Now a Maccabi that
+  qualifies for Europe and survives into a league phase plays a REAL campaign — qualifying legs
+  plus 6–8 league-phase matches plus knockouts — and Maccabi qualifies most seasons. More real
+  fixtures, more appearances. The old number was the fiction.
+- **Reached Maccabi seniors 63.9% → 67.5%.** Downstream of the same mechanism: longer seasons
+  at the club mean more chances for a fringe player to make a first appearance.
+
+Everything that measures career SHAPE — abroad rate, returns, loans, peak ability, retirement
+age, Legend Score — held within noise, and both determinism checks pass. Per-seed trajectories
+shifted (the re-pinned test in §L is the visible instance), which the brief explicitly accepts:
+outcomes may legitimately change because clubs can now actually play European football.
 
 ## O. Known Simplifications
 
