@@ -1,7 +1,6 @@
-import { matchContext } from './matchEngine';
+import { activeFixture, type PresentationFixture } from './fixture';
 import { createRng, clamp, type Rng } from './random';
-import { levelContext } from './rules';
-import type { Career, MatchContext, Position } from '../types';
+import type { Career, Position } from '../types';
 
 /**
  * The matchday presenter (v0.9, Phase 3).
@@ -46,7 +45,8 @@ export interface MatchMoment {
 }
 
 export interface MatchdayPresentation {
-  context: MatchContext;
+  /** THE fixture (v0.9.1) - the same object the career home rendered. */
+  fixture: PresentationFixture;
   competitionLabel: string;
   /** Did the player take the pitch in this presentation - from real participation. */
   played: boolean;
@@ -58,6 +58,15 @@ export interface MatchdayPresentation {
   factsLine: string;
 }
 
+function hashString(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 function minuteRun(rng: Rng, count: number, from: number, to: number): number[] {
   const minutes = new Set<number>();
   while (minutes.size < count) minutes.add(rng.int(from, to));
@@ -65,15 +74,15 @@ function minuteRun(rng: Rng, count: number, from: number, to: number): number[] 
 }
 
 /** A plausible one-match score, seeded, leaning on the real table gap. */
-function presentScore(rng: Rng, context: MatchContext): { scoreFor: number; scoreAgainst: number } {
+function presentScore(rng: Rng, fixture: PresentationFixture): { scoreFor: number; scoreAgainst: number } {
   /*
    * The strength read is the real one: opponent's table position against the gap in points -
    * both live facts from the same table events use. Leading the head-to-head standing tilts
    * the presented score the way the season is actually tilted.
    */
-  const gap = context.pointsGap ?? 0;
+  const gap = fixture.pointsGap ?? 0;
   const edge = clamp(gap / 12, -0.8, 0.8);
-  const home = context.home ? 0.2 : -0.1;
+  const home = fixture.home ? 0.2 : -0.1;
   const mean = 1.35 + 0.55 * (edge + home);
   const draw = (m: number): number => {
     const u = rng.next();
@@ -102,16 +111,24 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
   if (career.seasonPoint !== 'midseason') return null;
   const half = career.firstHalfStats;
   if (!half) return null;
-  const context = matchContext(career, 'mid');
-  if (!context) return null;
+  /*
+   * v0.9.1: the opponent is no longer this module's opinion. `activeFixture` decided it, the
+   * home screen already showed it, and the reveal below only tells its story.
+   */
+  const fixture = activeFixture(career);
+  if (!fixture) return null;
 
-  const rng = createRng((career.seed ^ Math.imul(career.currentSeason, 2654435761) ^ 0x4d444159) >>> 0);
+  // Seeded on the FIXTURE identity, so the same match always tells the same story - and a
+  // different beat's match gets its own.
+  const rng = createRng(
+    (career.seed ^ Math.imul(career.currentSeason, 2654435761) ^ hashString(fixture.id)) >>> 0,
+  );
   const played = half.appearances > 0;
   const started = half.starts > 0 && rng.chance(clamp(half.starts / Math.max(1, half.appearances), 0, 1));
   const position: Position = career.position;
   const isKeeper = position === 'GK';
 
-  let { scoreFor, scoreAgainst } = presentScore(rng, context);
+  let { scoreFor, scoreAgainst } = presentScore(rng, fixture);
 
   /* A keeper with a real clean sheet this half gets one honest clean-sheet night sometimes. */
   if (isKeeper && played && half.cleanSheets > 0 && rng.chance(0.6)) scoreAgainst = 0;
@@ -174,8 +191,8 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
     : `בסיבוב הראשון: ${half.appearances} הופעות · ${half.goals} שערים · ${half.assists} בישולים`;
 
   return {
-    context,
-    competitionLabel: context.isDerby && context.rivalryName ? context.rivalryName : levelContext(career).league,
+    fixture,
+    competitionLabel: fixture.competition,
     played,
     started,
     scoreFor,

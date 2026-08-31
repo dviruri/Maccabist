@@ -100,7 +100,8 @@ describe('matchday honesty', () => {
   it('presents a real opponent from the real table', () => {
     const matchday = buildMatchday(midSeason('ST', 11));
     expect(matchday).not.toBeNull();
-    expect(matchday!.context.opponentClubId).not.toBe(MACCABI_ID);
-    expect(matchday!.context.opponentName.length).toBeGreaterThan(0);
+    // v0.9.1: the matchday holds THE fixture, not its own opponent.
+    expect(matchday!.fixture.opponentClubId).not.toBe(MACCABI_ID);
+    expect(matchday!.fixture.opponentName.length).toBeGreaterThan(0);
   });
 });

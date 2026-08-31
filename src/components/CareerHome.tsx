@@ -1,10 +1,8 @@
-import { QUALIFYING_GRAPH, UEFA_COMPETITIONS } from '../data/uefa';
-import { rivalryBetween } from '../data/rivalries';
+import { UEFA_COMPETITIONS } from '../data/uefa';
 import { stageConfig } from '../data/academy';
-import { clubDisplayName } from '../game/identity';
-import { currentTable } from '../game/leagueEngine';
+import { activeFixture } from '../game/fixture';
 import { isInAcademy } from '../game/rules';
-import type { Career, EuropeanStep } from '../types';
+import type { Career } from '../types';
 import { getPersonArt, type PersonRole } from '../ui/playerArt';
 import { ClubCrest } from './ClubCrest';
 import { CinematicBackdrop, GameSectionTitle, PlayerHero } from './gamefeel';
@@ -35,116 +33,65 @@ import { CinematicBackdrop, GameSectionTitle, PlayerHero } from './gamefeel';
 /* The next chapter                                                    */
 /* ------------------------------------------------------------------ */
 
-interface NextChapter {
-  kicker: string;
-  homeId: string;
-  homeName: string;
-  awayId: string;
-  awayName: string;
-  caption: string;
-  timing: string;
-  euro?: boolean;
-}
-
-/** The season's next real chapter, in priority order: cup final → European tie → league rival. */
-export function deriveNextChapter(career: Career): NextChapter | null {
-  const clubId = career.currentClubId;
-  const clubName = clubDisplayName(clubId);
-
-  /* A cup final the state has committed to, not yet settled. */
-  const cup = career.world.cup;
-  if (
-    cup &&
-    cup.season === career.currentSeason &&
-    cup.finalOpponentId &&
-    (cup.run === 'winners' || cup.run === 'runner_up') &&
-    career.seasonPoint !== 'season_end'
-  ) {
-    return {
-      kicker: cup.trophyId === 'youth_cup' ? 'גביע הנוער — הגמר' : 'גביע המדינה — הגמר',
-      homeId: clubId,
-      homeName: clubName,
-      awayId: cup.finalOpponentId,
-      awayName: clubDisplayName(cup.finalOpponentId),
-      caption: 'משחק אחד על תואר',
-      timing: career.seasonPoint === 'midseason' ? 'בהמשך העונה' : 'לקראת סוף העונה',
-    };
-  }
-
-  /* A European knockout tie from the stored journey - a real opponent, a real stage. */
-  const journey = career.world.europe?.current?.playerJourney;
-  if (journey && journey.season === career.currentSeason && journey.clubId === clubId) {
-    const knockout = journey.steps.find(
-      (step): step is Extract<EuropeanStep, { kind: 'tie' }> =>
-        step.kind === 'tie' && !(step.tie.stage in QUALIFYING_GRAPH),
-    );
-    if (knockout && career.seasonPoint !== 'season_end') {
-      return {
-        kicker: UEFA_COMPETITIONS[knockout.tie.competition].name,
-        homeId: clubId,
-        homeName: clubName,
-        awayId: knockout.tie.opponentId,
-        awayName: knockout.tie.opponentName,
-        caption: 'לילה אירופי',
-        timing: 'באביב',
-        euro: true,
-      };
-    }
-  }
-
-  /* The league: the player's real position against the nearest real rival in the same table. */
-  const table = currentTable(career);
-  if (table) {
-    const row = table.rows.find((r) => r.clubId === clubId);
-    if (row) {
-      const rival =
-        table.rows.find((r) => r.position === row.position - 1) ??
-        table.rows.find((r) => r.position === row.position + 1);
-      if (rival) {
-        const derby = rivalryBetween(clubId, rival.clubId);
-        return {
-          kicker: derby ? derby.name : 'המשחק הגדול הבא',
-          homeId: clubId,
-          homeName: clubName,
-          awayId: rival.clubId,
-          awayName: rival.name,
-          caption: `מקום ${row.position} נגד מקום ${rival.position}`,
-          timing:
-            career.seasonPoint === 'preseason'
-              ? 'פתיחת העונה'
-              : career.seasonPoint === 'midseason'
-                ? 'בהמשך המחזור'
-                : 'סיום העונה',
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
+/**
+ * The next-match hero, rendered from THE fixture (v0.9.1).
+ *
+ * v0.9 derived its own opponent here - the nearest table rival - while the matchday derived a
+ * different one. Both are gone: `activeFixture` is the single answer, so the crest the player
+ * sees on the home screen is the crest he sees after kickoff, always.
+ */
 function NextChapterHero({ career }: { career: Career }): JSX.Element | null {
-  const next = deriveNextChapter(career);
-  if (!next) return null;
+  const fixture = activeFixture(career);
+  if (!fixture) return null;
+
+  const caption =
+    fixture.kind === 'cup_final'
+      ? 'משחק אחד על תואר'
+      : fixture.kind === 'european'
+        ? 'לילה אירופי'
+        : fixture.playerPosition !== null && fixture.opponentPosition !== null
+          ? `מקום ${fixture.playerPosition} נגד מקום ${fixture.opponentPosition}`
+          : fixture.opponentPosition !== null
+            ? `היריבה במקום ${fixture.opponentPosition}`
+            : fixture.home
+              ? 'בבית'
+              : 'בחוץ';
+
+  const timing =
+    fixture.kind === 'cup_final'
+      ? career.seasonPoint === 'midseason'
+        ? 'בהמשך העונה'
+        : 'לקראת סוף העונה'
+      : fixture.kind === 'european'
+        ? 'באביב'
+        : career.seasonPoint === 'preseason'
+          ? 'פתיחת העונה'
+          : career.seasonPoint === 'midseason'
+            ? 'בהמשך המחזור'
+            : 'סיום העונה';
+
   return (
-    <div className={`gf-next${next.euro ? ' gf-next-euro' : ''}`}>
+    <div className={`gf-next${fixture.kind === 'european' ? ' gf-next-euro' : ''}`}>
       <div className="gf-next-title">המשחק הבא</div>
-      <div className="gf-kicker">{next.kicker}</div>
+      <div className="gf-kicker">
+        {fixture.competition}
+        {fixture.stage ? ` · ${fixture.stage}` : ''}
+      </div>
       <div className="gf-next-clubs">
         <div className="gf-next-club">
-          <ClubCrest clubId={next.homeId} name={next.homeName} size="large" />
-          <span>{next.homeName}</span>
+          <ClubCrest clubId={fixture.playerClubId} name={fixture.playerClubName} size="large" />
+          <span>{fixture.playerClubName}</span>
         </div>
         <span className="gf-next-vs" aria-hidden>
           VS
         </span>
         <div className="gf-next-club">
-          <ClubCrest clubId={next.awayId} name={next.awayName} size="large" />
-          <span>{next.awayName}</span>
+          <ClubCrest clubId={fixture.opponentClubId} name={fixture.opponentName} size="large" />
+          <span>{fixture.opponentName}</span>
         </div>
       </div>
-      <div className="gf-next-caption">{next.caption}</div>
-      <div className="gf-next-timing">{next.timing}</div>
+      <div className="gf-next-caption">{caption}</div>
+      <div className="gf-next-timing">{timing}</div>
     </div>
   );
 }

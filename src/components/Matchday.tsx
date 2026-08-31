@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 
-import { clubDisplayName } from '../game/identity';
 import { buildMatchday, type MatchMoment } from '../game/matchdayPresenter';
 import type { Career } from '../types';
 import { getCareerPlayerArt } from '../ui/playerArt';
@@ -46,7 +45,7 @@ export function MatchdayExperience({
   const [revealed, setRevealed] = useState(0);
   if (!matchday) return null;
 
-  const { context, moments } = matchday;
+  const { fixture, moments } = matchday;
   const total = moments.length;
   const done = revealed >= total;
   const visible = moments.slice(0, revealed);
@@ -63,7 +62,7 @@ export function MatchdayExperience({
   }
   const lastMinute = visible[visible.length - 1]?.minute ?? 0;
 
-  const clubName = clubDisplayName(career.currentClubId);
+  const clubName = fixture.playerClubName;
   const isKeeper = career.position === 'GK';
   const art = getCareerPlayerArt({
     age: career.age,
@@ -77,7 +76,7 @@ export function MatchdayExperience({
         <div className="gf-kicker">יום המשחק · {matchday.competitionLabel}</div>
         <div className="gf-md-board">
           <div className="gf-md-club">
-            <ClubCrest clubId={career.currentClubId} size="large" />
+            <ClubCrest clubId={fixture.playerClubId} name={clubName} size="large" />
             <span>{clubName}</span>
           </div>
           <div className="gf-md-score">
@@ -92,15 +91,20 @@ export function MatchdayExperience({
             </div>
           </div>
           <div className="gf-md-club">
-            <ClubCrest clubId={context.opponentClubId} name={context.opponentName} size="large" />
-            <span>{context.opponentName}</span>
+            <ClubCrest clubId={fixture.opponentClubId} name={fixture.opponentName} size="large" />
+            <span>{fixture.opponentName}</span>
           </div>
         </div>
-        {context.opponentPosition !== null && (
-          <div className="gf-md-caption">
-            {context.home ? 'בבית' : 'בחוץ'} · היריבה במקום <Ltr>{context.opponentPosition}</Ltr>
-          </div>
-        )}
+        <div className="gf-md-caption">
+          {fixture.home ? 'בבית' : 'בחוץ'}
+          {fixture.stage ? ` · ${fixture.stage}` : ''}
+          {fixture.opponentPosition !== null && (
+            <>
+              {' · היריבה במקום '}
+              <Ltr>{fixture.opponentPosition}</Ltr>
+            </>
+          )}
+        </div>
       </div>
 
       {revealed === 0 && (
