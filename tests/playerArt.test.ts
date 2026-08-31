@@ -76,6 +76,31 @@ describe('context fallbacks', () => {
   });
 });
 
+describe('the v0.9 palette rules hold (v0.9.1 regression)', () => {
+  it('the game-feel stylesheet uses no red for prestige', () => {
+    const css = fs.readFileSync(path.join(ROOT, 'src/styles/gamefeel.css'), 'utf8');
+    // The one allowed warm colour is the destructive-action text, which is not prestige UI.
+    const allowed = new Set(['#e58f8f']);
+    for (const match of css.matchAll(/#([0-9a-fA-F]{6})/g)) {
+      if (allowed.has(match[0]!.toLowerCase())) continue;
+      const [r, g, b] = [0, 2, 4].map((i) => parseInt(match[1]!.slice(i, i + 2), 16)) as [number, number, number];
+      expect(r > g * 1.4 && r > b * 1.4, `red-dominant colour ${match[0]} in gamefeel.css`).toBe(false);
+    }
+  });
+
+  it('resolves character art only from the neutral pack folders', () => {
+    // The pack's character palette is black/pink/purple/blue by construction; the guarantee the
+    // code can make is that it never reaches outside those folders for a player render.
+    for (const age of [10, 16, 25]) {
+      for (const position of ['GK', 'ST'] as const) {
+        const art = getCareerPlayerArt({ age, position });
+        expect(art).toContain('/assets/gamefeel/players/');
+        expect(art).toMatch(/\/(youth|teen|adult)\//);
+      }
+    }
+  });
+});
+
 describe('no concept sample content leaks into production code', () => {
   it('keeps the reference-image sample strings out of src/', () => {
     const walk = (dir: string): string[] =>

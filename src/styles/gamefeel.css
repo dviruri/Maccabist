@@ -767,3 +767,30 @@
   cursor: pointer;
   width: 100%;
 }
+
+/* ---- v0.9.1 phase 7: integrating art that carries its own background ----
+   The moment/transfer/retirement sources are full scenes, not cutouts, so drawn flat they read
+   as pasted rectangles. Rather than regenerate artwork, the edges are dissolved into the scene:
+   a soft-light blend lets the backdrop show through, a radial mask fades the corners, and a
+   slight scale-up hides the hard frame beyond the mask. Character art is NOT treated this way -
+   it is already cut out, and blending it would dull the palette. */
+.gf-moment-art {
+  -webkit-mask-image: radial-gradient(ellipse 72% 68% at 50% 46%, #000 58%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 68% at 50% 46%, #000 58%, transparent 100%);
+  mix-blend-mode: screen;
+  transform: scale(1.04);
+}
+/* trophies and awards are transparent PNGs already - keep them crisp and unblended */
+.gf-moment-art[src*="/trophies/"],
+.gf-moment-art[src*="/awards/"] {
+  -webkit-mask-image: none;
+  mask-image: none;
+  mix-blend-mode: normal;
+  transform: none;
+}
+.gf-retire-scene .gf-moment-art {
+  -webkit-mask-image: radial-gradient(ellipse 70% 62% at 50% 42%, #000 52%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 62% at 50% 42%, #000 52%, transparent 100%);
+}
+/* the feed faces are photographic crops - a ring and a soft inner edge seat them in the panel */
+.gf-feed-face { box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.55); }
