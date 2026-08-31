@@ -4,7 +4,7 @@ import { europeanStatusLine } from '../game/europeStatus';
 import { EXPECTED_ROLE_LABELS } from '../game/marketEngine';
 import type { Career, TransferOffer } from '../types';
 import { roleText } from '../ui/format';
-import { getPersonArt } from '../ui/playerArt';
+import { getCareerPlayerArt, getPersonArt } from '../ui/playerArt';
 import { ClubCrest } from './ClubCrest';
 import { CinematicBackdrop, GameButton } from './gamefeel';
 import { DIRECTION_LABELS } from './OffersCard';
@@ -78,6 +78,8 @@ export function DecisionScreen({
   fromClub: string;
 }): JSX.Element {
   const [index, setIndex] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+  const heroArt = getCareerPlayerArt({ age: career.age, position: career.position });
   const offer = offers[Math.min(index, offers.length - 1)]!;
   const mandatory = offers.some((o) => o.mandatory);
   const agent = career.people?.agent;
@@ -92,19 +94,31 @@ export function DecisionScreen({
         <div className="gf-dec-kind">{KIND_LABEL[offer.kind]}</div>
       </div>
 
-      {/* the offer as a headline, in the offer's own words - real engine copy */}
+      {/*
+        v0.9.2: the decision leads with the club and the headline, with the player beside them -
+        an upper-body crop, the same technique as the other heroes. The facts follow as a short
+        essential set; the rest opens on a tap, so microcopy never dominates the choice.
+      */}
       <div className="gf-dec-hero">
-        <ClubCrest clubId={offer.clubId} name={offer.clubName} size="large" className="gf-dec-crest" />
-        <h1 className="gf-dec-title">{offer.title}</h1>
-        <p className="gf-dec-desc">{offer.description}</p>
+        <img className="gf-dec-art" src={heroArt} alt="" aria-hidden loading="eager" />
+        <div className="gf-dec-headline">
+          <ClubCrest clubId={offer.clubId} name={offer.clubName} size="large" className="gf-dec-crest" />
+          <h1 className="gf-dec-title">{offer.title}</h1>
+        </div>
       </div>
+      <p className="gf-dec-desc">{offer.description}</p>
 
       <div className="gf-glass gf-dec-facts">
         <FactRow label="מסגרת" value={offer.league} />
-        <FactRow label="מדינה" value={offer.country} />
         {offer.expectedRole && <FactRow label="תפקיד צפוי" value={EXPECTED_ROLE_LABELS[offer.expectedRole]} />}
         {europe && <FactRow label="אירופה" value={europe} />}
-        {direction && <FactRow label="כיוון" value={direction} />}
+        {showAll && <FactRow label="מדינה" value={offer.country} />}
+        {showAll && direction && <FactRow label="כיוון" value={direction} />}
+        {(!showAll && (direction || offer.country)) && (
+          <button type="button" className="gf-dec-more" onClick={() => setShowAll(true)}>
+            עוד פרטים ›
+          </button>
+        )}
       </div>
 
       {agent && (

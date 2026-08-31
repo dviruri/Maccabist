@@ -902,3 +902,66 @@
   font-weight: 700;
   color: var(--gold);
 }
+
+/* ---- v0.9.2 phase 4: decision composition ---- */
+.gf-dec-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  min-height: clamp(170px, 27vh, 230px);
+  overflow: hidden;
+}
+/* upper-body crop, same technique as the home hero */
+.gf-dec-art {
+  position: absolute;
+  top: 0;
+  left: -12%;
+  width: 58%;
+  height: auto;
+  transform-origin: 50% 8%;
+  transform: scale(1.6);
+  filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.75));
+  pointer-events: none;
+  z-index: var(--z-art);
+  -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
+}
+.gf-dec-headline {
+  grid-column: 1;
+  position: relative;
+  z-index: var(--z-panel);
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  text-align: right;
+  padding-bottom: 4px;
+}
+.gf-dec-title {
+  margin: 0;
+  font-size: clamp(24px, 7vw, 36px);
+  font-weight: 900;
+  line-height: 1.05;
+  text-shadow: 0 3px 20px rgba(0, 0, 0, 0.9);
+  overflow-wrap: anywhere;
+}
+.gf-dec-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+}
+.gf-dec-more {
+  background: none;
+  border: none;
+  color: var(--green-bright);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 9px 0 2px;
+  min-height: 40px;
+  cursor: pointer;
+  text-align: right;
+}
+.gf-dec-side-title { font-size: clamp(15px, 4.4vw, 19px); }
+.gf-dec-actions .gf-btn { font-size: clamp(17px, 5vw, 21px); min-height: 58px; }
