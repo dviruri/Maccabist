@@ -19,7 +19,7 @@ import { historicalLeagueId, seasonFixtures } from './leagueTruth';
 import { legacySegment } from './segmentEngine';
 import { evaluateSeasonHonors } from './honorsEngine';
 import { emptyEuropeState, resolveNextEntries } from './uefaEngine';
-import { UEFA_COMPETITIONS } from '../data/uefa';
+import { UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
 
 /** Hebrew competition name, for milestone copy. */
 function uefaCompetitionName(id: keyof typeof UEFA_COMPETITIONS): string {
@@ -817,7 +817,7 @@ function advanceSeasonFlow(career: Career): Career {
           next = addMilestone(next, {
             id: `european_trophy_${euro.season}`,
             icon: '🏆',
-            text: `זכייה ב${uefaCompetitionName(euro.wonCompetition)}`,
+            text: `זכייה ${inCompetition(uefaCompetitionName(euro.wonCompetition))}`,
             major: true,
           });
         }

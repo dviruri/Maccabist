@@ -4,6 +4,7 @@ import { CareerTimeline } from '../components/CareerTimeline';
 import { CareerHomeScene } from '../components/CareerHome';
 import { MatchdayExperience } from '../components/Matchday';
 import { buildMatchday } from '../game/matchdayPresenter';
+import { CareerMomentScreen, deriveSeasonMoments } from '../components/CareerMoments';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { EuropeCard } from '../components/EuropeCards';
@@ -313,8 +314,25 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
       return <MidSeasonCard career={career} onContinue={actions.continueMidSeason} />;
     }
 
-    case 'season_result':
+    case 'season_result': {
+      /*
+       * v0.9: the season's big moments interrupt BEFORE the numbers - a championship must not
+       * look like another card. Each real moment (typed trophy, stored journey, the world's own
+       * relegation) shows once via the same revealed-keys mechanism as the event reel; the
+       * summary then follows with its own continue into the engine.
+       */
+      const moments = deriveSeasonMoments(career);
+      const pending = moments.find((moment) => !revealed.includes(moment.key));
+      if (pending) {
+        return (
+          <CareerMomentScreen
+            moment={pending}
+            onContinue={() => setRevealed((seen) => [...seen, pending.key])}
+          />
+        );
+      }
       return <SeasonResultCard career={career} onContinue={actions.continueSeason} />;
+    }
 
     case 'progression':
       return <ProgressionCard career={career} onContinue={actions.continueProgression} />;

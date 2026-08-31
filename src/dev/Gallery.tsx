@@ -15,10 +15,11 @@ import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
 import { EuropeCard, EuropeJourneySummary } from '../components/EuropeCards';
 import { CareerHomeScene } from '../components/CareerHome';
 import { DecisionScreen } from '../components/DecisionScreen';
+import { CareerMomentScreen } from '../components/CareerMoments';
 import { JourneyTimeline, TrophyShowcase } from '../components/JourneyTimeline';
 import { MatchdayExperience } from '../components/Matchday';
 import { CinematicBackdrop, MomentShell, PlayerHero } from '../components/gamefeel';
-import { getMomentArt } from '../ui/playerArt';
+import { getMomentArt, getTrophyArt } from '../ui/playerArt';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { TrophyCabinet } from '../components/TrophyCabinet';
 import { buildArchivedCareer } from '../game/archive';
@@ -1152,6 +1153,29 @@ export function Gallery(): JSX.Element {
       onOpenCareer={noop}
     />],
     ['gf-matchday', <MatchdayExperience career={midSeasonCareer()} onContinue={noop} />],
+    ['gf-moment-uefa', <CareerMomentScreen
+      moment={{
+        key: 'demo',
+        backdrop: 'europe-night',
+        overlay: 'star-lights',
+        art: getTrophyArt('conference-generic'),
+        kicker: 'עונת 2049/50 · מכבי חיפה',
+        title: 'זכייה בקונפרנס ליג!',
+        subtitle: 'הלילה הזה ייכנס להיסטוריה.',
+      }}
+      onContinue={noop}
+    />],
+    ['gf-moment-relegation', <CareerMomentScreen
+      moment={{
+        key: 'demo2',
+        backdrop: 'home-dark',
+        art: getMomentArt('relegation'),
+        kicker: 'עונת 2044/45 · הפועל חדרה',
+        title: 'ירידת ליגה.',
+        subtitle: 'ערב קשה. מה שתעשה מחר יגדיר אותך.',
+      }}
+      onContinue={noop}
+    />],
     ['gf-journey', <div className="card"><JourneyTimeline seasons={buildArchivedCareer(retiredLegend()).seasons} honors={galleryHonors()} /></div>],
     ['gf-showcase', <div className="card"><TrophyShowcase trophies={retiredLegend().trophies} honors={galleryHonors()} /></div>],
     ['gf-decision', <DecisionScreen

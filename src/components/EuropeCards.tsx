@@ -1,5 +1,5 @@
 import { getCompetitionAsset } from '../data/competitionAssets';
-import { QUALIFYING_GRAPH, LEAGUE_PHASE, LP_DROP_TARGETS, UEFA_COMPETITIONS } from '../data/uefa';
+import { QUALIFYING_GRAPH, LEAGUE_PHASE, LP_DROP_TARGETS, UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
 import type { Career, EuropeanJourney, EuropeanStep, EuropeanTie, UefaCompetitionId } from '../types';
 import { CompetitionMark } from './honorIcons';
 import { Ltr } from './primitives';
@@ -169,7 +169,7 @@ export function EuropeJourneySummary({ journey }: { journey: EuropeanJourney }):
             return (
               <div key={index} className="euro-journey-line euro-champion-line">
                 <CompetitionBadge competition={step.competition} size={18} />
-                🏆 זכייה ב{UEFA_COMPETITIONS[step.competition].name}
+                🏆 זכייה {inCompetition(UEFA_COMPETITIONS[step.competition].name)}
               </div>
             );
           default:

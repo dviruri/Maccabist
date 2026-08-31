@@ -45,6 +45,15 @@ export interface UefaCompetition {
   tier: 1 | 2 | 3;
 }
 
+/**
+ * "ב" + a competition name, with correct Hebrew: the definite ה assimilates into the
+ * preposition (בַּ), so it is "בליגה האירופית" and "בקונפרנס ליג" - never "בהליגה". Found by a
+ * v0.9 screenshot; the v0.8 milestone text carried the same slip.
+ */
+export function inCompetition(name: string): string {
+  return name.startsWith('ה') ? `ב${name.slice(1)}` : `ב${name}`;
+}
+
 export const UEFA_COMPETITIONS: Record<UefaCompetitionId, UefaCompetition> = {
   uefa_champions_league: {
     id: 'uefa_champions_league',
