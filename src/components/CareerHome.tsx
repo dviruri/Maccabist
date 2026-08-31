@@ -1,6 +1,6 @@
 import { deriveCareerFeed } from '../game/careerFeed';
 import { getPersonArt } from '../ui/playerArt';
-import { activeFixture } from '../game/fixture';
+import { activeFixture, knownCupFinal } from '../game/fixture';
 import { isInAcademy } from '../game/rules';
 import type { Career } from '../types';
 import { ClubCrest } from './ClubCrest';
@@ -41,6 +41,7 @@ import { CinematicBackdrop, GameSectionTitle, PlayerHero } from './gamefeel';
  */
 function NextChapterHero({ career }: { career: Career }): JSX.Element | null {
   const fixture = activeFixture(career);
+  const teasedFinal = knownCupFinal(career);
   if (!fixture) return null;
 
   const caption =
@@ -91,6 +92,16 @@ function NextChapterHero({ career }: { career: Career }): JSX.Element | null {
       </div>
       <div className="gf-next-caption">{caption}</div>
       <div className="gf-next-timing">{timing}</div>
+      {/*
+        v0.9.2: the cup final is committed early and played last. It may be TEASED here - the
+        club knows who it would meet - but the fixture above stays the season's actual next
+        match, because known is not active.
+      */}
+      {teasedFinal && fixture.kind !== 'cup_final' && (
+        <div className="gf-next-tease">
+          🏆 {teasedFinal.competition}: {teasedFinal.opponentName} — בסיום העונה
+        </div>
+      )}
     </div>
   );
 }

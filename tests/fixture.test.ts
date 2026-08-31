@@ -82,10 +82,26 @@ describe('the home screen and the matchday cannot disagree', () => {
 });
 
 describe('stored competitions outrank the generic league beat', () => {
-  it('a committed cup final names the engine’s own final opponent', () => {
+  it('a committed cup final names the engine’s own final opponent - at the final beat', () => {
+    /*
+     * v0.9.2 changed this case deliberately. In v0.9.1 a committed final was active the moment
+     * it was known, which put the final in the middle of the season; the rule now is that the
+     * final is known early and played last. The assertion moved with the rule - the final still
+     * names the engine's own opponent and still overrides the league pairing, but only at the
+     * season's final beat. Mid-season non-eligibility is covered by seasonSequencing.test.ts.
+     */
     const base = midSeason('ST', 5);
     const career: Career = {
       ...base,
+      seasonPoint: 'season_end',
+      phase: 'season_result',
+      lastSeasonRecord: {
+        ...base,
+        season: base.currentSeason,
+        clubId: base.currentClubId,
+        clubName: 'מכבי חיפה',
+        stats: base.firstHalfStats!,
+      } as never,
       world: {
         ...base.world,
         cup: {

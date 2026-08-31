@@ -33,10 +33,20 @@ import type { Career, EuropeanStep, MatchContext, UefaCompetitionId } from '../t
  * the generic league beat, because presenting a generic league opponent while the engine holds
  * a committed cup final would be the same lie in a different costume.
  *
- * Between the two stored kinds the order is: cup final, then European tie. Both are true, so
- * the ordering is a presentation choice rather than a correctness one - the final is a single
- * match that decides a trophy this season, and it is the rarer state to be in. It is fixed and
- * documented here so it cannot drift into being decided differently by two screens.
+ * ## Known is not active (v0.9.2)
+ *
+ * A cup final is COMMITTED at preseason - the engine decides the run and the opponent then - so
+ * the club can know in November who it would meet in the final. v0.9.1 treated committed as
+ * playable and the final turned up mid-season, ahead of ordinary league football. It is now
+ * gated by season sequencing:
+ *
+ *   early / mid season   → league beat (or an active European tie)
+ *   final season beat    → the domestic cup final, if the club reached it
+ *   after that           → settlement, ceremonies, summary
+ *
+ * `knownCupFinal` exposes the committed final for the home screen to TEASE - "גמר הגביע מחכה
+ * בסיום העונה" - without `activeFixture` ever claiming it is today's match. The domestic cup
+ * final is always the last playable match of a season.
  */
 
 export type FixtureKind = 'league' | 'cup_final' | 'european';
@@ -75,6 +85,32 @@ export interface PresentationFixture {
  * Deterministic in the career: the same career state always yields the same fixture, which is
  * exactly what makes the home/matchday invariant testable.
  */
+/**
+ * The committed cup final, whenever it is known - which may be months before it is played.
+ *
+ * Presentation may say it is coming; only `activeFixture` decides whether it is on today.
+ */
+export function knownCupFinal(career: Career): { opponentId: string; opponentName: string; competition: string } | null {
+  const cup = career.world.cup;
+  if (!cup || cup.season !== career.currentSeason || !cup.finalOpponentId) return null;
+  if (cup.run !== 'winners' && cup.run !== 'runner_up') return null;
+  return {
+    opponentId: cup.finalOpponentId,
+    opponentName: clubDisplayName(cup.finalOpponentId),
+    competition: cup.trophyId === 'youth_cup' ? 'גביע הנוער' : 'גביע המדינה',
+  };
+}
+
+/**
+ * The last playable beat of the season.
+ *
+ * Settlement is where the season's football has finished and its story is told, so the final is
+ * played here - after the league campaign, before the ceremonies and the summary.
+ */
+export function isFinalSeasonBeat(career: Career): boolean {
+  return career.phase === 'season_result' && career.seasonPoint === 'season_end';
+}
+
 export function activeFixture(career: Career): PresentationFixture | null {
   const playerClubId = career.currentClubId;
   const playerClubName = clubDisplayName(playerClubId);
@@ -91,21 +127,20 @@ export function activeFixture(career: Career): PresentationFixture | null {
     awayClubId: partial.home ? partial.opponentClubId : playerClubId,
   });
 
-  /* ---- 1. A committed cup final: a real stored opponent ---- */
-  const cup = career.world.cup;
-  if (
-    cup &&
-    cup.season === season &&
-    cup.finalOpponentId &&
-    (cup.run === 'winners' || cup.run === 'runner_up') &&
-    career.seasonPoint !== 'season_end'
-  ) {
+  /*
+   * ---- 1. The domestic cup final - ONLY at the final beat (v0.9.2) ----
+   *
+   * Known earlier, played last. Everything before this point in the season belongs to the
+   * league and to Europe.
+   */
+  const final = knownCupFinal(career);
+  if (final && isFinalSeasonBeat(career)) {
     return build({
       id: `cup_final_${season}`,
       kind: 'cup_final',
-      competition: cup.trophyId === 'youth_cup' ? 'גביע הנוער' : 'גביע המדינה',
-      opponentClubId: cup.finalOpponentId,
-      opponentName: clubDisplayName(cup.finalOpponentId),
+      competition: final.competition,
+      opponentClubId: final.opponentId,
+      opponentName: final.opponentName,
       // A final is played at a neutral venue - neither club is at home.
       home: false,
       stage: 'הגמר',
@@ -118,7 +153,7 @@ export function activeFixture(career: Career): PresentationFixture | null {
 
   /* ---- 2. A European tie from the stored journey ---- */
   const journey = career.world.europe?.current?.playerJourney;
-  if (journey && journey.season === season && journey.clubId === playerClubId && career.seasonPoint !== 'season_end') {
+  if (journey && journey.season === season && journey.clubId === playerClubId && !isFinalSeasonBeat(career)) {
     const knockout = journey.steps.find(
       (step): step is Extract<EuropeanStep, { kind: 'tie' }> =>
         step.kind === 'tie' && !(step.tie.stage in QUALIFYING_GRAPH),
@@ -141,7 +176,14 @@ export function activeFixture(career: Career): PresentationFixture | null {
     }
   }
 
-  /* ---- 3. The league beat ---- */
+  /*
+   * ---- 3. The league beat ----
+   *
+   * Not at the final beat: if the club reached the final, the final is the match; if it did not,
+   * the season's football is simply over and settlement follows with no extra fixture. Either
+   * way no league match may appear after the cup final.
+   */
+  if (isFinalSeasonBeat(career)) return null;
   const context = matchContext(career, currentPhase(career));
   if (!context) return null;
   const table = currentTable(career);

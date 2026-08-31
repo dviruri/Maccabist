@@ -108,15 +108,25 @@ const BIG_SAVE_TEXT = ['הצלה גדולה! בעיטה חזקה נעצרת', '�
  * Deterministic per (seed, season); returns null where there is no senior match to present.
  */
 export function buildMatchday(career: Career): MatchdayPresentation | null {
-  if (career.seasonPoint !== 'midseason') return null;
-  const half = career.firstHalfStats;
-  if (!half) return null;
   /*
    * v0.9.1: the opponent is no longer this module's opinion. `activeFixture` decided it, the
    * home screen already showed it, and the reveal below only tells its story.
    */
   const fixture = activeFixture(career);
   if (!fixture) return null;
+
+  /*
+   * Which football anchors this match (v0.9.2).
+   *
+   * A league beat is told from the first half the engine simulated. The cup final is played at
+   * settlement, so it is anchored to the SETTLED season - and its result is not a presentation
+   * choice at all: `world.cup.run` already says whether the club won or lost that final, and the
+   * scoreline below is made to agree with it.
+   */
+  const isCupFinal = fixture.kind === 'cup_final';
+  const half = isCupFinal ? (career.lastSeasonRecord?.stats ?? career.firstHalfStats) : career.firstHalfStats;
+  if (!half) return null;
+  if (!isCupFinal && career.seasonPoint !== 'midseason') return null;
 
   // Seeded on the FIXTURE identity, so the same match always tells the same story - and a
   // different beat's match gets its own.
@@ -130,6 +140,7 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
 
   let { scoreFor, scoreAgainst } = presentScore(rng, fixture);
 
+
   /* A keeper with a real clean sheet this half gets one honest clean-sheet night sometimes. */
   if (isKeeper && played && half.cleanSheets > 0 && rng.chance(0.6)) scoreAgainst = 0;
   /* An outfielder who actually scored this half scores in the presented match - his real goal. */
@@ -137,6 +148,18 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
   const showPlayerAssist = !isKeeper && played && half.assists > 0 && rng.chance(0.7);
   if (showPlayerGoal && scoreFor === 0) scoreFor = 1;
   if (showPlayerAssist && scoreFor < (showPlayerGoal ? 2 : 1)) scoreFor = showPlayerGoal ? 2 : 1;
+
+  /*
+   * The final's result is a stored fact, so the reveal is made to tell it - and this runs LAST,
+   * after the player's own goals have moved the score. Applied earlier, the goal adjustments
+   * above could push a lost final back to a draw, which is how the first version of this shipped
+   * a 2:2 "defeat". A cup won ends with the club ahead; a final lost ends behind.
+   */
+  if (isCupFinal) {
+    const won = career.world.cup?.run === 'winners';
+    if (won && scoreFor <= scoreAgainst) scoreFor = scoreAgainst + 1;
+    else if (!won && scoreFor >= scoreAgainst) scoreAgainst = scoreFor + 1;
+  }
 
   const moments: MatchMoment[] = [{ minute: 1, kind: 'kickoff', text: 'שריקת פתיחה', big: false }];
 
@@ -186,9 +209,10 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
   moments.push({ minute: 90, kind: 'full_time', text: 'שריקת סיום', big: false });
   moments.sort((a, b) => a.minute - b.minute || (a.kind === 'kickoff' ? -1 : 0));
 
+  const period = isCupFinal ? 'העונה' : 'בסיבוב הראשון';
   const factsLine = isKeeper
-    ? `בסיבוב הראשון: ${half.appearances} הופעות · ${half.cleanSheets} שערים נקיים`
-    : `בסיבוב הראשון: ${half.appearances} הופעות · ${half.goals} שערים · ${half.assists} בישולים`;
+    ? `${period}: ${half.appearances} הופעות · ${half.cleanSheets} שערים נקיים`
+    : `${period}: ${half.appearances} הופעות · ${half.goals} שערים · ${half.assists} בישולים`;
 
   return {
     fixture,

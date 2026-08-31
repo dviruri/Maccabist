@@ -104,7 +104,13 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
     );
   }
 
-  const matchday = career.phase === 'mid_season' ? buildMatchday(career) : null;
+  /*
+   * v0.9.2: the matchday screen serves two beats - the mid-season league match, and the domestic
+   * cup final at settlement, which `activeFixture` only makes active at the final beat. The
+   * final therefore plays after the league season and before the ceremonies below.
+   */
+  const matchday =
+    career.phase === 'mid_season' || career.phase === 'season_result' ? buildMatchday(career) : null;
   if (matchday && !matchdaysSeen.includes(matchday.fixture.id)) {
     return (
       <MatchdayExperience
