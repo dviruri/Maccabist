@@ -65,12 +65,17 @@ const SCENES = [
   { id: 'gf-matchday-live', bare: '1', need: ['.gf-board-num', '.gf-md-now', '.gf-btn-primary'] },
   { id: 'gf-matchday-half', bare: '1', need: ['.gf-board-num', '.gf-md-now', '.gf-btn-primary'] },
   { id: 'gf-matchday-ft', bare: '1', need: ['.gf-board-num', '.gf-md-ft', '.gf-btn-primary'] },
-  { id: 'gf-decision', bare: 'shell', need: ['.gf-dec-title', '.gf-dec-actions', '.gf-btn-primary'] },
+  /*
+   * `gf-decision` is deliberately NOT audited for height: it is the component on its own, with
+   * no topbar and no nav around it, so its document height is the harness's rather than the
+   * game's. `gf-play-decision` below is the real screen and is measured instead. The component
+   * scene stays in the gallery for screenshots.
+   */
   { id: 'gf-play-decision', bare: '1', need: ['.gf-dec-title', '.gf-btn-primary', '.gf-bottomnav'] },
   { id: 'gf-moment', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
-  { id: 'gf-moment-uefa', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
-  { id: 'gf-moment-relegation', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
-  { id: 'gf-moment-debut', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
+  { id: 'gf-moment-uefa', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
+  { id: 'gf-moment-relegation', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
+  { id: 'gf-moment-debut', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
 ];
 
 /** Safe area / rounding slack. A phone's own inset is legitimately a few pixels. */

@@ -1277,7 +1277,7 @@ export function Gallery(): JSX.Element {
     ['gf-matchday-live', <MatchdaySceneDemo at="live" />],
     ['gf-matchday-half', <MatchdaySceneDemo at="half_time" />],
     ['gf-matchday-ft', <MatchdaySceneDemo revealAll />],
-    ['gf-moment-uefa', <CareerMomentScreen
+    ['gf-moment-uefa', <div className="gf-moment-screen"><CareerMomentScreen
       career={seniorAtMaccabi()}
       moment={{
         key: 'demo',
@@ -1290,8 +1290,8 @@ export function Gallery(): JSX.Element {
         mood: 'celebration',
       }}
       onContinue={noop}
-    />],
-    ['gf-moment-relegation', <CareerMomentScreen
+    /></div>],
+    ['gf-moment-relegation', <div className="gf-moment-screen"><CareerMomentScreen
       career={{ ...seniorAtMaccabi(), currentClubId: 'hapoel_hadera' }}
       moment={{
         key: 'demo2',
@@ -1303,9 +1303,9 @@ export function Gallery(): JSX.Element {
         mood: 'hero',
       }}
       onContinue={noop}
-    />],
+    /></div>],
     /* A youth-band moment, so the age resolver's youth character is audited on a moment too. */
-    ['gf-moment-debut', <CareerMomentScreen
+    ['gf-moment-debut', <div className="gf-moment-screen"><CareerMomentScreen
       career={{ ...createCareer({ playerName: 'אורי דביר', position: 'ST', seed: 42 }), age: 17, academyStage: 'senior', currentClubId: MACCABI_ID }}
       moment={{
         key: 'demo3',
@@ -1318,7 +1318,7 @@ export function Gallery(): JSX.Element {
         mood: 'celebration',
       }}
       onContinue={noop}
-    />],
+    /></div>],
     ['gf-journey', <div className="card"><JourneyTimeline seasons={buildArchivedCareer(retiredLegend()).seasons} honors={galleryHonors()} /></div>],
     ['gf-showcase', <div className="card"><TrophyShowcase trophies={retiredLegend().trophies} honors={galleryHonors()} /></div>],
     ['gf-decision', <DecisionScreen

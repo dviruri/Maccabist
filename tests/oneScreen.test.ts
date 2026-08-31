@@ -155,7 +155,10 @@ describe('a decision owns the viewport', () => {
       expect(page, `${phase} is not a decision phase`).toContain(`'${phase}',`);
     }
     // The home scene is behind the guard, not beside it.
-    expect(page).toContain('{!DECISION_PHASES.has(career.phase) && (');
+    expect(page).toContain('const deciding = DECISION_PHASES.has(career.phase);');
+    expect(page).toContain('{!deciding && (');
+    // And the shell is exactly one viewport while a choice is on screen (Phase 8).
+    expect(page).toContain("deciding ? ' play-fixed' : ''");
   });
 
   it('keeps the bottom nav, so the table is still reachable before answering', () => {
@@ -322,6 +325,82 @@ ${selector} {`);
     expect(css).toContain('.gf-glass .gf-glass');
     // Deliberately NOT a blanket .card .card reset - that would reach legacy surfaces blind.
     expect(css).not.toContain('.card .card {');
+  });
+});
+
+describe('short viewports give way by showing less, not by shrinking', () => {
+  const css = read('src/styles/gamefeel.css');
+
+  it('has height tiers, because the one-screen rule is about height', () => {
+    for (const tier of ['max-height: 830px', 'max-height: 700px', 'max-height: 620px']) {
+      expect(css.includes(`@media (${tier})`), `no ${tier} tier`).toBe(true);
+    }
+  });
+
+  it('changes no font size inside any height tier', () => {
+    /*
+     * The brief's rule, enforced where it is easiest to break. Everything a short viewport does
+     * is remove content or tighten space; if a `font-size` ever appears inside one of these
+     * blocks, the release has started solving layout the forbidden way.
+     *
+     * Braces are counted rather than matched with a pattern - a media block contains nested
+     * rules, so no single expression closes it correctly.
+     */
+    let from = css.indexOf('@media (max-height:');
+    let checked = 0;
+    while (from > -1) {
+      const open = css.indexOf('{', from);
+      let depth = 0;
+      let i = open;
+      for (; i < css.length; i += 1) {
+        if (css[i] === '{') depth += 1;
+        if (css[i] === '}') {
+          depth -= 1;
+          if (depth === 0) break;
+        }
+      }
+      const body = css.slice(open, i);
+      expect(
+        body.includes('font-size'),
+        `a height tier changes a font size: ${body.slice(0, 200)}`,
+      ).toBe(false);
+      checked += 1;
+      from = css.indexOf('@media (max-height:', i);
+    }
+    expect(checked).toBeGreaterThanOrEqual(3);
+  });
+
+  it('scopes the home feed rules so the story destination keeps the whole feed', () => {
+    // Without the scope, dropping the second line on a 568px screen would truncate the full feed.
+    expect(css).toContain('.gf-feed-home');
+    expect(css).not.toMatch(/@media \(max-height[^{]*\{[^}]*\.gf-feed \.gf-feed-item/);
+  });
+
+  it('makes content reachable rather than hidden, wherever a region takes the scroll', () => {
+    /*
+     * The one thing the brief explicitly forbids: faking the measurement with overflow: hidden.
+     * Every region that absorbs height in a tier scrolls, so its content is still reachable.
+     */
+    for (const selector of ['.event-choices', '.gf-dec-body', '.gf-md-history-list']) {
+      const at = css.indexOf(selector);
+      expect(at, `${selector} missing`).toBeGreaterThan(0);
+      expect(css.slice(at, css.indexOf('}', at))).toContain('overflow-y: auto');
+    }
+  });
+
+  it('drops the app bottom padding on every screen that owns its viewport', () => {
+    /*
+     * The same 40px, found three times by measurement: 884 against 844 on the matchday, 608
+     * against 568 on the decision, and 40px of nothing under every screen with a bottom nav.
+     */
+    for (const rule of [
+      '.app:has(.gf-matchday-screen)',
+      '.app:has(.gf-moment-screen)',
+      '.app:has(.play-fixed)',
+      '.app:has(.gf-bottomnav)',
+    ]) {
+      expect(css.includes(rule), `${rule} is missing`).toBe(true);
+    }
   });
 });
 

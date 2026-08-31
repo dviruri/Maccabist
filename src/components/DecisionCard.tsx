@@ -462,7 +462,13 @@ export function DecisionCard({
         <h2 className="card-title">{event.title}</h2>
         <p className="card-body">{event.description}</p>
 
-        <div className="stack-sm" style={{ marginTop: 4 }}>
+        {/*
+          `event-choices` (v0.9.3, Phase 8). Named so a very short viewport can give the CHOICE
+          LIST its own scroll while the question above it stays put - see the max-height rules in
+          gamefeel.css. On a 568px-tall phone a four-choice event with odds cannot fit, and hiding
+          a choice would be worse than scrolling to it.
+        */}
+        <div className="stack-sm event-choices" style={{ marginTop: 4 }}>
           {event.choices.map((choice, index) => (
             <ChoiceBlock
               key={choice.id}

@@ -912,7 +912,16 @@
  * identically in all four matchday states, which is what gave the cause away.
  */
 .app:has(.gf-matchday-screen),
-.app:has(.gf-moment-screen) {
+.app:has(.gf-moment-screen),
+/* v0.9.3: a decision screen is one viewport too, and hit the same 40px exactly */
+.app:has(.play-fixed),
+/*
+ * And any screen carrying the fixed bottom navigation. The app's bottom padding exists so an
+ * ordinary page's last action clears a phone's home indicator - but the nav already honours
+ * `safe-area-inset-bottom` and `.gf-bottomnav-spacer` already clears the bar, so on those
+ * screens the padding is 40px of nothing at the bottom of every viewport.
+ */
+.app:has(.gf-bottomnav) {
   padding-bottom: 0;
 }
 .gf-matchday-screen .gf-scene-content {
@@ -1294,6 +1303,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-height: 100dvh;
 }
 .gf-decision-screen > .gf-scene {
   flex: 1;
@@ -1310,6 +1320,15 @@
 /* the actions sit at the bottom of the screen, not after the content */
 .gf-dec-actions { margin-top: auto; }
 
+/*
+ * A decision screen is exactly one viewport tall, so the region between the header and the
+ * controls can absorb the slack - or, when there is none, take the scroll itself.
+ */
+.shell.play.play-fixed {
+  height: 100dvh;
+  /* the fixed nav is out of flow; its spacer inside the column keeps content clear of it */
+  overflow: hidden;
+}
 /*
  * The main area of a decision phase fills what is left of the screen, so the choice's own
  * controls land at the bottom instead of wherever the content happened to end.
@@ -1336,6 +1355,11 @@
  */
 .gf-dec-desc {
   margin: 0;
+  /* a button, so the clamp's ellipsis leads to the sheet holding the rest */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   color: var(--text-secondary);
   font-size: var(--gf-body);
   line-height: 1.4;
@@ -1495,3 +1519,112 @@
  * padding on every screen.
  */
 .topbar.topbar-slim { padding: 7px 16px; }
+
+/* =====================================================================
+   v0.9.3 PHASE 8 — SHORT VIEWPORTS
+   The one-screen rule is about HEIGHT, so these are height queries, not
+   width ones. A 320x568 phone has 568px of viewport: 44 for the topbar,
+   62 for the navigation, and about 460 for a game.
+
+   The brief's instruction decides what gives way: REMOVE SECONDARY
+   INFORMATION, do not shrink the text. So nothing below changes a font
+   size. What it changes is how many things are on screen at once - and
+   everything it removes has a destination one tap away.
+   ===================================================================== */
+
+/* ---- <=830px tall: one feed line ---- */
+/*
+ * 360x800 and 375x812 are two of the commonest phones there are, and both are shorter than the
+ * 390x844 reference. The brief allows one OR two feed items; below 830px it is one, and עוד is
+ * right there. The offer's prose goes to two lines, with the full text in its sheet.
+ */
+@media (max-height: 830px) {
+  .shell.play { gap: 8px; }
+  .gf-scene-content { gap: 9px; padding: 12px 12px 13px; }
+  /* the second feed line moves behind עוד, which is still right there */
+  .gf-feed-home .gf-feed-item:nth-child(n + 2) { display: none; }
+  /* the offer's own words, two lines instead of three - the full text is in the sheet */
+  .gf-dec-desc { -webkit-line-clamp: 2; }
+}
+
+/* ---- <=700px tall: tighter seams, shorter stages ---- */
+@media (max-height: 700px) {
+  .shell.play { gap: 7px; }
+  .gf-scene-content { gap: 8px; padding: 11px 12px 12px; }
+  .topbar.topbar-slim { padding: 5px 14px; }
+  .gf-hero { min-height: 150px; }
+  .gf-hero-compact { min-height: 112px; }
+  .gf-dec-hero { min-height: 140px; }
+  .gf-md-stage { min-height: 120px; }
+}
+
+/* ---- <=620px tall: the hardest case (320x568) ---- */
+@media (max-height: 620px) {
+  /*
+   * The position-and-age line goes. It is the one piece of hero identity that is pure metadata -
+   * the name, the club and the ability rating all stay - and tapping the hero opens the career
+   * screen, where it lives in full.
+   */
+  .gf-hero-meta { display: none; }
+  .gf-hero { min-height: 128px; }
+  /*
+   * The home feed goes entirely - not even its link. הסיפור is one of the five buttons at the
+   * bottom of the screen, so the whole feed is one tap away with or without a link to it.
+   */
+  .gf-feed-home { display: none; }
+  /* a smaller crest leaves more room for a long club name, so fewer of them wrap to three lines */
+  .gf-next .crest-large { width: 32px; height: 32px; }
+  /* the next match keeps its crests and its clubs; the stake line is in the table */
+  .gf-next-caption { display: none; }
+  .gf-next { padding: 7px 10px 6px; }
+  /* the offer keeps its headline, its facts, its agent and its two buttons */
+  .gf-dec-desc { display: none; }
+  .gf-dec-hero { min-height: 118px; }
+  .gf-dec-point:nth-child(n + 3) { display: none; }
+  /*
+   * The event decision is the one primary screen that gets an internal scroll, and it is
+   * deliberate. A four-choice event with odds bars is ~630px of choices; hiding one would be
+   * worse than scrolling to it, and the question, the match strip and the first choice all stay
+   * on screen. The DOCUMENT still does not scroll.
+   */
+  .play-main-decision .event-choices {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 40vh;
+  }
+  /*
+   * And at this height the whole event card scrolls inside itself. At 320x568 the question, the
+   * match strip and the description alone are about 360px, so there is no arrangement of a
+   * four-choice event with odds bars that fits - and hiding a choice would be worse than
+   * scrolling to it. The DOCUMENT still does not scroll, and nothing is clipped away.
+   */
+  .play-main-decision > .event-card {
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* the offer's detail scrolls; its header and its two buttons do not move */
+  .gf-dec-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .gf-decision .gf-scene-content { overflow: hidden; }
+  .gf-moment .gf-scene-content { min-height: 0; gap: 8px; }
+  .gf-moment-with-player .gf-moment-stage { height: clamp(130px, 26vh, 200px); }
+  .gf-moment-art { max-height: 26vh; }
+}
+
+/* club and ability, one row - RTL puts the club on the right, where identity reads from */
+.gf-hero-line {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.gf-hero-line .gf-hero-rating { margin-top: 0; }
+
+/* the offer's detail region: a column that can absorb or release height */
+.gf-dec-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 0;
+}

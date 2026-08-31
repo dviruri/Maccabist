@@ -210,7 +210,12 @@ function CareerFeed({ career, onOpenFeed }: { career: Career; onOpenFeed: () => 
   if (items.length === 0) return null;
   const shown = items.slice(0, 2);
   return (
-    <div className="gf-feed">
+    /*
+     * `gf-feed-home` scopes the short-viewport rules to THIS feed. Without it, the height media
+     * query that drops the second line on a 568px screen would also silently truncate the full
+     * feed inside the story sheet, which is a scrolling destination and wants all of it.
+     */
+    <div className="gf-feed gf-feed-home">
       {shown.map((item, index) => (
         <FeedLine key={index} item={item} />
       ))}

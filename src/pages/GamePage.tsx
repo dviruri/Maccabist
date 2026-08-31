@@ -164,8 +164,22 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
    * The order now is the loop itself - WHO AM I, WHERE ARE WE, WHAT IS HAPPENING, WHAT DO I
    * CHOOSE - and everything else is one tap away in a sheet. Nothing was deleted.
    */
+  const deciding = DECISION_PHASES.has(career.phase);
+
   return (
-    <div className="shell play">
+    /*
+     * `play-fixed` (v0.9.3, Phase 8): while a decision is on screen the shell is exactly one
+     * viewport tall.
+     *
+     * That is what makes an internal scroll region possible at all. Without a height on the
+     * column, `flex: 1` on the main area resolves against content and the card simply grows -
+     * measured at 320x568, the event card was still 644px and the document still scrolled. With
+     * it, the choices scroll inside the card and the document does not move.
+     *
+     * Only for decisions. A settled-season summary is a report, and a report is allowed to be
+     * longer than a phone.
+     */
+    <div className={`shell play${deciding ? ' play-fixed' : ''}`}>
       <header className="topbar topbar-slim">
         <Logo variant="mark" className="topbar-mark" />
         <div className="topbar-brand">
@@ -202,7 +216,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         `EuropeCard` now renders above the 36-club standings. Nothing is duplicated: each fact
         has exactly one full rendering, in exactly one place.
       */}
-      {!DECISION_PHASES.has(career.phase) && (
+      {!deciding && (
         <CareerHomeScene
           career={career}
           focused={FOCUSED_PHASES.has(career.phase)}
@@ -213,7 +227,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         />
       )}
 
-      <main className={`play-main${DECISION_PHASES.has(career.phase) ? ' play-main-decision' : ''}`}>
+      <main className={`play-main${deciding ? ' play-main-decision' : ''}`}>
         <PhaseView career={career} actions={actions} />
       </main>
 

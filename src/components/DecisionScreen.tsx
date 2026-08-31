@@ -128,10 +128,18 @@ export function DecisionScreen({
         </div>
 
         {/*
-          The destination leads: crest, name, where in the world. Then the headline, then the
-          player himself as an upper-body crop on the left - the same technique as the home hero.
+          ---- the detail region ----
+
+          Its own element so a very short viewport can give IT the scroll while the header above
+          and the two buttons below stay put. At 320x568 the whole offer cannot fit; scrolling to
+          the agent's line is better than hiding it, and the choice itself never moves.
         */}
-        <div className="gf-dec-hero">
+        <div className="gf-dec-body">
+          {/*
+            The destination leads: crest, name, where in the world. Then the headline, then the
+            player himself as an upper-body crop on the left - the home hero's technique.
+          */}
+          <div className="gf-dec-hero">
           <img className="gf-dec-art" src={heroArt} alt="" aria-hidden loading="eager" />
           <div className="gf-dec-headline">
             {/*
@@ -162,8 +170,14 @@ export function DecisionScreen({
           left a 150px hole between the comparison and the buttons and made the screen read as
           unfinished - and prose IS the emotional part of an offer. It is back, at body size.
         */}
-        <p className="gf-dec-desc">{offer.description}</p>
-        {/* clamped to three lines above; the full text is in פרטי ההצעה */}
+        {/*
+          The offer's own words, clamped to three lines - and TAPPABLE, because a clamp ends in an
+          ellipsis and an ellipsis has to lead somewhere. It opens the same sheet the chip above
+          does, which is where the full text lives.
+        */}
+        <button type="button" className="gf-dec-desc" onClick={() => setDetails(true)}>
+          {offer.description}
+        </button>
 
         {agent && (
           <div className="gf-dec-agent">
@@ -194,6 +208,8 @@ export function DecisionScreen({
             <div className="gf-dec-point">{roleText(career)}</div>
             <div className="gf-dec-point">הבית המוכר</div>
           </div>
+        </div>
+
         </div>
 
         <div className="gf-dec-actions">

@@ -103,16 +103,23 @@ export function PlayerHero({
             גיל <Ltr>{career.age}</Ltr>
           </span>
         </div>
-        <div className="gf-hero-club">
-          <ClubCrest clubId={career.currentClubId} size="small" />
-          <span>{clubName}</span>
-        </div>
-        {/* ability is the game's own long-standing rating - shown, not invented */}
-        <div className="gf-hero-rating" aria-label={`יכולת ${Math.round(career.ability)}`}>
-          <span className="gf-hero-rating-value">
-            <Ltr>{Math.round(career.ability)}</Ltr>
-          </span>
-          <span className="gf-hero-rating-label">יכולת</span>
+        {/*
+          Club and ability on ONE row (v0.9.3, Phase 8). Stacked, they cost about 30px of every
+          screen the hero appears on, and at 360x800 and 375x812 that was exactly the margin the
+          home screen was missing. Nothing was removed and nothing got smaller.
+        */}
+        <div className="gf-hero-line">
+          <div className="gf-hero-club">
+            <ClubCrest clubId={career.currentClubId} size="small" />
+            <span>{clubName}</span>
+          </div>
+          {/* ability is the game's own long-standing rating - shown, not invented */}
+          <div className="gf-hero-rating" aria-label={`יכולת ${Math.round(career.ability)}`}>
+            <span className="gf-hero-rating-value">
+              <Ltr>{Math.round(career.ability)}</Ltr>
+            </span>
+            <span className="gf-hero-rating-label">יכולת</span>
+          </div>
         </div>
       </div>
     </div>
