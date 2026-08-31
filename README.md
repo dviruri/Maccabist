@@ -17,7 +17,15 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.3 — One Screen Game Flow.** v0.9.3 makes the main career flow
+**Current stable release: v0.9.4 — Club Identity / Final One-Screen Pass.** v0.9.4 finishes the
+illusion. The player's shirt is his club's: green at Maccabi Haifa, red at Hapoel, yellow at
+Maccabi Tel Aviv, the parent club's colours for a youth side — composited onto the character art
+through a per-pose garment mask, so the kit changes and the face does not. Goalkeepers keep their
+own palette (blue, pink, purple or black), chosen deterministically per season and contrasting
+with the club. Every cinematic moment now features THAT player rather than a generic footballer
+painted into a background, and the one-screen rule is finished for Europe and for every major
+moment, across seven viewports from 320x568 up (`V094_REPORT.md`).
+**v0.9.3 — One Screen Game Flow:** v0.9.3 makes the main career flow
 behave like a game rather than a long web page: every primary screen — home, matchday, career
 decision, major moment — fits one viewport at 320x568 through 430x932, matchday became a
 four-state machine showing one state at a time, a decision owns the screen with no home content
