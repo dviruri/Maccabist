@@ -256,6 +256,75 @@ describe('one navigation button, one destination', () => {
   });
 });
 
+describe('typography fits one screen without shrinking', () => {
+  const css = read('src/styles/gamefeel.css');
+
+  it('declares the whole tier ladder', () => {
+    for (const tier of [
+      '--gf-score',
+      '--gf-identity',
+      '--gf-display',
+      '--gf-hero',
+      '--gf-number',
+      '--gf-section',
+      '--gf-lead',
+      '--gf-body',
+      '--gf-meta',
+      '--gf-micro',
+    ]) {
+      expect(css.includes(`${tier}:`), `${tier} is not declared`).toBe(true);
+    }
+  });
+
+  it('has no text below the 11.5px floor anywhere in the game layer', () => {
+    /*
+     * The brief's warning, made mechanical: do not solve one-screen layout by making fonts tiny.
+     * Every literal size and every clamp minimum in this stylesheet is checked, so a future
+     * "just drop it to 10px" is a failing test rather than a judgement call.
+     */
+    const tooSmall: string[] = [];
+    for (const match of css.matchAll(/font-size:\s*([^;]+);/g)) {
+      const value = match[1]!;
+      // The decorative ghost glyph and the emoji sizes are not text a player reads.
+      for (const number of value.match(/(\d+(?:\.\d+)?)px/g) ?? []) {
+        const px = Number(number.replace('px', ''));
+        // A clamp's MAXIMUM may legitimately be large; its minimum is the one that must hold.
+        if (px < 11.5 && px > 0) tooSmall.push(`${value} (${number})`);
+      }
+    }
+    expect(tooSmall).toEqual([]);
+  });
+
+  it('the priority elements resolve to a tier rather than to a magic number', () => {
+    /*
+     * The LAST declaration of a selector wins the cascade, so that is the one checked - a
+     * regex-built lookup found the first and read an empty block on the first run.
+     */
+    const rule = (selector: string): string => {
+      /*
+       * Anchored on a line start. Without it, `.gf-md-now-text {` also matched the tail of
+       * `.gf-md-now-break .gf-md-now-text {` - a compound rule, not the base one.
+       */
+      const at = css.lastIndexOf(`
+${selector} {`);
+      expect(at, `no rule for ${selector}`).toBeGreaterThan(-1);
+      return css.slice(at, css.indexOf('}', at));
+    };
+    expect(rule('.gf-board-num')).toContain('var(--gf-score)');
+    expect(rule('.gf-hero-name')).toContain('var(--gf-identity)');
+    expect(rule('.gf-dec-title')).toContain('var(--gf-hero)');
+    expect(rule('.gf-moment-title')).toContain('var(--gf-display)');
+    expect(rule('.gf-md-ft')).toContain('var(--gf-display)');
+    expect(rule('.gf-md-now-text')).toContain('var(--gf-hero)');
+  });
+
+  it('puts no bordered surface inside another one, in the game layer', () => {
+    expect(css).toContain('.gf-glass .gf-glass');
+    // Deliberately NOT a blanket .card .card reset - that would reach legacy surfaces blind.
+    expect(css).not.toContain('.card .card {');
+  });
+});
+
 describe('the feed is ordered by what a player acts on', () => {
   it('puts the agent first, then the coach, then the club, then media colour', () => {
     /*

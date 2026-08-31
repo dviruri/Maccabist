@@ -342,10 +342,9 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
             after retirement. Same showcase the archive renders, so a live career and an archived
             one display the same cabinet.
           */}
+          {/* no card around it: the showcase's own cards ARE the surface (Phase 7) */}
           {(career.trophies.length > 0 || career.honors.length > 0) && (
-            <section className="card-flat">
-              <TrophyShowcase trophies={career.trophies} honors={career.honors} />
-            </section>
+            <TrophyShowcase trophies={career.trophies} honors={career.honors} />
           )}
           {career.seasonHistory.length > 0 && (
             <section className="card-flat">

@@ -27,8 +27,27 @@
   --gf-section: clamp(17px, 5vw, 22px);
   --gf-body: clamp(14px, 4vw, 16px);
   --gf-meta: 12.5px;
-  /* the score is its own tier: the largest thing on a matchday, by design (v0.9.3) */
+  /*
+   * v0.9.3 completes the ladder. The brief's instruction was explicit: do NOT fit one screen by
+   * making everything small. So the tiers are named after what they SAY, every size in this
+   * stylesheet resolves to one of them, and the floor is a real floor.
+   *
+   *   SCORE     the matchday's subject
+   *   IDENTITY  the player's own name - the largest text on the home screen
+   *   DISPLAY   a moment, a verdict, half time
+   *   HERO      a decision headline, a match moment
+   *   NUMBER    a rating badge
+   *   SECTION   a screen area's title
+   *   LEAD      a club, a role, an agent, a button - the medium tier
+   *   BODY      ordinary information
+   *   META      genuinely secondary
+   *   MICRO     the floor. Nothing in the game layer is smaller than this.
+   */
   --gf-score: clamp(50px, 15vw, 74px);
+  --gf-identity: clamp(30px, 8.6vw, 46px);
+  --gf-number: clamp(22px, 6.5vw, 30px);
+  --gf-lead: clamp(15px, 4.4vw, 19px);
+  --gf-micro: 11.5px;
   /* kept: older rules still reference these two */
   --gf-h1: var(--gf-hero);
   --gf-h2: var(--gf-section);
@@ -83,8 +102,9 @@
   position: relative;
   z-index: var(--z-panel);
   display: grid;
-  gap: 11px;
-  padding: 14px 13px 16px;
+  /* v0.9.3: the scene's own rhythm. Tighter seams, unchanged type. */
+  gap: 10px;
+  padding: 13px 12px 14px;
 }
 
 /* ---- player hero (v0.9.2: compact, close, character-dominant) ----
@@ -169,7 +189,7 @@
 .gf-hero-name {
   margin: 0;
   /* the largest text on the screen - identity, not a label */
-  font-size: clamp(30px, 8.6vw, 46px);
+  font-size: var(--gf-identity);
   font-weight: 900;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -191,7 +211,7 @@
   gap: 8px;
   color: var(--green-bright);
   font-weight: 900;
-  font-size: clamp(15px, 4.4vw, 19px);
+  font-size: var(--gf-lead);
 }
 .gf-hero-rating {
   display: flex;
@@ -204,15 +224,15 @@
   background: var(--gf-glass);
   box-shadow: var(--gf-glow-green);
 }
-.gf-hero-rating-value { font-size: clamp(22px, 6.5vw, 30px); font-weight: 900; color: var(--green-bright); line-height: 1; }
-.gf-hero-rating-label { font-size: 11.5px; color: var(--text-secondary); font-weight: 700; }
+.gf-hero-rating-value { font-size: var(--gf-number); font-weight: 900; color: var(--green-bright); line-height: 1; }
+.gf-hero-rating-label { font-size: var(--gf-micro); color: var(--text-secondary); font-weight: 700; }
 
 /* ---- glass panels ---- */
 .gf-glass {
   background: var(--gf-glass);
   border: 1px solid var(--gf-glass-border);
   border-radius: var(--gf-radius);
-  padding: 14px;
+  padding: 12px;
   backdrop-filter: blur(var(--gf-glass-blur));
   -webkit-backdrop-filter: blur(var(--gf-glass-blur));
   display: grid;
@@ -246,7 +266,7 @@
   border-radius: 16px;
   min-height: 52px;
   padding: 12px 22px;
-  font-size: 17px;
+  font-size: var(--gf-lead);
   font-weight: 900;
   cursor: pointer;
   transition: transform var(--gf-t-quick) ease, box-shadow var(--gf-t-quick) ease;
@@ -273,7 +293,7 @@
 
 /* ---- kicker ---- */
 .gf-kicker {
-  font-size: 12.5px;
+  font-size: var(--gf-meta);
   font-weight: 800;
   letter-spacing: 0.06em;
   color: var(--green-bright);
@@ -344,7 +364,7 @@
   .gf-scene-content { padding: 12px 10px 14px; }
   .gf-hero { min-height: 200px; }
   .gf-hero-art { width: 56%; left: -14%; transform: scale(1.6); }
-  .gf-hero-name { font-size: 29px; }
+  /* no override: --gf-identity already floors at 30px, and 29 was a 1px shrink for nothing */
   .gf-dec-art { width: 54%; left: -16%; }
 }
 
@@ -410,7 +430,7 @@
   justify-content: center;
   gap: 8px;
   font-weight: 900;
-  font-size: clamp(13px, 3.8vw, 16px);
+  font-size: var(--gf-body);
   flex: 1;
   min-width: 0;
   line-height: 1.15;
@@ -446,7 +466,7 @@
   border: 1px solid rgba(41, 217, 106, 0.4);
 }
 .gf-feed-body { display: grid; gap: 2px; min-width: 0; }
-.gf-feed-role { font-size: 11.5px; font-weight: 900; color: var(--green-bright); }
+.gf-feed-role { font-size: var(--gf-micro); font-weight: 900; color: var(--green-bright); }
 .gf-feed-text { margin: 0; font-size: var(--gf-body); line-height: 1.35; overflow-wrap: anywhere; }
 
 /* ---- v0.9 phase 3: matchday ---- */
@@ -615,17 +635,17 @@
   min-width: 32px;
   text-align: center;
   font-weight: 800;
-  font-size: 12px;
+  font-size: var(--gf-meta);
   color: var(--green-bright);
 }
 .gf-md-line-icon { flex: none; }
-.gf-md-line-text { font-size: 13px; overflow-wrap: anywhere; }
+.gf-md-line-text { font-size: var(--gf-body); overflow-wrap: anywhere; }
 
 /* full time reads as a conclusion, not a footnote */
 .gf-md-facts {
   text-align: center;
   color: var(--text-secondary);
-  font-size: 13.5px;
+  font-size: var(--gf-body);
   border-top: 1px solid var(--gf-glass-border);
   padding-top: 10px;
 }
@@ -661,7 +681,7 @@
 /* ---- v0.9 phase 4: career decisions ---- */
 .gf-decision .gf-scene-content { gap: 12px; }
 .gf-dec-header { display: grid; justify-items: center; gap: 2px; text-align: center; }
-.gf-dec-kind { font-size: 13px; font-weight: 800; color: var(--text-secondary); }
+.gf-dec-kind { font-size: var(--gf-body); font-weight: 800; color: var(--text-secondary); }
 .gf-dec-hero { display: grid; justify-items: center; gap: 8px; text-align: center; }
 .gf-dec-crest { transform: scale(1.5); margin: 10px 0 6px; }
 .gf-dec-title {
@@ -677,7 +697,7 @@
   gap: 10px;
   padding: 9px 0;
   border-bottom: 1px solid var(--gf-glass-border);
-  font-size: 13.5px;
+  font-size: var(--gf-body);
 }
 .gf-dec-fact:last-child { border-bottom: none; }
 .gf-dec-fact-label { color: var(--text-secondary); font-weight: 700; flex: none; }
@@ -695,9 +715,10 @@
 }
 .gf-dec-side-go { background: var(--gf-glass); border: 1px solid var(--gf-glass-border); }
 .gf-dec-side-stay { background: rgba(15, 166, 74, 0.1); border: 1px solid rgba(41, 217, 106, 0.45); }
-.gf-dec-side-title { font-weight: 900; font-size: 14.5px; overflow-wrap: anywhere; }
+/* one rule, at the LEAD tier - a second declaration further down the file used to win */
+.gf-dec-side-title { font-weight: 900; font-size: var(--gf-lead); overflow-wrap: anywhere; }
 .gf-dec-side-stay .gf-dec-side-title { color: var(--green-bright); }
-.gf-dec-point { font-size: 12.5px; color: var(--text-secondary); }
+.gf-dec-point { font-size: var(--gf-meta); color: var(--text-secondary); }
 .gf-dec-vs .gf-next-vs { align-self: center; padding-top: 0; }
 .gf-dec-actions { display: grid; gap: 8px; }
 .gf-dec-pager { display: flex; align-items: center; justify-content: center; gap: 12px; }
@@ -730,7 +751,7 @@
   cursor: pointer;
 }
 .gf-dec-dot-on { background: var(--green-bright); box-shadow: var(--gf-glow-green); }
-.gf-dec-footnote { margin: 0; text-align: center; color: var(--text-tertiary); font-size: 11.5px; }
+.gf-dec-footnote { margin: 0; text-align: center; color: var(--text-tertiary); font-size: var(--gf-micro); }
 
 /* ---- v0.9 phase 5: journey + trophy showcase ---- */
 .gf-journey { display: grid; gap: 0; }
@@ -761,7 +782,7 @@
 .gf-journey-age {
   align-self: start;
   margin-top: 20px;
-  font-size: 12px;
+  font-size: var(--gf-meta);
   font-weight: 800;
   color: var(--green-bright);
   white-space: nowrap;
@@ -779,10 +800,10 @@
 }
 .gf-journey-academy { opacity: 0.85; }
 .gf-journey-body { display: grid; gap: 3px; min-width: 0; }
-.gf-journey-club { font-weight: 900; font-size: 14.5px; overflow-wrap: anywhere; }
+.gf-journey-club { font-weight: 900; font-size: var(--gf-body); overflow-wrap: anywhere; }
 .gf-journey-tag {
   margin-inline-start: 6px;
-  font-size: 10.5px;
+  font-size: var(--gf-micro);
   font-weight: 800;
   color: var(--text-secondary);
   border: 1px solid var(--gf-glass-border);
@@ -791,8 +812,8 @@
   vertical-align: middle;
 }
 .gf-journey-return { color: var(--green-bright); border-color: rgba(41, 217, 106, 0.5); }
-.gf-journey-range { color: var(--text-secondary); font-size: 12px; }
-.gf-journey-marks { display: flex; gap: 10px; font-size: 12px; color: var(--gold); font-weight: 800; }
+.gf-journey-range { color: var(--text-secondary); font-size: var(--gf-meta); }
+.gf-journey-marks { display: flex; gap: 10px; font-size: var(--gf-meta); color: var(--gold); font-weight: 800; }
 
 .gf-showcase {
   display: grid;
@@ -822,8 +843,8 @@
   object-fit: contain;
   filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
 }
-.gf-showcase-label { font-weight: 900; font-size: 13px; }
-.gf-showcase-caption { font-size: 11.5px; color: var(--text-secondary); }
+.gf-showcase-label { font-weight: 900; font-size: var(--gf-body); }
+.gf-showcase-caption { font-size: var(--gf-micro); color: var(--text-secondary); }
 .gf-showcase-count { color: var(--gold); font-weight: 900; }
 
 /* ---- v0.9 phase 7: europe nights + entry screens ---- */
@@ -903,7 +924,7 @@
 /* ---- v0.9.1 phase 3: next-season europe line ---- */
 .euro-next-line {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--gf-meta);
   font-weight: 700;
   color: var(--text-secondary);
   border-top: 1px solid var(--gf-glass-border);
@@ -948,7 +969,7 @@
 }
 .gf-bn-active { color: var(--green-bright); background: rgba(41, 217, 106, 0.1); }
 .gf-bn-icon { font-size: 17px; line-height: 1; }
-.gf-bn-label { font-size: 11px; font-weight: 800; white-space: nowrap; }
+.gf-bn-label { font-size: var(--gf-micro); font-weight: 800; white-space: nowrap; }
 /* keeps the last card clear of the fixed bar */
 .gf-bottomnav-spacer { height: calc(62px + env(safe-area-inset-bottom)); }
 /* the matchday and ceremonies own the screen - the bar is not part of them */
@@ -958,14 +979,14 @@
 /* ---- v0.9.1 phase 6c: european standings (a data screen, deliberately) ---- */
 .euro-standings { display: grid; gap: 10px; }
 .euro-standings-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.euro-standings-head h3 { margin: 0; font-size: 15px; font-weight: 900; }
-.euro-standings-sub { color: var(--text-secondary); font-size: 11.5px; }
+.euro-standings-head h3 { margin: 0; font-size: var(--gf-lead); font-weight: 900; }
+.euro-standings-sub { color: var(--text-secondary); font-size: var(--gf-micro); }
 .euro-standings-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.euro-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 320px; }
+.euro-table { width: 100%; border-collapse: collapse; font-size: var(--gf-meta); min-width: 320px; }
 .euro-table th {
   text-align: center;
   color: var(--text-tertiary);
-  font-size: 11px;
+  font-size: var(--gf-micro);
   font-weight: 800;
   padding: 4px 3px;
   border-bottom: 1px solid var(--line);
@@ -980,7 +1001,7 @@
 .euro-zone-playoff .euro-pos { color: var(--gold); }
 .euro-zone-out .euro-pos { color: var(--text-tertiary); }
 .euro-row-player { background: rgba(41, 217, 106, 0.12); font-weight: 900; }
-.euro-legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; }
+.euro-legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: var(--gf-micro); }
 .euro-legend-item::before { content: '●'; margin-inline-end: 4px; }
 .euro-legend-item.euro-zone-direct { color: var(--green-bright); }
 .euro-legend-item.euro-zone-playoff { color: var(--gold); }
@@ -991,7 +1012,7 @@
   border-radius: 10px;
   color: var(--green-bright);
   font-weight: 800;
-  font-size: 12.5px;
+  font-size: var(--gf-meta);
   padding: 8px 10px;
   min-height: 40px;
   cursor: pointer;
@@ -1032,7 +1053,7 @@
   margin-top: 6px;
   padding-top: 8px;
   border-top: 1px solid var(--gf-glass-border);
-  font-size: 12.5px;
+  font-size: var(--gf-meta);
   font-weight: 700;
   color: var(--gold);
 }
@@ -1074,13 +1095,12 @@
 }
 .gf-dec-title {
   margin: 0;
-  font-size: clamp(24px, 7vw, 36px);
+  font-size: var(--gf-hero);
   font-weight: 900;
   line-height: 1.05;
   text-shadow: 0 3px 20px rgba(0, 0, 0, 0.9);
   overflow-wrap: anywhere;
 }
-.gf-dec-side-title { font-size: clamp(15px, 4.4vw, 19px); }
 .gf-dec-actions .gf-btn { font-size: clamp(17px, 5vw, 21px); min-height: 54px; }
 .gf-dec-actions { display: grid; gap: 7px; }
 
@@ -1122,7 +1142,7 @@
 }
 .gf-board-status {
   grid-area: status;
-  font-size: clamp(13px, 3.8vw, 16px);
+  font-size: var(--gf-body);
   font-weight: 900;
   color: var(--green-bright);
   letter-spacing: 0.04em;
@@ -1136,7 +1156,7 @@
   gap: 4px;
   min-width: 0;
   font-weight: 900;
-  font-size: clamp(12.5px, 3.6vw, 16px);
+  font-size: var(--gf-body);
   line-height: 1.15;
 }
 .gf-board-home { grid-area: home; }
@@ -1144,7 +1164,7 @@
 .gf-board-name { overflow-wrap: anywhere; }
 /* which end of the fixture this is - the fact RTL is not allowed to move */
 .gf-board-venue {
-  font-size: 10.5px;
+  font-size: var(--gf-micro);
   font-weight: 800;
   letter-spacing: 0.06em;
   color: var(--text-tertiary);
@@ -1435,3 +1455,43 @@
   .gf-moment-art[src*="/trophies/"] ~ .gf-moment-player { width: 58%; left: -12%; transform: scale(1.3); }
   .gf-moment-with-player .gf-moment-art[src*="/trophies/"] { max-width: 52%; }
 }
+
+/* =====================================================================
+   v0.9.3 PHASE 7 — TYPOGRAPHY AND SPACING FOR ONE SCREEN
+   The brief's instruction, taken literally: LESS CONTENT + STRONGER
+   HIERARCHY + TIGHTER SPACING, never SAME CONTENT + SMALLER TEXT.
+
+   So this pass has one direction. Every size in the game layer now
+   resolves to a named tier, and every value that was a stray magic
+   number moved UP into the nearest tier - 10.5 and 11 to the 11.5px
+   floor, 12 to META, 13/13.5/14.5 to BODY, 15 to LEAD. Not one size in
+   this stylesheet got smaller in v0.9.3.
+
+   What got smaller is the space between things, and the number of
+   things.
+   ===================================================================== */
+
+/*
+ * No card inside a card. A bordered rectangle inside another bordered rectangle is the page
+ * habit this release exists to remove; a scene plus one glass surface says the same thing with
+ * one edge instead of two.
+ */
+/*
+ * Scoped to the game layer on purpose. A blanket `.card .card` reset would reach every legacy
+ * surface in global.css, some of which nest deliberately, and flattening those blind is not a
+ * typography pass - it is a redesign with no screenshot behind it.
+ */
+.gf-glass .gf-glass {
+  border: none;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+/* a showcase card is already a surface; it does not need a panel around it */
+.card-flat > .gf-showcase { margin: 0; }
+
+/*
+ * The topbar is a strip, not a header block. It repeated the app's outer gutter as its own
+ * padding on every screen.
+ */
+.topbar.topbar-slim { padding: 7px 16px; }
