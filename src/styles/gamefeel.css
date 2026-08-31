@@ -16,10 +16,20 @@
   /* glow */
   --gf-glow-green: 0 0 24px rgba(41, 217, 106, 0.35);
   --gf-glow-gold: 0 0 28px rgba(255, 201, 74, 0.35);
-  /* typography scale - game-like, big */
-  --gf-display: clamp(28px, 8vw, 44px);
-  --gf-h1: clamp(22px, 6vw, 32px);
-  --gf-h2: clamp(16px, 4.5vw, 20px);
+  /*
+   * Typography tiers (v0.9.2). Five levels, not seven near-identical ones - game UI needs a
+   * short, decisive ladder. DISPLAY is a moment or a score; HERO is a player, club or opponent;
+   * SECTION titles a screen area; BODY is ordinary information; META is genuinely secondary and
+   * still readable (never below 11.5px, never below --text-secondary contrast).
+   */
+  --gf-display: clamp(34px, 10vw, 56px);
+  --gf-hero: clamp(24px, 7vw, 36px);
+  --gf-section: clamp(17px, 5vw, 22px);
+  --gf-body: clamp(14px, 4vw, 16px);
+  --gf-meta: 12.5px;
+  /* kept: older rules still reference these two */
+  --gf-h1: var(--gf-hero);
+  --gf-h2: var(--gf-section);
   /* radius + spacing rhythm */
   --gf-radius: 18px;
   --gf-radius-lg: 24px;
@@ -71,8 +81,8 @@
   position: relative;
   z-index: var(--z-panel);
   display: grid;
-  gap: var(--gf-gap);
-  padding: 16px 14px 18px;
+  gap: 11px;
+  padding: 14px 13px 16px;
 }
 
 /* ---- player hero (v0.9.2: compact, close, character-dominant) ----
@@ -214,11 +224,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 6px 0 2px;
+  margin: 2px 0 0;
 }
 .gf-section-title h2 {
   margin: 0;
-  font-size: var(--gf-h2);
+  font-size: var(--gf-section);
   font-weight: 900;
   white-space: nowrap;
 }
@@ -305,11 +315,12 @@
 .gf-moment-title {
   margin: 0;
   font-size: var(--gf-display);
+  letter-spacing: -0.01em;
   font-weight: 900;
   line-height: 1.1;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.85);
 }
-.gf-moment-sub { margin: 0; color: var(--text-secondary); font-size: 15px; }
+.gf-moment-sub { margin: 0; color: var(--text-secondary); font-size: var(--gf-body); }
 
 /* ---- shared motion ---- */
 @keyframes gf-rise {
@@ -344,14 +355,20 @@
   cursor: pointer;
 }
 
+/*
+ * v0.9.2 density: the next-match block is part of the hero SCENE rather than a separate
+ * bordered card floating under it. One surface, one composition - fewer edges, less vertical
+ * cost, and the match reads as the continuation of the player's situation.
+ */
 .gf-next {
   position: relative;
   border-radius: var(--gf-radius);
-  border: 1px solid rgba(41, 217, 106, 0.35);
+  border: 1px solid rgba(41, 217, 106, 0.28);
+  border-top-color: rgba(41, 217, 106, 0.5);
   background:
-    linear-gradient(to bottom, rgba(6, 9, 7, 0.35), rgba(6, 9, 7, 0.85)),
-    var(--gf-glass-strong);
-  padding: 14px 12px 12px;
+    linear-gradient(to bottom, rgba(6, 9, 7, 0.2), rgba(6, 9, 7, 0.8)),
+    var(--gf-glass);
+  padding: 12px 12px 10px;
   display: grid;
   justify-items: center;
   gap: 6px;
@@ -359,7 +376,7 @@
   box-shadow: inset 0 0 40px rgba(15, 166, 74, 0.08);
 }
 .gf-next-euro { border-color: rgba(120, 170, 255, 0.4); box-shadow: inset 0 0 44px rgba(90, 140, 255, 0.12); }
-.gf-next-title { font-size: var(--gf-h1); font-weight: 900; }
+.gf-next-title { font-size: var(--gf-section); font-weight: 900; letter-spacing: -0.01em; }
 .gf-next-clubs {
   display: flex;
   align-items: flex-start;
@@ -372,24 +389,25 @@
   display: grid;
   justify-items: center;
   gap: 6px;
-  font-weight: 800;
-  font-size: 13.5px;
+  font-weight: 900;
+  font-size: clamp(13px, 3.8vw, 16px);
   flex: 1;
   min-width: 0;
+  line-height: 1.15;
 }
 .gf-next-club span { overflow-wrap: anywhere; }
 .gf-next-vs {
-  font-size: 26px;
+  font-size: clamp(24px, 7vw, 32px);
   font-weight: 900;
   font-style: italic;
   color: #cfd8d2;
   text-shadow: 0 0 18px rgba(255, 255, 255, 0.25);
   padding-top: 10px;
 }
-.gf-next-caption { color: var(--text-secondary); font-size: 12.5px; }
-.gf-next-timing { color: var(--green-bright); font-weight: 800; font-size: 14px; }
+.gf-next-caption { color: var(--text-secondary); font-size: var(--gf-meta); }
+.gf-next-timing { color: var(--green-bright); font-weight: 900; font-size: var(--gf-body); }
 
-.gf-feed { display: grid; gap: 8px; }
+.gf-feed { display: grid; gap: 7px; }
 .gf-feed-item {
   display: flex;
   align-items: center;
@@ -398,7 +416,7 @@
   border: 1px solid var(--gf-glass-border);
   border-right: 3px solid rgba(41, 217, 106, 0.6);
   border-radius: 14px;
-  padding: 9px 10px;
+  padding: 8px 10px;
 }
 .gf-feed-face {
   width: 44px;
@@ -409,8 +427,8 @@
   border: 1px solid rgba(41, 217, 106, 0.4);
 }
 .gf-feed-body { display: grid; gap: 2px; min-width: 0; }
-.gf-feed-role { font-size: 11.5px; font-weight: 800; color: var(--green-bright); }
-.gf-feed-text { margin: 0; font-size: 13.5px; overflow-wrap: anywhere; }
+.gf-feed-role { font-size: 11.5px; font-weight: 900; color: var(--green-bright); }
+.gf-feed-text { margin: 0; font-size: var(--gf-body); line-height: 1.4; overflow-wrap: anywhere; }
 
 /* ---- v0.9 phase 3: matchday ---- */
 .gf-matchday .gf-scene-content { gap: 12px; }
