@@ -27,6 +27,8 @@
   --gf-section: clamp(17px, 5vw, 22px);
   --gf-body: clamp(14px, 4vw, 16px);
   --gf-meta: 12.5px;
+  /* the score is its own tier: the largest thing on a matchday, by design (v0.9.3) */
+  --gf-score: clamp(50px, 15vw, 74px);
   /* kept: older rules still reference these two */
   --gf-h1: var(--gf-hero);
   --gf-h2: var(--gf-section);
@@ -986,3 +988,96 @@
 }
 .gf-dec-side-title { font-size: clamp(15px, 4.4vw, 19px); }
 .gf-dec-actions .gf-btn { font-size: clamp(17px, 5vw, 21px); min-height: 58px; }
+
+/* =====================================================================
+   v0.9.3 PHASE 1 — THE SCOREBOARD
+   Football semantics do not depend on a writing system.
+
+   The v0.9 board was a flex row inheriting the document's RTL direction,
+   with the score as one LTR string in the middle. That made the pairing
+   of number to club a consequence of text direction - and it paired them
+   backwards: the digit beside the player's club was the opponent's.
+
+   So the geometry is explicit and direction-free. The container declares
+   `direction: ltr` and every cell names its own grid area:
+
+       away  awayScore  :  homeScore  home
+
+   Away left, home right - the home club leading from the right, which is
+   the Hebrew convention - with each number in the cell touching its own
+   club. Only the club NAMES are RTL, because they are Hebrew text.
+   ===================================================================== */
+.gf-board {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+  grid-template-areas:
+    'status status status status status'
+    'away awayScore sep homeScore home'
+    'caption caption caption caption caption';
+  align-items: center;
+  justify-items: center;
+  gap: 2px 6px;
+  width: 100%;
+  background: linear-gradient(to bottom, rgba(13, 18, 15, 0.55), rgba(8, 12, 9, 0.92));
+  border: 1px solid rgba(41, 217, 106, 0.3);
+  border-radius: var(--gf-radius);
+  padding: 10px 10px 8px;
+  box-shadow: inset 0 0 44px rgba(15, 166, 74, 0.1);
+}
+.gf-board-status {
+  grid-area: status;
+  font-size: clamp(13px, 3.8vw, 16px);
+  font-weight: 900;
+  color: var(--green-bright);
+  letter-spacing: 0.04em;
+  min-height: 18px;
+}
+.gf-board-club {
+  /* Hebrew club names read right-to-left inside a cell whose POSITION is fixed by grid. */
+  direction: rtl;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-weight: 900;
+  font-size: clamp(12.5px, 3.6vw, 16px);
+  line-height: 1.15;
+}
+.gf-board-home { grid-area: home; }
+.gf-board-away { grid-area: away; }
+.gf-board-name { overflow-wrap: anywhere; }
+/* which end of the fixture this is - the fact RTL is not allowed to move */
+.gf-board-venue {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+/* the player's own club is named as his, so the board is readable at a glance */
+.gf-board-mine .gf-board-name { color: var(--green-bright); }
+.gf-board-num {
+  font-size: var(--gf-score);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-shadow: 0 3px 26px rgba(0, 0, 0, 0.9);
+  animation: gf-score-pop var(--gf-t-enter) ease-out;
+}
+.gf-board-num-home { grid-area: homeScore; }
+.gf-board-num-away { grid-area: awayScore; }
+.gf-board-sep {
+  grid-area: sep;
+  font-size: calc(var(--gf-score) * 0.62);
+  font-weight: 900;
+  line-height: 0.95;
+  color: var(--text-tertiary);
+  padding: 0 2px;
+}
+.gf-board-caption {
+  grid-area: caption;
+  direction: rtl;
+  color: var(--text-secondary);
+  font-size: var(--gf-meta);
+  text-align: center;
+}

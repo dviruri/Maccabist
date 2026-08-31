@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
+import { matchScoreViewAfter, verdictLabel } from '../game/matchScore';
 import type { MatchMoment, MatchdayPresentation } from '../game/matchdayPresenter';
 import type { Career } from '../types';
 import { getCareerPlayerArt } from '../ui/playerArt';
-import { ClubCrest } from './ClubCrest';
+import { MatchScoreboard } from './MatchScoreboard';
 import { CinematicBackdrop, GameButton } from './gamefeel';
 import { Ltr } from './primitives';
 
@@ -54,19 +55,16 @@ export function MatchdayExperience({
   const done = revealed >= total;
   const visible = moments.slice(0, revealed);
 
-  /* The scoreboard equals the story revealed so far - never ahead of it. */
-  let shownFor = 0;
-  let shownAgainst = 0;
-  for (const moment of visible) {
-    // The assist moment IS the assisted goal - it counts on the scoreboard like any other.
-    if (moment.kind === 'player_goal' || moment.kind === 'team_goal' || moment.kind === 'player_assist') {
-      shownFor += 1;
-    }
-    if (moment.kind === 'conceded') shownAgainst += 1;
-  }
+  /*
+   * The score, from THE model (v0.9.3).
+   *
+   * The component no longer counts goals or pairs numbers with clubs - `matchScoreViewAfter`
+   * does both, in home/away terms, so this screen and the summary below it cannot disagree and
+   * RTL cannot invert either of them. It still equals the story revealed so far and is never
+   * ahead of it, which is what the `revealed` count buys.
+   */
+  const view = matchScoreViewAfter(fixture, moments, revealed);
   const lastMinute = visible[visible.length - 1]?.minute ?? 0;
-
-  const clubName = fixture.playerClubName;
   const isKeeper = career.position === 'GK';
   const art = getCareerPlayerArt({
     age: career.age,
@@ -94,37 +92,27 @@ export function MatchdayExperience({
     <CinematicBackdrop backdrop="matchday-crowd" className="gf-matchday">
       <div className="gf-md-head">
         <div className="gf-kicker">יום המשחק · {matchday.competitionLabel}</div>
-        <div className="gf-md-board">
-          <div className="gf-md-club">
-            <ClubCrest clubId={fixture.playerClubId} name={clubName} size="large" />
-            <span>{clubName}</span>
-          </div>
-          <div className="gf-md-score">
-            <div className="gf-md-minute">
-              {revealed === 0 ? 'לפני שריקה' : done ? 'סיום' : <Ltr>{`'${lastMinute}`}</Ltr>}
-            </div>
-            {/* keyed on the score so a goal retriggers the pulse - one beat, not a loop */}
-            <div className="gf-md-numbers" key={`${shownFor}:${shownAgainst}`}>
-              <Ltr>
-                {shownFor}:{shownAgainst}
-              </Ltr>
-            </div>
-          </div>
-          <div className="gf-md-club">
-            <ClubCrest clubId={fixture.opponentClubId} name={fixture.opponentName} size="large" />
-            <span>{fixture.opponentName}</span>
-          </div>
-        </div>
-        <div className="gf-md-caption">
-          {fixture.home ? 'בבית' : 'בחוץ'}
-          {fixture.stage ? ` · ${fixture.stage}` : ''}
-          {fixture.opponentPosition !== null && (
+        <MatchScoreboard
+          view={view}
+          statusLabel={revealed === 0 ? 'לפני שריקה' : done ? 'סיום' : `${lastMinute}'`}
+          caption={
+            /*
+              No "בבית / בחוץ" here any more: the board itself now labels each club's end, and
+              saying it twice was how the screen used to compensate for a scoreline that did not
+              carry the venue.
+            */
             <>
-              {' · היריבה במקום '}
-              <Ltr>{fixture.opponentPosition}</Ltr>
+              {fixture.stage ?? ''}
+              {fixture.opponentPosition !== null && (
+                <>
+                  {fixture.stage ? ' · ' : ''}
+                  {'היריבה במקום '}
+                  <Ltr>{fixture.opponentPosition}</Ltr>
+                </>
+              )}
             </>
-          )}
-        </div>
+          }
+        />
       </div>
 
       {revealed === 0 && (
@@ -159,12 +147,11 @@ export function MatchdayExperience({
       {done && (
         <>
           {/* v0.9.2: full time is a conclusion - the verdict first, then the numbers. */}
-          <div className="gf-md-ft">
-            {shownFor > shownAgainst ? 'ניצחון' : shownFor < shownAgainst ? 'הפסד' : 'תיקו'}
-          </div>
+          {/* the verdict is read from the player's own side of the model, not from digit order */}
+          <div className="gf-md-ft">{verdictLabel(view)}</div>
           <div className="gf-md-ft-sub">
             {fixture.kind === 'cup_final'
-              ? shownFor > shownAgainst
+              ? verdictLabel(view) === 'ניצחון'
                 ? 'הגביע שלנו.'
                 : 'הגמר אבד.'
               : `${fixture.competition} · ${fixture.opponentName}`}

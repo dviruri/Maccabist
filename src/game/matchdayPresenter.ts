@@ -1,4 +1,5 @@
 import { activeFixture, type PresentationFixture } from './fixture';
+import { withHebrewPrefix } from './identity';
 import { createRng, clamp, type Rng } from './random';
 import type { Career, Position } from '../types';
 
@@ -161,6 +162,16 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
     else if (!won && scoreFor >= scoreAgainst) scoreAgainst = scoreFor + 1;
   }
 
+  /*
+   * v0.9.3: a goal moment NAMES the club it went to.
+   *
+   * "שער לקבוצה שלנו" / "שער ליריבה" were correct but relative, so a reader had to remember
+   * which side of the board he was on to know who had just scored. The timeline is now as
+   * unambiguous as the scoreboard: the club is written out, and both come from the same fixture.
+   */
+  const goalFor = withHebrewPrefix('ל', fixture.playerClubName);
+  const goalAgainst = withHebrewPrefix('ל', fixture.opponentName);
+
   const moments: MatchMoment[] = [{ minute: 1, kind: 'kickoff', text: 'שריקת פתיחה', big: false }];
 
   /* Distribute the goals across the ninety, then weave the player's own moments in. */
@@ -176,11 +187,11 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
       playerAssistMinute = minute;
       moments.push({ minute, kind: 'player_assist', text: 'בישול שלך - והכדור בפנים', big: true });
     } else {
-      moments.push({ minute, kind: 'team_goal', text: 'שער לקבוצה שלנו', big: false });
+      moments.push({ minute, kind: 'team_goal', text: `שער ${goalFor}`, big: false });
     }
   });
   for (const minute of concededMinutes) {
-    moments.push({ minute, kind: 'conceded', text: 'שער ליריבה', big: false });
+    moments.push({ minute, kind: 'conceded', text: `שער ${goalAgainst}`, big: false });
   }
 
   /* Colour, position-aware. A benched player watches - the match happens without his moments. */

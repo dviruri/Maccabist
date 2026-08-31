@@ -108,6 +108,17 @@ export function teamDisplayFor(
   };
 }
 
+/**
+ * A Hebrew inseparable prefix, contracted correctly (v0.9.3).
+ *
+ * ל / ב / מ swallow a following definite article, so "ל" + "הפועל באר שבע" is "להפועל באר שבע",
+ * never "להפועל" alongside a stray ה. The same rule `inCompetition` applies to ב for competition
+ * names, generalised - v0.9's "זכייה בהקונפרנס ליג" was this bug in its other letter.
+ */
+export function withHebrewPrefix(prefix: string, name: string): string {
+  return name.startsWith('ה') ? `${prefix}${name.slice(1)}` : `${prefix}${name}`;
+}
+
 /** One string for compact places (timeline rows, chips). */
 export function teamDisplayLine(display: TeamDisplay): string {
   return display.onLoan ? `${display.full} · בהשאלה` : display.full;

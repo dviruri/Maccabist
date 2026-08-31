@@ -895,7 +895,7 @@ function isClipped(el: Element): boolean {
   return false;
 }
 
-function useOverflowProbe(enabled: boolean, pinnedWidth: string | null): void {
+function useOverflowProbe(enabled: boolean, pinnedWidth: string | null, need: string | null): void {
   useEffect(() => {
     if (!enabled) return;
     const measure = (): void => {
@@ -939,20 +939,56 @@ function useOverflowProbe(enabled: boolean, pinnedWidth: string | null): void {
         `total=${Math.round(body.height)}`,
       ].join(' ');
 
-      document.documentElement.dataset.probe = `vw=${vw} over=${over.size} ${[...over]
+      /*
+       * Vertical fit (v0.9.3, Phase 8). The one-screen rule is a claim about the DOCUMENT: a
+       * primary game screen must not need scrolling to reach its score, its identity or its
+       * primary action. `sh` is what the document actually wants; `vh` is what the phone gives
+       * it. Reported rather than asserted here - the audit script decides the tolerance, so a
+       * screen can be measured without the page deciding whether it passed.
+       *
+       * `need` asks the page a second question the height alone cannot answer: is each of these
+       * elements present AND inside the viewport? A layout that fits because its primary button
+       * was cropped away is exactly the cheat the brief forbids, and it shows up here as
+       * `name=CUT` rather than as a clean number.
+       */
+      const vh = window.innerHeight;
+      const sh = Math.max(
+        document.documentElement.scrollHeight,
+        Math.round(body.bottom - Math.min(0, body.top)),
+      );
+      const seen = (need ?? '')
+        .split(';')
+        .filter(Boolean)
+        .map((selector) => {
+          const el = document.querySelector(selector);
+          if (!el) return `${selector}=NONE`;
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 && r.height === 0) return `${selector}=HIDDEN`;
+          return r.top >= -1 && r.bottom <= vh + 1 ? `${selector}=OK` : `${selector}=CUT(${Math.round(r.top)}..${Math.round(r.bottom)})`;
+        })
+        .join(' ');
+
+      document.documentElement.dataset.probe = `vw=${vw} vh=${vh} sh=${sh} over=${over.size} ${[...over]
         .slice(0, 6)
-        .join(' ')} | ${depth}`;
+        .join(' ')} | ${depth}${seen ? ` | ${seen}` : ''}`;
     };
     // After fonts settle, since a fallback font can change wrapping and therefore widths.
     const id = window.setTimeout(measure, 300);
     return () => window.clearTimeout(id);
-  }, [enabled, pinnedWidth]);
+  }, [enabled, pinnedWidth, need]);
 }
 
 export function Gallery(): JSX.Element {
   const params = new URLSearchParams(window.location.search);
-  useOverflowProbe(params.get('probe') === '1', params.get('w'));
+  useOverflowProbe(params.get('probe') === '1', params.get('w'), params.get('need'));
   const only = params.get('only');
+  /*
+   * `?bare=1` (v0.9.3): the scene with no gallery chrome at all - no frame label, no gallery
+   * padding, no stack gap. Measuring one-screen fit through the gallery's own wrapper would
+   * measure the harness: `.gallery` adds block padding and `.gallery-frame` a label above every
+   * scene, which is tens of pixels the real game never renders.
+   */
+  const bare = params.get('bare');
   /*
    * An explicit width, because headless Chrome's --window-size does not reliably become the CSS
    * viewport - it laid out wider and cropped the screenshot, which looks exactly like an overflow
@@ -1273,16 +1309,32 @@ export function Gallery(): JSX.Element {
             viewport's right edge and pushes the sheet off a narrow screenshot entirely.
           */
           .sheet-root { left: 0; right: auto; width: ${width}px; }
+          /*
+            Same reason, for the fixed bottom navigation (v0.9.3). Headless Chrome refuses to lay
+            out narrower than ~500px whatever --window-size says, so an \`inset-inline: 0\` bar
+            spans 500px while the document is pinned to 390 and the overflow probe reports a
+            110px overhang that does not exist on a phone. Pinning it is measuring the layout
+            rather than the harness.
+          */
+          .gf-bottomnav { left: 0; right: auto; width: ${width}px; }
         `}</style>
       )}
-      <div className="shell gallery">
-        {!only && <div className="gallery-title">MACCABIST — component gallery</div>}
-        {shown.map(([name, node]) => (
-          <Frame key={name} title={name}>
-            {node}
-          </Frame>
-        ))}
-      </div>
+      {bare === '1' ? (
+        /* A full-page scene (GamePage, the matchday screen) brings its own shell. */
+        shown.map(([name, node]) => <div key={name}>{node}</div>)
+      ) : bare === 'shell' ? (
+        /* A component scene needs the shell it lives in during play - width and gutters. */
+        <div className="shell">{shown.map(([name, node]) => <div key={name}>{node}</div>)}</div>
+      ) : (
+        <div className="shell gallery">
+          {!only && <div className="gallery-title">MACCABIST — component gallery</div>}
+          {shown.map(([name, node]) => (
+            <Frame key={name} title={name}>
+              {node}
+            </Frame>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
