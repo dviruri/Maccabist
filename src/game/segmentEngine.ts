@@ -94,13 +94,21 @@ function line(competition: CompetitionLine['competition'], teamGames: number): C
  * appearances, capped where football requires it (starts and clean sheets cannot exceed the
  * appearances of their line).
  */
-export function competitionLines(segment: {
-  leagueId?: string | null;
-  academyStage: SeasonSegment['academyStage'];
-  clubId: string;
-  teamGames: number;
-  stats: SeasonStats;
-}): CompetitionLine[] {
+export function competitionLines(
+  segment: {
+    leagueId?: string | null;
+    academyStage: SeasonSegment['academyStage'];
+    clubId: string;
+    teamGames: number;
+    stats: SeasonStats;
+  },
+  /**
+   * The club's ACTUAL European match count this season (v0.8). When present it replaces the
+   * legacy quality-based allowance in the composition, so the europe stat bucket is sized by
+   * the journey that was really played. Absent for pre-v0.8 records and academy seasons.
+   */
+  continentalGames?: number,
+): CompetitionLine[] {
   const { stats } = segment;
 
   // Academy football is one competition; no split exists to invent.
@@ -125,12 +133,16 @@ export function competitionLines(segment: {
     /* unknown club: the defaults produce a plain league/cup composition */
   }
   const season = leagueScheduleBreakdown(segment.leagueId, quality, israeli);
+  const continental = continentalGames ?? season.continental;
 
   /*
    * The segment may be half a season, so its composition is the season's composition scaled to
-   * the segment's own fixture count - apportioned to integers that sum back exactly.
+   * the segment's own fixture count - apportioned to integers that sum back exactly. A
+   * mid-season mover's European matches split across his spells by the same proportional rule
+   * as everything else (documented simplification: the engine does not know which half a
+   * specific European tie fell in).
    */
-  const games = apportion(segment.teamGames, [season.league, season.cup, season.continental]);
+  const games = apportion(segment.teamGames, [season.league, season.cup, continental]);
   const lines = [line('league', games[0]!), line('cup', games[1]!), line('continental_generic', games[2]!)];
 
   const apps = apportion(
@@ -217,6 +229,8 @@ export function buildSeasonSegments(
   first: SegmentHalf | null,
   second: SegmentHalf,
   finalStats: SeasonStats,
+  /** The season's real European match count, when Europe was simulated (v0.8). */
+  continentalGames?: number,
 ): SeasonSegment[] {
   const sameSpell =
     !first ||
@@ -255,13 +269,16 @@ export function buildSeasonSegments(
     stats: half.stats,
     role: half.role,
     breakdown: 'engine',
-    competitions: competitionLines({
-      leagueId: half.leagueId,
-      academyStage: half.academyStage,
-      clubId: half.clubId,
-      teamGames: half.teamGames,
-      stats: half.stats,
-    }),
+    competitions: competitionLines(
+      {
+        leagueId: half.leagueId,
+        academyStage: half.academyStage,
+        clubId: half.clubId,
+        teamGames: half.teamGames,
+        stats: half.stats,
+      },
+      continentalGames,
+    ),
   }));
 }
 

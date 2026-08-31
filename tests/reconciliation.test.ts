@@ -400,7 +400,7 @@ describe('real careers do not contradict themselves', () => {
    * The two bugs the 50,000-career scan found and 20,000 did not. Both are pinned by their own
    * seed, because a population test that only samples 150 careers is exactly what missed them.
    */
-  it('counts a title won on a single season back at Maccabi (seed 11)', () => {
+  it('counts a title won on a single season back at Maccabi (seed 48)', () => {
     /*
      * The counters were incremented inside the countsForMaccabiLegacy branch, which requires
      * parentClubId === null - so a title won during a spell at Maccabi that the career did not
@@ -415,12 +415,15 @@ describe('real careers do not contradict themselves', () => {
      * after it lands differently - and while checking 722 it turned out its title season had
      * `onLoan: false`. The pin had been named for a loan for two versions without being one.
      *
-     * Seed 11 is the shape the pin is actually for: one Maccabi championship in 2044, between a
-     * Hapoel Nof HaGalil season and a Maccabi Herzliya one. The counter must equal the trophy list
-     * for a title won in a single season back at the club. The invariant is covered across a
-     * population below too; this pin keeps the away-and-back case specifically exercised.
+     * v0.8 moves it a third time, for the third instance of the same cause: continental
+     * fixtures are now the club's REAL European matches rather than a quality-based allowance,
+     * so strong-club seasons hold different game counts and every seed lands differently.
+     * Seed 48 is the shape the pin is for now: a Maccabi championship in 2052, between a Bnei
+     * Jatt season and a Bnei Sakhnin one. The counter must equal the trophy list for a title
+     * won in a single season back at the club; the population test below covers the invariant
+     * broadly, this pin keeps the away-and-back case specifically exercised.
      */
-    const career = simulateCareer({ playerName: 'ת', position: 'ST', seed: 11, policy: balancedPolicy });
+    const career = simulateCareer({ playerName: 'ת', position: 'ST', seed: 48, policy: balancedPolicy });
     const titles = career.trophies.filter(
       (t) => t.clubId === MACCABI_ID && t.id === 'championship',
     ).length;

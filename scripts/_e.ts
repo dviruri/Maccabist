@@ -1,0 +1,13 @@
+import { simulateCareer, balancedPolicy } from '../src/game/simulate';
+const t0 = performance.now();
+const c = simulateCareer({ playerName: 'א', position: 'ST', seed: 5, policy: balancedPolicy });
+console.log('career sim ms:', (performance.now() - t0).toFixed(0));
+const e = c.world.europe!;
+console.log('history seasons:', e.history.length);
+console.log('last winners:', JSON.stringify(e.history.slice(-3).map(h => ({s:h.season, ucl:h.winners.uefa_champions_league?.name}))));
+console.log('assoc coefs:', JSON.stringify(Object.fromEntries(Object.entries(e.coefficients.associations).map(([k,v])=>[k,Math.round(v)]))));
+const euroTrophies = c.trophies.filter(t=>t.id.startsWith('uefa_'));
+console.log('player uefa trophies:', euroTrophies.map(t=>`${t.id}@${t.season} ${t.clubName}`));
+console.log('journeyed seasons:', c.seasonHistory.filter(r=>r.segments?.some(s=>s.competitions.some(x=>x.competition==='continental_generic'&&x.teamGames>0))).length, 'of', c.seasonHistory.filter(r=>r.academyStage==='senior').length, 'senior');
+const j = e.current?.playerJourney;
+if (j) console.log('last journey:', j.furthest, j.matches, 'matches, comp:', j.finalCompetition);

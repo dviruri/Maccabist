@@ -298,8 +298,24 @@ function rollTrophies(career: Career, stats: SeasonStats, rng: Rng): Trophy[] {
    */
   const cup = currentCup(career);
   if (cup?.run === 'winners') add(cup.trophyId);
-  if (level.europeChance > 0 && rng.chance(level.europeChance * contribution)) {
-    add(rng.chance(0.2) ? 'champions_league' : 'european_run');
+  /*
+   * EUROPE IS NOT ROLLED (v0.8).
+   *
+   * It was - the last rolled trophy in the game: `rng.chance(europeChance)` then a 20% coin for
+   * the Champions League, which is how a club that never entered Europe could be handed its
+   * biggest prize. The league stopped being rolled in v0.4.8, the cup in v0.6.2; Europe now
+   * follows the same law. `world.europe.current` holds the season's ENTIRE simulated European
+   * campaign - qualifying, drop-downs, league phase, knockouts - and a UEFA trophy exists only
+   * when that campaign's final was actually won. Read, never re-rolled.
+   */
+  const journey = career.world.europe?.current?.playerJourney;
+  if (
+    journey &&
+    journey.season === career.currentSeason &&
+    journey.clubId === club &&
+    journey.wonCompetition
+  ) {
+    add(journey.wonCompetition);
   }
 
   return trophies;
@@ -462,7 +478,14 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
    */
   next.maccabi.championships = countMaccabiTrophies(next, 'championship');
   next.maccabi.cups = countMaccabiTrophies(next, 'cup');
-  next.maccabi.europeanRuns = countMaccabiTrophies(next, 'european_run', 'champions_league');
+  next.maccabi.europeanRuns = countMaccabiTrophies(
+    next,
+    'european_run',
+    'champions_league',
+    'uefa_champions_league',
+    'uefa_europa_league',
+    'uefa_conference_league',
+  );
 
   const halfCtx: HalfContext = {
     stats: half.stats,
@@ -498,7 +521,15 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
         stats: first,
       }
     : null;
-  const segments = buildSeasonSegments(firstHalfSegment, secondHalfSegment, full);
+  const euroJourney = career.world.europe?.current?.playerJourney;
+  const segments = buildSeasonSegments(
+    firstHalfSegment,
+    secondHalfSegment,
+    full,
+    euroJourney && euroJourney.season === career.currentSeason && euroJourney.clubId === career.currentClubId
+      ? euroJourney.matches
+      : undefined,
+  );
 
   const record: SeasonRecord = {
     season: career.currentSeason,
@@ -525,6 +556,12 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
      */
     teamGames,
     segments,
+    europe:
+      euroJourney &&
+      euroJourney.season === career.currentSeason &&
+      euroJourney.clubId === career.currentClubId
+        ? euroJourney
+        : undefined,
     onLoan: career.parentClubId !== null,
     stats: full,
     firstHalf: first,

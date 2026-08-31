@@ -109,6 +109,27 @@ function drawTrophyMark(ctx: CanvasRenderingContext2D, kind: string, x: number, 
     ctx.fillRect(x + s * 0.28, y + s * 0.12, s * 0.44, s * 0.4);
     ctx.fillRect(x + s * 0.44, y + s * 0.52, s * 0.12, s * 0.18);
     ctx.fillRect(x + s * 0.3, y + s * 0.7, s * 0.4, s * 0.12);
+  } else if (kind === 'ucl') {
+    // The European star, in gold, ringed.
+    ctx.strokeStyle = INK.gold;
+    ctx.lineWidth = s * 0.07;
+    ctx.beginPath();
+    ctx.arc(x + s / 2, y + s / 2, s * 0.44, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = INK.gold;
+    ctx.beginPath();
+    const cxs = x + s / 2;
+    const cys = y + s / 2;
+    for (let i = 0; i < 10; i += 1) {
+      const r = i % 2 === 0 ? s * 0.3 : s * 0.13;
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const px = cxs + r * Math.cos(a);
+      const py = cys + r * Math.sin(a);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
   } else {
     // promotion: the upward badge, in green.
     ctx.fillStyle = INK.greenBright;
@@ -234,7 +255,10 @@ export async function renderCareerPoster(
   /* silverware counts, with the correct marks */
   const plateCount = archive.trophies.filter((t) => trophyIconKind(t.id) === 'plate').length;
   const cupCount = archive.trophies.filter((t) => trophyIconKind(t.id) === 'cup').length;
+  // v0.8: European trophies lead the poster's silverware row - they are the rarest thing on it.
+  const uefaCount = archive.trophies.filter((t) => ['ucl', 'uel', 'uecl'].includes(trophyIconKind(t.id))).length;
   const marks: { kind: string; count: number; label: string }[] = [
+    { kind: 'ucl', count: uefaCount, label: 'תארים אירופיים' },
     { kind: 'plate', count: plateCount, label: 'אליפויות' },
     { kind: 'cup', count: cupCount, label: 'גביעים' },
     { kind: 'promotion', count: archive.promotions.length, label: 'עליות' },

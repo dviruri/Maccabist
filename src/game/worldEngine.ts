@@ -13,6 +13,7 @@
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { getLeague, type League } from '../data/leagues';
 import { currentLeagueOf, historicalLeagueId, seasonFixtures } from './leagueTruth';
+import { emptyEuropeState, resolveNextEntries, rollCoefficients, simulateEuropeanSeason } from './uefaEngine';
 import type { Career, ClubSeasonOutcome, ClubSeasonResult, SeasonRecord, WorldState } from '../types';
 import { ALEF_DISTRICT_BY_CLUB, LEAGUE_MEMBERSHIP, isInactiveClub } from '../data/worldClubs';
 import { LEAGUE_SHAPES, leagueShape } from '../data/leagueShape';
@@ -27,7 +28,10 @@ import { clamp, type Rng } from './random';
 /* ------------------------------------------------------------------ */
 
 export function emptyWorld(): WorldState {
-  return { clubLeagues: {}, clubSeasons: [] };
+  // v0.8: the Europe shell is born with the world, so hydration never has to patch a fresh
+  // career - `hydrateCareer(created) === created` stays true, and only genuinely pre-v0.8
+  // saves take the migration branch.
+  return { clubLeagues: {}, clubSeasons: [], europe: emptyEuropeState() };
 }
 
 /**
@@ -620,7 +624,41 @@ export function openWorldSeason(career: Career, rng: Rng): WorldState {
    */
   const cup = projectCup(career, rng);
 
-  return { ...career.world, projection, maccabiProjection: maccabi, cup };
+  /*
+   * Europe (v0.8) is projected here too, beside the league and the cup, and for the same
+   * reason: one committed answer at preseason that everything downstream reads. The entries
+   * were resolved at LAST season's settlement from actual domestic results; this simulates the
+   * whole European year - qualifying, drop-downs, three league phases, knockouts, finals - on
+   * an isolated rng stream, then rolls the coefficient window so next summer's seedings feel
+   * this summer's results.
+   *
+   * The projection above must exist first: entry resolution for a career's very first senior
+   * season falls back to last season's tables, and the simulation records the journey of
+   * whichever club the player is at NOW - the club whose season this is.
+   */
+  const withProjection: WorldState = { ...career.world, projection, maccabiProjection: maccabi, cup };
+  const europeBase = withProjection.europe ?? emptyEuropeState();
+  // First senior season, or a pre-v0.8 save: no entries were settled last year, so resolve
+  // them now from last season's tables - the same deterministic source, one season back.
+  const fallback =
+    europeBase.nextEntries === undefined
+      ? resolveNextEntries({ ...career, world: withProjection }, career.currentSeason - 1)
+      : null;
+  const entries = europeBase.nextEntries ?? fallback!.entries;
+  const standby = europeBase.nextStandby ?? fallback?.standby ?? [];
+  const simulated = simulateEuropeanSeason(
+    { ...career, world: { ...withProjection, europe: europeBase } },
+    career.currentSeason,
+    entries,
+    standby,
+    [career.currentClubId, MACCABI_ID],
+  );
+  const rolled = rollCoefficients(europeBase, simulated.state, simulated.points);
+
+  return {
+    ...withProjection,
+    europe: { ...rolled, current: simulated.state, nextEntries: undefined, nextStandby: undefined },
+  };
 }
 
 /**

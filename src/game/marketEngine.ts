@@ -154,12 +154,33 @@ export function clubCareerLevel(career: Career, clubId: string): number {
   const league = leagueOf(career.world, clubId);
   const w = MARKET.careerLevel;
 
+  /*
+   * v0.8: ACTUAL European football, modestly weighted on top of the static prior.
+   *
+   * `europeChance` remains the long-run attractiveness prior; a live entry this season adds a
+   * bounded bonus scaled by competition tier - a Champions League campaign is worth more than a
+   * Conference one, and none of it overrides the market/tier-first philosophy (the bonus is a
+   * fraction of the europeChance term's own scale).
+   */
+  const entry =
+    career.world.europe?.current?.entries.find((e) => e.clubId === clubId) ??
+    career.world.europe?.nextEntries?.find((e) => e.clubId === clubId);
+  const liveEurope =
+    entry?.competition === 'uefa_champions_league'
+      ? 40
+      : entry?.competition === 'uefa_europa_league'
+        ? 25
+        : entry?.competition === 'uefa_conference_league'
+          ? 14
+          : 0;
+
   return clamp(
     leagueLevel(league) * w.league +
       club.quality * w.quality +
       club.prestige * w.prestige +
       league.visibility * w.visibility +
-      club.europeChance * 100 * w.europe,
+      club.europeChance * 100 * w.europe +
+      liveEurope * w.europe,
   );
 }
 

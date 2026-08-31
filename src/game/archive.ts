@@ -34,6 +34,20 @@ function archivedSeason(record: SeasonRecord): ArchivedSeason {
      * segment - this is an archive-payload decision, not a truth decision.
      */
     segments: record.segments && record.segments.length > 1 ? record.segments : undefined,
+    /*
+     * v0.8: the journey, with per-leg detail dropped. The archive renders stages, opponents and
+     * aggregates; individual leg scores are live-season detail, and keeping them measured the
+     * 100-career archive at 26.5 KB per career against 18 without. Same rule as segments: an
+     * archive-payload decision, not a truth decision - the live record keeps every leg.
+     */
+    europe: record.europe
+      ? {
+          ...record.europe,
+          steps: record.europe.steps.map((step) =>
+            step.kind === 'tie' ? { ...step, tie: { ...step.tie, legs: [] } } : step,
+          ),
+        }
+      : undefined,
     onLoan: record.onLoan,
     stats: record.stats,
     ability: record.ability,

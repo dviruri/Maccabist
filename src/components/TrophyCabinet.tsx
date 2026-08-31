@@ -31,7 +31,8 @@ function groupTrophies(trophies: readonly Trophy[]): CabinetGroup[] {
     byId.set(trophy.id, [...(byId.get(trophy.id) ?? []), trophy]);
   }
   // Cabinet order: plates first, cups, continental, youth. Prestige order, not insertion order.
-  const kindOrder: TrophyIconKind[] = ['plate', 'cup', 'continental', 'youth'];
+  // v0.8: European trophies outrank domestic silverware in the cabinet's own hierarchy.
+  const kindOrder: TrophyIconKind[] = ['ucl', 'uel', 'uecl', 'plate', 'cup', 'continental', 'youth'];
   return [...byId.entries()]
     .sort(
       (a, b) =>

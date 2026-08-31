@@ -5,7 +5,7 @@
 
 import { stageBand, stageConfig } from '../data/academy';
 import { getClub, isAbroad, isMaccabiSenior, MACCABI_ID } from '../data/clubs';
-import { leagueSeasonGames } from './leagueSchedule';
+import { leagueScheduleBreakdown, leagueSeasonGames } from './leagueSchedule';
 import { currentLeagueOf } from './leagueTruth';
 import type { Career, LevelContext, StageBand, TeamRole } from '../types';
 import { COACH_TRUST, POSITIONS, ROLE_LABELS, ROLE_TIERS, SEASON } from './balance';
@@ -76,13 +76,34 @@ export function levelContext(career: Career): LevelContext {
    * kept being told he was in Ligat Ha'Al, and kept playing that division's fixture count.
    */
   const league = currentLeagueOf(career.world, club);
+  /*
+   * v0.8: continental fixtures are REAL. Before Europe was simulated, strong clubs carried a
+   * quality-based European allowance whether or not they had qualified for anything. Now the
+   * season's European journey - simulated at preseason - says exactly how many European matches
+   * this club plays this year, including a journey that started in Champions League qualifying
+   * and ended in the Conference League. No journey, no European fixtures. A pre-v0.8 save
+   * mid-season has no europe state and keeps the legacy allowance until its next preseason.
+   */
+  const journey = career.world.europe?.current?.playerJourney;
+  const isIsraeli = club.country === 'ישראל';
+  const seasonGames =
+    career.world.europe && career.world.europe.current
+      ? (() => {
+          const base = leagueScheduleBreakdown(league.id, club.quality, isIsraeli);
+          const continental =
+            journey && journey.season === career.currentSeason && journey.clubId === club.id
+              ? journey.matches
+              : 0;
+          return base.league + base.cup + continental;
+        })()
+      : leagueSeasonGames(league.id, club.quality, isIsraeli);
   return {
     teamName: club.name,
     league: league.name,
     quality: club.quality,
     development: club.development,
     prestige: club.prestige,
-    seasonGames: leagueSeasonGames(league.id, club.quality, club.country === 'ישראל'),
+    seasonGames,
     titleChance: club.titleChance,
     cupChance: club.cupChance,
     europeChance: club.europeChance,
