@@ -58,6 +58,7 @@ const SCENES = [
   { id: 'gf-home', bare: 'shell', need: ['.gf-hero-name', '.gf-next'] },
   { id: 'gf-matchday', bare: '1', need: ['.gf-board-num', '.gf-md-controls', '.gf-btn-primary'] },
   { id: 'gf-matchday-live', bare: '1', need: ['.gf-board-num', '.gf-md-now', '.gf-btn-primary'] },
+  { id: 'gf-matchday-half', bare: '1', need: ['.gf-board-num', '.gf-md-now', '.gf-btn-primary'] },
   { id: 'gf-matchday-ft', bare: '1', need: ['.gf-board-num', '.gf-md-ft', '.gf-btn-primary'] },
   { id: 'gf-decision', bare: 'shell', need: ['.gf-dec-title', '.gf-dec-actions', '.gf-btn-primary'] },
   { id: 'gf-moment', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },

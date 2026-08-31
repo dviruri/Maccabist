@@ -92,6 +92,59 @@ describe('the destinations own the full renderings', () => {
   });
 });
 
+describe('the matchday is a state machine, not a page', () => {
+  const matchday = read('src/components/Matchday.tsx');
+  const css = read('src/styles/gamefeel.css');
+
+  it('has exactly four states, and derives which one is showing', () => {
+    expect(matchday).toContain("type MatchdayState = 'preview' | 'live' | 'half_time' | 'full_time'");
+    /*
+     * Derived from `revealed`, not stored in a second piece of state. A stored state could drift
+     * out of step with the story the reveal has actually told.
+     */
+    expect(matchday).toMatch(/const state: MatchdayState =/);
+    expect(matchday).not.toMatch(/useState<MatchdayState>/);
+    for (const state of ['preview', 'live', 'half_time', 'full_time']) {
+      expect(matchday, `no branch for ${state}`).toContain(`state === '${state}'`);
+    }
+  });
+
+  it('renders the moment list only inside the history panel', () => {
+    /*
+     * The v0.9.2 bug this replaces: every revealed moment stayed on screen, so full time sat
+     * under a growing list. There is exactly one place that iterates the moments for display,
+     * and it is behind the history button.
+     */
+    const iterations = matchday.match(/moments\.slice\(0, revealed\)\.map/g) ?? [];
+    expect(iterations.length).toBe(1);
+    const historyAt = matchday.indexOf('className="gf-md-history"');
+    expect(historyAt).toBeGreaterThan(0);
+    expect(matchday.indexOf('moments.slice(0, revealed).map')).toBeGreaterThan(historyAt);
+  });
+
+  it('gives the history its own scroll, so the match itself never needs one', () => {
+    expect(/\.gf-md-history-list\s*\{[^}]*overflow-y:\s*auto/.test(css)).toBe(true);
+    expect(/\.gf-matchday-screen\s*\{[^}]*height:\s*100dvh/.test(css)).toBe(true);
+  });
+
+  it('has one primary control and two visibly minor ones', () => {
+    // The secondary actions are not GameButtons at all - that is what made all three equal.
+    expect(matchday).toContain('gf-md-controls-minor');
+    expect((matchday.match(/<GameButton/g) ?? []).length).toBe(2);
+    expect((matchday.match(/className="gf-md-minor"/g) ?? []).length).toBe(2);
+  });
+
+  it('drops the app bottom padding for a screen that owns the viewport', () => {
+    /*
+     * `.app` adds 40px plus the safe-area inset for an ordinary page. A 100dvh child then makes
+     * the document 884px tall at an 844px viewport - which is exactly what all four matchday
+     * states measured before this rule existed.
+     */
+    expect(css).toContain('.app:has(.gf-matchday-screen)');
+    expect(css).toContain('.app:has(.gf-moment-screen)');
+  });
+});
+
 describe('the feed is ordered by what a player acts on', () => {
   it('puts the agent first, then the coach, then the club, then media colour', () => {
     /*

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 import { EVENTS_BY_ID } from '../data/events';
 import { MACCABI_ACADEMY_ID, MACCABI_ID } from '../data/clubs';
@@ -399,16 +399,37 @@ const europeanSeasonCareer = (): Career => {
   };
 };
 
-/** v0.9.1: the matchday screen needs its prebuilt presentation, like the real caller. */
-function MatchdaySceneDemo({ revealAll = false }: { revealAll?: boolean }): JSX.Element {
+/**
+ * v0.9.1: the matchday screen needs its prebuilt presentation, like the real caller.
+ *
+ * v0.9.3: `at` picks a state to inspect. The screen is a state machine now, so PREVIEW, LIVE,
+ * HALF TIME and FULL TIME each need their own scene - measuring only the preview and the
+ * conclusion is how the intermediate states escape the audit.
+ */
+function MatchdaySceneDemo({
+  revealAll = false,
+  at,
+}: {
+  revealAll?: boolean;
+  at?: 'live' | 'half_time';
+}): JSX.Element {
   const career = midSeasonCareer();
   const matchday = buildMatchday(career);
   if (!matchday) return <div>no matchday</div>;
+  /* The biggest moment for LIVE, the half-time whistle for HALF TIME - both real, not indices. */
+  const target =
+    at === 'half_time'
+      ? matchday.moments.findIndex((moment) => moment.kind === 'half_time')
+      : at === 'live'
+        ? matchday.moments.findIndex((moment) => moment.big)
+        : -1;
+  const fallback = at === undefined ? undefined : Math.max(1, Math.floor(matchday.moments.length / 2));
   return (
     <MatchdayExperience
       career={career}
       matchday={matchday}
       autoReveal={revealAll}
+      revealTo={target >= 0 ? target + 1 : fallback}
       onContinue={() => undefined}
     />
   );
@@ -1233,6 +1254,8 @@ export function Gallery(): JSX.Element {
       onExit={noop}
     />],
     ['gf-matchday', <MatchdaySceneDemo />],
+    ['gf-matchday-live', <MatchdaySceneDemo at="live" />],
+    ['gf-matchday-half', <MatchdaySceneDemo at="half_time" />],
     ['gf-matchday-ft', <MatchdaySceneDemo revealAll />],
     ['gf-moment-uefa', <CareerMomentScreen
       moment={{
@@ -1355,8 +1378,12 @@ export function Gallery(): JSX.Element {
         `}</style>
       )}
       {bare === '1' ? (
-        /* A full-page scene (GamePage, the matchday screen) brings its own shell. */
-        shown.map(([name, node]) => <div key={name}>{node}</div>)
+        /*
+          A full-page scene (GamePage, the matchday screen) brings its own shell. Fragment, not a
+          div: a wrapper element would break `.app:has(> ...)`-shaped rules and make the harness
+          measure a DOM the game never renders.
+        */
+        shown.map(([name, node]) => <Fragment key={name}>{node}</Fragment>)
       ) : bare === 'shell' ? (
         /* A component scene needs the shell it lives in during play - width and gutters. */
         <div className="shell">{shown.map(([name, node]) => <div key={name}>{node}</div>)}</div>

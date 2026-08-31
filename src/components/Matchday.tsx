@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { matchScoreViewAfter, verdictLabel } from '../game/matchScore';
+import { matchScoreViewAfter, matchVerdict, verdictLabel } from '../game/matchScore';
 import type { MatchMoment, MatchdayPresentation } from '../game/matchdayPresenter';
 import type { Career } from '../types';
 import { getCareerPlayerArt } from '../ui/playerArt';
@@ -9,16 +9,33 @@ import { CinematicBackdrop, GameButton } from './gamefeel';
 import { Ltr } from './primitives';
 
 /**
- * יום המשחק (v0.9, Phase 3).
+ * יום המשחק (v0.9, Phase 3 · rebuilt as a state machine in v0.9.3, Phase 3).
  *
- * The staged reveal of the presenter's matchday: preview → kickoff → moments, one tap at a
- * time → half time → second half → full time → the player's summary. The match is already
- * decided (the presenter derived it from the real half); what unfolds is the TELLING, so
- * "continue" costs nothing and "לדלג" reveals everything at once. Nothing here touches state -
- * the component's only outward act is the onContinue at full time.
+ * The match is already decided - the presenter derived it from the half the engine really
+ * simulated - so what unfolds here is the TELLING. "המשך" costs nothing, "לסיום" reveals
+ * everything at once, and nothing in this component touches career state: its only outward act
+ * is the onContinue at full time.
  *
- * Score truth on screen: until a goal's moment has been revealed it is not on the scoreboard,
- * so the scoreboard always equals the story so far.
+ * ## v0.9.3: one state at a time
+ *
+ * v0.9.1 gave the matchday its own screen and v0.9.2 gave it a dominant scoreboard, but it still
+ * behaved like a page: every revealed moment stayed stacked on screen, so by full time the
+ * verdict sat under a growing list and the player scrolled to find the button. A match is not a
+ * document of a match.
+ *
+ * So there are now four explicit states, and exactly one of them is on screen:
+ *
+ *     PREVIEW  →  LIVE  ⇄  HALF TIME  →  FULL TIME
+ *
+ * The state is DERIVED from how much has been revealed rather than stored, so it cannot drift
+ * out of step with the story: the moment at the head of the reveal decides it. Earlier moments
+ * are not deleted - they move behind "מה קרה במשחק", which is a list and is allowed to scroll
+ * because it is data rather than the game.
+ *
+ * The player art is now one atmospheric layer behind all four states instead of a section that
+ * only the preview had. Score truth on screen is unchanged: a goal is not on the scoreboard
+ * until its moment has been revealed, so the board always equals the story so far - and since
+ * v0.9.3 the board is `MatchScoreboard`, the only thing in the game that draws a score.
  */
 
 const MOMENT_ICONS: Record<MatchMoment['kind'], string> = {
@@ -35,11 +52,14 @@ const MOMENT_ICONS: Record<MatchMoment['kind'], string> = {
   full_time: '🏁',
 };
 
+type MatchdayState = 'preview' | 'live' | 'half_time' | 'full_time';
+
 export function MatchdayExperience({
   career,
   matchday,
   onContinue,
   autoReveal = false,
+  revealTo,
 }: {
   career: Career;
   /** THE fixture's matchday, built by the caller so the screen and the router agree. */
@@ -47,24 +67,32 @@ export function MatchdayExperience({
   onContinue: () => void;
   /** Preview-only: start at full time, so the gallery can inspect the conclusion. */
   autoReveal?: boolean;
+  /** Preview-only: start mid-match, so the gallery can inspect a live state. */
+  revealTo?: number;
 }): JSX.Element {
-  const [revealed, setRevealed] = useState(autoReveal ? matchday.moments.length : 0);
-
   const { fixture, moments } = matchday;
   const total = moments.length;
+  const [revealed, setRevealed] = useState(
+    autoReveal ? total : revealTo !== undefined ? Math.min(total, revealTo) : 0,
+  );
+  const [showHistory, setShowHistory] = useState(false);
+
   const done = revealed >= total;
-  const visible = moments.slice(0, revealed);
+  const current = revealed > 0 ? moments[revealed - 1]! : null;
+  const state: MatchdayState = done
+    ? 'full_time'
+    : revealed === 0
+      ? 'preview'
+      : current!.kind === 'half_time'
+        ? 'half_time'
+        : 'live';
 
   /*
-   * The score, from THE model (v0.9.3).
-   *
-   * The component no longer counts goals or pairs numbers with clubs - `matchScoreViewAfter`
-   * does both, in home/away terms, so this screen and the summary below it cannot disagree and
-   * RTL cannot invert either of them. It still equals the story revealed so far and is never
-   * ahead of it, which is what the `revealed` count buys.
+   * The score, from THE model (v0.9.3). The component no longer counts goals or pairs numbers
+   * with clubs - `matchScoreViewAfter` does both, in home/away terms - so this screen and its
+   * own summary cannot disagree, and RTL cannot invert either of them.
    */
   const view = matchScoreViewAfter(fixture, moments, revealed);
-  const lastMinute = visible[visible.length - 1]?.minute ?? 0;
   const isKeeper = career.position === 'GK';
   const art = getCareerPlayerArt({
     age: career.age,
@@ -87,102 +115,166 @@ export function MatchdayExperience({
     return total;
   };
 
+  const statusLabel =
+    state === 'preview'
+      ? 'לפני שריקה'
+      : state === 'half_time'
+        ? 'מחצית'
+        : state === 'full_time'
+          ? 'סיום'
+          : `${current!.minute}'`;
+
   return (
     <div className="gf-matchday-screen">
-    <CinematicBackdrop backdrop="matchday-crowd" className="gf-matchday">
-      <div className="gf-md-head">
-        <div className="gf-kicker">יום המשחק · {matchday.competitionLabel}</div>
+      <CinematicBackdrop backdrop="matchday-crowd" className="gf-matchday">
+        {/* ---- the fixture, once, at the top ---- */}
+        <div className="gf-kicker gf-md-kicker">
+          יום המשחק · {matchday.competitionLabel}
+          {fixture.stage ? ` · ${fixture.stage}` : ''}
+        </div>
+
         <MatchScoreboard
           view={view}
-          statusLabel={revealed === 0 ? 'לפני שריקה' : done ? 'סיום' : `${lastMinute}'`}
+          statusLabel={statusLabel}
           caption={
-            /*
-              No "בבית / בחוץ" here any more: the board itself now labels each club's end, and
-              saying it twice was how the screen used to compensate for a scoreline that did not
-              carry the venue.
-            */
-            <>
-              {fixture.stage ?? ''}
-              {fixture.opponentPosition !== null && (
-                <>
-                  {fixture.stage ? ' · ' : ''}
-                  {'היריבה במקום '}
-                  <Ltr>{fixture.opponentPosition}</Ltr>
-                </>
-              )}
-            </>
+            fixture.opponentPosition !== null ? (
+              <>
+                {'היריבה במקום '}
+                <Ltr>{fixture.opponentPosition}</Ltr>
+              </>
+            ) : undefined
           }
         />
-      </div>
 
-      {revealed === 0 && (
-        <div className="gf-md-preview">
+        {/*
+          ---- the stage: the player behind, ONE state in front ----
+
+          The art is a depth layer for every state, not a section of its own. It is allowed to sit
+          behind the state text, which is why the text carries its own shadow.
+        */}
+        <div className={`gf-md-stage gf-md-stage-${state}`}>
           <img className="gf-md-art" src={art} alt="" aria-hidden />
-          <p className="gf-md-status">
-            {matchday.played
-              ? matchday.started
-                ? 'אתה בהרכב הפותח.'
-                : 'אתה בסגל. תהיה מוכן מהספסל.'
-              : 'הפעם מהיציע. המשחק לא מחכה לאף אחד.'}
-          </p>
-        </div>
-      )}
 
-      {revealed > 0 && (
-        <div className="gf-md-timeline" aria-live="polite">
-          {visible.map((moment, index) => (
-            <div key={index} className={`gf-md-moment${moment.big ? ' gf-md-moment-big' : ''}`}>
-              <span className="gf-md-moment-minute">
-                <Ltr>{`'${moment.minute}`}</Ltr>
-              </span>
-              <span className="gf-md-moment-icon" aria-hidden>
-                {MOMENT_ICONS[moment.kind]}
-              </span>
-              <span className="gf-md-moment-text">{moment.text}</span>
+          {state === 'preview' && (
+            <p className="gf-md-status">
+              {matchday.played
+                ? matchday.started
+                  ? 'אתה בהרכב הפותח.'
+                  : 'אתה בסגל. תהיה מוכן מהספסל.'
+                : 'הפעם מהיציע. המשחק לא מחכה לאף אחד.'}
+            </p>
+          )}
+
+          {state === 'live' && (
+            <div className={`gf-md-now${current!.big ? ' gf-md-now-big' : ''}`} aria-live="polite">
+              <div className="gf-md-now-minute">
+                <Ltr>{`${current!.minute}'`}</Ltr>
+              </div>
+              <div className="gf-md-now-icon" aria-hidden>
+                {MOMENT_ICONS[current!.kind]}
+              </div>
+              <div className="gf-md-now-text">{current!.text}</div>
             </div>
-          ))}
+          )}
+
+          {state === 'half_time' && (
+            <div className="gf-md-now gf-md-now-break" aria-live="polite">
+              <div className="gf-md-now-text">מחצית</div>
+              <div className="gf-md-now-sub">
+                {/*
+                  Read through `matchVerdict`, not by comparing homeScore to awayScore. The
+                  component has no business pairing a number with a club - that is exactly the
+                  reasoning the Phase 1 bug came from, and its own test caught this line.
+                */}
+                {matchVerdict(view) === 'draw'
+                  ? 'שוויון בהפסקה. מחצית שלמה לשנות אותו.'
+                  : matchVerdict(view) === 'win'
+                    ? 'מובילים בהפסקה. עוד מחצית להחזיק.'
+                    : 'מפגרים בהפסקה. יש עוד מחצית שלמה.'}
+              </div>
+            </div>
+          )}
+
+          {state === 'full_time' && (
+            <div className="gf-md-ft-block">
+              {/* the verdict is read from the player's own side of the model, not from digit order */}
+              <div className="gf-md-ft">{verdictLabel(view)}</div>
+              <div className="gf-md-ft-sub">
+                {fixture.kind === 'cup_final'
+                  ? matchVerdict(view) === 'win'
+                    ? 'הגביע שלנו.'
+                    : 'הגמר אבד.'
+                  : `${fixture.competition} · ${fixture.opponentName}`}
+              </div>
+              <div className="gf-md-facts">
+                {/* the anchor to truth: the real numbers this matchday was drawn from */}
+                {matchday.factsLine}
+              </div>
+            </div>
+          )}
+
+          {/*
+            ---- what already happened ----
+
+            The history the screen used to stack in front of the player. A list, opened on demand
+            and scrollable INSIDE itself, so the match never becomes a document of itself.
+          */}
+          {revealed > 1 && !showHistory && (
+            <button type="button" className="gf-md-history-open" onClick={() => setShowHistory(true)}>
+              מה קרה במשחק
+            </button>
+          )}
+          {showHistory && (
+            <div className="gf-md-history" role="dialog" aria-label="מה קרה במשחק">
+              <div className="gf-md-history-list">
+                {moments.slice(0, revealed).map((moment, index) => (
+                  <div key={index} className={`gf-md-line${moment.big ? ' gf-md-line-big' : ''}`}>
+                    <span className="gf-md-line-minute">
+                      <Ltr>{`${moment.minute}'`}</Ltr>
+                    </span>
+                    <span className="gf-md-line-icon" aria-hidden>
+                      {MOMENT_ICONS[moment.kind]}
+                    </span>
+                    <span className="gf-md-line-text">{moment.text}</span>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="gf-md-history-close" onClick={() => setShowHistory(false)}>
+                סגור
+              </button>
+            </div>
+          )}
         </div>
-      )}
 
-      {done && (
-        <>
-          {/* v0.9.2: full time is a conclusion - the verdict first, then the numbers. */}
-          {/* the verdict is read from the player's own side of the model, not from digit order */}
-          <div className="gf-md-ft">{verdictLabel(view)}</div>
-          <div className="gf-md-ft-sub">
-            {fixture.kind === 'cup_final'
-              ? verdictLabel(view) === 'ניצחון'
-                ? 'הגביע שלנו.'
-                : 'הגמר אבד.'
-              : `${fixture.competition} · ${fixture.opponentName}`}
-          </div>
-          <div className="gf-md-facts">
-            {/* the anchor to truth: the real numbers this matchday was drawn from */}
-            {matchday.factsLine}
-          </div>
-        </>
-      )}
+        {/*
+          ---- controls: one primary, the rest visibly secondary ----
 
-      <div className="gf-md-controls">
-        {!done ? (
-          <>
-            <GameButton onClick={() => setRevealed((r) => Math.min(total, r + 1))}>
-              {revealed === 0 ? 'שריקת פתיחה' : 'המשך'}
+          v0.9.2 gave three buttons equal visual weight, which made none of them the obvious one.
+        */}
+        <div className="gf-md-controls">
+          {state === 'full_time' ? (
+            <GameButton onClick={onContinue}>
+              {fixture.kind === 'league' ? 'לסיכום המחצית' : 'חזרה לקריירה'}
             </GameButton>
-            {revealed > 0 && (
-              <GameButton tone="ghost" onClick={() => setRevealed(nextBeat())}>
-                הרגע הבא
+          ) : (
+            <>
+              <GameButton onClick={() => setRevealed((r) => Math.min(total, r + 1))}>
+                {state === 'preview' ? 'שריקת פתיחה' : 'המשך'}
               </GameButton>
-            )}
-            <GameButton tone="ghost" onClick={() => setRevealed(total)}>
-              לסיום
-            </GameButton>
-          </>
-        ) : (
-          <GameButton onClick={onContinue}>לסיכום המחצית</GameButton>
-        )}
-      </div>
-    </CinematicBackdrop>
+              {revealed > 0 && (
+                <div className="gf-md-controls-minor">
+                  <button type="button" className="gf-md-minor" onClick={() => setRevealed(nextBeat())}>
+                    הרגע הבא
+                  </button>
+                  <button type="button" className="gf-md-minor" onClick={() => setRevealed(total)}>
+                    לסיום
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </CinematicBackdrop>
     </div>
   );
 }

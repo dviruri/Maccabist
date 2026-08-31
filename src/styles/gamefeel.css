@@ -450,134 +450,177 @@
 .gf-feed-text { margin: 0; font-size: var(--gf-body); line-height: 1.35; overflow-wrap: anywhere; }
 
 /* ---- v0.9 phase 3: matchday ---- */
-.gf-matchday .gf-scene-content { gap: 12px; }
-.gf-md-head { display: grid; gap: 8px; text-align: center; justify-items: center; }
-.gf-md-board {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  background: linear-gradient(to bottom, rgba(13,18,15,0.55), rgba(8,12,9,0.92));
-  border: 1px solid rgba(41, 217, 106, 0.3);
-  border-radius: var(--gf-radius);
-  padding: 14px 10px;
-  box-shadow: inset 0 0 44px rgba(15, 166, 74, 0.1);
-}
-.gf-md-club {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-  font-weight: 900;
-  font-size: clamp(13px, 3.7vw, 17px);
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-.gf-md-club span { overflow-wrap: anywhere; }
-.gf-md-score { display: grid; justify-items: center; gap: 2px; flex: none; padding-top: 2px; }
-.gf-md-minute {
-  font-size: clamp(13px, 3.8vw, 16px);
-  font-weight: 900;
-  color: var(--green-bright);
-  min-height: 18px;
-  letter-spacing: 0.04em;
-}
-.gf-md-numbers {
-  /* v0.9.2: the score is the screen's subject, not another text row. */
-  font-size: clamp(52px, 16vw, 76px);
-  font-weight: 900;
-  line-height: 0.95;
-  letter-spacing: -0.02em;
-  text-shadow: 0 3px 26px rgba(0, 0, 0, 0.9);
-}
-.gf-md-caption { color: var(--text-secondary); font-size: 12px; }
+/* =====================================================================
+   v0.9.3 PHASE 3 - MATCHDAY AS A STATE MACHINE
+   PREVIEW -> LIVE <-> HALF TIME -> FULL TIME, one on screen at a time.
 
-.gf-md-preview { display: grid; justify-items: center; gap: 8px; }
+   What this replaced: a scoreboard assembled here by hand (now
+   MatchScoreboard, Phase 1), and a timeline that stacked every revealed
+   moment in front of the player until the verdict sat under a list and
+   the button was below the fold. The moments still exist, behind
+   "what happened in the match", which is data and may scroll inside
+   itself.
+   ===================================================================== */
+.gf-matchday .gf-scene-content { gap: 10px; }
+.gf-md-kicker { text-align: center; }
+
 /*
- * v0.9.2: the player is close and large here too, cropped by the same transform technique as
- * the home hero, and allowed to sit BEHIND the board rather than inside a little box.
+ * The stage takes whatever height is left and centres the current state in it. `min-height: 0`
+ * on the column is what lets it actually shrink instead of pushing the controls off the bottom
+ * of the screen - the failure mode v0.9.2 hit with the preview art.
  */
-/*
- * A fixed stage: the art is absolutely placed inside it and the status sits on top, so scaling
- * the player can never push the lineup line out of the screen (it did, on the first pass).
- */
-.gf-md-preview {
+.gf-md-stage {
   position: relative;
+  flex: 1;
+  min-height: clamp(150px, 26vh, 300px);
+  display: grid;
+  align-content: center;
+  justify-items: center;
   overflow: hidden;
-  height: clamp(190px, 32vh, 280px);
-  display: block;
 }
+/* the player is depth, in every state - not a section only the preview had */
 .gf-md-art {
   position: absolute;
   top: 0;
   left: 50%;
-  width: min(72%, 280px);
+  width: min(74%, 290px);
   height: auto;
-  transform-origin: 50% 8%;
-  transform: translateX(-50%) scale(1.45);
-  filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.75));
+  transform-origin: 50% 6%;
+  transform: translateX(-50%) scale(1.55);
+  z-index: var(--z-art);
+  opacity: 0.9;
+  filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.8));
   animation: gf-rise var(--gf-t-enter) ease-out;
-  -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
 }
 .gf-md-status {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 2px;
+  position: relative;
   z-index: var(--z-panel);
+  align-self: end;
+  margin: 0;
+  font-weight: 900;
+  font-size: clamp(16px, 4.6vw, 20px);
+  text-align: center;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95);
 }
-.gf-md-status { margin: 0; font-weight: 900; font-size: clamp(16px, 4.6vw, 20px); text-align: center; }
 
-.gf-md-timeline { display: grid; gap: 7px; }
-.gf-md-moment {
+/*
+ * THE CURRENT MOMENT. One event, in front of the player, with a radial scrim so it stays legible
+ * over the art without putting a bordered rectangle on top of him.
+ */
+.gf-md-now {
+  position: relative;
+  z-index: var(--z-panel);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 16px 18px;
+  max-width: 100%;
+  background: radial-gradient(ellipse 74% 100% at 50% 50%, rgba(6, 9, 7, 0.88) 0%, rgba(6, 9, 7, 0.55) 62%, transparent 100%);
+  animation: gf-rise var(--gf-t-quick) ease-out;
+}
+.gf-md-now-minute {
+  font-size: var(--gf-section);
+  font-weight: 900;
+  color: var(--green-bright);
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+.gf-md-now-icon { font-size: 30px; line-height: 1; }
+.gf-md-now-text {
+  font-size: var(--gf-hero);
+  font-weight: 900;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  text-shadow: 0 3px 20px rgba(0, 0, 0, 0.95);
+}
+/* the player's own moments are the loudest thing on the screen after the score */
+.gf-md-now-big .gf-md-now-text { font-size: var(--gf-display); color: #ffffff; }
+.gf-md-now-sub { color: var(--text-secondary); font-size: var(--gf-body); }
+.gf-md-now-break .gf-md-now-text { font-size: var(--gf-display); letter-spacing: 0.02em; }
+
+.gf-md-ft-block {
+  position: relative;
+  z-index: var(--z-panel);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 16px;
+  background: radial-gradient(ellipse 78% 100% at 50% 50%, rgba(6, 9, 7, 0.9) 0%, rgba(6, 9, 7, 0.55) 64%, transparent 100%);
+}
+
+/* history: opened on demand, scrolls inside itself, never in front of the game */
+.gf-md-history-open {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: var(--z-controls);
+  margin: 0 auto;
+  width: fit-content;
+  background: var(--gf-glass);
+  border: 1px solid var(--gf-glass-border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: var(--gf-meta);
+  font-weight: 800;
+  padding: 7px 14px;
+  min-height: 36px;
+  cursor: pointer;
+}
+.gf-md-history {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-controls);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--gf-radius);
+  background: rgba(6, 9, 7, 0.95);
+  border: 1px solid var(--gf-glass-border);
+}
+.gf-md-history-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.gf-md-history-close {
+  background: none;
+  border: 1px solid var(--gf-glass-border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: var(--gf-meta);
+  min-height: 40px;
+  cursor: pointer;
+}
+.gf-md-line {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: var(--gf-glass);
-  border: 1px solid var(--gf-glass-border);
-  border-radius: 12px;
-  padding: 8px 10px;
-  animation: gf-rise var(--gf-t-quick) ease-out;
-  opacity: 0.5;
-  transition: opacity var(--gf-t-quick) ease;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
 }
-/*
- * v0.9.2: ONE primary moment at a time. The latest revealed moment is the event that just
- * happened and carries the weight; everything before it recedes into history rather than
- * competing as an equally weighted card.
- */
-.gf-md-timeline .gf-md-moment:last-child {
-  opacity: 1;
-  padding: 13px 12px;
-  border-color: rgba(41, 217, 106, 0.45);
-  background: linear-gradient(135deg, rgba(15,166,74,0.16), rgba(13,18,15,0.9));
-}
-.gf-md-timeline .gf-md-moment:last-child .gf-md-moment-text {
-  font-size: clamp(16px, 4.6vw, 20px);
-  font-weight: 900;
-}
-.gf-md-timeline .gf-md-moment:last-child .gf-md-moment-minute {
-  font-size: 15px;
-  color: var(--green-bright);
-}
-.gf-md-moment-big { border-color: rgba(41, 217, 106, 0.55); font-weight: 900; }
-.gf-md-timeline .gf-md-moment-big:last-child { box-shadow: var(--gf-glow-green); }
-.gf-md-moment-minute {
+.gf-md-line-big { border: 1px solid rgba(41, 217, 106, 0.45); font-weight: 900; }
+.gf-md-line-minute {
   flex: none;
-  min-width: 34px;
+  min-width: 32px;
   text-align: center;
   font-weight: 800;
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 3px 4px;
+  font-size: 12px;
+  color: var(--green-bright);
 }
-.gf-md-moment-icon { flex: none; }
-.gf-md-moment-text { font-size: 13.5px; overflow-wrap: anywhere; }
+.gf-md-line-icon { flex: none; }
+.gf-md-line-text { font-size: 13px; overflow-wrap: anywhere; }
+
 /* full time reads as a conclusion, not a footnote */
 .gf-md-facts {
   text-align: center;
@@ -586,15 +629,34 @@
   border-top: 1px solid var(--gf-glass-border);
   padding-top: 10px;
 }
+/* full time is a conclusion: the verdict is the largest word on the screen (v0.9.3) */
 .gf-md-ft {
   text-align: center;
-  font-size: clamp(22px, 6.5vw, 30px);
+  font-size: var(--gf-display);
   font-weight: 900;
-  letter-spacing: 0.02em;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-shadow: 0 3px 22px rgba(0, 0, 0, 0.95);
 }
-.gf-md-ft-sub { text-align: center; color: var(--green-bright); font-weight: 800; font-size: 14.5px; }
-.gf-md-controls { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-.gf-md-controls .gf-btn-ghost { min-width: 84px; }
+.gf-md-ft-sub { text-align: center; color: var(--green-bright); font-weight: 800; font-size: var(--gf-body); }
+/*
+ * v0.9.3: one primary action, and two genuinely secondary ones. v0.9.2 put three buttons of
+ * identical weight in a row, which made none of them the obvious one to press.
+ */
+.gf-md-controls { display: grid; gap: 6px; }
+.gf-md-controls-minor { display: flex; justify-content: center; gap: 20px; }
+.gf-md-minor {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-weight: 800;
+  font-size: var(--gf-meta);
+  min-height: 36px;
+  padding: 4px 8px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 /* ---- v0.9 phase 4: career decisions ---- */
 .gf-decision .gf-scene-content { gap: 12px; }
@@ -765,7 +827,7 @@
 }
 
 /* ---- v0.9 phase 8: restrained motion ---- */
-.gf-md-numbers { animation: gf-score-pop var(--gf-t-enter) ease-out; }
+/* the score's own pulse now lives on .gf-board-num (Phase 1); the keyframes are shared */
 @keyframes gf-score-pop {
   0% { transform: scale(1); }
   40% { transform: scale(1.18); text-shadow: 0 0 26px rgba(41, 217, 106, 0.6); }
@@ -797,12 +859,30 @@
 /* the controls stay reachable at the bottom of the match, not after a scroll */
 .gf-matchday-screen .gf-md-controls {
   margin-top: auto;
-  padding-top: 10px;
-  grid-template-columns: 1fr;
-  gap: 8px;
+  padding-top: 6px;
 }
-@media (min-width: 380px) {
-  .gf-matchday-screen .gf-md-controls { grid-template-columns: 1fr auto auto; }
+/*
+ * v0.9.3: the matchday screen is a COLUMN of a fixed height, not a stack that grows. The stage
+ * between the board and the controls absorbs the slack, so no state can push the primary button
+ * off the bottom - which is what the old three-across control grid was compensating for.
+ */
+.gf-matchday-screen { height: 100dvh; }
+/*
+ * A full-screen game state owns the viewport, INCLUDING the app's bottom safe-area padding.
+ *
+ * `.app` adds 40px plus the inset so an ordinary page's last button clears a phone's home
+ * indicator. A 100dvh child that already handles its own inset then makes the document
+ * 100dvh + 40px, and it scrolls by exactly that much - measured at 884 against an 844 viewport,
+ * identically in all four matchday states, which is what gave the cause away.
+ */
+.app:has(.gf-matchday-screen),
+.app:has(.gf-moment-screen) {
+  padding-bottom: 0;
+}
+.gf-matchday-screen .gf-scene-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* ---- v0.9.1 phase 3: next-season europe line ---- */

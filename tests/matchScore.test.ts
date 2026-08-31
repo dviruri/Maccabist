@@ -168,7 +168,15 @@ describe('6: RTL cannot invert the result', () => {
     const offenders = walk(path.join(ROOT, 'src/components'))
       .filter((file) => file.endsWith('.tsx') && !file.endsWith('MatchScoreboard.tsx'))
       .filter((file) => {
-        const text = fs.readFileSync(file, 'utf8');
+        /*
+         * Comments stripped first. This assertion has now caught its own explanation twice -
+         * once in Phase 2 on a doc comment naming a component that had MOVED, and once here on
+         * a comment explaining why this very rule exists. A comment is not a rendering.
+         */
+        const text = fs
+          .readFileSync(file, 'utf8')
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/\/\/.*$/gm, '');
         return text.includes('homeScore') || text.includes('awayScore');
       });
     expect(offenders).toEqual([]);
