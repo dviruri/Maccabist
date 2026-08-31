@@ -679,3 +679,8 @@
   border-top: 1px solid var(--gf-glass-border);
   padding-top: 8px;
 }
+
+/* ---- v0.9.1 phase 6a: ceremony screens ---- */
+.gf-moment-screen { min-height: 100dvh; background: var(--gf-bg); display: flex; }
+.gf-moment-screen > .gf-scene { flex: 1; border-radius: 0; }
+.gf-moment-crest { display: flex; justify-content: center; }

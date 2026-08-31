@@ -584,6 +584,25 @@ export function playSecondHalf(career: Career, rng: Rng): SeasonEnd {
     career.academyStage === 'senior' &&
     full.appearances > 0 &&
     !career.seasonHistory.some((s) => s.academyStage === 'senior' && s.stats.appearances > 0);
+  /*
+   * v0.9.1: the debut is stamped as a milestone here, where the engine ALREADY decides it -
+   * first senior season with actual football in it. The ceremony reads this rather than
+   * re-deriving the condition, so the moment and the manager's memory can never disagree about
+   * which season was the debut.
+   */
+  if (isSeniorDebut) {
+    next.milestones = [
+      ...next.milestones,
+      {
+        id: 'senior_debut',
+        season: career.currentSeason,
+        age: career.age,
+        icon: '⚽',
+        text: 'הופעת הבכורה בבוגרים',
+        major: true,
+      },
+    ];
+  }
   if (isSeniorDebut && next.people?.manager) {
     const tenure = { ...next.people.manager, gaveDebut: true };
     next.people = {

@@ -1,8 +1,10 @@
 import { UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
+import { getClub } from '../data/clubs';
 import { clubDisplayName } from '../game/identity';
 import type { Career, UefaCompetitionId } from '../types';
-import { getMomentArt, getTrophyArt, type TrophyArtId } from '../ui/playerArt';
+import { getMomentArt, getTransferArt, getTrophyArt, type TrophyArtId } from '../ui/playerArt';
 import { seasonLabel } from '../ui/format';
+import { ClubCrest } from './ClubCrest';
 import { MomentShell } from './gamefeel';
 
 /**
@@ -23,12 +25,67 @@ import { MomentShell } from './gamefeel';
 
 export interface CareerMoment {
   key: string;
-  backdrop: 'trophy-ceremony' | 'europe-night' | 'home-dark';
-  overlay?: 'confetti-gold' | 'confetti-green' | 'star-lights';
+  backdrop: 'trophy-ceremony' | 'europe-night' | 'home-dark' | 'neutral-night' | 'training' | 'matchday-crowd';
+  overlay?: 'confetti-gold' | 'confetti-green' | 'star-lights' | 'green-smoke';
   art: string;
   kicker: string;
   title: string;
   subtitle: string;
+  /** Club whose crest belongs on the moment, when the moment is about arriving somewhere. */
+  clubId?: string;
+}
+
+/**
+ * The arrival at a new club (v0.9.1) - shown once, at the first preseason AFTER a move.
+ *
+ * Derived from a fact the career already carries: the last senior season was played somewhere
+ * else. Nothing about the transfer is invented - no salary, no shirt number, no contract
+ * length, because the game models none of them; the ceremony names the club, the league and
+ * the season, which are all real.
+ */
+export function deriveArrivalMoment(career: Career): CareerMoment | null {
+  if (career.phase !== 'preseason' || isAcademyStage(career.academyStage)) return null;
+  const lastSenior = [...career.seasonHistory].reverse().find((r) => r.academyStage === 'senior');
+  if (!lastSenior || lastSenior.clubId === career.currentClubId) return null;
+  const clubName = clubDisplayName(career.currentClubId);
+  return {
+    key: `arrival_${career.currentClubId}_${career.currentSeason}`,
+    backdrop: 'neutral-night',
+    overlay: 'green-smoke',
+    art: getTransferArt('press-presentation'),
+    kicker: `${seasonLabel(career.currentSeason)} · ${levelOf(career)}`,
+    title: `${career.playerName} ב${clubName}`,
+    subtitle: 'פרק חדש מתחיל.',
+    clubId: career.currentClubId,
+  };
+}
+
+/** The first senior debut, from the milestone the engine stamps at settlement. */
+export function deriveDebutMoment(career: Career): CareerMoment | null {
+  const debut = career.milestones.find((m) => m.id === 'senior_debut');
+  if (!debut) return null;
+  const record = career.seasonHistory.find((r) => r.season === debut.season);
+  return {
+    key: `debut_${debut.season}`,
+    backdrop: 'matchday-crowd',
+    art: getMomentArt('debut'),
+    kicker: `${seasonLabel(debut.season)} · ${record ? record.clubName : ''}`,
+    title: 'הופעת הבכורה בבוגרים',
+    subtitle: 'הרגע שכל ילד במחלקת הנוער חולם עליו.',
+    clubId: record?.clubId,
+  };
+}
+
+function isAcademyStage(stage: string): boolean {
+  return stage !== 'senior';
+}
+
+function levelOf(career: Career): string {
+  try {
+    return getClub(career.currentClubId).league;
+  } catch {
+    return '';
+  }
 }
 
 const UEFA_TROPHY_ART: Record<UefaCompetitionId, TrophyArtId> = {
@@ -135,6 +192,12 @@ export function CareerMomentScreen({
       title={moment.title}
       subtitle={moment.subtitle}
       onContinue={onContinue}
-    />
+    >
+      {moment.clubId && (
+        <div className="gf-moment-crest">
+          <ClubCrest clubId={moment.clubId} size="large" />
+        </div>
+      )}
+    </MomentShell>
   );
 }

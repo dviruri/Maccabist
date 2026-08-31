@@ -4,7 +4,12 @@ import { CareerTimeline } from '../components/CareerTimeline';
 import { CareerHomeScene } from '../components/CareerHome';
 import { MatchdayExperience } from '../components/Matchday';
 import { buildMatchday } from '../game/matchdayPresenter';
-import { CareerMomentScreen, deriveSeasonMoments } from '../components/CareerMoments';
+import {
+  CareerMomentScreen,
+  deriveArrivalMoment,
+  deriveDebutMoment,
+  deriveSeasonMoments,
+} from '../components/CareerMoments';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { EuropeCard } from '../components/EuropeCards';
@@ -63,6 +68,7 @@ const FOCUSED_PHASES: ReadonlySet<Career['phase']> = new Set([
 export function GamePage({ career, actions, onExit }: Props): JSX.Element {
   const [sheet, setSheet] = useState<SheetId>(null);
   const [matchdaysSeen, setMatchdaysSeen] = useState<string[]>([]);
+  const [ceremoniesSeen, setCeremoniesSeen] = useState<string[]>([]);
   const close = (): void => setSheet(null);
 
   const table = currentTable(career);
@@ -80,6 +86,23 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
    * by the fixture id, so a save mid-match resumes into the same match, and finishing it moves
    * the career on exactly as the phase flow did before.
    */
+  /*
+   * v0.9.1: arrival and debut ceremonies. Both are full-screen and both fire once - the arrival
+   * at the first preseason after a move, the debut off the milestone the engine stamps when it
+   * decides the debut itself. Keyed like every other reveal, so a reload lands past them.
+   */
+  const ceremony = deriveArrivalMoment(career) ?? deriveDebutMoment(career);
+  if (ceremony && !ceremoniesSeen.includes(ceremony.key)) {
+    return (
+      <div className="gf-moment-screen">
+        <CareerMomentScreen
+          moment={ceremony}
+          onContinue={() => setCeremoniesSeen((seen) => [...seen, ceremony.key])}
+        />
+      </div>
+    );
+  }
+
   const matchday = career.phase === 'mid_season' ? buildMatchday(career) : null;
   if (matchday && !matchdaysSeen.includes(matchday.fixture.id)) {
     return (
