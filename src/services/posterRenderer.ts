@@ -1,10 +1,16 @@
 import { getClubCrest, clubVisual } from '../data/clubVisuals';
 import { HONOR_LABELS } from '../game/honorsEngine';
 import { trophyIconKind } from '../components/honorIcons';
+import { getCareerPlayerArt } from '../ui/playerArt';
 import type { ArchivedCareer, IndividualHonorType } from '../types';
 
 /**
- * The shareable career poster (v0.7, Checkpoint H).
+ * The shareable career poster (v0.7, restyled v0.9.1).
+ *
+ * v0.9.1 brings it into the game-feel language without touching its data: the player's own
+ * character art (age+position resolved, the retirement age and position), a stadium wash behind
+ * the identity, the two axes as glowing plates, and European silverware leading the trophy row.
+ * Same archive in, same 9:16 / 1:1 out, no new facts.
  *
  * Drawn on a canvas, in the app, from the archived snapshot - no server, no html2canvas, no
  * dependency. Two formats: 9:16 for a story, 1:1 for a square post. The design is Maccabist's
@@ -183,11 +189,31 @@ export async function renderCareerPoster(
   const cx = w / 2;
   const rtlFont = (weight: number, px: number): string => `${weight} ${px}px "Heebo", "Segoe UI", sans-serif`;
 
+  /* v0.9.1: a stadium wash under the gradient, so the poster starts in a place. */
+  const backdrop = await loadImage(`${import.meta.env.BASE_URL}assets/gamefeel/backgrounds/stadium-trophy-ceremony.webp`);
+
   /* background: black to deep green wash, with a subtle pitch line */
   const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, INK.bg0);
-  grad.addColorStop(0.55, INK.bg1);
-  grad.addColorStop(1, INK.bg0);
+  grad.addColorStop(0, 'rgba(6, 9, 7, 0.5)');
+  grad.addColorStop(0.45, 'rgba(14, 26, 16, 0.72)');
+  grad.addColorStop(0.78, 'rgba(6, 9, 7, 0.55)');
+  grad.addColorStop(1, 'rgba(6, 9, 7, 0.75)');
+  ctx.fillStyle = INK.bg0;
+  ctx.fillRect(0, 0, w, h);
+  if (backdrop) {
+    // cover-fit, dimmed - it is atmosphere, never the subject
+    const scale = Math.max(w / backdrop.width, (h * 0.62) / backdrop.height);
+    const bw = backdrop.width * scale;
+    const bh = backdrop.height * scale;
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.drawImage(backdrop, (w - bw) / 2, 0, bw, bh);
+    ctx.restore();
+  }
+  const art = await loadImage(
+    getCareerPlayerArt({ age: archive.retirementAge, position: archive.position, context: 'hero' }),
+  );
+
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
   ctx.strokeStyle = 'rgba(41, 217, 106, 0.12)';
@@ -224,10 +250,15 @@ export async function renderCareerPoster(
   y += story ? 120 : 84;
   const axisGap = w * 0.24;
   ctx.font = rtlFont(800, story ? 92 : 72);
+  ctx.save();
+  ctx.shadowColor = 'rgba(41, 217, 106, 0.55)';
+  ctx.shadowBlur = 26;
   ctx.fillStyle = INK.greenBright;
   ctx.fillText(String(archive.globalCareer), cx + axisGap, y);
+  ctx.shadowColor = 'rgba(255, 201, 74, 0.5)';
   ctx.fillStyle = INK.gold;
   ctx.fillText(String(archive.maccabiLegacy), cx - axisGap, y);
+  ctx.restore();
   y += story ? 46 : 40;
   ctx.font = rtlFont(400, story ? 28 : 24);
   ctx.fillStyle = INK.soft;
@@ -308,11 +339,41 @@ export async function renderCareerPoster(
   });
   y += story ? 120 : 86;
 
-  /* the legacy title closes the poster */
+  /* the legacy title closes the written half */
   if (archive.endingTitle) {
     ctx.fillStyle = INK.greenBright;
     ctx.font = rtlFont(800, story ? 44 : 34);
     ctx.fillText(archive.endingTitle, cx, Math.min(y, h - (story ? 90 : 60)));
+    y += story ? 40 : 30;
+  }
+
+  /*
+   * v0.9.1: the player closes the poster, standing in the space the content leaves.
+   *
+   * Two earlier placements were wrong and the screenshots showed it: inline beside the name he
+   * landed on the מורשת מכבי plate, and as a bottom-left depth layer he sat across the stat
+   * row. Here he owns the lower band alone - which also fills the dead half the v0.7 layout
+   * always had - and a soft floor gradient sits him in the scene instead of pasting him on it.
+   */
+  if (art) {
+    const room = h - y - (story ? 40 : 24);
+    if (room > 120) {
+      const artH = Math.min(room, h * (story ? 0.42 : 0.34));
+      const artW = (art.width / art.height) * artH;
+      const ax = cx - artW / 2;
+      const ay = h - artH - (story ? 24 : 16);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.75)';
+      ctx.shadowBlur = 46;
+      ctx.drawImage(art, ax, ay, artW, artH);
+      ctx.restore();
+      // a floor of light under his feet, so he is standing somewhere
+      const floor = ctx.createRadialGradient(cx, h - (story ? 30 : 20), 6, cx, h - (story ? 30 : 20), artW * 0.7);
+      floor.addColorStop(0, 'rgba(41, 217, 106, 0.22)');
+      floor.addColorStop(1, 'rgba(41, 217, 106, 0)');
+      ctx.fillStyle = floor;
+      ctx.fillRect(0, h - artH * 0.4, w, artH * 0.4);
+    }
   }
 
   return canvas;
