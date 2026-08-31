@@ -337,10 +337,13 @@
 }
 
 /* tighten the frame on the smallest phones */
+/* 320-350px: the character narrows a little so identity keeps clear air beside it. */
 @media (max-width: 350px) {
   .gf-scene-content { padding: 12px 10px 14px; }
   .gf-hero { min-height: 200px; }
-  .gf-hero-art { width: 58%; left: -10%; }
+  .gf-hero-art { width: 56%; left: -14%; transform: scale(1.6); }
+  .gf-hero-name { font-size: 29px; }
+  .gf-dec-art { width: 54%; left: -16%; }
 }
 
 /* ---- v0.9 phase 2: career home ---- */
