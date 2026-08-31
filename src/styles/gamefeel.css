@@ -613,3 +613,18 @@
 .gf-showcase-label { font-weight: 900; font-size: 13px; }
 .gf-showcase-caption { font-size: 11.5px; color: var(--text-secondary); }
 .gf-showcase-count { color: var(--gold); font-weight: 900; }
+
+/* ---- v0.9 phase 7: europe nights + entry screens ---- */
+.gf-euro-scene .gf-scene-content { padding: 10px; }
+.gf-euro-card { background: transparent; border: none; box-shadow: none; padding: 4px; }
+.gf-euro-scene { border: 1px solid rgba(120, 170, 255, 0.28); }
+.gf-welcome .gf-scene-content { padding: 30px 16px 26px; text-align: center; justify-items: center; }
+.gf-welcome .hero { display: grid; justify-items: center; gap: 10px; }
+.gf-retire-scene { margin-bottom: 14px; }
+.gf-retire-scene .gf-scene-content {
+  min-height: 300px;
+  align-content: end;
+  justify-items: center;
+  text-align: center;
+  gap: 10px;
+}

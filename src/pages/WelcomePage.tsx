@@ -1,3 +1,4 @@
+import { CinematicBackdrop } from '../components/gamefeel';
 import { BrandRule, Logo, Ltr } from '../components/primitives';
 import type { Career, MetaProgress } from '../types';
 import { positionLabel, seasonLabel } from '../ui/format';
@@ -28,16 +29,19 @@ export function WelcomePage({
   const canResume = savedCareer !== null && !savedCareer.retired;
 
   return (
-    <div className="shell narrow" style={{ paddingTop: 42 }}>
-      <div className="hero">
-        <h1 className="visually-hidden">מכביסט</h1>
-        <Logo className="hero-logo" />
-        <BrandRule />
-        <p className="card-body hero-tagline">
-          גדלת במחלקת הנוער של מכבי חיפה. השאלה היא לא כמה טוב תהיה - אלא כמה גדולה תהיה
-          האגדה שתשאיר אחריך.
-        </p>
-      </div>
+    <div className="shell narrow" style={{ paddingTop: 18 }}>
+      {/* v0.9: opening the game looks like a game - the dark stadium behind the brand. */}
+      <CinematicBackdrop backdrop="home-dark" className="gf-welcome">
+        <div className="hero">
+          <h1 className="visually-hidden">מכביסט</h1>
+          <Logo className="hero-logo" />
+          <BrandRule />
+          <p className="card-body hero-tagline">
+            גדלת במחלקת הנוער של מכבי חיפה. השאלה היא לא כמה טוב תהיה - אלא כמה גדולה תהיה
+            האגדה שתשאיר אחריך.
+          </p>
+        </div>
+      </CinematicBackdrop>
 
       <div className="stack" style={{ marginTop: 22 }}>
         {legacySaveDropped && (

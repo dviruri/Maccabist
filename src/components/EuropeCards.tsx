@@ -1,6 +1,7 @@
 import { getCompetitionAsset } from '../data/competitionAssets';
 import { QUALIFYING_GRAPH, LEAGUE_PHASE, LP_DROP_TARGETS, UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
 import type { Career, EuropeanJourney, EuropeanStep, EuropeanTie, UefaCompetitionId } from '../types';
+import { CinematicBackdrop } from './gamefeel';
 import { CompetitionMark } from './honorIcons';
 import { Ltr } from './primitives';
 
@@ -85,7 +86,12 @@ export function EuropeCard({ career }: { career: Career }): JSX.Element | null {
   );
 
   return (
-    <section className={`card euro-card euro-${UEFA_COMPETITIONS[journey.finalCompetition].tier}`}>
+    /*
+     * v0.9: European nights get the europe-night stadium behind the glass - the same journey
+     * facts, under floodlights. Tier still drives the border (gold for the Champions League).
+     */
+    <CinematicBackdrop backdrop="europe-night" className="gf-euro-scene">
+      <section className={`card euro-card euro-${UEFA_COMPETITIONS[journey.finalCompetition].tier} gf-euro-card`}>
       <div className="euro-head">
         <CompetitionBadge competition={journey.finalCompetition} size={26} />
         <div className="euro-head-text">
@@ -122,7 +128,8 @@ export function EuropeCard({ career }: { career: Career }): JSX.Element | null {
       ) : (
         <p className="euro-state-line">העונה האירופית הסתיימה בקיץ. הליגה מחכה.</p>
       )}
-    </section>
+      </section>
+    </CinematicBackdrop>
   );
 }
 

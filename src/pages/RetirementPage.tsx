@@ -1,3 +1,5 @@
+import { CinematicBackdrop } from '../components/gamefeel';
+import { getMomentArt } from '../ui/playerArt';
 import { CareerTimeline } from '../components/CareerTimeline';
 import { HonorIcon, TrophyKindIcon, trophyIconKind } from '../components/honorIcons';
 import { Timeline } from '../components/Timeline';
@@ -90,6 +92,22 @@ export function RetirementPage({ career, onNewCareer, onOpenMeta, isBest }: Prop
 
   return (
     <div className="shell narrow retirement">
+      {/*
+       * v0.9: retirement opens as the end of a career - the pack's retirement art under the
+       * ceremony lights, before the poster and the numbers. Same facts, given their weight.
+       */}
+      <CinematicBackdrop backdrop="trophy-ceremony" className="gf-retire-scene">
+        <img className="gf-moment-art" src={getMomentArt('retirement')} alt="" aria-hidden loading="eager" />
+        <div className="gf-moment-text">
+          <div className="gf-kicker">
+            {/* years are an LTR run - unwrapped they render 2055-2039 in RTL */}
+            <Ltr>{careerYears(career)}</Ltr>
+          </div>
+          <h1 className="gf-moment-title">{career.playerName} פורש מכדורגל</h1>
+          <p className="gf-moment-sub">{positionLabel(career.position)} · הקריירה כולה למטה.</p>
+        </div>
+      </CinematicBackdrop>
+
       {/*
         The career poster (v0.4.5).
         
