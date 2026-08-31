@@ -13,6 +13,8 @@ import {
 import { CareerTimeline } from '../components/CareerTimeline';
 import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
 import { EuropeCard, EuropeJourneySummary } from '../components/EuropeCards';
+import { CinematicBackdrop, MomentShell, PlayerHero } from '../components/gamefeel';
+import { getMomentArt } from '../ui/playerArt';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { TrophyCabinet } from '../components/TrophyCabinet';
 import { buildArchivedCareer } from '../game/archive';
@@ -1138,6 +1140,18 @@ export function Gallery(): JSX.Element {
     ['poster', <PosterPreview />],
     /* v0.8: the European journey surfaces. */
     ['europe-card', <EuropeCard career={europeanSeasonCareer()} />],
+    /* v0.9 foundation scenes */
+    ['gf-hero', <CinematicBackdrop backdrop="home-dark"><PlayerHero career={seniorAtMaccabi()} /></CinematicBackdrop>],
+    ['gf-hero-youth-gk', <CinematicBackdrop backdrop="training"><PlayerHero career={{ ...createCareer({ playerName: 'אורי דביר', position: 'GK', seed: 42 }), age: 11 }} /></CinematicBackdrop>],
+    ['gf-moment', <MomentShell
+      backdrop="trophy-ceremony"
+      overlay="confetti-gold"
+      art={getMomentArt('championship')}
+      kicker="עונת 2049/50"
+      title="אלופת המדינה!"
+      subtitle="מכבי חיפה"
+      onContinue={noop}
+    />],
     ['europe-summary', <div className="card"><EuropeJourneySummary journey={galleryJourney()} /></div>],
     ['journey', <CareerJourney
       seasons={buildArchivedCareer(retiredLegend()).seasons.slice(-8)}

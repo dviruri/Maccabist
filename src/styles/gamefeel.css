@@ -1,0 +1,300 @@
+/* =====================================================================
+   v0.9 — GAME FEEL FOUNDATION
+   The cinematic layer. Depth model, everywhere the same:
+   stadium backdrop → vignette → player art → glass panels → controls.
+   Palette: near-black cinema + Maccabist green accent; characters carry
+   their own black/pink/purple/blue; gold stays reserved for prestige.
+   ===================================================================== */
+
+:root {
+  /* backdrop + glass */
+  --gf-bg: #060907;
+  --gf-glass: rgba(13, 18, 15, 0.78);
+  --gf-glass-strong: rgba(10, 14, 11, 0.92);
+  --gf-glass-border: rgba(255, 255, 255, 0.08);
+  --gf-glass-blur: 14px;
+  /* glow */
+  --gf-glow-green: 0 0 24px rgba(41, 217, 106, 0.35);
+  --gf-glow-gold: 0 0 28px rgba(255, 201, 74, 0.35);
+  /* typography scale - game-like, big */
+  --gf-display: clamp(28px, 8vw, 44px);
+  --gf-h1: clamp(22px, 6vw, 32px);
+  --gf-h2: clamp(16px, 4.5vw, 20px);
+  /* radius + spacing rhythm */
+  --gf-radius: 18px;
+  --gf-radius-lg: 24px;
+  --gf-gap: 14px;
+  /* z-layers of the depth model */
+  --z-bg: 0;
+  --z-fx: 1;
+  --z-art: 2;
+  --z-panel: 3;
+  --z-controls: 4;
+  /* motion - inherits the app's reduced-motion zeroing via --t-* where used */
+  --gf-t-enter: 380ms;
+  --gf-t-quick: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --gf-t-enter: 1ms;
+    --gf-t-quick: 1ms;
+  }
+}
+
+/* ---- scene: the cinematic frame ---- */
+.gf-scene {
+  position: relative;
+  border-radius: var(--gf-radius-lg);
+  overflow: hidden;
+  background: var(--gf-bg);
+  isolation: isolate;
+}
+.gf-scene-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: var(--z-bg);
+  opacity: 0.55;
+}
+.gf-scene-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-fx);
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(0, 0, 0, 0) 0%, rgba(6, 9, 7, 0.55) 70%, rgba(6, 9, 7, 0.92) 100%),
+    linear-gradient(to top, rgba(6, 9, 7, 0.95) 0%, rgba(6, 9, 7, 0.15) 40%);
+}
+.gf-scene-content {
+  position: relative;
+  z-index: var(--z-panel);
+  display: grid;
+  gap: var(--gf-gap);
+  padding: 16px 14px 18px;
+}
+
+/* ---- player hero ---- */
+.gf-hero {
+  position: relative;
+  min-height: 240px;
+  display: flex;
+  align-items: flex-end;
+}
+.gf-hero-compact { min-height: 150px; }
+.gf-hero-ghost {
+  position: absolute;
+  top: -14px;
+  left: -6px;
+  font-size: clamp(110px, 34vw, 170px);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.05);
+  z-index: var(--z-fx);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+.gf-hero-art {
+  position: absolute;
+  bottom: 0;
+  left: -2%;
+  height: 104%;
+  max-width: 56%;
+  object-fit: contain;
+  object-position: bottom;
+  z-index: var(--z-art);
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.65));
+  pointer-events: none;
+  animation: gf-rise var(--gf-t-enter) ease-out;
+}
+.gf-hero-compact .gf-hero-art { height: 108%; max-width: 46%; }
+.gf-hero-id {
+  /*
+   * RTL note, learned from the first screenshot: this is the only flex child, so it already
+   * sits at inline-start (the RIGHT in RTL); an auto start-margin pushed it left, on top of
+   * the art. No margin - the art owns the left, the identity owns the right.
+   */
+  position: relative;
+  z-index: var(--z-panel);
+  text-align: right;
+  display: grid;
+  gap: 4px;
+  max-width: 58%;
+  padding-bottom: 4px;
+}
+.gf-hero-name {
+  margin: 0;
+  font-size: var(--gf-display);
+  font-weight: 900;
+  line-height: 1.05;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.8);
+  overflow-wrap: anywhere;
+}
+.gf-hero-meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+}
+.gf-hero-club {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 7px;
+  color: var(--green-bright);
+  font-weight: 800;
+  font-size: 15px;
+}
+.gf-hero-rating {
+  justify-self: start;
+  display: grid;
+  justify-items: center;
+  margin-top: 4px;
+  padding: 6px 14px;
+  border: 1px solid rgba(41, 217, 106, 0.5);
+  border-radius: 12px;
+  background: var(--gf-glass);
+  box-shadow: var(--gf-glow-green);
+}
+.gf-hero-rating-value { font-size: 24px; font-weight: 900; color: var(--green-bright); line-height: 1; }
+.gf-hero-rating-label { font-size: 10.5px; color: var(--text-secondary); }
+
+/* ---- glass panels ---- */
+.gf-glass {
+  background: var(--gf-glass);
+  border: 1px solid var(--gf-glass-border);
+  border-radius: var(--gf-radius);
+  padding: 14px;
+  backdrop-filter: blur(var(--gf-glass-blur));
+  -webkit-backdrop-filter: blur(var(--gf-glass-blur));
+  display: grid;
+  gap: 10px;
+}
+.gf-glass-gold { border-color: rgba(255, 201, 74, 0.4); box-shadow: var(--gf-glow-gold); }
+.gf-glass-euro { border-color: rgba(120, 170, 255, 0.35); box-shadow: 0 0 24px rgba(90, 140, 255, 0.22); }
+
+/* ---- section titles: the concept's ruled headline ---- */
+.gf-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 2px;
+}
+.gf-section-title h2 {
+  margin: 0;
+  font-size: var(--gf-h2);
+  font-weight: 900;
+  white-space: nowrap;
+}
+.gf-section-rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to left, transparent, rgba(41, 217, 106, 0.55), transparent);
+}
+
+/* ---- buttons ---- */
+.gf-btn {
+  border: none;
+  border-radius: 16px;
+  min-height: 52px;
+  padding: 12px 22px;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform var(--gf-t-quick) ease, box-shadow var(--gf-t-quick) ease;
+  position: relative;
+  z-index: var(--z-controls);
+}
+.gf-btn:active { transform: scale(0.98); }
+.gf-btn-primary {
+  background: linear-gradient(135deg, var(--green-primary), var(--green-deep));
+  color: #ffffff;
+  box-shadow: var(--gf-glow-green);
+}
+.gf-btn-ghost {
+  background: var(--gf-glass);
+  color: var(--text-primary);
+  border: 1px solid var(--gf-glass-border);
+}
+.gf-btn-danger {
+  background: var(--gf-glass);
+  color: #e58f8f;
+  border: 1px solid rgba(229, 143, 143, 0.4);
+}
+.gf-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- kicker ---- */
+.gf-kicker {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--green-bright);
+}
+.gf-dot { color: var(--text-tertiary); }
+
+/* ---- moment shell: the big-event frame ---- */
+.gf-moment .gf-scene-content {
+  min-height: min(78vh, 640px);
+  align-content: end;
+  justify-items: center;
+  text-align: center;
+  gap: 16px;
+}
+.gf-moment-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: var(--z-fx);
+  opacity: 0.8;
+  pointer-events: none;
+  animation: gf-fade var(--gf-t-enter) ease-out;
+}
+.gf-moment-stage {
+  position: relative;
+  z-index: var(--z-art);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.gf-moment-art {
+  max-height: min(38vh, 320px);
+  max-width: 88%;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 40px rgba(0, 0, 0, 0.7));
+  animation: gf-rise var(--gf-t-enter) ease-out;
+}
+.gf-moment-text { position: relative; z-index: var(--z-panel); display: grid; gap: 6px; }
+.gf-moment-title {
+  margin: 0;
+  font-size: var(--gf-display);
+  font-weight: 900;
+  line-height: 1.1;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.85);
+}
+.gf-moment-sub { margin: 0; color: var(--text-secondary); font-size: 15px; }
+
+/* ---- shared motion ---- */
+@keyframes gf-rise {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes gf-fade {
+  from { opacity: 0; }
+  to { opacity: 0.8; }
+}
+@keyframes gf-pulse {
+  0%, 100% { box-shadow: var(--gf-glow-green); }
+  50% { box-shadow: 0 0 34px rgba(41, 217, 106, 0.55); }
+}
+
+/* tighten the frame on the smallest phones */
+@media (max-width: 350px) {
+  .gf-scene-content { padding: 12px 10px 14px; }
+  .gf-hero { min-height: 205px; }
+  .gf-hero-id { max-width: 64%; }
+}

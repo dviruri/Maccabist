@@ -9,6 +9,8 @@ import './styles/global.css';
  * import rather than an archaeology exercise.
  */
 import './styles/density.css';
+// v0.9: the cinematic game-feel layer, on top of the base system.
+import './styles/gamefeel.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('#root not found');
