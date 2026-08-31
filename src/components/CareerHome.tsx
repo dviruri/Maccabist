@@ -1,9 +1,8 @@
-import { UEFA_COMPETITIONS } from '../data/uefa';
-import { stageConfig } from '../data/academy';
+import { deriveCareerFeed } from '../game/careerFeed';
+import { getPersonArt } from '../ui/playerArt';
 import { activeFixture } from '../game/fixture';
 import { isInAcademy } from '../game/rules';
 import type { Career } from '../types';
-import { getPersonArt, type PersonRole } from '../ui/playerArt';
 import { ClubCrest } from './ClubCrest';
 import { CinematicBackdrop, GameSectionTitle, PlayerHero } from './gamefeel';
 
@@ -100,106 +99,11 @@ function NextChapterHero({ career }: { career: Career }): JSX.Element | null {
 /* The feed                                                            */
 /* ------------------------------------------------------------------ */
 
-interface FeedItem {
-  role: PersonRole;
-  roleLabel: string;
-  text: string;
-}
-
 /**
- * מה קורה עכשיו בקריירה - deterministic templates over real state, newest concern first.
- * Nothing here is an outcome: the coach line reads the actual role, the agent line reads
- * actual pending offers, the media line reads actual mid-season form. Four items at most.
+ * מה קורה עכשיו בקריירה. The derivation moved to `game/careerFeed.ts` in v0.9.1 - contextual
+ * pools with deterministic dedupe, so the coach stops repeating one sentence for a whole career
+ * while staying just as grounded in live state.
  */
-export function deriveCareerFeed(career: Career): FeedItem[] {
-  const items: FeedItem[] = [];
-
-  /* Agent: real pending offers speak first. */
-  const offers = career.pendingOffers;
-  if (offers.length > 0) {
-    const foreign = offers.find((offer) => offer.country && offer.country !== 'ישראל');
-    items.push({
-      role: 'agent',
-      roleLabel: 'הסוכן',
-      text: foreign
-        ? `יש עניין ממועדון ב${foreign.country}.`
-        : offers.length > 1
-          ? `${offers.length} הצעות על השולחן. צריך לדבר.`
-          : 'יש הצעה על השולחן. צריך לדבר.',
-    });
-  }
-
-  /* Coach: the actual role, as the coach would say it. */
-  if (!isInAcademy(career)) {
-    const trusted = career.coachTrust >= 55;
-    const line =
-      career.role === 'star' || career.role === 'icon'
-        ? 'הקבוצה נבנית סביבך.'
-        : career.role === 'key'
-          ? 'אתה מהראשונים בהרכב.'
-          : career.role === 'starter'
-            ? 'אתה פותח בשבת.'
-            : career.role === 'rotation'
-              ? trusted
-                ? 'תקבל דקות. תהיה מוכן.'
-                : 'אתה נלחם על מקום. תוכיח באימונים.'
-              : 'אתה צריך להילחם על כל דקה.';
-    items.push({ role: 'coach', roleLabel: 'המאמן', text: `המאמן: ${line}` });
-  } else {
-    items.push({
-      role: 'coach',
-      roleLabel: 'המאמן',
-      text: `המאמן: ${stageConfig(career.academyStage).label} — תמשיך לעבוד, רואים אותך.`,
-    });
-  }
-
-  /* Media: real mid-season form only - no invented headlines. */
-  const half = career.firstHalfStats;
-  if (half && half.appearances >= 5) {
-    if (career.position === 'GK' && half.cleanSheets >= 3) {
-      items.push({
-        role: 'journalist',
-        roleLabel: 'התקשורת',
-        text: `התקשורת: ${half.cleanSheets} שערים נקיים בסיבוב הראשון. השוער הצעיר מושך עניין.`,
-      });
-    } else if (half.goals >= 5) {
-      items.push({
-        role: 'journalist',
-        roleLabel: 'התקשורת',
-        text: `התקשורת: ${half.goals} שערים כבר העונה. מדברים עליך.`,
-      });
-    } else if (half.rating >= 66) {
-      items.push({
-        role: 'journalist',
-        roleLabel: 'התקשורת',
-        text: 'התקשורת: אחרי עוד תצוגה חזקה, השם שלך עולה.',
-      });
-    }
-  }
-
-  /* Europe: the actual journey state. */
-  const journey = career.world.europe?.current?.playerJourney;
-  if (journey && journey.season === career.currentSeason && journey.clubId === career.currentClubId) {
-    items.push({
-      role: 'club-director',
-      roleLabel: 'המועדון',
-      text: journey.reachedLeaguePhase
-        ? `המועדון: עונה אירופית ב${UEFA_COMPETITIONS[journey.finalCompetition].name}.`
-        : 'המועדון: הקיץ האירופי נגמר מוקדם. הליגה היא הכול עכשיו.',
-    });
-  }
-
-  /* The most recent major milestone keeps the story warm. */
-  if (items.length < 4) {
-    const milestone = [...career.milestones].reverse().find((m) => m.major && m.season >= career.currentSeason - 1);
-    if (milestone) {
-      items.push({ role: 'scout', roleLabel: 'מסביב', text: milestone.text });
-    }
-  }
-
-  return items.slice(0, 4);
-}
-
 function CareerFeed({ career }: { career: Career }): JSX.Element | null {
   const items = deriveCareerFeed(career);
   if (items.length === 0) return null;
