@@ -14,6 +14,7 @@ import { CareerTimeline } from '../components/CareerTimeline';
 import { ClubAlbum, buildAlbum } from '../components/ClubAlbum';
 import { EuropeCard, EuropeJourneySummary } from '../components/EuropeCards';
 import { CareerHomeScene } from '../components/CareerHome';
+import { DecisionScreen } from '../components/DecisionScreen';
 import { MatchdayExperience } from '../components/Matchday';
 import { CinematicBackdrop, MomentShell, PlayerHero } from '../components/gamefeel';
 import { getMomentArt } from '../ui/playerArt';
@@ -1150,6 +1151,13 @@ export function Gallery(): JSX.Element {
       onOpenCareer={noop}
     />],
     ['gf-matchday', <MatchdayExperience career={midSeasonCareer()} onContinue={noop} />],
+    ['gf-decision', <DecisionScreen
+      career={euro}
+      offers={loanOffers()}
+      onAccept={noop}
+      onDecline={noop}
+      fromClub="מכבי חיפה"
+    />],
     ['gf-home-focused', <CareerHomeScene career={{ ...seniorAtMaccabi(), phase: 'event' }} focused onOpenCareer={noop} />],
     ['gf-hero-youth-gk', <CinematicBackdrop backdrop="training"><PlayerHero career={{ ...createCareer({ playerName: 'אורי דביר', position: 'GK', seed: 42 }), age: 11 }} /></CinematicBackdrop>],
     ['gf-moment', <MomentShell

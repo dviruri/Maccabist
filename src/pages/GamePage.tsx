@@ -15,7 +15,7 @@ import { Celebration } from '../components/Celebration';
 import { DebugPanel } from '../components/DebugPanel';
 import { DecisionCard, OutcomeReveal } from '../components/DecisionCard';
 import { OutcomeCard } from '../components/EventCard';
-import { OffersCard } from '../components/OffersCard';
+import { DecisionScreen } from '../components/DecisionScreen';
 import { OriginReveal, RetrialCard } from '../components/OriginReveal';
 import { PlayerHub } from '../components/PlayerHub';
 import {
@@ -321,12 +321,18 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
       return <YouthTransitionCard career={career} onChoose={actions.chooseYouthPath} />;
 
     case 'offseason':
+      /*
+       * v0.9: the full-screen career decision replaces the offer list. Same offers, same
+       * accept/decline semantics - the presentation is the only thing that changed. The
+       * academy-band flows (youth_to_senior) keep their own card: that fork has its own
+       * dedicated ceremony already.
+       */
       return (
-        <OffersCard
+        <DecisionScreen
+          career={career}
           offers={career.pendingOffers}
           onAccept={actions.takeOffer}
           onDecline={actions.refuseOffers}
-          /* Through the identity module, so it reads as the club rather than as a club id. */
           fromClub={clubDisplayName(career.currentClubId)}
         />
       );
