@@ -54,11 +54,40 @@ export function getCareerPlayerArt(input: {
   position: Position;
   context?: PlayerArtContext;
 }): string {
+  return resolvePlayerArt(input).src;
+}
+
+/**
+ * The art, plus what is needed to render it (v0.9.4).
+ *
+ * `garmentMask` is a per-pose alpha mask covering only the shirt and its sleeves, built once from
+ * the artwork itself by `scripts/buildKitMasks.mjs`. It is what lets the club's colour reach the
+ * kit without reaching the player's face - see `components/PlayerRender.tsx` for the compositing
+ * and `ui/kit.ts` for where the colour comes from.
+ *
+ * Derived from the art path rather than listed separately: a mask that could be named for a pose
+ * that does not exist is a mask that can go stale. Every file in AVAILABLE has one, and a test
+ * asserts it.
+ */
+export interface PlayerArt {
+  src: string;
+  garmentMask: string;
+}
+
+export function resolvePlayerArt(input: {
+  age: number;
+  position: Position;
+  context?: PlayerArtContext;
+}): PlayerArt {
   const band = bandOf(input.age);
   const kind = input.position === 'GK' ? 'gk' : 'outfield';
   const shelf = AVAILABLE[band][kind];
   const file = shelf[input.context ?? 'hero'] ?? shelf.hero!;
-  return `${import.meta.env.BASE_URL}${ROOT.slice(1)}/${band}/${file}`;
+  const base = `${import.meta.env.BASE_URL}${ROOT.slice(1)}/${band}`;
+  return {
+    src: `${base}/${file}`,
+    garmentMask: `${base}/${file.replace(/\.webp$/, '')}-kit.png`,
+  };
 }
 
 /* ------------------------------------------------------------------ */

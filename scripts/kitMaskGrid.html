@@ -1,0 +1,30 @@
+<!--
+  Coordinate grid for authoring garment masks (v0.9.4, Phase 2).
+
+  Open with ?p=adult/outfield-hero (any pose id under public/assets/gamefeel/players) in a browser
+  started with --allow-file-access-from-files, and read the shirt outline off the 5% grid. The
+  percentages go straight into the POSES table in scripts/buildKitMasks.mjs.
+
+  Committed because the coordinates in that table are otherwise unverifiable: without the grid the
+  next person has to guess where 37% of the width is.
+-->
+<!doctype html><meta charset=utf-8>
+<style>
+ body{margin:0;background:#fff}
+ .w{position:relative;width:512px;height:768px}
+ .w img{position:absolute;inset:0;width:100%;height:100%}
+ .g{position:absolute;inset:0}
+ .g i{position:absolute;background:rgba(255,0,0,.55);font:9px monospace}
+ .g b{position:absolute;color:#00f;font:10px monospace;background:#fff}
+</style>
+<body><div class="w"><img id=im><div class="g" id=g></div></div>
+<script>
+const q=new URLSearchParams(location.search);
+document.getElementById('im').src='file:///C:/work/Maccabist/public/assets/gamefeel/players/'+q.get('p')+'.webp';
+const g=document.getElementById('g');
+for(let i=1;i<20;i++){const v=i*5;
+ const a=document.createElement('i');a.style.cssText=`left:${v}%;top:0;width:1px;height:100%`;g.appendChild(a);
+ const b=document.createElement('i');b.style.cssText=`top:${v}%;left:0;height:1px;width:100%`;g.appendChild(b);
+ if(i%2===0){const l=document.createElement('b');l.style.cssText=`left:${v}%;top:0`;l.textContent=v;g.appendChild(l);
+  const m=document.createElement('b');m.style.cssText=`top:${v}%;left:0`;m.textContent=v;g.appendChild(m);}}
+</script>

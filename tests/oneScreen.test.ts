@@ -333,7 +333,13 @@ describe('short viewports give way by showing less, not by shrinking', () => {
   const css = read('src/styles/gamefeel.css');
 
   it('has height tiers, because the one-screen rule is about height', () => {
-    for (const tier of ['max-height: 830px', 'max-height: 700px', 'max-height: 620px']) {
+    /*
+     * v0.9.4 moved the aggressive tier from 620px to 660px: 360x640 is a real and common Android
+     * and it fell in the gap between the tiers, getting the seam tightening and none of the content
+     * reduction. This assertion caught that the threshold had moved AFTER the phase-1 commit had
+     * already gone out - the focused run happened before the last CSS change of that phase.
+     */
+    for (const tier of ['max-height: 830px', 'max-height: 700px', 'max-height: 660px']) {
       expect(css.includes(`@media (${tier})`), `no ${tier} tier`).toBe(true);
     }
   });

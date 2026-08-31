@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 
-import { getBackdrop, getCareerPlayerArt, getOverlay, type BackdropId } from '../ui/playerArt';
+import { getBackdrop, getOverlay, type BackdropId } from '../ui/playerArt';
+import { PlayerRender } from './PlayerRender';
 import { positionLabel } from '../ui/format';
 import type { Career } from '../types';
 import { ClubCrest } from './ClubCrest';
@@ -65,6 +66,11 @@ export function CinematicBackdrop({
  * PLAYER. Art from the age+position resolver; identity entirely from state. There is no shirt
  * number in the game's model, so none is rendered (the concept's "33" is sample content); the
  * ghost glyph behind the art is the position letter, which IS real.
+ *
+ * v0.9.4: and the shirt is his CLUB's. The character goes through `PlayerRender`, which is the one
+ * component that composites a club colour onto the kit - so the player on the home screen is
+ * wearing the same shirt as the player at kickoff and the player on his own championship night,
+ * because all of them ask the same component.
  */
 export function PlayerHero({
   career,
@@ -73,8 +79,6 @@ export function PlayerHero({
   career: Career;
   compact?: boolean;
 }): JSX.Element {
-  const [artFailed, setArtFailed] = useState(false);
-  const art = getCareerPlayerArt({ age: career.age, position: career.position });
   const clubName = clubDisplayName(career.currentClubId);
 
   return (
@@ -82,16 +86,14 @@ export function PlayerHero({
       <div className="gf-hero-ghost" aria-hidden>
         {career.position}
       </div>
-      {!artFailed && (
-        <img
-          className="gf-hero-art"
-          src={art}
-          alt=""
-          aria-hidden
-          loading="eager"
-          onError={() => setArtFailed(true)}
-        />
-      )}
+      <PlayerRender
+        className="gf-hero-art"
+        age={career.age}
+        position={career.position}
+        clubId={career.currentClubId}
+        seed={career.seed}
+        season={career.currentSeason}
+      />
       <div className="gf-hero-id">
         <h1 className="gf-hero-name">{career.playerName}</h1>
         <div className="gf-hero-meta">

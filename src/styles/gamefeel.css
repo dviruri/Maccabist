@@ -1666,9 +1666,16 @@
    mask (scripts/buildKitMasks.mjs) covers the shirt and its sleeves and
    excludes the face, the hair, bare arms, gloves and the ball.
    ===================================================================== */
+/*
+ * `:where` gives this zero specificity on purpose. Every caller passes its own class -
+ * `.gf-hero-art`, `.gf-md-art`, `.gf-dec-art`, `.gf-moment-player` - and those are all
+ * `position: absolute`. Those rules are defined EARLIER in this file, so a plain `.pr { position:
+ * relative }` appended here would win at equal specificity and break all four layouts. This way
+ * relative is only the fallback for a caller that positions nothing.
+ */
+:where(.pr) { position: relative; }
 .pr {
   /* No size of its own: the caller's class positions it, the image gives it height. */
-  position: relative;
   line-height: 0;
 }
 .pr-art {
