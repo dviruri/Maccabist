@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { CareerTimeline } from '../components/CareerTimeline';
-import { CompactHub } from '../components/CompactHub';
+import { CareerHomeScene } from '../components/CareerHome';
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { EuropeCard } from '../components/EuropeCards';
@@ -45,6 +45,17 @@ interface Props {
  */
 type SheetId = 'table' | 'timeline' | 'history' | 'people' | 'legacy' | null;
 
+/** Phases where a choice or reveal owns the screen - the home collapses to its compact hero. */
+const FOCUSED_PHASES: ReadonlySet<Career['phase']> = new Set([
+  'origin',
+  'retrial',
+  'event',
+  'progression',
+  'youth_to_senior',
+  'offseason',
+  'retirement_decision',
+] as Career['phase'][]);
+
 export function GamePage({ career, actions, onExit }: Props): JSX.Element {
   const [sheet, setSheet] = useState<SheetId>(null);
   const close = (): void => setSheet(null);
@@ -80,7 +91,18 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
       </header>
 
       {/* ---------- primary gameplay layer ---------- */}
-      <CompactHub career={career} onOpenCareer={() => setSheet('history')} />
+      {/*
+        v0.9: the cinematic career home. Full scene - hero, next chapter, feed - while the
+        player is between decisions; collapsed to the compact hero the moment an event or
+        choice is active, so the meta never pushes the decision below the fold (the v0.4.7
+        lesson, kept). CompactHub's information lives on in the hero; the full PlayerHub still
+        opens from the same tap.
+      */}
+      <CareerHomeScene
+        career={career}
+        focused={FOCUSED_PHASES.has(career.phase)}
+        onOpenCareer={() => setSheet('history')}
+      />
       <SeasonStrip career={career} onOpenTable={() => setSheet('table')} />
 
       {/*
