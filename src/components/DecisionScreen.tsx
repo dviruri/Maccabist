@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { UEFA_COMPETITIONS } from '../data/uefa';
+import { europeanStatusLine } from '../game/europeStatus';
 import { EXPECTED_ROLE_LABELS } from '../game/marketEngine';
 import type { Career, TransferOffer } from '../types';
 import { roleText } from '../ui/format';
@@ -54,16 +54,6 @@ function agentLine(direction: TransferOffer['direction']): string {
   }
 }
 
-/** The destination's LIVE European status, from the v0.8 world - only when it really has one. */
-function europeanLine(career: Career, clubId: string): string | null {
-  const europe = career.world.europe;
-  const entry =
-    europe?.current?.entries.find((e) => e.clubId === clubId) ??
-    europe?.nextEntries?.find((e) => e.clubId === clubId);
-  if (!entry) return null;
-  const name = UEFA_COMPETITIONS[entry.competition].name;
-  return entry.entry === 'league_phase' ? `שלב הליגה של ${name}` : `מוקדמות ${name}`;
-}
 
 function FactRow({ label, value }: { label: string; value: string }): JSX.Element {
   return (
@@ -91,7 +81,8 @@ export function DecisionScreen({
   const offer = offers[Math.min(index, offers.length - 1)]!;
   const mandatory = offers.some((o) => o.mandatory);
   const agent = career.people?.agent;
-  const europe = europeanLine(career, offer.clubId);
+  // v0.9.1: current campaign vs next-season route, never conflated (see game/europeStatus).
+  const europe = europeanStatusLine(career, offer.clubId);
   const direction = offer.direction ? DIRECTION_LABELS[offer.direction] : null;
 
   return (

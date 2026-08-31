@@ -1,6 +1,7 @@
 import { getCompetitionAsset } from '../data/competitionAssets';
 import { QUALIFYING_GRAPH, LEAGUE_PHASE, LP_DROP_TARGETS, UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
 import type { Career, EuropeanJourney, EuropeanStep, EuropeanTie, UefaCompetitionId } from '../types';
+import { nextSeasonRoute } from '../game/europeStatus';
 import { CinematicBackdrop } from './gamefeel';
 import { CompetitionMark } from './honorIcons';
 import { Ltr } from './primitives';
@@ -81,6 +82,7 @@ export function EuropeCard({ career }: { career: Career }): JSX.Element | null {
   const entered = journey.steps.find(
     (step): step is Extract<EuropeanStep, { kind: 'entered' }> => step.kind === 'entered',
   );
+  const nextRoute = nextSeasonRoute(career, career.currentClubId);
   const qualifyingSteps = journey.steps.filter(
     (step) => (step.kind === 'tie' && step.tie.stage in QUALIFYING_GRAPH) || step.kind === 'dropped',
   );
@@ -95,7 +97,9 @@ export function EuropeCard({ career }: { career: Career }): JSX.Element | null {
       <div className="euro-head">
         <CompetitionBadge competition={journey.finalCompetition} size={26} />
         <div className="euro-head-text">
-          <div className="kicker">אירופה</div>
+          {/* v0.9.1: explicitly THIS season, and the competition is the journey's current one -
+              a club that dropped to the Conference League reads Conference League here. */}
+          <div className="kicker">אירופה העונה</div>
           <div className="euro-title">{UEFA_COMPETITIONS[journey.finalCompetition].name}</div>
         </div>
       </div>
@@ -127,6 +131,16 @@ export function EuropeCard({ career }: { career: Career }): JSX.Element | null {
         <p className="euro-state-line euro-up">בשלב הליגה של {UEFA_COMPETITIONS[journey.finalCompetition].name} — העונה האירופית לפנינו</p>
       ) : (
         <p className="euro-state-line">העונה האירופית הסתיימה בקיץ. הליגה מחכה.</p>
+      )}
+
+      {/*
+        v0.9.1: next season's earned route is a DIFFERENT fact and is labelled as one. It comes
+        from the v0.8 resolver's own nextEntries, so the access rules are never re-derived here.
+      */}
+      {nextRoute && (
+        <p className="euro-next-line">
+          אירופה בעונה הבאה: {nextRoute.inLeaguePhase ? `${nextRoute.competitionName} — שלב הליגה` : nextRoute.stage}
+        </p>
       )}
       </section>
     </CinematicBackdrop>
