@@ -1,5 +1,5 @@
 import { CinematicBackdrop } from '../components/gamefeel';
-import { getCareerPlayerArt, getMomentArt } from '../ui/playerArt';
+import { PlayerRender } from '../components/PlayerRender';
 import { CareerTimeline } from '../components/CareerTimeline';
 import { HonorIcon, TrophyKindIcon, trophyIconKind } from '../components/honorIcons';
 import { Timeline } from '../components/Timeline';
@@ -97,22 +97,23 @@ export function RetirementPage({ career, onNewCareer, onOpenMeta, isBest }: Prop
        * ceremony lights, before the poster and the numbers. Same facts, given their weight.
        */}
       {/*
-        v0.9.3, Phase 5: the retiring player is HIM.
+        The retiring player is HIM (v0.9.3, finished v0.9.4).
 
         The pack's retirement art is a scene with a generic footballer in it, so a career's last
-        screen was showing somebody else. Same treatment as every other major moment: the scene
-        becomes a defocused atmospheric layer and the career player - resolved from his real
-        retirement age and position - holds the foreground.
+        screen was showing somebody else. v0.9.3 dimmed and blurred it behind the career player,
+        which was still two footballers; v0.9.4 drops it and composes the scene from the empty
+        trophy-ceremony stadium instead, with the career player - his real retirement age, his
+        position, his last club's colours - as the only person in the frame.
       */}
       <CinematicBackdrop backdrop="trophy-ceremony" className="gf-retire-scene gf-moment-with-player">
         <div className="gf-moment-stage">
-          <img className="gf-moment-art" src={getMomentArt('retirement')} alt="" aria-hidden loading="eager" />
-          <img
+          <PlayerRender
             className="gf-moment-player"
-            src={getCareerPlayerArt({ age: career.retirementAge ?? career.age, position: career.position })}
-            alt=""
-            aria-hidden
-            loading="eager"
+            age={career.retirementAge ?? career.age}
+            position={career.position}
+            clubId={career.currentClubId}
+            seed={career.seed}
+            season={career.currentSeason}
           />
         </div>
         <div className="gf-moment-text">

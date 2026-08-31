@@ -20,7 +20,7 @@ import { JourneyTimeline, TrophyShowcase } from '../components/JourneyTimeline';
 import { MatchdayExperience } from '../components/Matchday';
 import { buildMatchday } from '../game/matchdayPresenter';
 import { CinematicBackdrop, GameSectionTitle, MomentShell, PlayerHero } from '../components/gamefeel';
-import { getMomentArt, getTrophyArt } from '../ui/playerArt';
+import { getTrophyArt } from '../ui/playerArt';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { TrophyCabinet } from '../components/TrophyCabinet';
 import { buildArchivedCareer } from '../game/archive';
@@ -1354,10 +1354,11 @@ export function Gallery(): JSX.Element {
         key: 'demo',
         backdrop: 'europe-night',
         overlay: 'star-lights',
-        art: getTrophyArt('conference-generic'),
+        object: getTrophyArt('conference-generic'),
         kicker: 'עונת 2049/50 · מכבי חיפה',
         title: 'זכייה בקונפרנס ליג!',
         subtitle: 'הלילה הזה ייכנס להיסטוריה.',
+        kitClubId: MACCABI_ID,
         mood: 'celebration',
       }}
       onContinue={noop}
@@ -1367,10 +1368,10 @@ export function Gallery(): JSX.Element {
       moment={{
         key: 'demo2',
         backdrop: 'home-dark',
-        art: getMomentArt('relegation'),
         kicker: 'עונת 2044/45 · הפועל חדרה',
         title: 'ירידת ליגה.',
         subtitle: 'ערב קשה. מה שתעשה מחר יגדיר אותך.',
+        kitClubId: 'hapoel_hadera',
         mood: 'hero',
       }}
       onContinue={noop}
@@ -1381,11 +1382,12 @@ export function Gallery(): JSX.Element {
       moment={{
         key: 'demo3',
         backdrop: 'matchday-crowd',
-        art: getMomentArt('debut'),
         kicker: 'עונת 2039/40 · מכבי חיפה',
         title: 'הופעת הבכורה בבוגרים',
         subtitle: 'הרגע שכל ילד במחלקת הנוער חולם עליו.',
         clubId: MACCABI_ID,
+        kitClubId: MACCABI_ID,
+        age: 17,
         mood: 'celebration',
       }}
       onContinue={noop}
@@ -1410,10 +1412,16 @@ export function Gallery(): JSX.Element {
     />],
     ['gf-hero-gk', <CinematicBackdrop backdrop="home-dark"><PlayerHero career={{ ...seniorAtMaccabi(), position: 'GK' }} /></CinematicBackdrop>],
     ['gf-hero-youth-gk', <CinematicBackdrop backdrop="training"><PlayerHero career={{ ...createCareer({ playerName: 'אורי דביר', position: 'GK', seed: 42 }), age: 11 }} /></CinematicBackdrop>],
+    /*
+     * v0.9.4: composed, not pasted. The pack's championship scene has a generic footballer painted
+     * into it, so the moment is built from an empty stadium, confetti, the league trophy and the
+     * career player - who is the only person in the frame.
+     */
     ['gf-moment', <MomentShell
       backdrop="trophy-ceremony"
       overlay="confetti-gold"
-      art={getMomentArt('championship')}
+      object={getTrophyArt('league')}
+      player={{ age: 24, position: 'CM', clubId: MACCABI_ID, seed: 42, season: 2049, context: 'celebration' }}
       kicker="עונת 2049/50"
       title="אלופת המדינה!"
       subtitle="מכבי חיפה"

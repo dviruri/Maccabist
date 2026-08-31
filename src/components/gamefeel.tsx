@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { getBackdrop, getOverlay, type BackdropId } from '../ui/playerArt';
 import { PlayerRender } from './PlayerRender';
 import { positionLabel } from '../ui/format';
-import type { Career } from '../types';
+import type { Career, Position } from '../types';
 import { ClubCrest } from './ClubCrest';
 import { clubDisplayName } from '../game/identity';
 import { Ltr } from './primitives';
@@ -185,23 +185,26 @@ export function GameButton({
  * The full-screen frame every "big career moment" renders inside: backdrop, optional celebration
  * overlay, a stage for art, and a title block. Big event != another card.
  *
- * ## The career player, on his own moments (v0.9.3, Phase 5)
+ * ## The career player, on his own moments (v0.9.3, Phase 5 · finished in v0.9.4, Phase 4)
  *
- * The moment artwork in the pack is a SCENE, and several of those scenes contain a generic
- * player - a championship celebration, a debut, a press presentation. Drawn alone, a career's
- * biggest night therefore showed somebody else. The brief's rule: use the supplied artwork as
- * background atmosphere and overlay the actual career player, resolved through `ui/playerArt` by
- * his real age and position, so the moment is visibly happening to THIS player.
+ * The art pack's moment images are complete SCENES with a generic footballer painted into them.
+ * v0.9.3 kept them as background atmosphere behind the career player, dimmed and defocused - and
+ * that was still two footballers on one screen, which is worse than one wrong one. There is no
+ * reliable way to remove a figure from a raster image.
  *
- * `playerArt` is what turns that on. When it is present the moment art recedes to atmosphere and
- * the player holds the foreground. When it is absent - or when the art is a trophy, which is a
- * transparent object rather than a scene with a person in it - the art keeps the stage.
+ * So v0.9.4 composes a moment instead, from layers that contain no people: an empty stadium
+ * backdrop, an overlay of confetti or star lights or smoke, a trophy - and the career player, who
+ * is the only person in the frame. The prop is called `object` rather than `art` on purpose: the
+ * type will not accept a scene.
  */
+/** The overlays a moment may wear. Deliberately narrower than `OverlayId`: a vignette is chrome. */
+export type MomentOverlay = 'confetti-green' | 'confetti-gold' | 'green-smoke' | 'star-lights';
+
 export function MomentShell({
   backdrop,
   overlay,
-  art,
-  playerArt,
+  object,
+  player,
   kicker,
   title,
   subtitle,
@@ -210,14 +213,21 @@ export function MomentShell({
   continueLabel = 'המשך',
 }: {
   backdrop: BackdropId;
-  overlay?: 'confetti-green' | 'confetti-gold' | 'green-smoke' | 'star-lights';
-  /** A full art path (moment / transfer / trophy art), already resolved by the caller. */
-  art?: string;
+  overlay?: MomentOverlay;
   /**
-   * The career player's own art, from the age+position resolver. Present means the moment is
-   * about him: he takes the foreground and `art` becomes the scene behind him.
+   * A trophy or award: a transparent OBJECT with nobody in it. Not a moment scene - passing one
+   * would put a second footballer on the screen, which is the thing this composition removes.
    */
-  playerArt?: string;
+  object?: string;
+  /** The career player. Present means the moment is about him, and he holds the frame. */
+  player?: {
+    age: number;
+    position: Position;
+    clubId: string;
+    seed: number;
+    season: number;
+    context: 'celebration' | 'hero';
+  };
   kicker?: string;
   title: string;
   subtitle?: string;
@@ -225,24 +235,23 @@ export function MomentShell({
   onContinue: () => void;
   continueLabel?: string;
 }): JSX.Element {
-  const [artFailed, setArtFailed] = useState(false);
-  const [playerFailed, setPlayerFailed] = useState(false);
-  const withPlayer = Boolean(playerArt) && !playerFailed;
+  const [objectFailed, setObjectFailed] = useState(false);
   return (
-    <CinematicBackdrop backdrop={backdrop} className={`gf-moment${withPlayer ? ' gf-moment-with-player' : ''}`}>
+    <CinematicBackdrop backdrop={backdrop} className={`gf-moment${player ? ' gf-moment-with-player' : ''}`}>
       {overlay && <img className="gf-moment-overlay" src={getOverlay(overlay)} alt="" aria-hidden loading="lazy" />}
       <div className="gf-moment-stage">
-        {art && !artFailed && (
-          <img className="gf-moment-art" src={art} alt="" aria-hidden onError={() => setArtFailed(true)} />
+        {object && !objectFailed && (
+          <img className="gf-moment-art" src={object} alt="" aria-hidden onError={() => setObjectFailed(true)} />
         )}
-        {playerArt && !playerFailed && (
-          <img
+        {player && (
+          <PlayerRender
             className="gf-moment-player"
-            src={playerArt}
-            alt=""
-            aria-hidden
-            loading="eager"
-            onError={() => setPlayerFailed(true)}
+            age={player.age}
+            position={player.position}
+            clubId={player.clubId}
+            seed={player.seed}
+            season={player.season}
+            context={player.context}
           />
         )}
       </div>
