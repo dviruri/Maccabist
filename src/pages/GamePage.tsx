@@ -62,10 +62,34 @@ const FOCUSED_PHASES: ReadonlySet<Career['phase']> = new Set([
 
 export function GamePage({ career, actions, onExit }: Props): JSX.Element {
   const [sheet, setSheet] = useState<SheetId>(null);
+  const [matchdaysSeen, setMatchdaysSeen] = useState<string[]>([]);
   const close = (): void => setSheet(null);
 
   const table = currentTable(career);
   const league = table ? getLeague(table.leagueId) : null;
+
+  /*
+   * MATCHDAY IS ITS OWN SCREEN (v0.9.1, Phase 2).
+   *
+   * v0.9 rendered it inside the scrolling career page, so pressing שריקת פתיחה left the hero,
+   * the feed and the league card sitting above and below the match - the player never felt he
+   * had gone anywhere. This returns BEFORE the shell: no topbar, no home scene, no nav, no
+   * sheets. The match owns the viewport until full time, then hands back.
+   *
+   * It is a screen state rather than a route because the app has no router; the state is keyed
+   * by the fixture id, so a save mid-match resumes into the same match, and finishing it moves
+   * the career on exactly as the phase flow did before.
+   */
+  const matchday = career.phase === 'mid_season' ? buildMatchday(career) : null;
+  if (matchday && !matchdaysSeen.includes(matchday.fixture.id)) {
+    return (
+      <MatchdayExperience
+        career={career}
+        matchday={matchday}
+        onContinue={() => setMatchdaysSeen((seen) => [...seen, matchday.fixture.id])}
+      />
+    );
+  }
 
   /*
    * The gameplay screen, restructured for a phone (v0.4.7).
@@ -293,26 +317,13 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
       );
     }
 
-    case 'mid_season': {
+    case 'mid_season':
       /*
-       * v0.9: the matchday first, then the numbers. The presenter derives one representative
-       * match from the real first half; revealing it costs nothing and touches nothing - a save
-       * made mid-reveal resumes cleanly because the reveal is component state, exactly like the
-       * event reel above. The half summary keeps its own continue into the engine.
+       * v0.9.1: the matchday itself is handled above as its own full screen. By the time this
+       * renders the match has been played (or there was none to play - academy halves and
+       * table-less levels), so this is the half summary and its continue into the engine.
        */
-      const matchdayKey = `md_${career.currentSeason}`;
-      // Academy halves and table-less contexts have no matchday to present - the summary must
-      // render directly, or this phase would show nothing and strand the player.
-      if (buildMatchday(career) && !revealed.includes(matchdayKey)) {
-        return (
-          <MatchdayExperience
-            career={career}
-            onContinue={() => setRevealed((seen) => [...seen, matchdayKey])}
-          />
-        );
-      }
       return <MidSeasonCard career={career} onContinue={actions.continueMidSeason} />;
-    }
 
     case 'season_result': {
       /*

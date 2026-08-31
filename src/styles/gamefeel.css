@@ -638,3 +638,34 @@
 }
 .gf-feed-item:first-child { animation: gf-rise var(--gf-t-enter) ease-out; }
 .gf-showcase-card { animation: gf-rise var(--gf-t-enter) ease-out; }
+
+/* ---- v0.9.1 phase 2: matchday owns the viewport ---- */
+.gf-matchday-screen {
+  position: relative;
+  min-height: 100dvh;
+  background: var(--gf-bg);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.gf-matchday-screen > .gf-scene {
+  flex: 1;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+.gf-matchday-screen .gf-scene-content {
+  flex: 1;
+  align-content: start;
+  padding: max(14px, env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+}
+/* the controls stay reachable at the bottom of the match, not after a scroll */
+.gf-matchday-screen .gf-md-controls {
+  margin-top: auto;
+  padding-top: 10px;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 380px) {
+  .gf-matchday-screen .gf-md-controls { grid-template-columns: 1fr auto auto; }
+}

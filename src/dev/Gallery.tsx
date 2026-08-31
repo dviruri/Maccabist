@@ -18,6 +18,7 @@ import { DecisionScreen } from '../components/DecisionScreen';
 import { CareerMomentScreen } from '../components/CareerMoments';
 import { JourneyTimeline, TrophyShowcase } from '../components/JourneyTimeline';
 import { MatchdayExperience } from '../components/Matchday';
+import { buildMatchday } from '../game/matchdayPresenter';
 import { CinematicBackdrop, MomentShell, PlayerHero } from '../components/gamefeel';
 import { getMomentArt, getTrophyArt } from '../ui/playerArt';
 import { CareerJourney } from '../components/SeasonCardV2';
@@ -397,6 +398,14 @@ const europeanSeasonCareer = (): Career => {
     },
   };
 };
+
+/** v0.9.1: the matchday screen needs its prebuilt presentation, like the real caller. */
+function MatchdaySceneDemo(): JSX.Element {
+  const career = midSeasonCareer();
+  const matchday = buildMatchday(career);
+  if (!matchday) return <div>no matchday</div>;
+  return <MatchdayExperience career={career} matchday={matchday} onContinue={() => undefined} />;
+}
 
 /** v0.7: a believable honors list for the meta scenes. */
 const galleryHonors = (): IndividualHonor[] => [
@@ -1152,7 +1161,7 @@ export function Gallery(): JSX.Element {
       focused={false}
       onOpenCareer={noop}
     />],
-    ['gf-matchday', <MatchdayExperience career={midSeasonCareer()} onContinue={noop} />],
+    ['gf-matchday', <MatchdaySceneDemo />],
     ['gf-moment-uefa', <CareerMomentScreen
       moment={{
         key: 'demo',

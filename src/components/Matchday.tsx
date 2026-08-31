@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
-import { buildMatchday, type MatchMoment } from '../game/matchdayPresenter';
+import type { MatchMoment, MatchdayPresentation } from '../game/matchdayPresenter';
 import type { Career } from '../types';
 import { getCareerPlayerArt } from '../ui/playerArt';
 import { ClubCrest } from './ClubCrest';
@@ -36,14 +36,15 @@ const MOMENT_ICONS: Record<MatchMoment['kind'], string> = {
 
 export function MatchdayExperience({
   career,
+  matchday,
   onContinue,
 }: {
   career: Career;
+  /** THE fixture's matchday, built by the caller so the screen and the router agree. */
+  matchday: MatchdayPresentation;
   onContinue: () => void;
-}): JSX.Element | null {
-  const matchday = useMemo(() => buildMatchday(career), [career]);
+}): JSX.Element {
   const [revealed, setRevealed] = useState(0);
-  if (!matchday) return null;
 
   const { fixture, moments } = matchday;
   const total = moments.length;
@@ -70,7 +71,23 @@ export function MatchdayExperience({
     context: done && matchday.played ? (isKeeper ? 'save' : 'celebration') : 'hero',
   });
 
+  /*
+   * Pacing (v0.9.1): ONE meaningful moment per primary tap - v0.9 advanced two, which made the
+   * story feel skipped past. Fast-forward jumps to the next moment that matters (a player
+   * moment, a goal, half time) and skip goes to full time, so neither control is meaningless.
+   */
+  const nextBeat = (): number => {
+    for (let i = revealed + 1; i < total; i += 1) {
+      const moment = moments[i]!;
+      if (moment.big || moment.kind === 'half_time' || moment.kind === 'team_goal' || moment.kind === 'conceded') {
+        return i + 1;
+      }
+    }
+    return total;
+  };
+
   return (
+    <div className="gf-matchday-screen">
     <CinematicBackdrop backdrop="matchday-crowd" className="gf-matchday">
       <div className="gf-md-head">
         <div className="gf-kicker">יום המשחק · {matchday.competitionLabel}</div>
@@ -146,11 +163,16 @@ export function MatchdayExperience({
       <div className="gf-md-controls">
         {!done ? (
           <>
-            <GameButton onClick={() => setRevealed((r) => Math.min(total, r + (r === 0 ? 1 : 2)))}>
+            <GameButton onClick={() => setRevealed((r) => Math.min(total, r + 1))}>
               {revealed === 0 ? 'שריקת פתיחה' : 'המשך'}
             </GameButton>
+            {revealed > 0 && (
+              <GameButton tone="ghost" onClick={() => setRevealed(nextBeat())}>
+                הרגע הבא
+              </GameButton>
+            )}
             <GameButton tone="ghost" onClick={() => setRevealed(total)}>
-              לדלג
+              לסיום
             </GameButton>
           </>
         ) : (
@@ -158,5 +180,6 @@ export function MatchdayExperience({
         )}
       </div>
     </CinematicBackdrop>
+    </div>
   );
 }
