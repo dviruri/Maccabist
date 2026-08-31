@@ -1,4 +1,4 @@
-import { deriveCareerFeed } from '../game/careerFeed';
+import { deriveCareerFeed, type FeedItem } from '../game/careerFeed';
 import { getPersonArt } from '../ui/playerArt';
 import { activeFixture, knownCupFinal } from '../game/fixture';
 import { currentCampaign } from '../game/europeStatus';
@@ -193,6 +193,18 @@ function NextChapterStrip({ career }: { career: Career }): JSX.Element | null {
  * fourth was never the reason anyone opened the game; the rest is one tap away under עוד, which
  * opens the story sheet the full feed already lives in.
  */
+function FeedLine({ item }: { item: FeedItem }): JSX.Element {
+  return (
+    <div className="gf-feed-item">
+      <img className="gf-feed-face" src={getPersonArt(item.role)} alt="" aria-hidden loading="lazy" />
+      <div className="gf-feed-body">
+        <span className="gf-feed-role">{item.roleLabel}</span>
+        <p className="gf-feed-text">{item.text}</p>
+      </div>
+    </div>
+  );
+}
+
 function CareerFeed({ career, onOpenFeed }: { career: Career; onOpenFeed: () => void }): JSX.Element | null {
   const items = deriveCareerFeed(career);
   if (items.length === 0) return null;
@@ -200,19 +212,32 @@ function CareerFeed({ career, onOpenFeed }: { career: Career; onOpenFeed: () => 
   return (
     <div className="gf-feed">
       {shown.map((item, index) => (
-        <div key={index} className="gf-feed-item">
-          <img className="gf-feed-face" src={getPersonArt(item.role)} alt="" aria-hidden loading="lazy" />
-          <div className="gf-feed-body">
-            <span className="gf-feed-role">{item.roleLabel}</span>
-            <p className="gf-feed-text">{item.text}</p>
-          </div>
-        </div>
+        <FeedLine key={index} item={item} />
       ))}
       {items.length > shown.length && (
         <button type="button" className="gf-feed-more" onClick={onOpenFeed}>
           עוד ›
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * The whole feed, for the story destination (v0.9.3, Phase 6).
+ *
+ * The home shows two lines and offers עוד; this is what עוד opens onto. Same derivation, same
+ * markup - the lines are not re-derived or re-worded anywhere, so the two lines on the home
+ * screen are literally the first two of these.
+ */
+export function CareerFeedFull({ career }: { career: Career }): JSX.Element | null {
+  const items = deriveCareerFeed(career);
+  if (items.length === 0) return null;
+  return (
+    <div className="gf-feed">
+      {items.map((item, index) => (
+        <FeedLine key={index} item={item} />
+      ))}
     </div>
   );
 }

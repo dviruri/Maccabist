@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { CareerTimeline } from '../components/CareerTimeline';
-import { CareerHomeScene } from '../components/CareerHome';
+import { CareerFeedFull, CareerHomeScene } from '../components/CareerHome';
 import { MatchdayExperience } from '../components/Matchday';
 import { buildMatchday } from '../game/matchdayPresenter';
 import {
@@ -14,7 +14,7 @@ import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { EuropeCard } from '../components/EuropeCards';
 import { EuropeStandings } from '../components/EuropeStandings';
-import { JourneyTimeline } from '../components/JourneyTimeline';
+import { JourneyTimeline, TrophyShowcase } from '../components/JourneyTimeline';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { Sheet } from '../components/Sheet';
 import { PeopleCard } from '../components/PeopleCard';
@@ -32,6 +32,7 @@ import {
   SeasonResultCard,
   YouthTransitionCard,
 } from '../components/SeasonCards';
+import { GameSectionTitle } from '../components/gamefeel';
 import { Chip, Logo, Ltr } from '../components/primitives';
 import { EVENTS_BY_ID } from '../data/events';
 import { getLeague } from '../data/leagues';
@@ -53,7 +54,18 @@ interface Props {
  * A plain union rather than three booleans: only one sheet can be open at a time, and encoding
  * that in the type means it cannot get into a state where two are.
  */
-type SheetId = 'table' | 'timeline' | 'history' | 'people' | 'legacy' | 'europe' | null;
+/*
+ * v0.9.3, Phase 6: ONE destination per navigation button.
+ *
+ * v0.9.1 mapped five buttons onto six sheets, and מועדון resolved it by TOGGLING between the
+ * people screen and the legacy record book - so the same button meant two different things
+ * depending on where you already were. Its own report called that out.
+ *
+ * `people` and `legacy` are now one `club` destination holding both, in order: the people around
+ * him, then the record book he is writing himself into. Nothing was deleted or duplicated - both
+ * components render exactly once, in the one place the button opens.
+ */
+type SheetId = 'table' | 'timeline' | 'history' | 'club' | 'europe' | null;
 
 /** Phases where a reveal owns the screen - the home collapses to its compact hero. */
 const FOCUSED_PHASES: ReadonlySet<Career['phase']> = new Set([
@@ -253,9 +265,9 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         </button>
         <button
           type="button"
-          className={`gf-bn-btn${sheet === 'people' || sheet === 'legacy' ? ' gf-bn-active' : ''}`}
-          aria-current={sheet === 'people' ? 'page' : undefined}
-          onClick={() => setSheet(sheet === 'people' ? 'legacy' : 'people')}
+          className={`gf-bn-btn${sheet === 'club' ? ' gf-bn-active' : ''}`}
+          aria-current={sheet === 'club' ? 'page' : undefined}
+          onClick={() => setSheet(sheet === 'club' ? null : 'club')}
         >
           <span className="gf-bn-icon" aria-hidden>☗</span>
           <span className="gf-bn-label">מועדון</span>
@@ -296,23 +308,45 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         <EuropeStandings career={career} />
       </Sheet>
 
-      <Sheet open={sheet === 'people'} title="האנשים שלי" onClose={close}>
-        <PeopleCard career={career} />
+      {/*
+        מועדון: one destination. The people around him first - agent, coach, the relationships the
+        engine actually tracks - then the Maccabi record book (v0.6, Phase 31) he is writing
+        himself into. Both were already sheets; the button no longer has to choose between them.
+      */}
+      <Sheet open={sheet === 'club'} title="המועדון שלי" onClose={close}>
+        <div className="stack">
+          <PeopleCard career={career} />
+          <GameSectionTitle>מורשת מכבי</GameSectionTitle>
+          <LegacyCard career={career} />
+        </div>
       </Sheet>
 
-      {/* v0.6, Phase 31: Maccabi Legacy - the record book, one tap away like everything else. */}
-      <Sheet open={sheet === 'legacy'} title="מורשת מכבי" onClose={close}>
-        <LegacyCard career={career} />
-      </Sheet>
-
+      {/*
+        הסיפור: the narrative destination. The full career feed leads it - the home screen shows
+        the first two of exactly these lines and offers עוד, which lands here - and the career
+        timeline follows.
+      */}
       <Sheet open={sheet === 'timeline'} title="סיפור הקריירה" onClose={close}>
-        <CareerTimeline career={career} defaultOpen />
+        <div className="stack">
+          <CareerFeedFull career={career} />
+          <CareerTimeline career={career} defaultOpen />
+        </div>
       </Sheet>
 
       <Sheet open={sheet === 'history'} title="הקריירה" onClose={close}>
         <div className="stack">
           {/* The full Player Hub lives here now - all of it, where its height costs nothing. */}
           <PlayerHub career={career} />
+          {/*
+            v0.9.3: the trophies he has actually won, in the career destination rather than only
+            after retirement. Same showcase the archive renders, so a live career and an archived
+            one display the same cabinet.
+          */}
+          {(career.trophies.length > 0 || career.honors.length > 0) && (
+            <section className="card-flat">
+              <TrophyShowcase trophies={career.trophies} honors={career.honors} />
+            </section>
+          )}
           {career.seasonHistory.length > 0 && (
             <section className="card-flat">
               <div className="kicker" style={{ marginBottom: 10 }}>

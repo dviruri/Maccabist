@@ -201,6 +201,61 @@ describe('a decision owns the viewport', () => {
   });
 });
 
+describe('one navigation button, one destination', () => {
+  const page = read('src/pages/GamePage.tsx');
+  const home = read('src/components/CareerHome.tsx');
+
+  it('has no toggling button left', () => {
+    /*
+     * v0.9.1 mapped five buttons onto six sheets, and מועדון resolved it by TOGGLING between the
+     * people screen and the legacy record book - the same button meaning two things depending on
+     * where you already were. Its own report called that out.
+     */
+    expect(page).not.toContain("'people'");
+    expect(page).not.toContain("'legacy'");
+    expect(page).toContain("'club'");
+    /*
+     * Every nav button either opens its own destination or closes it. A handler that sets a
+     * DIFFERENT sheet is the toggle coming back.
+     */
+    for (const [, target, fallback] of page.matchAll(/setSheet\(sheet === '(\w+)' \? (null|'(\w+)') : '(\w+)'\)/g)) {
+      expect(fallback).toBe('null');
+      expect(target).toBeDefined();
+    }
+  });
+
+  /**
+   * The body of one sheet.
+   *
+   * Anchored on `<Sheet open={sheet === 'x'}` rather than on `sheet === 'x'`, which also matches
+   * the nav button's own active-state check further up the file - the first version of these
+   * three assertions sliced from the button and read the wrong sheet entirely.
+   */
+  const sheetBody = (id: string): string => {
+    const at = page.indexOf(`<Sheet open={sheet === '${id}'}`);
+    expect(at, `no sheet for ${id}`).toBeGreaterThan(0);
+    return page.slice(at, page.indexOf('</Sheet>', at));
+  };
+
+  it('holds both club surfaces in the one destination the button opens', () => {
+    const inside = sheetBody('club');
+    expect(inside).toContain('<PeopleCard');
+    expect(inside).toContain('<LegacyCard');
+  });
+
+  it('lands עוד on the story destination, showing the same lines it was truncating', () => {
+    expect(home).toContain('export function CareerFeedFull');
+    expect(sheetBody('timeline')).toContain('<CareerFeedFull');
+    // One markup for a feed line, shared by both - so the home's two ARE the first two of these.
+    expect((home.match(/className="gf-feed-item"/g) ?? []).length).toBe(1);
+    expect((home.match(/deriveCareerFeed\(career\)/g) ?? []).length).toBe(2);
+  });
+
+  it('gives the career destination the trophies he has actually won', () => {
+    expect(sheetBody('history')).toContain('<TrophyShowcase');
+  });
+});
+
 describe('the feed is ordered by what a player acts on', () => {
   it('puts the agent first, then the coach, then the club, then media colour', () => {
     /*
