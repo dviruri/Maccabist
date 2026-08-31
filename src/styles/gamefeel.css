@@ -724,3 +724,46 @@
 /* the matchday and ceremonies own the screen - the bar is not part of them */
 .gf-matchday-screen ~ .gf-bottomnav,
 .gf-moment-screen ~ .gf-bottomnav { display: none; }
+
+/* ---- v0.9.1 phase 6c: european standings (a data screen, deliberately) ---- */
+.euro-standings { display: grid; gap: 10px; }
+.euro-standings-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.euro-standings-head h3 { margin: 0; font-size: 15px; font-weight: 900; }
+.euro-standings-sub { color: var(--text-secondary); font-size: 11.5px; }
+.euro-standings-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.euro-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 320px; }
+.euro-table th {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 3px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.euro-table td { text-align: center; padding: 5px 3px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.euro-club { display: flex; align-items: center; gap: 5px; text-align: right; min-width: 108px; }
+.euro-club span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 96px; }
+.euro-pos { font-weight: 800; }
+.euro-pts { font-weight: 900; }
+.euro-zone-direct .euro-pos { color: var(--green-bright); }
+.euro-zone-playoff .euro-pos { color: var(--gold); }
+.euro-zone-out .euro-pos { color: var(--text-tertiary); }
+.euro-row-player { background: rgba(41, 217, 106, 0.12); font-weight: 900; }
+.euro-legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; }
+.euro-legend-item::before { content: '●'; margin-inline-end: 4px; }
+.euro-legend-item.euro-zone-direct { color: var(--green-bright); }
+.euro-legend-item.euro-zone-playoff { color: var(--gold); }
+.euro-legend-item.euro-zone-out { color: var(--text-tertiary); }
+.euro-standings-link {
+  background: none;
+  border: 1px solid var(--gf-glass-border);
+  border-radius: 10px;
+  color: var(--green-bright);
+  font-weight: 800;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  min-height: 40px;
+  cursor: pointer;
+  width: 100%;
+}

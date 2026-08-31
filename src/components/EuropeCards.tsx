@@ -73,7 +73,14 @@ function TieLine({ tie }: { tie: EuropeanTie }): JSX.Element {
  * line carries the fact that makes qualifiers dramatic: where defeat sends you. The card ends
  * with the honest state of the autumn: a league phase, or a summer that ended.
  */
-export function EuropeCard({ career }: { career: Career }): JSX.Element | null {
+export function EuropeCard({
+  career,
+  onOpenStandings,
+}: {
+  career: Career;
+  /** Opens the 36-club league-phase table (v0.9.1). Absent in previews. */
+  onOpenStandings?: () => void;
+}): JSX.Element | null {
   const journey = career.world.europe?.current?.playerJourney;
   if (!journey || journey.season !== career.currentSeason || journey.clubId !== career.currentClubId) {
     return null;
@@ -137,6 +144,12 @@ export function EuropeCard({ career }: { career: Career }): JSX.Element | null {
         v0.9.1: next season's earned route is a DIFFERENT fact and is labelled as one. It comes
         from the v0.8 resolver's own nextEntries, so the access rules are never re-derived here.
       */}
+      {journey.reachedLeaguePhase && onOpenStandings && career.world.europe?.current?.standings && (
+        <button type="button" className="euro-standings-link" onClick={onOpenStandings}>
+          לטבלת שלב הליגה ›
+        </button>
+      )}
+
       {nextRoute && (
         <p className="euro-next-line">
           אירופה בעונה הבאה: {nextRoute.inLeaguePhase ? `${nextRoute.competitionName} — שלב הליגה` : nextRoute.stage}

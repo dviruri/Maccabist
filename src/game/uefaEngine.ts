@@ -17,6 +17,7 @@ import { createRng, clamp, type Rng } from './random';
 import type {
   Career,
   EuropeanEntry,
+  EuropeanStandingRow,
   EuropeanJourney,
   EuropeanSeasonState,
   EuropeanStep,
@@ -744,6 +745,16 @@ export function simulateEuropeanSeason(
 
   /* ---- League phases ---- */
   const winners: EuropeanSeasonState['winners'] = {} as EuropeanSeasonState['winners'];
+  /*
+   * v0.9.1: the finished tables are kept, not recomputed later. These are the SAME rows the
+   * phase already sorts to decide who reaches the knockouts - recording them changes no
+   * result, it only stops the drill-down screen having to re-run a whole European season.
+   */
+  const finalStandings = {
+    uefa_champions_league: [],
+    uefa_europa_league: [],
+    uefa_conference_league: [],
+  } as Record<UefaCompetitionId, EuropeanStandingRow[]>;
 
   for (const competition of Object.keys(leaguePhase) as UefaCompetitionId[]) {
     const field = leaguePhase[competition];
@@ -817,6 +828,18 @@ export function simulateEuropeanSeason(
         b.goalsFor - a.goalsFor ||
         b.campaign.participant.coefficient - a.campaign.participant.coefficient,
     );
+    finalStandings[competition] = standings.map((row, index) => ({
+      clubId: row.campaign.participant.id,
+      name: row.campaign.participant.name,
+      position: index + 1,
+      played: row.won + row.drawn + row.lost,
+      won: row.won,
+      drawn: row.drawn,
+      lost: row.lost,
+      goalsFor: row.goalsFor,
+      goalsAgainst: row.goalsAgainst,
+      points: row.points,
+    }));
     standings.forEach((row, index) => {
       const position = index + 1;
       row.campaign.steps?.push({
@@ -936,6 +959,7 @@ export function simulateEuropeanSeason(
       season,
       entries: [...entries],
       winners,
+      standings: finalStandings,
       playerJourney: journeyOf(career.currentClubId),
       maccabiJourney: career.currentClubId === MACCABI_ID ? null : journeyOf(MACCABI_ID),
     },

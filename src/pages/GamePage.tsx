@@ -13,6 +13,7 @@ import {
 import { LeagueTableCard } from '../components/LeagueTableCard';
 import { SeasonStrip } from '../components/SeasonStrip';
 import { EuropeCard } from '../components/EuropeCards';
+import { EuropeStandings } from '../components/EuropeStandings';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { CareerJourney } from '../components/SeasonCardV2';
 import { Sheet } from '../components/Sheet';
@@ -52,7 +53,7 @@ interface Props {
  * A plain union rather than three booleans: only one sheet can be open at a time, and encoding
  * that in the type means it cannot get into a state where two are.
  */
-type SheetId = 'table' | 'timeline' | 'history' | 'people' | 'legacy' | null;
+type SheetId = 'table' | 'timeline' | 'history' | 'people' | 'legacy' | 'europe' | null;
 
 /** Phases where a choice or reveal owns the screen - the home collapses to its compact hero. */
 const FOCUSED_PHASES: ReadonlySet<Career['phase']> = new Set([
@@ -161,7 +162,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         so by the time the league starts this card can tell the whole summer story - including
         where each defeat dropped us - and state the autumn honestly.
       */}
-      <EuropeCard career={career} />
+      <EuropeCard career={career} onOpenStandings={() => setSheet('europe')} />
 
       {/*
         The five-dot season-phase strip is gone from here (v0.4.7). Its one piece of information -
@@ -246,6 +247,11 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
       </Sheet>
 
       {/* v0.5, Phase 27: the people screen - one tap away, never above the active event. */}
+      {/* v0.9.1: the 36-club league-phase tables, one tap from the Europe card. */}
+      <Sheet open={sheet === 'europe'} title="שלב הליגה באירופה" onClose={close}>
+        <EuropeStandings career={career} />
+      </Sheet>
+
       <Sheet open={sheet === 'people'} title="האנשים שלי" onClose={close}>
         <PeopleCard career={career} />
       </Sheet>

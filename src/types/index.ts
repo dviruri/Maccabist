@@ -808,12 +808,34 @@ export interface EuropeanJourney {
   reachedLeaguePhase: boolean;
 }
 
+/** One league-phase row - the 36-club table the v0.8 engine computes (v0.9.1). */
+export interface EuropeanStandingRow {
+  clubId: string;
+  name: string;
+  position: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  points: number;
+}
+
 /** The season's European results the world keeps: winners always, journeys for clubs the career watches. */
 export interface EuropeanSeasonState {
   season: number;
   /** Every modeled club's resolved entry (field clubs excluded - they are competition scenery). */
   entries: EuropeanEntry[];
   winners: Record<UefaCompetitionId, { clubId: string; name: string }>;
+  /**
+   * The three league-phase tables as they finished (v0.9.1).
+   *
+   * Persisted for the CURRENT season only, because the drill-down screen needs the whole
+   * 36-club table and the engine discards its working standings. Optional: pre-v0.9.1 saves
+   * have none and simply cannot open the table for a season already in progress.
+   */
+  standings?: Record<UefaCompetitionId, EuropeanStandingRow[]>;
   /** The player club's journey, when it had one. */
   playerJourney: EuropeanJourney | null;
   /** Maccabi's journey when the player is elsewhere - the club the game always watches. */
