@@ -60,16 +60,23 @@ import { Ltr } from './primitives';
  */
 function HomeStatusRow({
   career,
+  showEurope,
   onOpenTable,
   onOpenEurope,
 }: {
   career: Career;
+  /**
+   * False when the contextual slot below is already showing Europe (v0.9.4). Otherwise the screen
+   * says "הקונפרנס ליג" in a chip and "הקונפרנס ליג · מקום 12" in a panel three rows later, which
+   * is the same fact twice on a screen whose whole point is that it says each thing once.
+   */
+  showEurope: boolean;
   onOpenTable: () => void;
   onOpenEurope: () => void;
 }): JSX.Element | null {
   const league = currentLeagueContext(career);
   /* The club's LIVE campaign, which follows drop-downs - never its starting entry (v0.9.1). */
-  const europe = currentCampaign(career, career.currentClubId);
+  const europe = showEurope ? currentCampaign(career, career.currentClubId) : null;
   /* Academy football has no table; the season's shape is still real and worth one word. */
   const phase = league ? null : seasonPhaseSteps(career).find((step) => step.current)?.label ?? null;
 
@@ -90,6 +97,7 @@ function HomeStatusRow({
           <span className="gf-chip-text">{europe.competitionName}</span>
         </button>
       )}
+      {/* the season's shape, when there is no table to read it from */}
       {phase && (
         <span className="gf-chip">
           <span className="gf-chip-text">{phase}</span>
@@ -185,6 +193,65 @@ function NextChapterStrip({ career }: { career: Career }): JSX.Element | null {
 /* ------------------------------------------------------------------ */
 
 /**
+ * The season's European situation, compact (v0.9.4, Phase 1).
+ *
+ * What the brief asked for and nothing more: the competition he is actually in, where he is in it,
+ * and a way to the rest. The full journey - the entry route, every qualifying round, the drop-downs,
+ * next season's route, the 36-club table - lives in the Europe sheet, which is a scrolling
+ * destination and can afford all of it.
+ *
+ * Every value is the v0.9.1 separation's: `currentCampaign` follows the recorded journey, so a club
+ * that fell from the Champions League to the Conference League reads Conference League. Next
+ * season's route is not shown here at all, because it is not a present fact.
+ */
+function EuropeContext({
+  career,
+  onOpenEurope,
+}: {
+  career: Career;
+  onOpenEurope: () => void;
+}): JSX.Element | null {
+  const campaign = currentCampaign(career, career.currentClubId);
+  if (!campaign) return null;
+  const journey = career.world.europe?.current?.playerJourney;
+  const phase = journey?.steps.find((step) => step.kind === 'league_phase');
+  const where =
+    phase && phase.kind === 'league_phase'
+      ? `מקום ${phase.position}`
+      : journey && journey.furthest !== 'entry'
+        ? EURO_STAGE_TEXT[journey.furthest] ?? campaign.stage
+        : campaign.stage;
+
+  return (
+    /*
+     * The whole panel is the button, not just the "לפרטים" inside it. On a very short screen the
+     * head row is what gives way (see the height tiers in gamefeel.css), and a panel whose only
+     * route to the detail lived in that row would become a dead end at 320x568.
+     */
+    <button type="button" className="gf-context gf-context-euro" onClick={onOpenEurope}>
+      <span className="gf-context-head">
+        <span className="gf-context-title">אירופה</span>
+        <span className="gf-context-more">לפרטים ›</span>
+      </span>
+      <span className="gf-context-line">
+        {campaign.competitionName} · {where}
+      </span>
+    </button>
+  );
+}
+
+/** Hebrew for the journey's own furthest-stage codes. Presentation of a stored fact, not a rule. */
+const EURO_STAGE_TEXT: Record<string, string> = {
+  league_phase: 'שלב הליגה',
+  ko_playoff: 'פלייאוף הנוקאאוט',
+  r16: 'שמינית הגמר',
+  qf: 'רבע הגמר',
+  sf: 'חצי הגמר',
+  final: 'הגמר',
+  winner: 'אלופת אירופה',
+};
+
+/**
  * מה קורה עכשיו. The derivation lives in `game/careerFeed.ts` (v0.9.1) - contextual pools with
  * deterministic dedupe, already returned in priority order: the agent's business first, then
  * the coach, then the club, then media colour.
@@ -252,6 +319,71 @@ export function CareerFeedFull({ career }: { career: Career }): JSX.Element | nu
 /* ------------------------------------------------------------------ */
 
 /**
+ * ONE contextual panel (v0.9.4, Phase 1).
+ *
+ * v0.9.3's home stacked the feed under the next match under the status chips. That fits, but it is
+ * still three things competing for the same answer to one question - what matters right now - and
+ * the brief is explicit that this space should hold exactly one strong panel.
+ *
+ * So the space is a slot with a priority, and every state in it is a REAL fact:
+ *
+ *   1. an offer on the table       `pendingOffers` - the most urgent thing a career can have
+ *   2. Europe, when it is live     a recorded campaign this season
+ *   3. the people around him       the top one or two feed lines, agent first
+ *
+ * Only the winner renders. Nothing is lost: an offer becomes its own full screen at the offseason
+ * beat, Europe's full journey is one tap away, and the whole feed is one tap away under עוד and
+ * under הסיפור.
+ */
+export type HomeContext = 'offer' | 'europe' | 'feed';
+
+/** Which state the slot will show. Exported so the chips above it can avoid repeating it. */
+export function homeContextOf(career: Career): HomeContext {
+  if (career.pendingOffers.length > 0) return 'offer';
+  if (currentCampaign(career, career.currentClubId)) return 'europe';
+  return 'feed';
+}
+
+function CurrentContextSlot({
+  career,
+  context,
+  onOpenEurope,
+  onOpenFeed,
+  onOpenPeople,
+}: {
+  career: Career;
+  context: HomeContext;
+  onOpenEurope: () => void;
+  onOpenFeed: () => void;
+  onOpenPeople: () => void;
+}): JSX.Element | null {
+  /*
+   * An offer that has arrived but is not yet the active beat. The decision itself owns the whole
+   * screen when the offseason comes; this is the warning that it is coming.
+   */
+  if (context === 'offer' && career.pendingOffers.length > 0) {
+    const count = career.pendingOffers.length;
+    return (
+      <button type="button" className="gf-context gf-context-urgent" onClick={onOpenPeople}>
+        <span className="gf-context-head">
+          <span className="gf-context-title">החלטה מחכה</span>
+          <span className="gf-context-more">הסוכן ›</span>
+        </span>
+        <span className="gf-context-line">
+          {count === 1
+            ? `הצעה אחת על השולחן: ${career.pendingOffers[0]!.clubName}`
+            : `${count} הצעות על השולחן`}
+        </span>
+      </button>
+    );
+  }
+
+  if (context === 'europe') return <EuropeContext career={career} onOpenEurope={onOpenEurope} />;
+
+  return <CareerFeed career={career} onOpenFeed={onOpenFeed} />;
+}
+
+/**
  * The home screen. `focused` collapses it to the compact hero while a decision or event is
  * active - the meta must never push the choice below the fold.
  */
@@ -262,6 +394,7 @@ export function CareerHomeScene({
   onOpenTable,
   onOpenEurope,
   onOpenFeed,
+  onOpenPeople,
 }: {
   career: Career;
   focused: boolean;
@@ -269,7 +402,9 @@ export function CareerHomeScene({
   onOpenTable: () => void;
   onOpenEurope: () => void;
   onOpenFeed: () => void;
+  onOpenPeople: () => void;
 }): JSX.Element {
+  const context = homeContextOf(career);
   return (
     <CinematicBackdrop backdrop={isInAcademy(career) ? 'training' : 'home-dark'}>
       <button type="button" className="gf-hero-tap" onClick={onOpenCareer} aria-label="פרטי הקריירה">
@@ -277,9 +412,20 @@ export function CareerHomeScene({
       </button>
       {!focused && (
         <>
-          <HomeStatusRow career={career} onOpenTable={onOpenTable} onOpenEurope={onOpenEurope} />
+          <HomeStatusRow
+            career={career}
+            showEurope={context !== 'europe'}
+            onOpenTable={onOpenTable}
+            onOpenEurope={onOpenEurope}
+          />
           <NextChapterStrip career={career} />
-          <CareerFeed career={career} onOpenFeed={onOpenFeed} />
+          <CurrentContextSlot
+            career={career}
+            context={context}
+            onOpenEurope={onOpenEurope}
+            onOpenFeed={onOpenFeed}
+            onOpenPeople={onOpenPeople}
+          />
         </>
       )}
     </CinematicBackdrop>

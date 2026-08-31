@@ -59,7 +59,9 @@ const SCENES = [
   { id: 'play-academy', bare: '1', need: ['.gf-bottomnav', '.event-card', '.btn-choice'] },
   { id: 'play-gk', bare: '1', need: ['.gf-bottomnav', '.event-card', '.btn-choice'] },
   { id: 'gf-play-home', bare: '1', need: ['.gf-hero-name', '.gf-next', '.gf-bottomnav', '.btn-primary'] },
-  { id: 'gf-play-home-euro', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav'] },
+  { id: 'gf-play-home-euro', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.gf-context-euro'] },
+  { id: 'gf-play-home-offer', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.gf-context-urgent'] },
+  { id: 'gf-play-championship', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary'] },
   { id: 'gf-home', bare: 'shell', need: ['.gf-hero-name', '.gf-next'] },
   { id: 'gf-matchday', bare: '1', need: ['.gf-board-num', '.gf-md-controls', '.gf-btn-primary'] },
   { id: 'gf-matchday-live', bare: '1', need: ['.gf-board-num', '.gf-md-now', '.gf-btn-primary'] },
@@ -108,19 +110,18 @@ function run(scene, width, height) {
   });
 }
 
-const widths = (process.argv[3] ?? '390').split(',').map(Number);
-const targetHeights = {
-  320: 568,
-  360: 800,
-  375: 812,
-  390: 844,
-  412: 915,
-  430: 932,
-};
+/*
+ * Explicit WxH pairs (v0.9.4). Keying the height off the width could not express 360x640 and
+ * 360x800 at once, and the brief asks for both - a short Android and a tall one are different
+ * tests of the same layout.
+ */
+const VIEWPORTS = (process.argv[3] ?? '390x844')
+  .split(',')
+  .map((spec) => (spec.includes('x') ? spec : `${spec}x844`))
+  .map((spec) => spec.split('x').map(Number));
 
 let failures = 0;
-for (const width of widths) {
-  const height = targetHeights[width] ?? 844;
+for (const [width, height] of VIEWPORTS) {
   console.log(`\n=== ${width}x${height} ===`);
   for (const scene of SCENES) {
     const probe = await run(scene, width, height);

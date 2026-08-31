@@ -123,14 +123,33 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
    * at the first preseason after a move, the debut off the milestone the engine stamps when it
    * decides the debut itself. Keyed like every other reveal, so a reload lands past them.
    */
-  const ceremony = deriveArrivalMoment(career) ?? deriveDebutMoment(career);
-  if (ceremony && !ceremoniesSeen.includes(ceremony.key)) {
+  /*
+   * v0.9.4, Phase 1: EVERY major moment is a full-screen state, not just the ceremonies.
+   *
+   * The season's own moments - a championship, a cup, a European league phase, a relegation - were
+   * derived inside `PhaseView`, which renders in `.play-main` INSIDE the shell. `season_result` is
+   * not one of the focused phases, so a championship arrived with the whole home screen stacked
+   * above it and the bottom navigation below it: exactly the "home content + moment + nav + more
+   * content below" the brief describes.
+   *
+   * They are resolved here now, beside the arrival and the debut, and returned BEFORE the shell.
+   * One headline, one subtitle, one button, 100dvh, no navigation. The reveal bookkeeping is the
+   * same keyed-once mechanism as before, so a moment still shows exactly once and a reload lands
+   * past it.
+   */
+  const seasonMoments = career.phase === 'season_result' ? deriveSeasonMoments(career) : [];
+  const moment =
+    deriveArrivalMoment(career) ??
+    deriveDebutMoment(career) ??
+    seasonMoments.find((candidate) => !ceremoniesSeen.includes(candidate.key)) ??
+    null;
+  if (moment && !ceremoniesSeen.includes(moment.key)) {
     return (
       <div className="gf-moment-screen">
         <CareerMomentScreen
           career={career}
-          moment={ceremony}
-          onContinue={() => setCeremoniesSeen((seen) => [...seen, ceremony.key])}
+          moment={moment}
+          onContinue={() => setCeremoniesSeen((seen) => [...seen, moment.key])}
         />
       </div>
     );
@@ -224,6 +243,7 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
           onOpenTable={() => setSheet('table')}
           onOpenEurope={() => setSheet('europe')}
           onOpenFeed={() => setSheet('timeline')}
+          onOpenPeople={() => setSheet('club')}
         />
       )}
 
@@ -482,26 +502,14 @@ function PhaseView({ career, actions }: { career: Career; actions: GameActions }
        */
       return <MidSeasonCard career={career} onContinue={actions.continueMidSeason} />;
 
-    case 'season_result': {
+    case 'season_result':
       /*
-       * v0.9: the season's big moments interrupt BEFORE the numbers - a championship must not
-       * look like another card. Each real moment (typed trophy, stored journey, the world's own
-       * relegation) shows once via the same revealed-keys mechanism as the event reel; the
-       * summary then follows with its own continue into the engine.
+       * The season's big moments interrupt BEFORE the numbers - a championship must not look like
+       * another card. v0.9.4 moved that interruption up into `GamePage`, where it can own the
+       * viewport instead of rendering inside the shell; by the time this runs every moment has been
+       * seen, so what is left is the summary and its continue into the engine.
        */
-      const moments = deriveSeasonMoments(career);
-      const pending = moments.find((moment) => !revealed.includes(moment.key));
-      if (pending) {
-        return (
-          <CareerMomentScreen
-            career={career}
-            moment={pending}
-            onContinue={() => setRevealed((seen) => [...seen, pending.key])}
-          />
-        );
-      }
       return <SeasonResultCard career={career} onContinue={actions.continueSeason} />;
-    }
 
     case 'progression':
       return <ProgressionCard career={career} onContinue={actions.continueProgression} />;

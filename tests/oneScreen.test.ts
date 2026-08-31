@@ -18,6 +18,7 @@ import { describe, expect, it } from 'vitest';
 
 import { MACCABI_ID } from '../src/data/clubs';
 import { createCareer } from '../src/game/careerEngine';
+import { homeContextOf } from '../src/components/CareerHome';
 import { deriveCareerFeed } from '../src/game/careerFeed';
 import { createRng } from '../src/game/random';
 import { playFirstHalf } from '../src/game/seasonEngine';
@@ -404,6 +405,96 @@ describe('short viewports give way by showing less, not by shrinking', () => {
   });
 });
 
+describe('v0.9.4: every major moment is a full-screen state', () => {
+  const page = read('src/pages/GamePage.tsx');
+  const css = read('src/styles/gamefeel.css');
+
+  it('resolves the season moments before the shell, not inside it', () => {
+    /*
+     * The bug this replaces: the season's moments were derived inside `PhaseView`, which renders in
+     * `.play-main`. `season_result` is not a focused phase, so a championship arrived with the whole
+     * home screen above it and the bottom navigation below it.
+     */
+    const derive = page.indexOf('deriveSeasonMoments(career)');
+    const shell = page.indexOf('<div className={`shell play');
+    expect(derive).toBeGreaterThan(0);
+    expect(shell).toBeGreaterThan(0);
+    expect(derive, 'season moments are derived after the shell opens').toBeLessThan(shell);
+  });
+
+  it('renders no moment screen inside the phase view any more', () => {
+    const phaseView = page.slice(page.indexOf('function PhaseView'));
+    expect(phaseView).not.toContain('<CareerMomentScreen');
+    // And there is exactly one moment screen in the file: the full-screen one.
+    expect((page.match(/<CareerMomentScreen/g) ?? []).length).toBe(1);
+  });
+
+  it('gives a full-screen state a width and a height its content uses', () => {
+    /*
+     * `.app` centres its child and `.shell` is what normally supplies the width, so a state that
+     * returns before the shell had none: the championship rendered as a 240px column in the middle
+     * of a 390px phone, subtitle wrapping into the button.
+     */
+    const rule = css.slice(css.indexOf('.gf-moment-screen,\n.gf-matchday-screen {'));
+    expect(rule.slice(0, rule.indexOf('}'))).toContain('width: var(--shell)');
+    expect(css).toContain('.gf-moment-screen .gf-scene-content');
+  });
+
+  it('keeps the navigation off every full-screen state', () => {
+    expect(css).toContain('.gf-matchday-screen ~ .gf-bottomnav');
+    expect(css).toContain('.gf-moment-screen ~ .gf-bottomnav');
+  });
+});
+
+describe('v0.9.4: the home screen has one contextual panel', () => {
+  const home = read('src/components/CareerHome.tsx');
+
+  it('picks exactly one state, in priority order', () => {
+    const base = loud();
+    /* An offer outranks everything: it is the most urgent thing a career can hold. */
+    expect(
+      homeContextOf({
+        ...base,
+        pendingOffers: [{ id: 'o', kind: 'transfer', clubId: 'bologna', clubName: 'בולוניה' } as never],
+      }),
+    ).toBe('offer');
+    /* Europe outranks the feed when there is a real recorded campaign. */
+    expect(homeContextOf(withEurope(base))).toBe('europe');
+    /*
+     * Otherwise the people around him - with Europe cleared explicitly, because a Maccabi Haifa
+     * career in 2046 really does have a European campaign and the first version of this assertion
+     * was testing the engine rather than the priority.
+     */
+    expect(homeContextOf({ ...base, world: { ...base.world, europe: null } as never })).toBe('feed');
+  });
+
+  it('an offer outranks Europe, so the two panels can never both appear', () => {
+    const both = {
+      ...withEurope(loud()),
+      pendingOffers: [{ id: 'o', kind: 'transfer', clubId: 'bologna', clubName: 'בולוניה' } as never],
+    };
+    expect(homeContextOf(both)).toBe('offer');
+  });
+
+  it('drops the Europe chip when the panel is already saying it', () => {
+    // Otherwise the screen says the competition in a chip and again in a panel three rows later.
+    expect(home).toContain("showEurope={context !== 'europe'}");
+  });
+
+  it('shows a compact Europe status, not a journey', () => {
+    /*
+     * Competition, where he is in it, and a way to the rest. The entry route, every qualifying
+     * round, the drop-downs, next season and the 36-club table all live in the Europe sheet.
+     */
+    expect(home).toContain('gf-context-euro');
+    expect(home).toContain('לפרטים');
+    expect(home).not.toContain('nextSeasonRoute');
+    for (const component of ['EuropeCard', 'EuropeStandings', 'EuropeJourneySummary']) {
+      expect(home.includes(`<${component}`), `home renders ${component}`).toBe(false);
+    }
+  });
+});
+
 describe('the feed is ordered by what a player acts on', () => {
   it('puts the agent first, then the coach, then the club, then media colour', () => {
     /*
@@ -427,6 +518,50 @@ describe('the feed is ordered by what a player acts on', () => {
     }
   });
 });
+
+/** The same career with a recorded European campaign this season - the Europe context's trigger. */
+function withEurope(career: Career): Career {
+  return {
+    ...career,
+    world: {
+      ...career.world,
+      europe: {
+        coefficients: { associations: {}, clubs: {} },
+        history: [],
+        current: {
+          season: career.currentSeason,
+          entries: [],
+          winners: {} as never,
+          maccabiJourney: null,
+          playerJourney: {
+            season: career.currentSeason,
+            clubId: career.currentClubId,
+            steps: [
+              {
+                kind: 'league_phase',
+                competition: 'uefa_conference_league',
+                position: 12,
+                points: 10,
+                won: 3,
+                drawn: 1,
+                lost: 2,
+                goalsFor: 9,
+                goalsAgainst: 7,
+              },
+            ],
+            finalCompetition: 'uefa_conference_league',
+            furthest: 'league_phase',
+            matches: 6,
+            wonCompetition: null,
+            reachedFinal: false,
+            reachedSemiFinal: false,
+            reachedLeaguePhase: true,
+          },
+        },
+      },
+    } as never,
+  };
+}
 
 /** A senior career mid-season with a real simulated half - every feed speaker has material. */
 function loud(seed = 5): Career {

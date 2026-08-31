@@ -830,6 +830,28 @@ const loanOffers = (): Career['pendingOffers'] => [
 ];
 
 /**
+ * A settled season that produced a championship (v0.9.4), for the full-screen moment scene. The
+ * cup state is cleared so the cup-final matchday does not claim the beat first, which it correctly
+ * would otherwise.
+ */
+const championshipCareer = (): Career => {
+  const base = homeCareer();
+  const settled = seasonRecord({
+    season: base.currentSeason,
+    trophies: [
+      { id: 'championship', name: 'אליפות', season: base.currentSeason, clubId: MACCABI_ID, clubName: 'מכבי חיפה', weight: 3 },
+    ],
+  });
+  return {
+    ...base,
+    phase: 'season_result',
+    seasonPoint: 'season_end',
+    lastSeasonRecord: settled,
+    world: { ...base.world, cup: null },
+  };
+};
+
+/**
  * Offers for the decision scene (v0.9.3). The engine's own generator first, and if this career
  * happened to draw a single offer, the loan fixture joins it - the pager only exists when there
  * is more than one, and a scene that never shows it cannot audit it.
@@ -1268,6 +1290,7 @@ export function Gallery(): JSX.Element {
       onOpenTable={noop}
       onOpenEurope={noop}
       onOpenFeed={noop}
+      onOpenPeople={noop}
     />],
     /*
      * v0.9.3: the WHOLE home screen, not just its scene - topbar, hero, status, next match,
@@ -1290,6 +1313,22 @@ export function Gallery(): JSX.Element {
       actions={noopActions}
       onExit={noop}
     />],
+    /*
+     * v0.9.4: the home screen's third contextual state - an offer already on the table, before the
+     * offseason beat makes it a decision. The slot has a priority, so this scene must show the
+     * urgent panel and NOT the feed.
+     */
+    ['gf-play-home-offer', <GamePage
+      career={{ ...homeCareer(), pendingOffers: decisionOffers() }}
+      actions={noopActions}
+      onExit={noop}
+    />],
+    /*
+     * v0.9.4, Phase 1: a championship as the game assembles it. Before this release the season's
+     * moments rendered inside `.play-main`, so this scene was the home screen with a moment in the
+     * middle of it and the navigation below; it is a full-screen state now.
+     */
+    ['gf-play-championship', <GamePage career={championshipCareer()} actions={noopActions} onExit={noop} />],
     ['gf-matchday', <MatchdaySceneDemo />],
     ['gf-matchday-live', <MatchdaySceneDemo at="live" />],
     ['gf-matchday-half', <MatchdaySceneDemo at="half_time" />],
@@ -1352,6 +1391,7 @@ export function Gallery(): JSX.Element {
       onOpenTable={noop}
       onOpenEurope={noop}
       onOpenFeed={noop}
+      onOpenPeople={noop}
     />],
     ['gf-hero-gk', <CinematicBackdrop backdrop="home-dark"><PlayerHero career={{ ...seniorAtMaccabi(), position: 'GK' }} /></CinematicBackdrop>],
     ['gf-hero-youth-gk', <CinematicBackdrop backdrop="training"><PlayerHero career={{ ...createCareer({ playerName: 'אורי דביר', position: 'GK', seed: 42 }), age: 11 }} /></CinematicBackdrop>],
