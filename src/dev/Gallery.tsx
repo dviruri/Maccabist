@@ -830,6 +830,16 @@ const loanOffers = (): Career['pendingOffers'] => [
 ];
 
 /**
+ * Offers for the decision scene (v0.9.3). The engine's own generator first, and if this career
+ * happened to draw a single offer, the loan fixture joins it - the pager only exists when there
+ * is more than one, and a scene that never shows it cannot audit it.
+ */
+const decisionOffers = (): Career['pendingOffers'] => {
+  const generated = generateOffers({ ...seniorAtMaccabi(), ability: 80, reputation: 72 }, createRng(11));
+  return generated.length > 1 ? generated : [...generated, ...loanOffers()];
+};
+
+/**
  * The home screen's own state (v0.9.3): a settled senior career at the start of a season, with
  * a real projection behind it - no event pending, so the home is the full scene rather than the
  * compact hero a decision collapses it to.
@@ -1248,6 +1258,16 @@ export function Gallery(): JSX.Element {
      * The one-screen claim is about this, so this is what the viewport audit measures.
      */
     ['gf-play-home', <GamePage career={homeCareer()} actions={noopActions} onExit={noop} />],
+    /*
+     * v0.9.3: the transfer decision as the game assembles it - topbar, the offer owning the
+     * viewport with no home scene above it, and the bottom nav still there so a player can
+     * consult the table before answering. Three offers, so the pager is exercised.
+     */
+    ['gf-play-decision', <GamePage
+      career={{ ...homeCareer(), phase: 'offseason', pendingOffers: decisionOffers() }}
+      actions={noopActions}
+      onExit={noop}
+    />],
     ['gf-play-home-euro', <GamePage
       career={{ ...homeCareer(), ...europeanSeasonCareer(), phase: 'preseason', seasonPoint: 'preseason' }}
       actions={noopActions}

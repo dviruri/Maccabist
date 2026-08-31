@@ -55,7 +55,7 @@ interface Props {
  */
 type SheetId = 'table' | 'timeline' | 'history' | 'people' | 'legacy' | 'europe' | null;
 
-/** Phases where a choice or reveal owns the screen - the home collapses to its compact hero. */
+/** Phases where a reveal owns the screen - the home collapses to its compact hero. */
 const FOCUSED_PHASES: ReadonlySet<Career['phase']> = new Set([
   'origin',
   'retrial',
@@ -63,6 +63,25 @@ const FOCUSED_PHASES: ReadonlySet<Career['phase']> = new Set([
   'progression',
   'youth_to_senior',
   'offseason',
+  'retirement_decision',
+] as Career['phase'][]);
+
+/**
+ * Phases that are a CHOICE (v0.9.3, Phase 4).
+ *
+ * A decision owns the viewport: no home scene above it at all. v0.9.2 collapsed the home to its
+ * compact hero here, which was the v0.4.7 fix and a real improvement over the four-screen
+ * dashboard before it - but 229px of hero above the question still meant the event decision
+ * measured 1011px at 390x844, with its last choice below the fold.
+ *
+ * The context a decision needs is not a generic hero: it is the event's own framing, which it
+ * already carries - the variant strip, the match strip, the person header, the cup-final strip.
+ * The bottom nav stays, deliberately, so a player can still consult the table before he answers.
+ */
+const DECISION_PHASES: ReadonlySet<Career['phase']> = new Set([
+  'event',
+  'offseason',
+  'youth_to_senior',
   'retirement_decision',
 ] as Career['phase'][]);
 
@@ -170,16 +189,18 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
         `EuropeCard` now renders above the 36-club standings. Nothing is duplicated: each fact
         has exactly one full rendering, in exactly one place.
       */}
-      <CareerHomeScene
-        career={career}
-        focused={FOCUSED_PHASES.has(career.phase)}
-        onOpenCareer={() => setSheet('history')}
-        onOpenTable={() => setSheet('table')}
-        onOpenEurope={() => setSheet('europe')}
-        onOpenFeed={() => setSheet('timeline')}
-      />
+      {!DECISION_PHASES.has(career.phase) && (
+        <CareerHomeScene
+          career={career}
+          focused={FOCUSED_PHASES.has(career.phase)}
+          onOpenCareer={() => setSheet('history')}
+          onOpenTable={() => setSheet('table')}
+          onOpenEurope={() => setSheet('europe')}
+          onOpenFeed={() => setSheet('timeline')}
+        />
+      )}
 
-      <main className="play-main">
+      <main className={`play-main${DECISION_PHASES.has(career.phase) ? ' play-main-decision' : ''}`}>
         <PhaseView career={career} actions={actions} />
       </main>
 

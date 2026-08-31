@@ -49,10 +49,15 @@ const baseUrl = process.argv[2] ?? 'http://localhost:5199/';
  * puts around a component.
  */
 const SCENES = [
-  { id: 'gameplay', bare: '1', need: ['.gf-bottomnav', '.gf-hero-name', '.gf-btn-primary, .btn-primary, .btn-choice'] },
-  { id: 'gameplay-away', bare: '1', need: ['.gf-bottomnav', '.gf-hero-name'] },
-  { id: 'play-academy', bare: '1', need: ['.gf-bottomnav', '.gf-hero-name'] },
-  { id: 'play-gk', bare: '1', need: ['.gf-bottomnav', '.gf-hero-name'] },
+  /*
+   * The event decision. These scenes carry no player hero on purpose since Phase 4 - a decision
+   * owns the viewport - so what must be visible is the question and every choice, plus the nav
+   * a player uses to check the table before answering.
+   */
+  { id: 'gameplay', bare: '1', need: ['.gf-bottomnav', '.event-card', '.card-title', '.btn-choice'] },
+  { id: 'gameplay-away', bare: '1', need: ['.gf-bottomnav', '.event-card', '.btn-choice'] },
+  { id: 'play-academy', bare: '1', need: ['.gf-bottomnav', '.event-card', '.btn-choice'] },
+  { id: 'play-gk', bare: '1', need: ['.gf-bottomnav', '.event-card', '.btn-choice'] },
   { id: 'gf-play-home', bare: '1', need: ['.gf-hero-name', '.gf-next', '.gf-bottomnav', '.btn-primary'] },
   { id: 'gf-play-home-euro', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav'] },
   { id: 'gf-home', bare: 'shell', need: ['.gf-hero-name', '.gf-next'] },
@@ -61,6 +66,7 @@ const SCENES = [
   { id: 'gf-matchday-half', bare: '1', need: ['.gf-board-num', '.gf-md-now', '.gf-btn-primary'] },
   { id: 'gf-matchday-ft', bare: '1', need: ['.gf-board-num', '.gf-md-ft', '.gf-btn-primary'] },
   { id: 'gf-decision', bare: 'shell', need: ['.gf-dec-title', '.gf-dec-actions', '.gf-btn-primary'] },
+  { id: 'gf-play-decision', bare: '1', need: ['.gf-dec-title', '.gf-btn-primary', '.gf-bottomnav'] },
   { id: 'gf-moment', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
   { id: 'gf-moment-uefa', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
   { id: 'gf-moment-relegation', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },

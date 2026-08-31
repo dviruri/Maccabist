@@ -145,6 +145,62 @@ describe('the matchday is a state machine, not a page', () => {
   });
 });
 
+describe('a decision owns the viewport', () => {
+  const page = read('src/pages/GamePage.tsx');
+  const screen = read('src/components/DecisionScreen.tsx');
+
+  it('renders no home scene while a choice is on screen', () => {
+    expect(page).toContain('DECISION_PHASES');
+    for (const phase of ['event', 'offseason', 'youth_to_senior', 'retirement_decision']) {
+      expect(page, `${phase} is not a decision phase`).toContain(`'${phase}',`);
+    }
+    // The home scene is behind the guard, not beside it.
+    expect(page).toContain('{!DECISION_PHASES.has(career.phase) && (');
+  });
+
+  it('keeps the bottom nav, so the table is still reachable before answering', () => {
+    // Deliberate: the matchday and the ceremonies hide the nav, a decision does not.
+    expect(page).toContain('<nav className="gf-bottomnav"');
+  });
+
+  it('shows no facts table on the deciding surface', () => {
+    /*
+     * The table is not gone - it moved into the details sheet. What must not happen is a
+     * label-and-value grid dominating a screen whose subject is a choice.
+     */
+    const sheetAt = screen.indexOf('<Sheet');
+    expect(sheetAt).toBeGreaterThan(0);
+    expect(screen.indexOf('gf-dec-facts')).toBeGreaterThan(sheetAt);
+    expect((screen.match(/<FactRow/g) ?? []).length).toBeGreaterThan(0);
+    for (const at of [...screen.matchAll(/<FactRow/g)].map((m) => m.index ?? 0)) {
+      expect(at, 'a FactRow renders outside the details sheet').toBeGreaterThan(sheetAt);
+    }
+  });
+
+  it('pages offers with dots, not with a counter', () => {
+    expect(screen).toContain('gf-dec-dots');
+    expect(screen).toContain('gf-dec-dot-on');
+    expect(screen).not.toContain('gf-dec-page-count');
+    // Paging must not be able to lose an offer: the state is the index alone.
+    expect((screen.match(/useState\(/g) ?? []).length).toBe(2);
+  });
+
+  it('carries the agent line and exactly two actions', () => {
+    expect(screen).toContain('agentLine');
+    expect((screen.match(/<GameButton/g) ?? []).length).toBe(2);
+  });
+
+  it('invents no contract facts', () => {
+    /*
+     * The game models no salary, no contract length and no appearance guarantee, so the decision
+     * screen may not imply one. Checked as words rather than as intent.
+     */
+    for (const word of ['שכר', 'משכורת', 'בונוס', 'מיליון', '₪', 'יורו', 'דולר', 'עמלה']) {
+      expect(screen.includes(word), `DecisionScreen mentions ${word}`).toBe(false);
+    }
+  });
+});
+
 describe('the feed is ordered by what a player acts on', () => {
   it('puts the agent first, then the coach, then the club, then media colour', () => {
     /*
