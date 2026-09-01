@@ -17,10 +17,20 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.4 — Club Identity / Final One-Screen Pass.** v0.9.4 finishes the
+**Current stable release: v0.9.5 — Decisions & Career Flow.** v0.9.5 changes how a career
+decision is made, and nothing about what it does. Every decision in the game — a transfer offer,
+an event dilemma, the step out of the youth setup, the end of the career — now reads the same way:
+what happened, then the futures as cards you press. The card IS the action, so there is no generic
+Accept / Decline pair under a block of information anywhere. Each card carries its own
+consequences, in facts the engine actually models: the offer's own direction and expected role,
+the club's live European entry, the player's real standing. Where the engine has real
+probabilities, the cards show them — grouped from `calculateOutcomeDistribution`, never
+recalculated — and where it has none, they show none. Not one file under `src/game`, `src/data` or
+`src/types` changed, and seed 5 reproduces the v0.8 baseline career exactly (`V095_REPORT.md`).
+
+**v0.9.4 — Club Identity / Final One-Screen Pass.** v0.9.4 finishes the
 illusion. The player's shirt is his club's: green at Maccabi Haifa, red at Hapoel, yellow at
-Maccabi Tel Aviv, the parent club's colours for a youth side — composited onto the character art
-through a per-pose garment mask, so the kit changes and the face does not. Goalkeepers keep their
+Maccabi Tel Aviv, the parent club's colours for a youth side. Goalkeepers keep their
 own palette (blue, pink, purple or black), chosen deterministically per season and contrasting
 with the club. Every cinematic moment now features THAT player rather than a generic footballer
 painted into a background, and the one-screen rule is finished for Europe and for every major
