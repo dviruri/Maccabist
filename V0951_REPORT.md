@@ -1,7 +1,8 @@
 # Maccabist v0.9.5.1 — Fixture Identity + Stable Goalkeeper Kit
 
-A two-bug correctness hotfix on top of `ce7b056` (v0.9.5). No redesign, no features, no change to
-the v0.9.5 decision UX.
+**Release commit:** `19b73e3` · **Base:** `ce7b056` (v0.9.5)
+
+A two-bug correctness hotfix. No redesign, no features, no change to the v0.9.5 decision UX.
 
 ---
 
