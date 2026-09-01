@@ -1,4 +1,5 @@
 import { clubVisual } from '../data/clubVisuals';
+import { clubOutfieldColour } from './colourFamily';
 import type { Position } from '../types';
 
 /**
@@ -16,9 +17,9 @@ import type { Position } from '../types';
  *   OUTFIELD    the shirt is the club. Green at Haifa, yellow at Maccabi Tel Aviv, red at Hapoel,
  *               blue at Kiryat Shmona - whatever the club actually plays in, including the reds
  *               and yellows the old invariant forbade.
- *   GOALKEEPER  the shirt is his own. Blue, pink, purple or black, chosen deterministically and
- *               preferring contrast with his club's outfield colour, because a goalkeeper does
- *               not wear the outfield shirt in football either.
+ *   GOALKEEPER  the shirt is his own. Blue, pink, purple or black, chosen deterministically from
+ *               (seed, club) alone - one shirt per club, kept for as long as he is there - and
+ *               never his club's own basic outfield colour. See `resolveGoalkeeperKit`.
  *
  * ## One source of club colour
  *
@@ -117,21 +118,6 @@ function parseHex(hex: string): { r: number; g: number; b: number } {
 export function luminanceOf(hex: string): number {
   const { r, g, b } = parseHex(hex);
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-}
-
-/** Hue in degrees, or null for a grey where hue means nothing. */
-function hueOf(hex: string): number | null {
-  const { r, g, b } = parseHex(hex);
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  if (max - min < 12) return null;
-  const d = max - min;
-  let h: number;
-  if (max === r) h = ((g - b) / d) % 6;
-  else if (max === g) h = (b - r) / d + 2;
-  else h = (r - g) / d + 4;
-  h *= 60;
-  return h < 0 ? h + 360 : h;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -292,47 +278,59 @@ function hash(...parts: (string | number)[]): number {
 }
 
 /**
- * How much a goalkeeper colour stands apart from the club's outfield colour.
+ * The goalkeeper's own kit: ONE colour per club, for as long as he is there (v0.9.5.1).
  *
- * Not kit-clash regulation - presentation identity. Luminance carries most of the weight because
- * that is what actually separates two shirts at a glance, and hue supplies the rest. A grey or
- * black club colour has no hue, so those pairs are judged on brightness alone.
- */
-function contrast(clubPrimary: string, gkPrimary: string): number {
-  const lumGap = Math.abs(luminanceOf(clubPrimary) - luminanceOf(gkPrimary));
-  const a = hueOf(clubPrimary);
-  const b = hueOf(gkPrimary);
-  if (a === null || b === null) return lumGap;
-  const raw = Math.abs(a - b);
-  const hueGap = (raw > 180 ? 360 - raw : raw) / 180;
-  return lumGap * 0.6 + hueGap * 0.4;
-}
-
-/**
- * The goalkeeper's own kit: stable, contrasting, and one of exactly four colours.
+ * ## What changed, and why
  *
- * Stable is the requirement that shaped this. A keeper who is purple on the home screen, blue at
- * kickoff and pink in his career journey has no identity at all, so nothing here is rolled: the
- * choice is a hash of (seed, club, season), which every screen recomputes to the same answer for
- * the same season and which moves on when he moves club or the season turns.
+ * v0.9.4 hashed `(seed, clubId, season, 'gk-kit')` and picked between the two best-contrasting
+ * colours. Both halves of that were wrong.
  *
- * Contrast first, then variety: the two best-contrasting colours are found, and the hash picks
- * between those two. So a green club never produces a green-adjacent keeper, and two careers at
- * the same club in the same season can still differ.
+ * The season was in the identity, so a keeper who stayed at one club for a decade wore a
+ * different shirt every year - purple in 2032, blue in 2033 - which is not a kit, it is a
+ * costume change. A goalkeeper gets one shirt at a club and keeps it until he leaves. Season is
+ * gone from the hash; `(seed, clubId)` is the whole identity.
+ *
+ * And the contrast ranking was doing too much. Scoring every colour by luminance and hue gap and
+ * then shortlisting the top two meant the palette was effectively decided by arithmetic, and at
+ * most two of the four colours could ever appear at a given club. The product rule is simpler and
+ * is now the only rule: **a keeper may not wear his club's own basic outfield colour.** Blue club,
+ * no blue keeper. Black club, no black keeper. Green, yellow, red or white club - all four keeper
+ * colours are legal, and the hash chooses freely among them.
+ *
+ * ## One source of truth for "what colour is this club"
+ *
+ * The exclusion asks `clubOutfieldColour`, which is the same function `lib/assetSelector.ts` uses
+ * to choose which outfield shirt to DRAW. That is deliberate: if the two consulted separate
+ * tables they could disagree, and a blue club could be issued a blue keeper while its outfield
+ * art was also blue - the exact clash this rule exists to prevent. See `ui/colourFamily.ts`.
+ *
+ * ## No randomness
+ *
+ * Nothing here rolls. `hash` is a pure FNV-style mix of the seed and the club id, so every screen
+ * recomputes the same answer, a save and a reload agree, and returning to a former club restores
+ * the shirt he wore there - with no persisted field and no save-schema change.
  */
 export function resolveGoalkeeperKit(input: {
   seed: number;
   clubId: string;
-  season: number;
+  /**
+   * Accepted and deliberately UNUSED since v0.9.5.1.
+   *
+   * It is kept in the signature because every caller passes it and removing it would be a wide
+   * refactor for no behavioural gain - but it must never reach the hash again. A test asserts
+   * that ten consecutive seasons at one club resolve to one colour, which is what this parameter
+   * used to break.
+   */
+  season?: number;
 }): KitPalette {
-  const clubPrimary = clubVisual(input.clubId).primary;
-  const ranked = [...GOALKEEPER_COLOURS].sort((a, b) => {
-    const gap = contrast(clubPrimary, GOALKEEPER_KITS[b].primary) - contrast(clubPrimary, GOALKEEPER_KITS[a].primary);
-    /* Ties broken by name, so the ranking itself never depends on array order. */
-    return gap !== 0 ? gap : a.localeCompare(b);
-  });
-  const shortlist = ranked.slice(0, 2);
-  const pick = shortlist[hash(input.seed, input.clubId, input.season, 'gk-kit') % shortlist.length]!;
+  const clubColour = clubOutfieldColour(input.clubId);
+  /*
+   * The one restriction. `legal` can never be empty: the outfield families are six and the keeper
+   * palette is four, and only blue and black appear in both - so at worst three colours remain.
+   */
+  const legal = GOALKEEPER_COLOURS.filter((colour) => colour !== clubColour);
+  const pool = legal.length > 0 ? legal : GOALKEEPER_COLOURS;
+  const pick = pool[hash(input.seed, input.clubId, 'gk-kit') % pool.length]!;
   const kit = GOALKEEPER_KITS[pick];
   return {
     primary: kit.primary,
@@ -346,8 +344,8 @@ export function resolveGoalkeeperKit(input: {
 /**
  * THE kit resolver. Position decides which of the two rules applies; every screen asks this.
  *
- * `season` and `seed` only matter for a goalkeeper, but they are required rather than optional so
- * a caller cannot accidentally get an unstable keeper by forgetting them.
+ * `seed` only matters for a goalkeeper. `season` is accepted for call-site compatibility and is
+ * no longer part of any kit's identity - see `resolveGoalkeeperKit`.
  */
 export function resolvePlayerKit(input: {
   position: Position;
@@ -356,6 +354,6 @@ export function resolvePlayerKit(input: {
   season: number;
 }): KitPalette {
   return input.position === 'GK'
-    ? resolveGoalkeeperKit({ seed: input.seed, clubId: input.clubId, season: input.season })
+    ? resolveGoalkeeperKit({ seed: input.seed, clubId: input.clubId })
     : resolveClubKitPalette(input.clubId);
 }

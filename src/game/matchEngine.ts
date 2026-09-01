@@ -13,6 +13,7 @@
  */
 
 import { getClub, MACCABI_ID } from '../data/clubs';
+import { sameFootballIdentity } from '../data/clubVisuals';
 import { leagueShape } from '../data/leagueShape';
 import {
   derbyRival,
@@ -51,7 +52,16 @@ function pickOpponent(
   if (!projection) return null;
 
   const table = buildTable(career.world, projection, phase, career.world.maccabiProjection);
-  let others = table.rows.filter((r) => r.clubId !== career.currentClubId);
+  /*
+   * v0.9.5.1: filtered by football IDENTITY, not by id.
+   *
+   * `r.clubId !== career.currentClubId` is not enough. `maccabi_youth` and `maccabi_academy` carry
+   * `crestOwnerId: maccabi_haifa`, so they render with Maccabi Haifa's name, crest and colours -
+   * and a table containing both the youth side and the senior side would happily offer one as the
+   * other's opponent. `clubDisplayName` maps all three to "מכבי חיפה", which is how a playtest
+   * ended up looking at מכבי חיפה vs מכבי חיפה.
+   */
+  let others = table.rows.filter((r) => !sameFootballIdentity(r.clubId, career.currentClubId));
   if (others.length === 0) return null;
 
   /*
@@ -65,13 +75,24 @@ function pickOpponent(
    */
   if (require?.derby) {
     const rival = derbyRival(rivalryClubOf(career.currentClubId));
+    /*
+     * The rival is looked up in the already identity-filtered list, so a rivalry table that ever
+     * named a club's own parent could not turn a derby into a club playing itself.
+     */
     const row = rival ? others.find((r) => r.clubId === rival) : undefined;
     if (row) return { clubId: row.clubId, name: row.name };
     // The rival is not in this division this season, so there is no derby to describe.
     return null;
   }
   if (require?.maccabi) {
-    const row = others.find((r) => r.clubId === MACCABI_ID);
+    /*
+     * A player whose own football identity IS Maccabi Haifa cannot play Maccabi Haifa, so a
+     * `vsMaccabi` event has no fixture to describe and the context is refused. `others` is already
+     * identity-filtered, so this is simply a lookup that finds nothing - but stating it explicitly
+     * is the point: the event is gated on a fact that is false here, and it must not fire.
+     */
+    if (sameFootballIdentity(career.currentClubId, MACCABI_ID)) return null;
+    const row = others.find((r) => sameFootballIdentity(r.clubId, MACCABI_ID));
     return row ? { clubId: row.clubId, name: row.name } : null;
   }
   if (require?.formerClub) {
@@ -200,7 +221,7 @@ export function matchContext(
     titleDecider,
     relegationSixPointer,
     promotionDecider,
-    vsMaccabi: opponent.clubId === MACCABI_ID,
+    vsMaccabi: sameFootballIdentity(opponent.clubId, MACCABI_ID),
     vsFormerClub: playedForBefore(career, opponent.clubId),
     pointsGap: gap,
   };
@@ -224,7 +245,7 @@ function importanceOf(input: {
 
 /** Did he play a senior season for this club before? */
 function playedForBefore(career: Career, clubId: string): boolean {
-  if (clubId === career.currentClubId) return false;
+  if (sameFootballIdentity(clubId, career.currentClubId)) return false;
   return career.seasonHistory.some((s) => s.clubId === clubId && s.academyStage === 'senior');
 }
 

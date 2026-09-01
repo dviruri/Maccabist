@@ -283,16 +283,29 @@ export interface SimulateOptions extends NewCareerInput {
   policy?: CareerPolicy;
   /** Safety valve so a bug can never hang a batch run. */
   maxSteps?: number;
+  /**
+   * Called with the career at every beat, before it is advanced (v0.9.5.1).
+   *
+   * Observation only. It receives the state, consumes no RNG, cannot modify anything the loop
+   * reads, and its absence changes nothing - so a simulated career is identical whether or not
+   * anyone is watching, which `npm run regress` continues to prove.
+   *
+   * It exists because the fixture-identity invariant is a property of what the game would SHOW at
+   * each beat, and the only way to check that across thousands of beats is to look at each one.
+   * `scripts/fixtureAudit.ts` is the caller.
+   */
+  onStep?: (career: Career) => void;
 }
 
 export function simulateCareer(options: SimulateOptions): Career {
-  const { policy = randomPolicy, maxSteps = 1200, ...input } = options;
+  const { policy = randomPolicy, maxSteps = 1200, onStep, ...input } = options;
   let career = createCareer(input);
   const rng = createRng((career.seed ^ 0x5bf03635) >>> 0);
 
   let steps = 0;
   while (!career.retired && steps < maxSteps) {
     steps += 1;
+    onStep?.(career);
     switch (career.phase) {
       // v0.3.1: how the career began, and any later trial, are screens with no decision.
       case 'origin':

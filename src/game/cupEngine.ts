@@ -1,4 +1,5 @@
 import { ACTIVE_CLUBS, getClub } from '../data/clubs';
+import { sameFootballIdentity } from '../data/clubVisuals';
 import { rivalryBetween } from '../data/rivalries';
 import { levelContext } from './rules';
 import { clamp, type Rng } from './random';
@@ -144,7 +145,15 @@ function drawFinalOpponent(career: Career, rng: Rng): string | null {
    */
   const candidates = ACTIVE_CLUBS.filter(
     (club) =>
-      club.id !== own.id &&
+      /*
+       * v0.9.5.1: identity, not id.
+       *
+       * `club.id !== own.id` let a youth side draw its own parent. The tier filter below removes
+       * academy and youth clubs from the POOL, so when the player himself was in the youth setup
+       * his own senior club remained a candidate - `maccabi_youth` drawing `maccabi_haifa`, which
+       * both render as "מכבי חיפה". That is the cup half of the self-opponent bug.
+       */
+      !sameFootballIdentity(club.id, own.id) &&
       club.country === own.country &&
       club.tier !== 'academy' &&
       club.tier !== 'youth',

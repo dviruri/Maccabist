@@ -1,7 +1,7 @@
 {
   "name": "maccabist",
   "private": true,
-  "version": "0.9.5",
+  "version": "0.9.5.1",
   "type": "module",
   "description": "מכביסט - a Hebrew football career simulation game",
   "scripts": {
@@ -30,6 +30,7 @@
     "archive:stress": "vite-node scripts/archiveStress.ts --",
     "europe:metrics": "vite-node scripts/europeMetrics.ts --",
     "regress": "vite-node scripts/sameSeedRegression.ts",
+    "fixture:audit": "vite-node scripts/fixtureAudit.ts --",
     "viewport:audit": "node scripts/viewportAudit.mjs",
     "kit:lab": "vite-node scripts/kitLab.ts --",
     "contrast:audit": "node scripts/contrastAudit.mjs"

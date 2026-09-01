@@ -146,6 +146,27 @@ export function crestOwnerOf(clubId: string): string {
 }
 
 /**
+ * Are these two ids the same football club (v0.9.5.1)?
+ *
+ * Exact id equality is not strong enough, and a playtest proved it: the game presented
+ * **מכבי חיפה vs מכבי חיפה**. Neither side was `maccabi_haifa` twice - one was `maccabi_youth`,
+ * which carries `crestOwnerId: maccabi_haifa` and therefore renders with Maccabi Haifa's name,
+ * crest and colours. Two different career entities, one football identity, and every generator
+ * that only checked `a !== b` waved it through.
+ *
+ * So opponent validity is decided here, once, by the same inheritance that decides the crest.
+ * If this returns true the two entities MAY NEVER be presented as opponents - not in a league
+ * beat, not in a cup final, not in a European tie.
+ *
+ * This says nothing about whether they are the same *career entity*. A youth side is still its
+ * own club to play for, still has its own table and its own season. It simply cannot play its
+ * own parent, because that is one club on both sides of the pitch.
+ */
+export function sameFootballIdentity(a: string, b: string): boolean {
+  return a === b || crestOwnerOf(a) === crestOwnerOf(b);
+}
+
+/**
  * The visual identity for any club id, including filler clubs that have no Club record.
  *
  * Never returns null and never returns a broken image, because there is no image — a badge is

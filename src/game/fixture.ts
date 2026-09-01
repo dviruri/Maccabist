@@ -1,5 +1,6 @@
 import { QUALIFYING_GRAPH, UEFA_COMPETITIONS } from '../data/uefa';
 import { clubDisplayName } from './identity';
+import { sameFootballIdentity } from '../data/clubVisuals';
 import { currentPhase, currentTable } from './leagueEngine';
 import { matchContext } from './matchEngine';
 import { levelContext } from './rules';
@@ -111,6 +112,23 @@ export function isFinalSeasonBeat(career: Career): boolean {
   return career.phase === 'season_result' && career.seasonPoint === 'season_end';
 }
 
+/**
+ * The last line of defence (v0.9.5.1).
+ *
+ * Every generator that can choose an opponent now filters on `sameFootballIdentity`, so nothing
+ * should ever reach here holding a club playing itself. This exists for the case those fixes
+ * cannot reach: a fixture read back out of STORED state written by an older build - a cup final
+ * drawn before this patch, a European tie already in a save.
+ *
+ * It fails CLOSED. It does not rename the opponent to something plausible, because a renamed
+ * opponent is a lie the player cannot detect; it returns null, and the beat renders without a
+ * fixture. Losing a fixture is a visible absence. Presenting מכבי חיפה vs מכבי חיפה is corrupt
+ * football truth wearing a correct-looking face, and that is worse.
+ */
+function isSelfFixture(fixture: PresentationFixture): boolean {
+  return sameFootballIdentity(fixture.playerClubId, fixture.opponentClubId);
+}
+
 export function activeFixture(career: Career): PresentationFixture | null {
   const playerClubId = career.currentClubId;
   const playerClubName = clubDisplayName(playerClubId);
@@ -118,14 +136,18 @@ export function activeFixture(career: Career): PresentationFixture | null {
 
   const build = (
     partial: Omit<PresentationFixture, 'playerClubId' | 'playerClubName' | 'season' | 'homeClubId' | 'awayClubId'>,
-  ): PresentationFixture => ({
-    ...partial,
-    season,
-    playerClubId,
-    playerClubName,
-    homeClubId: partial.home ? playerClubId : partial.opponentClubId,
-    awayClubId: partial.home ? partial.opponentClubId : playerClubId,
-  });
+  ): PresentationFixture | null => {
+    const fixture: PresentationFixture = {
+      ...partial,
+      season,
+      playerClubId,
+      playerClubName,
+      homeClubId: partial.home ? playerClubId : partial.opponentClubId,
+      awayClubId: partial.home ? partial.opponentClubId : playerClubId,
+    };
+    /* Fail closed rather than present a club against itself - see `isSelfFixture`. */
+    return isSelfFixture(fixture) ? null : fixture;
+  };
 
   /*
    * ---- 1. The domestic cup final - ONLY at the final beat (v0.9.2) ----

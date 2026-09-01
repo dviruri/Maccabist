@@ -266,28 +266,48 @@ describe('the goalkeeper wears his own kit', () => {
     }
   });
 
-  it('contrasts with the club it plays for', () => {
+  it("never wears the club's OWN basic colour, and is otherwise free", () => {
     /*
-     * Not kit-clash regulation - presentation identity. A green club never produces a keeper whose
-     * shirt reads as the same colour, because the two best-contrasting candidates are found first
-     * and the hash only picks between those.
+     * The rule as of v0.9.5.1, and it replaces a stricter one that this assertion used to encode.
+     *
+     * v0.9.4 ranked all four colours by luminance and hue distance and shortlisted the top two, so
+     * at a GREEN club blue was excluded as "green-adjacent" - which is why this test used to say
+     * `expect(green.goalkeeperColour).not.toBe('blue')`. That was arithmetic deciding a palette,
+     * and it meant only two of the four colours could ever appear at any club.
+     *
+     * There is now exactly one restriction: a keeper may not wear his club's own basic outfield
+     * colour. Blue club, never blue. Black club, never black. Green, yellow, red and white clubs
+     * have no keeper colour in common with them, so all four are legal - including, at Maccabi
+     * Haifa, blue.
      */
-    for (let seed = 1; seed <= 40; seed += 1) {
-      const green = resolveGoalkeeperKit({ seed, clubId: MACCABI_ID, season: 2044 });
-      expect(green.goalkeeperColour).not.toBe('blue');
-      const blue = resolveGoalkeeperKit({ seed, clubId: REPRESENTATIVE.blue, season: 2044 });
-      expect(blue.goalkeeperColour).not.toBe('blue');
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const blue = resolveGoalkeeperKit({ seed, clubId: REPRESENTATIVE.blue });
+      expect(blue.goalkeeperColour, `seed ${seed} at a blue club`).not.toBe('blue');
+      const dark = resolveGoalkeeperKit({ seed, clubId: REPRESENTATIVE.dark });
+      expect(dark.goalkeeperColour, `seed ${seed} at a black club`).not.toBe('black');
+      /* And a club whose colour is not in the keeper palette restricts nothing. */
+      expect(GOALKEEPER_COLOURS).toContain(
+        resolveGoalkeeperKit({ seed, clubId: MACCABI_ID }).goalkeeperColour,
+      );
     }
+    /* All four really are reachable at a green club - the restriction is genuinely lifted. */
+    const atGreen = new Set(
+      Array.from({ length: 200 }, (_, seed) => resolveGoalkeeperKit({ seed, clubId: MACCABI_ID }).goalkeeperColour),
+    );
+    expect(atGreen.size).toBe(4);
   });
 
-  it('still varies across careers and seasons', () => {
-    const seen = new Set<string>();
+  it('still varies across careers, and no longer across seasons', () => {
+    /*
+     * The season half of this is the v0.9.5.1 bug fix, asserted as its inverse: a keeper who stays
+     * at one club must look the same every year. Variety across CAREERS is still wanted and still
+     * there - it just comes from the seed alone now.
+     */
+    const acrossSeeds = new Set<string>();
     for (let seed = 1; seed <= 40; seed += 1) {
-      for (const season of [2031, 2038, 2044, 2051]) {
-        seen.add(resolveGoalkeeperKit({ seed, clubId: MACCABI_ID, season }).goalkeeperColour!);
-      }
+      acrossSeeds.add(resolveGoalkeeperKit({ seed, clubId: MACCABI_ID }).goalkeeperColour!);
     }
-    expect(seen.size).toBeGreaterThan(1);
+    expect(acrossSeeds.size).toBeGreaterThan(1);
   });
 
   it('is what the position resolver returns for a keeper, and only for a keeper', () => {

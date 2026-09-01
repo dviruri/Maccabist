@@ -17,7 +17,14 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.5 — Decisions & Career Flow.** v0.9.5 changes how a career
+**Current stable release: v0.9.5.1 — Fixture Identity + Stable Goalkeeper Kit.** A correctness
+hotfix on top of v0.9.5. A club can no longer play itself: opponent validity is decided by
+football IDENTITY rather than by club id, so a Maccabi Haifa youth or academy side — which wears
+the parent's name, crest and colours — can never be drawn against Maccabi Haifa. And a goalkeeper
+now keeps ONE shirt colour for as long as he stays at a club, with exactly one restriction: never
+his own club's basic outfield colour (`V0951_REPORT.md`).
+
+**v0.9.5 — Decisions & Career Flow.** v0.9.5 changes how a career
 decision is made, and nothing about what it does. Every decision in the game — a transfer offer,
 an event dilemma, the step out of the youth setup, the end of the career — now reads the same way:
 what happened, then the futures as cards you press. The card IS the action, so there is no generic
