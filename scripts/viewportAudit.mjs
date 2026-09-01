@@ -83,6 +83,13 @@ const SCENES = [
    * is the STAY card - the second one - which is what actually catches the bottom card being
    * clipped by the nav. Asking only for `.dc-choice` would pass on a screen showing one card.
    */
+  /*
+   * The two career forks (v0.9.5). Neither was audited before, which is part of why both were
+   * still rendering button rows after three passes of visual work.
+   */
+  { id: 'youth-fork', bare: '1', need: ['.promotion-title', '.dc-choice', '.gf-bottomnav'] },
+  { id: 'youth-fork-two', bare: '1', need: ['.promotion-title', '.dc-choice', '.gf-bottomnav'] },
+  { id: 'retirement-decision', bare: '1', need: ['.dc-title', '.dc-choice', '.dc-choice-quiet', '.gf-bottomnav'] },
   { id: 'gf-play-decision', bare: '1', need: ['.dc-title', '.dc-choice', '.dc-choice-quiet', '.gf-dec-pager', '.gf-bottomnav'] },
   { id: 'gf-moment', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
   { id: 'gf-moment-uefa', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },

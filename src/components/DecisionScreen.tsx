@@ -118,8 +118,15 @@ const ROLE_TONE: Record<ExpectedRole, ChoiceFact['tone']> = {
   project: 'neutral',
 };
 
-/** The facts that make the MOVE what it is. At most three - the rest is in the sheet. */
-function factsForMove(offer: TransferOffer, europe: string | null): ChoiceFact[] {
+/**
+ * The facts that make the MOVE what it is. At most three - the rest is in the sheet.
+ *
+ * Exported because the youth-to-senior fork presents the same kind of object - a TransferOffer
+ * the player is being asked to take - and should read it the same way. Two copies of "which of
+ * an offer's fields belong on a card, and what colour is each" is two places to disagree about
+ * whether rotation is a warning.
+ */
+export function factsForMove(offer: TransferOffer, europe: string | null): ChoiceFact[] {
   const facts: ChoiceFact[] = [];
 
   const direction = offer.direction ? DIRECTION_LABELS[offer.direction] : null;

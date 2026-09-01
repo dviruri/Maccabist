@@ -878,6 +878,76 @@ const decisionOffers = (): Career['pendingOffers'] => {
  * a real projection behind it - no event pending, so the home is the full scene rather than the
  * compact hero a decision collapses it to.
  */
+/**
+ * The two career forks, so they can be looked at (v0.9.5).
+ *
+ * Neither had a gallery scene before this release, which is why both were still rendering rows of
+ * `btn btn-choice` after three passes of visual work: a screen with no way to screenshot it is a
+ * screen nobody checks. Both are built from the real components with real career state.
+ */
+const youthForkCareer = (offers: number): Career => ({
+  ...academyBoy(),
+  age: 18,
+  academyStage: 'u19',
+  phase: 'youth_to_senior',
+  lastProgression: {
+    kind: 'senior',
+    fromStage: 'u19',
+    toStage: 'senior',
+    title: 'עולה לבוגרים',
+    detail: 'עשר שנים במגרשי האימונים של מכבי חיפה נגמרות היום. מכאן זו ליגה אחרת.',
+    icon: '🎓',
+    major: true,
+  },
+  pendingOffers: [
+    {
+      id: 'youth_maccabi',
+      kind: 'promotion',
+      clubId: MACCABI_ID,
+      clubName: 'מכבי חיפה',
+      league: 'ליגת העל',
+      country: 'ישראל',
+      title: 'עולים לבוגרים',
+      description: 'הסגל הבוגר של מכבי חיפה פותח לך את הדלת.',
+      acceptEffects: {},
+      declineEffects: {},
+      acceptLabel: 'עולים לבוגרים',
+      declineLabel: '',
+      expectedRole: 'rotation',
+      direction: 'up',
+      hints: ['🏠 המועדון שגידל אותך'],
+    },
+    ...(offers > 1
+      ? [
+          {
+            id: 'youth_kfar_saba',
+            kind: 'transfer' as const,
+            clubId: 'hapoel_kfar_saba',
+            clubName: 'הפועל כפר סבא',
+            league: 'הליגה הלאומית',
+            country: 'ישראל',
+            title: 'מתחילים במקום אחר',
+            description: 'בכפר סבא מבטיחים דקות אמיתיות מהיום הראשון.',
+            acceptEffects: {},
+            declineEffects: {},
+            acceptLabel: 'מתחילים בכפר סבא',
+            declineLabel: '',
+            expectedRole: 'starter' as const,
+            direction: 'down' as const,
+            hints: ['⚽ דקות מהיום הראשון'],
+          },
+        ]
+      : []),
+  ],
+});
+
+/** The end of the road. Nothing but age and the two futures. */
+const retirementCareer = (): Career => ({
+  ...tableCareer(MACCABI_ID, 3),
+  age: 35,
+  phase: 'retirement_decision',
+});
+
 const homeCareer = (): Career => ({
   ...tableCareer(MACCABI_ID, 3),
   phase: 'preseason',
@@ -1599,6 +1669,9 @@ export function Gallery(): JSX.Element {
       subtitle="מכבי חיפה"
       onContinue={noop}
     />],
+    ['youth-fork', <GamePage career={youthForkCareer(1)} actions={noopActions} onExit={noop} />],
+    ['youth-fork-two', <GamePage career={youthForkCareer(2)} actions={noopActions} onExit={noop} />],
+    ['retirement-decision', <GamePage career={retirementCareer()} actions={noopActions} onExit={noop} />],
     ['europe-summary', <div className="card"><EuropeJourneySummary journey={galleryJourney()} /></div>],
     ['journey', <CareerJourney
       seasons={buildArchivedCareer(retiredLegend()).seasons.slice(-8)}

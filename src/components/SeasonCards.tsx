@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { getLeague } from '../data/leagues';
 import { trophyIcon } from '../data/trophies';
 import { LEGACY_MILESTONES } from '../game/maccabiLegacy';
@@ -13,6 +15,9 @@ import { clubSeasonFor, isBadSeason, isGoodSeason } from '../game/worldEngine';
 import { headlineTitle, roleTextOf, seasonLabel } from '../ui/format';
 import { Chip, DeltaList, Ltr, NumberBox } from './primitives';
 import { StageLadder } from './StageLadder';
+import { DecisionChoiceCard, DecisionChoices } from './DecisionChoice';
+import { factsForMove } from './DecisionScreen';
+import { ClubCrest } from './ClubCrest';
 import { situationText } from './LeagueTableCard';
 import { currentLeagueContext } from '../game/leagueEngine';
 
@@ -386,9 +391,31 @@ interface YouthProps {
   onChoose: (offerId: string | null) => void;
 }
 
-/** נוער → בוגרים. The single biggest fork in the youth career. */
+/**
+ * נוער → בוגרים. The single biggest fork in the youth career (v0.9.5).
+ *
+ * ## What changed
+ *
+ * The verdict, the emotion and the ladder were already right. What was wrong was the ending: ten
+ * seasons of climbing resolved into a stack of `btn btn-choice` rows, each showing a club name and
+ * a league as a grey hint. The biggest decision in the youth career looked like a settings list.
+ *
+ * Each destination is now a choice card in the same language as every other decision in the game,
+ * carrying the same facts read the same way - `factsForMove` is imported from the transfer screen
+ * rather than reimplemented, so rotation is a warning here for exactly the reason it is a warning
+ * there.
+ *
+ * Nothing about progression changed. `onChoose(offerId)` and `onChoose(null)` are the same two
+ * calls the engine has always received, and when there is no offer there is still one button,
+ * because there is no decision to make and manufacturing one would be a lie.
+ */
 export function YouthTransitionCard({ career, onChoose }: YouthProps): JSX.Element | null {
   const verdict = career.lastProgression;
+  /*
+   * Committed state (v0.9.5). A second tap during the phase transition must not be able to accept
+   * a second club - the same guard every other decision surface in the release carries.
+   */
+  const [committed, setCommitted] = useState<string | null>(null);
   if (!verdict) return null;
   const offers = career.pendingOffers;
 
@@ -419,23 +446,46 @@ export function YouthTransitionCard({ career, onChoose }: YouthProps): JSX.Eleme
         )}
 
         {offers.length > 0 ? (
-          <div className="stack-sm">
+          <DecisionChoices count={offers.length}>
             {offers.map((offer) => (
-              <button
+              <DecisionChoiceCard
                 key={offer.id}
-                type="button"
-                className="btn btn-choice"
-                onClick={() => onChoose(offer.id)}
-              >
-                <span>{offer.acceptLabel}</span>
-                <span className="hint">
-                  {offer.clubName} · {offer.league}
-                </span>
-              </button>
+                /*
+                  The engine's own label leads. `acceptLabel` is how this beat phrases itself -
+                  "עולים לבוגרים" at the parent club reads differently from signing elsewhere -
+                  and the club name goes underneath rather than replacing it.
+                */
+                title={offer.acceptLabel}
+                subtitle={offer.clubName}
+                icon={<ClubCrest clubId={offer.clubId} name={offer.clubName} size="small" />}
+                /* No European fact here: a youth player has no live continental entry to report. */
+                facts={factsForMove(offer, null)}
+                onChoose={() => {
+                  if (committed) return;
+                  setCommitted(offer.id);
+                  onChoose(offer.id);
+                }}
+                selected={committed === offer.id}
+                disabled={committed !== null && committed !== offer.id}
+              />
             ))}
-          </div>
+          </DecisionChoices>
         ) : (
-          <button type="button" className="btn btn-primary" onClick={() => onChoose(null)}>
+          /*
+            No offer means no decision. The engine supports exactly one continuation, so this stays
+            one button - dressing it as a choice card would imply an alternative that does not
+            exist.
+          */
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={committed !== null}
+            onClick={() => {
+              if (committed) return;
+              setCommitted('continue');
+              onChoose(null);
+            }}
+          >
             להמשיך
           </button>
         )}
