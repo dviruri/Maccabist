@@ -1,10 +1,9 @@
-import { QUALIFYING_GRAPH, UEFA_COMPETITIONS } from '../data/uefa';
 import { clubDisplayName } from './identity';
 import { sameFootballIdentity } from '../data/clubVisuals';
 import { currentPhase, currentTable } from './leagueEngine';
 import { matchContext } from './matchEngine';
 import { levelContext } from './rules';
-import type { Career, EuropeanStep, MatchContext, UefaCompetitionId } from '../types';
+import type { Career, MatchContext } from '../types';
 
 /**
  * THE presentation fixture (v0.9.1, Phase 1).
@@ -50,7 +49,14 @@ import type { Career, EuropeanStep, MatchContext, UefaCompetitionId } from '../t
  * final is always the last playable match of a season.
  */
 
-export type FixtureKind = 'league' | 'cup_final' | 'european';
+/**
+ * What kinds of match the game can present truthfully (v0.9.6).
+ *
+ * `'european'` was removed rather than left unreachable. A European tie has a REAL stored result
+ * and the matchday presenter invents one, so the two contradicted each other; the type is now what
+ * enforces that Europe cannot become a fixture, instead of a branch nobody happens to take.
+ */
+export type FixtureKind = 'league' | 'cup_final';
 
 export interface PresentationFixture {
   /** Stable identity for this beat's match - the reveal/dedupe key every screen shares. */
@@ -59,7 +65,6 @@ export interface PresentationFixture {
   season: number;
   /** Hebrew competition label for headers. */
   competition: string;
-  competitionId?: UefaCompetitionId;
   playerClubId: string;
   playerClubName: string;
   opponentClubId: string;
@@ -173,30 +178,30 @@ export function activeFixture(career: Career): PresentationFixture | null {
     });
   }
 
-  /* ---- 2. A European tie from the stored journey ---- */
-  const journey = career.world.europe?.current?.playerJourney;
-  if (journey && journey.season === season && journey.clubId === playerClubId && !isFinalSeasonBeat(career)) {
-    const knockout = journey.steps.find(
-      (step): step is Extract<EuropeanStep, { kind: 'tie' }> =>
-        step.kind === 'tie' && !(step.tie.stage in QUALIFYING_GRAPH),
-    );
-    if (knockout) {
-      return build({
-        id: `euro_${knockout.tie.competition}_${knockout.tie.stage}_${season}`,
-        kind: 'european',
-        competition: UEFA_COMPETITIONS[knockout.tie.competition].name,
-        competitionId: knockout.tie.competition,
-        opponentClubId: knockout.tie.opponentId,
-        opponentName: knockout.tie.opponentName,
-        home: knockout.tie.legs[0]?.home ?? true,
-        stage: EURO_STAGE_LABELS[knockout.tie.stage] ?? undefined,
-        context: null,
-        playerPosition: null,
-        opponentPosition: null,
-        pointsGap: null,
-      });
-    }
-  }
+  /*
+   * ---- 2. Europe is NOT presented as a playable fixture (v0.9.6, Phase 3) ----
+   *
+   * There used to be a branch here that returned a knockout tie out of the stored European
+   * journey. It produced two untruths and had to go.
+   *
+   * FABRICATED SCORES. `buildMatchday` is a representative presenter: it has no per-match team
+   * results to work from, so it invents a plausible scoreline with `presentScore` and seeds it on
+   * the fixture id. That is honest for a league beat, where no stored result exists to contradict
+   * it. A European tie is the opposite case - `journey.steps` already contains the REAL legs and
+   * the REAL aggregate. So the Europe card could say the club went through 4-1 while the matchday
+   * screen showed 2-0, from the same save, on the same night.
+   *
+   * WRONG TIME. The branch also had no chronology. The knockout step exists from the moment the
+   * European season is simulated, which is the first preseason beat - so the home screen offered a
+   * February knockout tie as "the next match" in July, complete with a "לילה אירופי" caption.
+   *
+   * v0.9.6 does not build a European calendar to fix this; that is a real feature and inventing a
+   * partial one would be a third untruth. It removes the claim instead. Europe stays fully visible
+   * in its own card, where the stored journey is rendered as what it is - a record - and the
+   * playable matchday remains the two fixtures the game can actually tell the truth about: the
+   * representative domestic league match, and the stored domestic cup final whose result
+   * `world.cup.run` already fixes.
+   */
 
   /*
    * ---- 3. The league beat ----
@@ -224,10 +229,8 @@ export function activeFixture(career: Career): PresentationFixture | null {
   });
 }
 
-const EURO_STAGE_LABELS: Record<string, string> = {
-  ko_playoff: 'פלייאוף הנוקאאוט',
-  r16: 'שמינית הגמר',
-  qf: 'רבע הגמר',
-  sf: 'חצי הגמר',
-  final: 'הגמר',
-};
+/*
+ * The European stage labels lived here for the fixture branch v0.9.6 removed. They are not
+ * orphaned duplicates - `components/EuropeCards.tsx` has always had its own, and that is where
+ * European stages are named now that Europe is a record rather than a fixture.
+ */

@@ -127,32 +127,33 @@ function NextChapterStrip({ career }: { career: Career }): JSX.Element | null {
   const teasedFinal = knownCupFinal(career);
   if (!fixture) return null;
 
+  /*
+   * v0.9.6: no European branch. `activeFixture` can no longer return one - a European tie has a
+   * real stored result and this panel could only ever describe an invented one, at a time of year
+   * the tie had not been played. Europe is a record now, in its own card.
+   */
   const caption =
     fixture.kind === 'cup_final'
       ? 'משחק אחד על תואר'
-      : fixture.kind === 'european'
-        ? 'לילה אירופי'
-        : fixture.playerPosition !== null && fixture.opponentPosition !== null
-          ? `מקום ${fixture.playerPosition} נגד מקום ${fixture.opponentPosition}`
-          : fixture.opponentPosition !== null
-            ? `היריבה במקום ${fixture.opponentPosition}`
-            : fixture.home
-              ? 'בבית'
-              : 'בחוץ';
+      : fixture.playerPosition !== null && fixture.opponentPosition !== null
+        ? `מקום ${fixture.playerPosition} נגד מקום ${fixture.opponentPosition}`
+        : fixture.opponentPosition !== null
+          ? `היריבה במקום ${fixture.opponentPosition}`
+          : fixture.home
+            ? 'בבית'
+            : 'בחוץ';
 
   const timing =
     fixture.kind === 'cup_final'
       ? 'גמר'
-      : fixture.kind === 'european'
-        ? 'באביב'
-        : career.seasonPoint === 'preseason'
-          ? 'פתיחת העונה'
-          : career.seasonPoint === 'midseason'
-            ? 'המחזור הבא'
-            : 'סיום העונה';
+      : career.seasonPoint === 'preseason'
+        ? 'פתיחת העונה'
+        : career.seasonPoint === 'midseason'
+          ? 'המחזור הבא'
+          : 'סיום העונה';
 
   return (
-    <div className={`gf-next${fixture.kind === 'european' ? ' gf-next-euro' : ''}`}>
+    <div className="gf-next">
       <div className="gf-next-head">
         <span className="gf-next-title">המשחק הבא</span>
         <span className="gf-next-when">{timing}</span>

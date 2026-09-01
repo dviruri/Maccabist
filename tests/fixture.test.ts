@@ -15,6 +15,7 @@ import { activeFixture } from '../src/game/fixture';
 import { buildMatchday } from '../src/game/matchdayPresenter';
 import { createRng } from '../src/game/random';
 import { playFirstHalf } from '../src/game/seasonEngine';
+import { balancedPolicy, simulateCareer } from '../src/game/simulate';
 import { openWorldSeason } from '../src/game/worldEngine';
 import type { Career, Position } from '../src/types';
 
@@ -121,7 +122,23 @@ describe('stored competitions outrank the generic league beat', () => {
     expect(buildMatchday(career)!.fixture.opponentClubId).toBe('hapoel_beer_sheva');
   });
 
-  it('a stored European knockout tie beats the league beat, and keeps its own competition', () => {
+  /*
+   * INVERTED in v0.9.6, Phase 3.
+   *
+   * This used to assert that a stored European tie became the active fixture and that
+   * `buildMatchday` presented it. Both were true and both were wrong:
+   *
+   *   - the journey already holds the REAL legs and aggregate, while `buildMatchday` has no
+   *     per-match team results and invents a scoreline with `presentScore`. The Europe card could
+   *     say the club went through 4-1 while the matchday screen showed 2-0, from one save.
+   *   - the knockout step exists from the moment the European season is simulated - the first
+   *     preseason beat - so a February tie was offered as "the next match" in July.
+   *
+   * v0.9.6 does not build a European calendar to fix that; it removes the claim. So the same
+   * fixture that used to be European must now fall through to the LEAGUE beat, and Europe is
+   * rendered only as the record it is.
+   */
+  it('never presents a stored European tie as a playable fixture', () => {
     const base = midSeason('ST', 6);
     const career: Career = {
       ...base,
@@ -168,12 +185,40 @@ describe('stored competitions outrank the generic league beat', () => {
         },
       },
     };
-    const fixture = activeFixture(career)!;
-    expect(fixture.kind).toBe('european');
-    expect(fixture.opponentClubId).toBe('fld_basel');
-    expect(fixture.competitionId).toBe('uefa_conference_league');
-    expect(fixture.competition).toBe('הקונפרנס ליג');
-    expect(fixture.stage).toBe('שמינית הגמר');
-    expect(buildMatchday(career)!.fixture.opponentName).toBe('באזל');
+    const fixture = activeFixture(career);
+    /*
+     * The stored journey is untouched and still contains the tie - it just cannot become a
+     * fixture. Whatever is presented, it is not the European opponent.
+     */
+    expect(career.world.europe?.current?.playerJourney?.steps.some((s) => s.kind === 'tie')).toBe(true);
+    if (fixture) {
+      expect(fixture.kind).not.toBe('european');
+      expect(fixture.opponentClubId).not.toBe('fld_basel');
+    }
+    const matchday = buildMatchday(career);
+    if (matchday) expect(matchday.fixture.opponentName).not.toBe('באזל');
+  });
+
+  it('offers no fixture that a stored result could contradict', () => {
+    /*
+     * The structural rule behind the inversion above, stated once: the only kinds the presenter
+     * can produce are the two the game can tell the truth about. A league beat has no stored team
+     * result to disagree with, and a cup final's result is fixed by `world.cup.run`, which the
+     * presented scoreline is made to match.
+     */
+    const kinds = new Set<string>();
+    for (let seed = 1; seed <= 40; seed += 1) {
+      simulateCareer({
+        playerName: 'אורי דביר',
+        position: 'ST',
+        seed: 9500 + seed,
+        policy: balancedPolicy,
+        onStep: (c) => {
+          const f = activeFixture(c);
+          if (f) kinds.add(f.kind);
+        },
+      });
+    }
+    expect([...kinds].sort()).toEqual(['cup_final', 'league']);
   });
 });
