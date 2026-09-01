@@ -143,26 +143,54 @@ function drawFinalOpponent(career: Career, rng: Rng): string | null {
    * `Club`. Now it can, so this is one filter - and `ACTIVE_CLUBS` is the right list rather than
    * `ALL_CLUBS`, because a club that dropped out of the modelled divisions is not in the cup.
    */
+  /*
+   * The pool matches the COMPETITION (v0.9.6, Phase 7).
+   *
+   * `cupTrophyId` already decides that an academy or youth player is in a youth cup rather than
+   * the State Cup. The pool did not follow: it excluded academy and youth tiers unconditionally,
+   * so a youth cup final was drawn from SENIOR first teams. Maccabi Haifa's under-19s facing a
+   * senior top-flight club is not a competition that exists.
+   *
+   * v0.9.5.1 fixed the identity half of this - the youth side could draw its own parent - but
+   * left the age half, and recorded it as a known limitation. This is that half.
+   */
+  const ageGroup = levelContext(career).isAcademy;
   const candidates = ACTIVE_CLUBS.filter(
     (club) =>
       /*
-       * v0.9.5.1: identity, not id.
-       *
-       * `club.id !== own.id` let a youth side draw its own parent. The tier filter below removes
-       * academy and youth clubs from the POOL, so when the player himself was in the youth setup
-       * his own senior club remained a candidate - `maccabi_youth` drawing `maccabi_haifa`, which
-       * both render as "מכבי חיפה". That is the cup half of the self-opponent bug.
+       * v0.9.5.1: identity, not id. `club.id !== own.id` let a youth side draw its own parent,
+       * and `maccabi_youth` vs `maccabi_haifa` both render as "מכבי חיפה".
        */
       !sameFootballIdentity(club.id, own.id) &&
       club.country === own.country &&
-      club.tier !== 'academy' &&
-      club.tier !== 'youth',
+      (ageGroup
+        ? club.tier === 'academy' || club.tier === 'youth'
+        : club.tier !== 'academy' && club.tier !== 'youth'),
   );
-  if (candidates.length === 0) return null;
+
+  /*
+   * The draw is taken BEFORE the pool is inspected, and that ordering is deliberate.
+   *
+   * `projectCup` has already decided whether the cup was won; this only names who it was won
+   * against. If an empty pool returned early it would consume one fewer value than a full one,
+   * so the size of a candidate list would silently shift every later roll in the career. Drawing
+   * first makes consumption constant: exactly one value, whatever the competition.
+   */
+  const roll = rng.next();
+  if (candidates.length === 0) {
+    /*
+     * No age-appropriate opponent is modelled. The world contains exactly two academy/youth clubs
+     * and both are Maccabi Haifa's own identity, so for a youth cup there is genuinely nobody to
+     * name - and naming a senior club instead is the invented fact this phase removes. The cup
+     * run itself is unaffected: it was decided above, and `knownCupFinal` simply has no fixture
+     * to offer, which is the honest shape of "the game does not model this final's opponent".
+     */
+    return null;
+  }
 
   const weights = candidates.map((club) => Math.max(1, club.quality - 40) ** 1.5);
   const total = weights.reduce((a, b) => a + b, 0);
-  let pick = rng.next() * total;
+  let pick = roll * total;
   for (let i = 0; i < candidates.length; i += 1) {
     pick -= weights[i]!;
     if (pick <= 0) return candidates[i]!.id;
