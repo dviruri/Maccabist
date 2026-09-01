@@ -58,24 +58,41 @@ export function PlayerRender({
   className?: string;
   eager?: boolean;
 }): JSX.Element {
-  const [artFailed, setArtFailed] = useState(false);
   const art = resolveCharacterAsset({ age, position, clubId, seed, season, context });
-
   /*
-   * A missing file leaves the frame empty rather than showing a broken image. It cannot happen
-   * from a bad path - every segment of the name comes from a string union and a test walks the
-   * whole matrix against the disk - so this is for a genuinely absent asset, nothing else.
+   * The failure is remembered PER SOURCE, not for the lifetime of the component (v0.9.6).
+   *
+   * It used to be a bare `useState(false)` that nothing ever reset. One failed load - a dropped
+   * request, a cold cache, a single missing file - and the frame stayed empty for as long as the
+   * component lived, THROUGH every change of asset. The player transfers and the shirt should
+   * change; he has a birthday and the age band should change; a keeper's kit resolves differently
+   * at a new club; the pose changes at full time. None of those would have brought him back.
+   *
+   * Keying the failure to the src that failed makes the reset structural: a new `art.src` is by
+   * definition not the source that failed, so it is tried. No effect, no cleanup, no dependency
+   * array to get wrong - and no render-phase `setState`, which is what a naive "reset when the
+   * prop changes" version would have done.
    */
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const artFailed = failedSrc === art.src;
   return (
     <div className={`pr${className ? ` ${className}` : ''}`} data-kit={art.colour}>
+      {/*
+        A missing file leaves the frame empty rather than showing a broken image. It cannot happen
+        from a bad path - every segment of the name comes from a string union and a test walks the
+        whole matrix against the disk - so this is for a genuinely absent asset, nothing else.
+      */}
       {!artFailed && (
         <img
+          /* Keyed by src so React remounts the element rather than reusing a failed one. */
+          key={art.src}
           className="pr-art"
           src={art.src}
           alt=""
           aria-hidden
           loading={eager ? 'eager' : 'lazy'}
-          onError={() => setArtFailed(true)}
+          /* Remember WHICH source failed, so a different one is still allowed to load. */
+          onError={() => setFailedSrc(art.src)}
         />
       )}
     </div>

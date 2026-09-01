@@ -93,13 +93,23 @@ export function MatchdayExperience({
    * own summary cannot disagree, and RTL cannot invert either of them.
    */
   const view = matchScoreViewAfter(fixture, moments, revealed);
-  const isKeeper = career.position === 'GK';
   /*
    * The pose changes with the state; the KIT never does (v0.9.4). He wears his club's colours at
    * kickoff, at half time and at full time, home or away - a shirt that changed with the venue or
    * with the reading direction would be the same class of lie as a reversed scoreline.
+   *
+   * v0.9.6: and the pose now reads the RESULT.
+   *
+   * It used to be `done && played ? (isKeeper ? 'save' : 'celebration') : 'hero'` - so a player
+   * punched the air at full time of a 0-3 defeat. Worse for a keeper, though it did not look like
+   * it in this file: `assetSelector` maps a goalkeeper's 'save' onto the CELEBRATION artwork, so
+   * the losing keeper was celebrating too, by a different route.
+   *
+   * A win celebrates. A draw and a defeat stand there, which is what 'hero' is - and for a keeper
+   * 'hero' resolves to the ready pose, so one expression covers both roles without a branch.
    */
-  const context = done && matchday.played ? (isKeeper ? 'save' : 'celebration') : 'hero';
+  const won = matchday.scoreFor > matchday.scoreAgainst;
+  const context = done && matchday.played && won ? 'celebration' : 'hero';
 
   /*
    * Pacing (v0.9.1): ONE meaningful moment per primary tap - v0.9 advanced two, which made the

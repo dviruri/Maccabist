@@ -415,13 +415,49 @@ const europeanSeasonCareer = (): Career => {
 function MatchdaySceneDemo({
   revealAll = false,
   at,
+  outcome,
 }: {
   revealAll?: boolean;
   at?: 'live' | 'half_time';
+  /**
+   * Force the full-time result (v0.9.6).
+   *
+   * The scene the gallery happened to produce was a WIN, so the full-time pose could only ever be
+   * screenshotted celebrating - which is exactly the state that was correct, and exactly why the
+   * bug where a DEFEAT also celebrated survived three visual passes. Overriding the presented
+   * score is presentation-only: `buildMatchday` already invents this number for a league beat, so
+   * nothing here contradicts a stored result.
+   */
+  outcome?: 'loss' | 'draw';
 }): JSX.Element {
-  const career = midSeasonCareer();
-  const matchday = buildMatchday(career);
-  if (!matchday) return <div>no matchday</div>;
+  /*
+   * A genuinely losing matchday, not a patched one.
+   *
+   * The first version overrode `scoreFor`/`scoreAgainst` on the built presentation, and the
+   * screenshot immediately showed why that was wrong: the scoreboard and the headline are derived
+   * from the MOMENTS, which `buildMatchday` generates FROM the score - so the patched fixture read
+   * "1:2" and "ניצחון" underneath a player who was correctly not celebrating. A demo that lies
+   * about itself cannot verify a screen that must not lie.
+   *
+   * So the seed is searched instead: every career here is the same one with a different table
+   * seed, and one of them really does lose. Everything downstream stays self-consistent because
+   * nothing was overridden.
+   */
+  const wanted = (m: { scoreFor: number; scoreAgainst: number }): boolean =>
+    outcome === 'loss'
+      ? m.scoreFor < m.scoreAgainst
+      : outcome === 'draw'
+        ? m.scoreFor === m.scoreAgainst
+        : true;
+
+  let career = midSeasonCareer();
+  let built = buildMatchday(career);
+  for (let seed = 4; built && !wanted(built) && seed < 80; seed += 1) {
+    career = midSeasonCareer(seed);
+    built = buildMatchday(career);
+  }
+  if (!built) return <div>no matchday</div>;
+  const matchday = built;
   /* The biggest moment for LIVE, the half-time whistle for HALF TIME - both real, not indices. */
   const target =
     at === 'half_time'
@@ -991,8 +1027,14 @@ const homeCareer = (): Career => ({
   lastSeasonRecord: seasonRecord(),
 });
 
-const midSeasonCareer = (): Career => {
-  const base = tableCareer(MACCABI_ID, 3);
+/**
+ * The mid-season career the matchday scenes are built from.
+ *
+ * `seed` is the TABLE seed, which is what varies the opponent and therefore the presented result -
+ * so a scene that needs a defeat can search for one instead of overriding a score (v0.9.6).
+ */
+const midSeasonCareer = (seed = 3): Career => {
+  const base = tableCareer(MACCABI_ID, seed);
   return {
     ...base,
     seasonPoint: 'midseason',
@@ -1625,6 +1667,9 @@ export function Gallery(): JSX.Element {
     ['gf-matchday-live', <MatchdaySceneDemo at="live" />],
     ['gf-matchday-half', <MatchdaySceneDemo at="half_time" />],
     ['gf-matchday-ft', <MatchdaySceneDemo revealAll />],
+    /* The two full-time states that must NOT celebrate. See tests/playerPresentation.test.ts. */
+    ['gf-matchday-ft-loss', <MatchdaySceneDemo revealAll outcome="loss" />],
+    ['gf-matchday-ft-draw', <MatchdaySceneDemo revealAll outcome="draw" />],
     ['gf-moment-uefa', <div className="gf-moment-screen"><CareerMomentScreen
       career={seniorAtMaccabi()}
       moment={{
