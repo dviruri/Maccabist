@@ -1859,3 +1859,236 @@
     mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
   }
 }
+
+/* =====================================================================
+   v0.9.5 — THE CAREER DECISION LANGUAGE
+
+   One grammar for every decision in the game: context, then the
+   question, then the futures as pressable cards. The card IS the
+   action - there is no Accept/Decline pair under a block of
+   information anywhere in this release.
+
+   Layout contract (the one-screen rule, expressed as structure):
+
+     .dc-scene           a column that fills its parent exactly
+     .dc-scene-context   the region that GIVES WAY - it scrolls
+     .dc-scene-choices   the region that HOLDS - it never scrolls off
+
+   Short viewports take height from the context, never from the
+   choices, and never by shrinking type. See the height tiers at the
+   end of this block.
+   ===================================================================== */
+.dc-scene {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 10px;
+  flex: 1;
+}
+/*
+ * `min-height: 0` is what makes the scroll land here rather than on the document. A flex child
+ * defaults to min-height:auto, which refuses to shrink below its content - so without this the
+ * context pushes the whole scene taller and the page scrolls, which is the bug this layout
+ * exists to prevent.
+ */
+.dc-scene-context {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.dc-scene-context::-webkit-scrollbar { display: none; }
+/* The choices hold their ground: no flex-shrink, no overflow, always reachable. */
+.dc-scene-choices { flex: 0 0 auto; }
+.dc-scene-footer { flex: 0 0 auto; }
+
+/* ---- context ---- */
+.dc-context { display: grid; gap: 8px; }
+.dc-kicker {
+  font-size: var(--gf-meta);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--green-bright);
+  text-transform: uppercase;
+}
+.dc-title {
+  font-size: var(--gf-hero);
+  font-weight: 900;
+  line-height: 1.08;
+  margin: 0;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+.dc-lead {
+  font-size: var(--gf-body);
+  line-height: 1.4;
+  color: var(--text-secondary);
+  /* Clamped, never cut: the full text is always in the details sheet. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dc-context-facts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---- the choices ---- */
+.dc-choices { display: grid; gap: 10px; }
+/*
+ * Two comparable futures sit side by side from 380px up, where measured Hebrew still breaks
+ * cleanly at two words a line. Below that they stack - the brief's rule is that type never
+ * shrinks to force a layout, so the layout gives way instead.
+ */
+@media (min-width: 380px) {
+  .dc-choices-2 { grid-template-columns: 1fr 1fr; }
+}
+/* Three and four go to a 2-up grid rather than a tall stack the document would have to scroll. */
+@media (min-width: 360px) {
+  .dc-choices-3,
+  .dc-choices-4 { grid-template-columns: 1fr 1fr; }
+}
+
+.dc-choice-wrap { display: grid; gap: 4px; min-width: 0; }
+
+/*
+ * The card. A game object, not a form control: dark glass, a real border, and a press that moves
+ * it. The whole surface is the button.
+ */
+.dc-choice {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  text-align: start;
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--gf-glass);
+  border: 1px solid var(--gf-glass-border);
+  border-radius: var(--gf-radius);
+  backdrop-filter: blur(var(--gf-glass-blur));
+  -webkit-backdrop-filter: blur(var(--gf-glass-blur));
+  cursor: pointer;
+  transition: transform var(--gf-t-quick), border-color var(--gf-t-quick), box-shadow var(--gf-t-quick);
+}
+/* The stay-put side of a dilemma. Quieter, never lesser - it is a real choice. */
+.dc-choice-quiet { background: rgba(13, 18, 15, 0.55); }
+.dc-choice:active:not(:disabled) { transform: scale(0.985); }
+.dc-choice:focus-visible {
+  outline: 2px solid var(--green-bright);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .dc-choice:hover:not(:disabled) {
+    border-color: rgba(41, 217, 106, 0.45);
+    box-shadow: var(--gf-glow-green);
+  }
+}
+/* Committed. The card he took stays lit; the others recede but remain readable. */
+.dc-choice-wrap.is-selected .dc-choice {
+  border-color: var(--green-bright);
+  box-shadow: var(--gf-glow-green);
+}
+.dc-choice:disabled { cursor: default; }
+.dc-choice-wrap.is-disabled .dc-choice { opacity: 0.5; }
+
+.dc-choice-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dc-choice-icon { display: inline-flex; flex: 0 0 auto; font-size: 20px; line-height: 1; }
+.dc-choice-titles { display: grid; gap: 2px; min-width: 0; }
+.dc-choice-title {
+  font-size: var(--gf-section);
+  font-weight: 900;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+.dc-choice-sub {
+  font-size: var(--gf-meta);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ---- the consequence facts ---- */
+.dc-facts { display: grid; gap: 4px; }
+.dc-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--gf-meta);
+  font-weight: 700;
+  line-height: 1.3;
+  /* Neutral by default and off-white, never near-black: this sits on dark glass. */
+  color: var(--text-primary);
+}
+.dc-fact-icon { flex: 0 0 auto; font-size: 10px; line-height: 1.5; }
+.dc-fact-text { min-width: 0; }
+.dc-fact.is-positive .dc-fact-text { color: #b9f2cd; }
+.dc-fact.is-negative .dc-fact-text { color: #f6bcbc; }
+.dc-fact.is-neutral .dc-fact-text { color: var(--text-secondary); }
+
+/* A qualitative line for a choice the engine gave no distribution. Never a fake percentage. */
+.dc-choice-note {
+  font-size: var(--gf-meta);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ---- the odds, when the engine has them ---- */
+.dc-odds { display: grid; gap: 5px; }
+.dc-odds-bar {
+  display: flex;
+  height: 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+}
+.dc-odds-seg { display: block; height: 100%; }
+.dc-odds-seg.is-positive { background: var(--green-bright); }
+.dc-odds-seg.is-neutral { background: #7d8c83; }
+.dc-odds-seg.is-negative { background: #e2564f; }
+.dc-odds-figures { display: flex; gap: 8px; flex-wrap: wrap; }
+.dc-odds-figure {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--gf-micro);
+  font-weight: 800;
+  color: var(--text-secondary);
+}
+.dc-odds-figure.is-positive { color: #b9f2cd; }
+.dc-odds-figure.is-negative { color: #f6bcbc; }
+.dc-odds-pct { font-variant-numeric: tabular-nums; }
+
+/* The details link. Outside the card's press target, on purpose - see DecisionChoice.tsx. */
+.dc-choice-details {
+  justify-self: start;
+  padding: 2px 4px;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: var(--gf-micro);
+  font-weight: 800;
+  color: var(--green-bright);
+  cursor: pointer;
+}
+.dc-choice-details:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------------------------------------------------------------
+   Short viewports: the context gives way, the choices never do.
+   No font-size appears in any of these blocks - the height tiers
+   remove content and tighten space, which is the release rule.
+   --------------------------------------------------------------- */
+@media (max-height: 700px) {
+  .dc-scene { gap: 8px; }
+  .dc-choice { padding: 10px; gap: 6px; }
+  .dc-lead { -webkit-line-clamp: 2; }
+}
+@media (max-height: 660px) {
+  .dc-scene { gap: 6px; }
+  .dc-choice { padding: 9px; }
+  .dc-facts { gap: 3px; }
+  /*
+   * The third fact goes before anything else does. Two consequences still describe the choice;
+   * the rest is one tap away in the details sheet, which is where it already lives.
+   */
+  .dc-fact:nth-child(n + 3) { display: none; }
+}
