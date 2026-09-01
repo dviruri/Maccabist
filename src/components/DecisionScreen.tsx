@@ -3,52 +3,48 @@ import { useState } from 'react';
 import { europeanStatusLine } from '../game/europeStatus';
 import { withHebrewPrefix } from '../game/identity';
 import { EXPECTED_ROLE_LABELS } from '../game/marketEngine';
-import type { Career, TransferOffer } from '../types';
+import type { Career, ExpectedRole, MoveDirection, TransferOffer } from '../types';
+import type { ChoiceFact } from '../ui/decisionView';
 import { roleText } from '../ui/format';
 import { getPersonArt } from '../ui/playerArt';
 import { ClubCrest } from './ClubCrest';
-import { CinematicBackdrop, GameButton } from './gamefeel';
+import { DecisionChoiceCard, DecisionChoices, DecisionHead, DecisionScene } from './DecisionChoice';
+import { CinematicBackdrop } from './gamefeel';
 import { PlayerRender } from './PlayerRender';
 import { DIRECTION_LABELS } from './OffersCard';
 import { Sheet } from './Sheet';
 
 /**
- * החלטה בקריירה (v0.9, Phase 4 · rebuilt v0.9.3, Phase 4).
+ * החלטה בקריירה (v0.9, Phase 4 · rebuilt v0.9.3 · rebuilt again v0.9.5).
  *
- * An offer is a life event, not a list row. One offer owns the screen at a time - the
- * destination's crest and name, a large headline, the player himself, the few facts that
- * actually decide it, his agent's read, and a stay-versus-go split that ends in two big buttons.
+ * ## What v0.9.5 changed
  *
- * ## v0.9.3
+ * v0.9.3 had the right facts in the wrong grammar. The screen was: destination hero, chips,
+ * description, agent panel, a stay-versus-go comparison - and then, separately, two generic
+ * buttons at the bottom. The player read a comparison, then had to map it onto a verb. That is a
+ * form, and it is why an offer never felt like something that had happened to him.
  *
- * v0.9.2 had the right elements in a page-shaped stack: header, hero, prose, a facts TABLE, an
- * agent panel, a comparison, actions, a pager and a footnote - nine blocks, and at 320x568 the
- * buttons were 250px below the fold. Three things changed.
+ * Now the comparison IS the choice. The two sides of the dilemma are two cards, each carrying the
+ * facts that make it what it is, and pressing one commits. There is no VS strip and no button
+ * row, because the stay side and the go side are the buttons.
  *
- *   The facts stopped being a table. Three or four rows of label-plus-value dominated a screen
- *   whose subject is a choice; they are now one chip line, with everything else behind
- *   פרטי ההצעה - a real bottom sheet, so nothing was deleted.
- *
- *   Paging became dots. `1/3` with two text buttons read like a data grid; ● ○ ○ reads like a
- *   card you can move between, and the arrows stayed for anyone who wants an explicit target.
- *
- *   The buttons say what they do. "לחתום" and "להישאר" became "עוברים ל<club>" and "נשארים",
- *   derived from the real destination, unless the engine supplied its own labels - in which case
- *   the engine's wording wins, because those labels are how a mandatory move or a release
- *   phrases itself.
+ * Everything the engine does is untouched: `onAccept(offer.id)`, `onDecline()`, mandatory
+ * semantics, and the decline-declines-everything rule for a summer with several offers.
  *
  * ## Honesty boundaries, kept hard
  *
- *   - Every fact rendered exists on the offer or in world state: league, country, kind, expected
+ *   - Every fact on a card exists on the offer or in world state: league, country, kind, expected
  *     role (the engine's own qualitative bands), move direction, the offer's own hints, and the
  *     destination's LIVE European entry from the v0.8 state. No salary, no contract years, no
  *     appearance guarantees - the game does not model them, so the screen does not claim them.
+ *   - A move is not automatically the good option. `factsForMove` colours the direction as the
+ *     engine reported it, so a step down reads as a step down, and an expected role of גיבוי is a
+ *     red line on the card that offers it rather than a neutral chip somewhere else.
+ *   - The stay card carries his real current standing (`roleText`), never an invented benefit.
+ *     The game does not model guaranteed minutes, so the stay card does not promise them.
  *   - The agent's line phrases the offer's real `direction` in the voice of the actual signed
- *     agent; no agent, no panel. It is a reading of a fact, not a promise.
- *   - The stay side is the player's real current standing (`roleText`), not an invented benefit.
- *   - Decline semantics are the engine's: one decision declines the summer's offers, exactly as
- *     before. Presentation changed; the choice did not.
- *   - Neither button is styled as recommended. The agent may have an opinion; the layout may not.
+ *     agent; no agent, no line. It is a reading of a fact, not a promise.
+ *   - Neither card is styled as recommended. The agent may have an opinion; the layout may not.
  */
 
 const KIND_LABEL: Record<TransferOffer['kind'], string> = {
@@ -61,7 +57,7 @@ const KIND_LABEL: Record<TransferOffer['kind'], string> = {
 };
 
 /**
- * Whose wording the buttons use (v0.9.3).
+ * Whose wording the move card uses (v0.9.3, kept).
  *
  * A move has a destination, so "עוברים לטורינו" beats "לחתום" - it says what pressing it does.
  * A contract, a release or a forced promotion does not: there is nowhere to move to, and the
@@ -90,6 +86,89 @@ function agentLine(direction: TransferOffer['direction']): string {
   }
 }
 
+/**
+ * How the engine's own move direction reads on a card.
+ *
+ * A transfer is not automatically an improvement, and the previous screen quietly implied it was
+ * by putting the destination on the "go" side of a comparison and nothing negative anywhere. The
+ * direction is a field on the offer; this only chooses which colour states it.
+ */
+const DIRECTION_TONE: Record<MoveDirection, ChoiceFact['tone']> = {
+  major_up: 'positive',
+  up: 'positive',
+  lateral: 'neutral',
+  down: 'negative',
+  major_down: 'negative',
+};
+
+/**
+ * How an expected role reads.
+ *
+ * The bands are the engine's (`EXPECTED_ROLE_LABELS`); the tone is the honest reading of them. A
+ * player told he is going somewhere as גיבוי should see that in red on the card that offers it -
+ * that is the tradeoff he is being asked to weigh, and burying it in a neutral chip was the old
+ * screen's way of not quite saying it.
+ */
+const ROLE_TONE: Record<ExpectedRole, ChoiceFact['tone']> = {
+  star: 'positive',
+  key: 'positive',
+  starter: 'positive',
+  rotation: 'negative',
+  backup: 'negative',
+  project: 'neutral',
+};
+
+/** The facts that make the MOVE what it is. At most three - the rest is in the sheet. */
+function factsForMove(offer: TransferOffer, europe: string | null): ChoiceFact[] {
+  const facts: ChoiceFact[] = [];
+
+  const direction = offer.direction ? DIRECTION_LABELS[offer.direction] : null;
+  if (offer.direction && direction) {
+    facts.push({ tone: DIRECTION_TONE[offer.direction], text: direction });
+  }
+  /* The destination's live European entry, from world state - never a guess about next season. */
+  if (europe) facts.push({ tone: 'positive', text: europe });
+  if (offer.expectedRole) {
+    facts.push({
+      tone: ROLE_TONE[offer.expectedRole],
+      text: `תפקיד צפוי: ${EXPECTED_ROLE_LABELS[offer.expectedRole]}`,
+    });
+  }
+  /*
+   * The offer's own hints fill any remaining room, as neutral: the engine writes them as
+   * qualitative notes without a direction, so colouring them would be this file's opinion.
+   */
+  for (const hint of offer.hints ?? []) {
+    if (facts.length >= 3) break;
+    facts.push({ tone: 'neutral', text: hint });
+  }
+  /* A move with nothing else to say still has a destination league. */
+  if (facts.length === 0) facts.push({ tone: 'neutral', text: offer.league });
+
+  return facts.slice(0, 3);
+}
+
+/**
+ * The facts that make STAYING what it is - all of them read off current career state.
+ *
+ * Deliberately short. There is no engine fact that says staying is safe, so the card does not say
+ * it; what it can honestly say is where he is and what he currently is there.
+ */
+function factsForStay(career: Career, fromClub: string, declinesAll: boolean): ChoiceFact[] {
+  const facts: ChoiceFact[] = [{ tone: 'positive', text: roleText(career) }];
+  facts.push({ tone: 'neutral', text: `נשאר ${withHebrewPrefix('ב', fromClub)}` });
+  /*
+   * The engine's decline semantics, stated on the card that performs them (v0.9.5).
+   *
+   * With several offers on the table, `onDecline()` turns down the whole summer and not just the
+   * one being looked at. The old screen said this in the button's label only when it happened to
+   * be the visible offer; saying it as a consequence line is the honest version, because it IS a
+   * consequence of pressing this card.
+   */
+  if (declinesAll) facts.push({ tone: 'negative', text: 'דוחה את כל ההצעות שעל השולחן' });
+  return facts;
+}
+
 export function DecisionScreen({
   career,
   offers,
@@ -105,6 +184,11 @@ export function DecisionScreen({
 }): JSX.Element {
   const [index, setIndex] = useState(0);
   const [details, setDetails] = useState(false);
+  /*
+   * Double-commit protection (v0.9.5). The card locks the moment it is pressed, so a second tap
+   * during the phase transition cannot accept an offer twice or accept and then decline.
+   */
+  const [committed, setCommitted] = useState<'move' | 'stay' | null>(null);
 
   const offer = offers[Math.min(index, offers.length - 1)]!;
   const mandatory = offers.some((o) => o.mandatory);
@@ -112,177 +196,172 @@ export function DecisionScreen({
   // v0.9.1: current campaign vs next-season route, never conflated (see game/europeStatus).
   const europe = europeanStatusLine(career, offer.clubId);
   const direction = offer.direction ? DIRECTION_LABELS[offer.direction] : null;
+  const declinesAll = offers.length > 1;
 
-  /* The three or four facts that actually decide it. Chips, not a table. */
-  const facts = [
-    offer.league,
-    offer.expectedRole ? EXPECTED_ROLE_LABELS[offer.expectedRole] : null,
-    europe,
-  ].filter((fact): fact is string => Boolean(fact));
+  const moveTitle = DERIVES_DESTINATION.has(offer.kind)
+    ? `עוברים ${withHebrewPrefix('ל', offer.clubName)}`
+    : offer.acceptLabel || 'לחתום';
+  const stayTitle = DERIVES_DESTINATION.has(offer.kind)
+    ? `נשארים ${withHebrewPrefix('ב', fromClub)}`
+    : offer.declineLabel || 'נשארים';
 
   return (
     <div className="gf-decision-screen">
       <CinematicBackdrop backdrop="neutral-night" className="gf-decision">
-        <div className="gf-dec-header">
-          <div className="gf-kicker">החלטה בקריירה</div>
-          <div className="gf-dec-kind">{KIND_LABEL[offer.kind]}</div>
-        </div>
+        <DecisionScene
+          head={
+            <DecisionHead
+              kicker={KIND_LABEL[offer.kind]}
+              title={offer.title}
+              media={
+                /*
+                  The destination leads: crest, name, where in the world - then the player himself
+                  as an upper-body crop beside it, the home hero's technique. It is `media` and not
+                  a child so it renders ABOVE the headline; the agent's read stays a child, because
+                  he is commenting on a question that has already been asked.
+                */
+                <div className="gf-dec-hero">
+                {/*
+                  His CURRENT club's colours, not the offer's (v0.9.4, unchanged in v0.9.5).
 
-        {/*
-          ---- the detail region ----
-
-          Its own element so a very short viewport can give IT the scroll while the header above
-          and the two buttons below stay put. At 320x568 the whole offer cannot fit; scrolling to
-          the agent's line is better than hiding it, and the choice itself never moves.
-        */}
-        <div className="gf-dec-body">
-          {/*
-            The destination leads: crest, name, where in the world. Then the headline, then the
-            player himself as an upper-body crop on the left - the home hero's technique.
-          */}
-          <div className="gf-dec-hero">
-          {/*
-            His CURRENT club's colours, not the offer's (v0.9.4).
-
-            He has not signed anything. Putting him in Torino's shirt while he is still deciding
-            whether to join Torino would tell him the decision was already made - and the arrival
-            ceremony, which fires after he accepts, is where the new shirt is supposed to land.
-          */}
-          <PlayerRender
-            className="gf-dec-art"
-            age={career.age}
-            position={career.position}
-            clubId={career.currentClubId}
-            seed={career.seed}
-            season={career.currentSeason}
-          />
-          <div className="gf-dec-headline">
-            {/*
-              No separate club line here: the crest names the club and so does the headline, and
-              printing it three times above one choice is the page habit this release is removing.
-            */}
-            <ClubCrest clubId={offer.clubId} name={offer.clubName} size="large" className="gf-dec-crest" />
-            <div className="gf-dec-where">
-              {offer.league} · {offer.country}
-            </div>
-            <h1 className="gf-dec-title">{offer.title}</h1>
-          </div>
-        </div>
-
-        <div className="gf-dec-chips">
-          {facts.map((fact) => (
-            <span key={fact} className="gf-chip">
-              <span className="gf-chip-text">{fact}</span>
-            </span>
-          ))}
-          <button type="button" className="gf-chip gf-chip-tap gf-dec-more" onClick={() => setDetails(true)}>
-            <span className="gf-chip-text">פרטי ההצעה ›</span>
-          </button>
-        </div>
-
-        {/*
-          The offer's own words. Moved to the details sheet on the first pass of this phase, which
-          left a 150px hole between the comparison and the buttons and made the screen read as
-          unfinished - and prose IS the emotional part of an offer. It is back, at body size.
-        */}
-        {/*
-          The offer's own words, clamped to three lines - and TAPPABLE, because a clamp ends in an
-          ellipsis and an ellipsis has to lead somewhere. It opens the same sheet the chip above
-          does, which is where the full text lives.
-        */}
-        <button type="button" className="gf-dec-desc" onClick={() => setDetails(true)}>
-          {offer.description}
-        </button>
-
-        {agent && (
-          <div className="gf-dec-agent">
-            <img className="gf-feed-face" src={getPersonArt('agent')} alt="" aria-hidden loading="lazy" />
-            <div className="gf-feed-body">
-              <span className="gf-feed-role">{agent.person.name} חושב:</span>
-              <p className="gf-feed-text">{agentLine(offer.direction)}</p>
-            </div>
-          </div>
-        )}
-
-        {/* stay vs go: the offer's own hints against the standing he already has */}
-        <div className="gf-dec-vs">
-          <div className="gf-dec-side gf-dec-side-go">
-            <div className="gf-dec-side-title">{offer.clubName}</div>
-            {(offer.hints ?? []).slice(0, 2).map((hint, i) => (
-              <div key={i} className="gf-dec-point">
-                {hint}
-              </div>
-            ))}
-            {(offer.hints ?? []).length === 0 && <div className="gf-dec-point">{offer.league}</div>}
-          </div>
-          <span className="gf-next-vs" aria-hidden>
-            VS
-          </span>
-          <div className="gf-dec-side gf-dec-side-stay">
-            <div className="gf-dec-side-title">{fromClub}</div>
-            <div className="gf-dec-point">{roleText(career)}</div>
-            <div className="gf-dec-point">הבית המוכר</div>
-          </div>
-        </div>
-
-        </div>
-
-        <div className="gf-dec-actions">
-          <GameButton onClick={() => onAccept(offer.id)}>
-            {DERIVES_DESTINATION.has(offer.kind)
-              ? `עוברים ${withHebrewPrefix('ל', offer.clubName)}`
-              : offer.acceptLabel || 'לחתום'}
-          </GameButton>
-          {!mandatory && (
-            <GameButton tone="ghost" onClick={onDecline}>
-              {offers.length > 1
-                ? 'דוחים את כל ההצעות'
-                : DERIVES_DESTINATION.has(offer.kind)
-                  ? 'נשארים'
-                  : offer.declineLabel || 'נשארים'}
-            </GameButton>
-          )}
-        </div>
-
-        {/*
-          Paging as dots plus arrows (v0.9.3). Each offer owns the screen; this is how you move
-          between them, and the state is the index alone - nothing about an offer is lost by
-          paging past it.
-        */}
-        {offers.length > 1 && (
-          <div className="gf-dec-pager" role="group" aria-label="הצעות נוספות">
-            <button
-              type="button"
-              className="gf-dec-page-btn"
-              disabled={index === 0}
-              aria-label="ההצעה הקודמת"
-              onClick={() => setIndex((i) => Math.max(0, i - 1))}
-            >
-              ‹
-            </button>
-            <div className="gf-dec-dots">
-              {offers.map((o, i) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  className={`gf-dec-dot${i === index ? ' gf-dec-dot-on' : ''}`}
-                  aria-label={`הצעה ${i + 1} מתוך ${offers.length}`}
-                  aria-current={i === index ? 'true' : undefined}
-                  onClick={() => setIndex(i)}
+                  He has not signed anything. Putting him in Torino's shirt while he is still
+                  deciding whether to join Torino would tell him the decision was already made -
+                  and the arrival ceremony, which fires after he accepts, is where the new shirt
+                  is supposed to land.
+                */}
+                <PlayerRender
+                  className="gf-dec-art"
+                  age={career.age}
+                  position={career.position}
+                  clubId={career.currentClubId}
+                  seed={career.seed}
+                  season={career.currentSeason}
                 />
-              ))}
-            </div>
-            <button
-              type="button"
-              className="gf-dec-page-btn"
-              disabled={index >= offers.length - 1}
-              aria-label="ההצעה הבאה"
-              onClick={() => setIndex((i) => Math.min(offers.length - 1, i + 1))}
-            >
-              ›
-            </button>
-          </div>
-        )}
+                <div className="gf-dec-headline">
+                  <ClubCrest
+                    clubId={offer.clubId}
+                    name={offer.clubName}
+                    size="large"
+                    className="gf-dec-crest"
+                  />
+                  <div className="gf-dec-where">
+                    {offer.league} · {offer.country}
+                  </div>
+                  </div>
+                </div>
+              }
+            />
+          }
+          context={
+            <>
+              {/*
+                The offer's own words, clamped - and tappable, because a clamp ends in an ellipsis
+                and an ellipsis has to lead somewhere. It opens the sheet with the full text.
+              */}
+              <button type="button" className="gf-dec-desc" onClick={() => setDetails(true)}>
+                {offer.description}
+              </button>
+
+              {agent && (
+                <div className="gf-dec-agent">
+                  <img
+                    className="gf-feed-face"
+                    src={getPersonArt('agent')}
+                    alt=""
+                    aria-hidden
+                    loading="lazy"
+                  />
+                  <div className="gf-feed-body">
+                    <span className="gf-feed-role">{agent.person.name} חושב:</span>
+                    <p className="gf-feed-text">{agentLine(offer.direction)}</p>
+                  </div>
+                </div>
+              )}
+            </>
+          }
+          choices={
+            /*
+              A mandatory offer renders ONE card. There is no stay side because there is no stay:
+              drawing a second card for visual symmetry would offer a choice the engine will not
+              honour, which is worse than an asymmetric screen.
+            */
+            <DecisionChoices count={mandatory ? 1 : 2}>
+              <DecisionChoiceCard
+                title={moveTitle}
+                subtitle={offer.clubName}
+                icon={<ClubCrest clubId={offer.clubId} name={offer.clubName} size="small" />}
+                facts={factsForMove(offer, europe)}
+                onChoose={() => {
+                  if (committed) return;
+                  setCommitted('move');
+                  onAccept(offer.id);
+                }}
+                selected={committed === 'move'}
+                disabled={committed !== null && committed !== 'move'}
+                onDetails={() => setDetails(true)}
+                detailsLabel="פרטי ההצעה ›"
+              />
+              {!mandatory && (
+                <DecisionChoiceCard
+                  title={stayTitle}
+                  subtitle={declinesAll ? 'דוחים את כל ההצעות' : fromClub}
+                  icon={<ClubCrest clubId={career.currentClubId} name={fromClub} size="small" />}
+                  facts={factsForStay(career, fromClub, declinesAll)}
+                  tone="quiet"
+                  onChoose={() => {
+                    if (committed) return;
+                    setCommitted('stay');
+                    onDecline();
+                  }}
+                  selected={committed === 'stay'}
+                  disabled={committed !== null && committed !== 'stay'}
+                />
+              )}
+            </DecisionChoices>
+          }
+          footer={
+            /*
+              Paging as dots plus arrows (v0.9.3, kept). Each offer owns the screen; this is how
+              you move between them, and the state is the index alone - nothing about an offer is
+              lost by paging past it. Locked once a choice is committed.
+            */
+            offers.length > 1 ? (
+              <div className="gf-dec-pager" role="group" aria-label="הצעות נוספות">
+                <button
+                  type="button"
+                  className="gf-dec-page-btn"
+                  disabled={index === 0 || committed !== null}
+                  aria-label="ההצעה הקודמת"
+                  onClick={() => setIndex((i) => Math.max(0, i - 1))}
+                >
+                  ‹
+                </button>
+                <div className="gf-dec-dots">
+                  {offers.map((o, i) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      className={`gf-dec-dot${i === index ? ' gf-dec-dot-on' : ''}`}
+                      aria-label={`הצעה ${i + 1} מתוך ${offers.length}`}
+                      aria-current={i === index ? 'true' : undefined}
+                      disabled={committed !== null}
+                      onClick={() => setIndex(i)}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="gf-dec-page-btn"
+                  disabled={index >= offers.length - 1 || committed !== null}
+                  aria-label="ההצעה הבאה"
+                  onClick={() => setIndex((i) => Math.min(offers.length - 1, i + 1))}
+                >
+                  ›
+                </button>
+              </div>
+            ) : undefined
+          }
+        />
       </CinematicBackdrop>
 
       {/*

@@ -185,13 +185,34 @@ describe('a decision owns the viewport', () => {
     expect(screen).toContain('gf-dec-dots');
     expect(screen).toContain('gf-dec-dot-on');
     expect(screen).not.toContain('gf-dec-page-count');
-    // Paging must not be able to lose an offer: the state is the index alone.
-    expect((screen.match(/useState\(/g) ?? []).length).toBe(2);
+    /*
+     * Paging must not be able to lose an offer, so nothing about an offer lives in state: the
+     * index, whether the sheet is open, and which card has been committed. That last one is
+     * v0.9.5's double-commit guard - see below.
+     */
+    expect((screen.match(/useState[<(]/g) ?? []).length).toBe(3);
   });
 
-  it('carries the agent line and exactly two actions', () => {
+  it('ends in choice cards, not in a generic action row', () => {
+    /*
+     * The v0.9.5 grammar, asserted where it is easiest to regress. The screen used to be
+     * information followed by two GameButtons labelled accept and decline; now the two sides of
+     * the dilemma ARE the buttons, and pressing one commits. If a GameButton ever comes back to
+     * this screen, the form has come back with it.
+     */
     expect(screen).toContain('agentLine');
-    expect((screen.match(/<GameButton/g) ?? []).length).toBe(2);
+    expect(screen).not.toContain('<GameButton');
+    expect((screen.match(/<DecisionChoiceCard/g) ?? []).length).toBe(2);
+    /* One card for a mandatory offer: no stay side, because there is no stay. */
+    expect(screen).toContain('count={mandatory ? 1 : 2}');
+    expect(screen).toContain('{!mandatory && (');
+  });
+
+  it('guards against committing the same decision twice', () => {
+    /* A second tap during the phase transition must not accept an offer and then decline it. */
+    expect(screen).toContain('if (committed) return;');
+    expect(screen).toContain("setCommitted('move')");
+    expect(screen).toContain("setCommitted('stay')");
   });
 
   it('invents no contract facts', () => {
@@ -316,7 +337,7 @@ ${selector} {`);
     };
     expect(rule('.gf-board-num')).toContain('var(--gf-score)');
     expect(rule('.gf-hero-name')).toContain('var(--gf-identity)');
-    expect(rule('.gf-dec-title')).toContain('var(--gf-hero)');
+    expect(rule('.dc-title')).toContain('var(--gf-hero)');
     expect(rule('.gf-moment-title')).toContain('var(--gf-display)');
     expect(rule('.gf-md-ft')).toContain('var(--gf-display)');
     expect(rule('.gf-md-now-text')).toContain('var(--gf-hero)');
@@ -388,8 +409,14 @@ describe('short viewports give way by showing less, not by shrinking', () => {
      * The one thing the brief explicitly forbids: faking the measurement with overflow: hidden.
      * Every region that absorbs height in a tier scrolls, so its content is still reachable.
      */
-    for (const selector of ['.event-choices', '.gf-dec-body', '.gf-md-history-list']) {
-      const at = css.indexOf(selector);
+    for (const selector of ['.event-choices', '.dc-scene-context', '.gf-md-history-list']) {
+      /*
+       * A RULE, not the first mention. Matching on the bare selector found the sentence in the
+       * v0.9.5 block comment that explains which region takes the scroll and reported the
+       * explanation as a missing rule. Requiring the opening brace finds the declaration whether
+       * it is top level or nested inside a media query.
+       */
+      const at = css.indexOf(`${selector} {`);
       expect(at, `${selector} missing`).toBeGreaterThan(0);
       expect(css.slice(at, css.indexOf('}', at))).toContain('overflow-y: auto');
     }

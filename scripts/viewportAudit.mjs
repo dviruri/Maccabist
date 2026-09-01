@@ -61,11 +61,11 @@ const SCENES = [
   { id: 'gf-play-home', bare: '1', need: ['.gf-hero-name', '.gf-next', '.gf-bottomnav', '.btn-primary'] },
   { id: 'gf-play-home-euro', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.gf-context-euro'] },
   { id: 'gf-play-home-offer', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.gf-context-urgent'] },
-  { id: 'gf-play-home-gk', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-kit'] },
-  { id: 'gf-play-home-red', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-kit'] },
-  { id: 'gf-play-home-yellow', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-kit'] },
-  { id: 'gf-play-signing', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.pr-kit'] },
-  { id: 'gf-play-home-youth', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-kit'] },
+  { id: 'gf-play-home-gk', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-art'] },
+  { id: 'gf-play-home-red', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-art'] },
+  { id: 'gf-play-home-yellow', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-art'] },
+  { id: 'gf-play-signing', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.pr-art'] },
+  { id: 'gf-play-home-youth', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-art'] },
   { id: 'gf-play-championship', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary'] },
   { id: 'gf-home', bare: 'shell', need: ['.gf-hero-name', '.gf-next'] },
   { id: 'gf-matchday', bare: '1', need: ['.gf-board-num', '.gf-md-controls', '.gf-btn-primary'] },
@@ -78,7 +78,12 @@ const SCENES = [
    * game's. `gf-play-decision` below is the real screen and is measured instead. The component
    * scene stays in the gallery for screenshots.
    */
-  { id: 'gf-play-decision', bare: '1', need: ['.gf-dec-title', '.gf-btn-primary', '.gf-bottomnav'] },
+  /*
+   * v0.9.5: the decision is choice cards, so the audit asks for choice cards. `.dc-choice-quiet`
+   * is the STAY card - the second one - which is what actually catches the bottom card being
+   * clipped by the nav. Asking only for `.dc-choice` would pass on a screen showing one card.
+   */
+  { id: 'gf-play-decision', bare: '1', need: ['.dc-title', '.dc-choice', '.dc-choice-quiet', '.gf-dec-pager', '.gf-bottomnav'] },
   { id: 'gf-moment', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
   { id: 'gf-moment-uefa', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },
   { id: 'gf-moment-relegation', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },

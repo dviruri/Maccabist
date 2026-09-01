@@ -1892,13 +1892,19 @@
  * exists to prevent.
  */
 .dc-scene-context {
+  /* Takes the slack, so the choices sit at the BOTTOM of the scene rather than after the text. */
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 .dc-scene-context::-webkit-scrollbar { display: none; }
-/* The choices hold their ground: no flex-shrink, no overflow, always reachable. */
+/*
+ * The question and the choices both hold their ground: no flex-shrink, no overflow. Only the
+ * context between them gives way, which is what keeps a decision answerable at 320x568.
+ */
+.dc-scene-head { flex: 0 0 auto; }
 .dc-scene-choices { flex: 0 0 auto; }
 .dc-scene-footer { flex: 0 0 auto; }
 
@@ -1934,18 +1940,22 @@
 /* ---- the choices ---- */
 .dc-choices { display: grid; gap: 10px; }
 /*
- * Two comparable futures sit side by side from 380px up, where measured Hebrew still breaks
- * cleanly at two words a line. Below that they stack - the brief's rule is that type never
- * shrinks to force a layout, so the layout gives way instead.
+ * Side by side when the CONTAINER can afford it, stacked when it cannot.
+ *
+ * `auto-fit` + `minmax` rather than a width media query, and that is not a style preference. A
+ * media query reads the VIEWPORT, and the layout question here is how wide the choice region is -
+ * which is not the same number inside the gallery harness, inside a sheet, or on a tablet. The
+ * first version used `@media (min-width: 380px)` and rendered two cramped columns at a pinned
+ * 320px, because the viewport was 520 and the query was answering about the wrong box.
+ *
+ * The floor is the measurement: 165px is where a two-word Hebrew card title stops breaking to
+ * three lines. Two of those plus the gap need 340px, so a 390pt phone gets a pair and a 320pt
+ * phone gets a stack - the layout gives way, and the type never shrinks to force it.
  */
-@media (min-width: 380px) {
-  .dc-choices-2 { grid-template-columns: 1fr 1fr; }
-}
-/* Three and four go to a 2-up grid rather than a tall stack the document would have to scroll. */
-@media (min-width: 360px) {
-  .dc-choices-3,
-  .dc-choices-4 { grid-template-columns: 1fr 1fr; }
-}
+.dc-choices-2 { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); }
+/* Three and four go 2-up rather than becoming a tall stack the document would have to scroll. */
+.dc-choices-3,
+.dc-choices-4 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 
 .dc-choice-wrap { display: grid; gap: 4px; min-width: 0; }
 
@@ -2019,7 +2029,7 @@
   /* Neutral by default and off-white, never near-black: this sits on dark glass. */
   color: var(--text-primary);
 }
-.dc-fact-icon { flex: 0 0 auto; font-size: 10px; line-height: 1.5; }
+.dc-fact-icon { flex: 0 0 auto; font-size: var(--gf-micro); line-height: 1.25; }
 .dc-fact-text { min-width: 0; }
 .dc-fact.is-positive .dc-fact-text { color: #b9f2cd; }
 .dc-fact.is-negative .dc-fact-text { color: #f6bcbc; }
@@ -2083,12 +2093,26 @@
   .dc-lead { -webkit-line-clamp: 2; }
 }
 @media (max-height: 660px) {
-  .dc-scene { gap: 6px; }
-  .dc-choice { padding: 9px; }
+  .dc-scene { gap: 5px; }
+  .dc-choices { gap: 8px; }
+  .dc-choice { padding: 8px; gap: 5px; }
   .dc-facts { gap: 3px; }
   /*
    * The third fact goes before anything else does. Two consequences still describe the choice;
    * the rest is one tap away in the details sheet, which is where it already lives.
    */
   .dc-fact:nth-child(n + 3) { display: none; }
+  /*
+   * And the decision's own hero gives way to the decision (measured at 320x568).
+   *
+   * The pinned question plus two stacked cards plus the pager needed about 40px more than the
+   * viewport had, and the second card was clipped by the bottom nav. The art is the most
+   * decorative thing on a screen whose subject is a choice, so it is what shrinks - the brief's
+   * rule is that a short screen shows LESS, never smaller, and this removes picture rather than
+   * type. The crest still names the club and the headline still asks the question.
+   */
+  .gf-decision .gf-dec-hero { min-height: 78px; }
+  .gf-decision .gf-dec-crest { transform: scale(1); margin: 2px 0 0; }
+  /* The pager is two arrows and some dots; it does not need its own band of air. */
+  .gf-decision .gf-dec-pager { padding: 0; }
 }

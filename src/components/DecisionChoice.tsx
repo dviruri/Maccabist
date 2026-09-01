@@ -41,27 +41,38 @@ import { FACT_ICON, type ChoiceFact, type OutcomeSummary } from '../ui/decisionV
 /* ------------------------------------------------------------------ */
 
 /**
- * The frame a decision lives in: context on top, choices at the bottom, and the choices pinned.
+ * The frame a decision lives in.
  *
- * The split matters on a short phone. `dc-scene-context` is the region that gives way - it can
- * scroll internally, it can clamp its prose - while `dc-scene-choices` holds its ground, because
- * a decision screen whose choices have scrolled off the bottom has stopped being a decision
- * screen. That is the one-screen rule expressed as a layout rather than as a promise.
+ * Four regions, and exactly one of them is allowed to move:
+ *
+ *   head     the question. NEVER scrolls, never gives way.
+ *   context  everything that elaborates on it. Scrolls when there is not enough room.
+ *   choices  the futures. NEVER scroll off; the decision is always reachable.
+ *   footer   paging, when there is more than one offer.
+ *
+ * The head being pinned is not a detail, it is the product requirement. The first build put the
+ * headline inside the scrolling region, and at 320x568 an offer rendered as a crest and two cards
+ * with the question scrolled out of sight - the player could see what he was choosing between and
+ * not what he was choosing about. A screen that can hide its own question is not a decision
+ * screen, so the question is now structurally incapable of scrolling away.
  */
 export function DecisionScene({
+  head,
   context,
   choices,
   footer,
   className,
 }: {
-  context: ReactNode;
+  head: ReactNode;
+  context?: ReactNode;
   choices: ReactNode;
   footer?: ReactNode;
   className?: string;
 }): JSX.Element {
   return (
     <div className={`dc-scene${className ? ` ${className}` : ''}`}>
-      <div className="dc-scene-context">{context}</div>
+      <div className="dc-scene-head">{head}</div>
+      {context && <div className="dc-scene-context">{context}</div>}
       <div className="dc-scene-choices">{choices}</div>
       {footer && <div className="dc-scene-footer">{footer}</div>}
     </div>
@@ -71,30 +82,24 @@ export function DecisionScene({
 /**
  * The question, stated once and stated large.
  *
- * `kicker` is what kind of moment this is, `title` is what happened. Nothing else belongs here:
- * the first two seconds of looking at a decision must answer "what happened" and "what are my
- * options", and every extra line above the choices costs one of those seconds.
+ * `media` sets the scene, `kicker` says what kind of moment this is, `title` says what happened.
+ * Nothing else belongs here - this region is pinned, so everything added to it is height taken
+ * permanently from the choices. Prose, opinions and elaboration go in the scene's context.
  */
-export function DecisionContext({
+export function DecisionHead({
   kicker,
   title,
-  lead,
-  facts,
-  children,
+  media,
 }: {
   kicker?: string;
   title: string;
-  lead?: ReactNode;
-  facts?: ReactNode;
-  children?: ReactNode;
+  media?: ReactNode;
 }): JSX.Element {
   return (
     <div className="dc-context">
-      {children}
+      {media}
       {kicker && <div className="dc-kicker">{kicker}</div>}
       <h1 className="dc-title">{title}</h1>
-      {lead && <div className="dc-lead">{lead}</div>}
-      {facts && <div className="dc-context-facts">{facts}</div>}
     </div>
   );
 }
