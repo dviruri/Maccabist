@@ -54,10 +54,10 @@ const SCENES = [
    * owns the viewport - so what must be visible is the question and every choice, plus the nav
    * a player uses to check the table before answering.
    */
-  { id: 'gameplay', bare: '1', need: ['.gf-bottomnav', '.event-card', '.card-title', '.btn-choice'] },
-  { id: 'gameplay-away', bare: '1', need: ['.gf-bottomnav', '.event-card', '.btn-choice'] },
-  { id: 'play-academy', bare: '1', need: ['.gf-bottomnav', '.event-card', '.btn-choice'] },
-  { id: 'play-gk', bare: '1', need: ['.gf-bottomnav', '.event-card', '.btn-choice'] },
+  { id: 'gameplay', bare: '1', need: ['.gf-bottomnav', '.event-card', '.card-title', '.dc-choice'] },
+  { id: 'gameplay-away', bare: '1', need: ['.gf-bottomnav', '.event-card', '.dc-choice'] },
+  { id: 'play-academy', bare: '1', need: ['.gf-bottomnav', '.event-card', '.dc-choice'] },
+  { id: 'play-gk', bare: '1', need: ['.gf-bottomnav', '.event-card', '.dc-choice'] },
   { id: 'gf-play-home', bare: '1', need: ['.gf-hero-name', '.gf-next', '.gf-bottomnav', '.btn-primary'] },
   { id: 'gf-play-home-euro', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.gf-context-euro'] },
   { id: 'gf-play-home-offer', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.gf-context-urgent'] },

@@ -1607,29 +1607,19 @@
   .gf-dec-hero { min-height: 118px; }
   .gf-dec-point:nth-child(n + 3) { display: none; }
   /*
-   * The event decision is the one primary screen that gets an internal scroll, and it is
-   * deliberate. A four-choice event with odds bars is ~630px of choices; hiding one would be
-   * worse than scrolling to it, and the question, the match strip and the first choice all stay
-   * on screen. The DOCUMENT still does not scroll.
+   * v0.9.5: the event card no longer scrolls as a whole.
+   *
+   * It used to. At 320x568 the scoreboard, the question and the description came to about 360px,
+   * so v0.9.3 gave the entire card an internal scroll - and a match moment rendered as a strip, a
+   * headline, a paragraph and the top third of one choice. The choices were reachable, but only
+   * by scrolling to them, which is not what "what do you do" should ask of anyone.
+   *
+   * The card is a DecisionScene now, so the split is structural: the framing and the question are
+   * pinned, the DESCRIPTION is the region that gives way, and the choices hold. Nothing here needs
+   * a max-height any more, and the choices must not take a scroll of their own - see
+   * .dc-scene-choices.
    */
-  .play-main-decision .event-choices {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    max-height: 40vh;
-  }
-  /*
-   * And at this height the whole event card scrolls inside itself. At 320x568 the question, the
-   * match strip and the description alone are about 360px, so there is no arrangement of a
-   * four-choice event with odds bars that fits - and hiding a choice would be worse than
-   * scrolling to it. The DOCUMENT still does not scroll, and nothing is clipped away.
-   */
-  .play-main-decision > .event-card {
-    max-height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  /* the offer's detail scrolls; its header and its two buttons do not move */
-  .gf-dec-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .play-main-decision > .event-card { min-height: 0; }
   .gf-decision .gf-scene-content { overflow: hidden; }
   .gf-moment .gf-scene-content { min-height: 0; gap: 8px; }
   .gf-moment-with-player .gf-moment-stage { height: clamp(130px, 26vh, 200px); }
@@ -1859,6 +1849,17 @@
     mask-image: linear-gradient(to bottom, #000 90%, transparent 100%);
   }
 }
+
+/*
+ * The event card, as a decision scene (v0.9.5). It is a `.card` for its surface and a flex
+ * column for its layout, so the scene inside it can pin the question and hold the choices.
+ */
+.play-main-decision > .event-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.play-main-decision > .event-card > .dc-scene { flex: 1; min-height: 0; }
 
 /* =====================================================================
    v0.9.5 — THE CAREER DECISION LANGUAGE
@@ -2115,4 +2116,34 @@
   .gf-decision .gf-dec-crest { transform: scale(1); margin: 2px 0 0; }
   /* The pager is two arrows and some dots; it does not need its own band of air. */
   .gf-decision .gf-dec-pager { padding: 0; }
+  /*
+   * The event's variant strip goes, so its second CHOICE fits (measured at 320x568).
+   *
+   * "רגע במשחק · רגע גדול" is a label for the kind of moment, and on a match event the scoreboard
+   * directly beneath it already says that far more concretely. It was costing ~30px on the one
+   * viewport where the bottom choice card was being clipped by the nav. Framing gives way to the
+   * decision; that is the order of priority this release is built on.
+   */
+  .play-main-decision .event-head { display: none; }
+  .play-main-decision .event-card .card-body { -webkit-line-clamp: 2; }
+  /*
+   * And on the shortest phones the event's CHOICE REGION takes the scroll - the one place in this
+   * release where a decision region is allowed to.
+   *
+   * Measured at 320x568: after the framing has gone and the description is clamped to two lines,
+   * two choice cards carrying risk, two consequences and an odds bar still need about 60px more
+   * than the viewport has. Every alternative was worse - hiding a choice removes an option the
+   * engine will honour, dropping the odds removes the numbers this release exists to show, and
+   * shrinking the type is the one thing the brief forbids outright.
+   *
+   * So the choices scroll INSIDE their own region while the question stays pinned above them and
+   * the document does not move. `auto` and never `hidden`: everything stays reachable.
+   */
+  .play-main-decision .dc-scene-choices {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .play-main-decision .dc-scene-context { flex: 0 1 auto; }
 }

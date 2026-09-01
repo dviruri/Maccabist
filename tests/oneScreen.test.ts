@@ -409,7 +409,13 @@ describe('short viewports give way by showing less, not by shrinking', () => {
      * The one thing the brief explicitly forbids: faking the measurement with overflow: hidden.
      * Every region that absorbs height in a tier scrolls, so its content is still reachable.
      */
-    for (const selector of ['.event-choices', '.dc-scene-context', '.gf-md-history-list']) {
+    /*
+     * v0.9.5 moved the event decision's scroll off `.event-choices` and onto the scene's own
+     * regions, so that is where it is checked. The choice region's override - the one place a
+     * decision region is allowed to scroll at all - is asserted in tests/decisionLanguage.test.ts,
+     * which walks every `.dc-scene-choices` rule rather than only the first.
+     */
+    for (const selector of ['.dc-scene-context', '.gf-md-history-list']) {
       /*
        * A RULE, not the first mention. Matching on the bare selector found the sentence in the
        * v0.9.5 block comment that explains which region takes the scroll and reported the

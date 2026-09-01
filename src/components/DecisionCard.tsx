@@ -7,6 +7,9 @@ import {
   RISK_LABELS,
 } from '../game/decisionEngine';
 import { CHOICE_RISK_LABELS } from '../ui/format';
+import { factsFromHints, isProbabilistic, outcomeSummary } from '../ui/decisionView';
+import { DecisionChoiceCard, DecisionChoices, DecisionScene } from './DecisionChoice';
+import { Sheet } from './Sheet';
 import { currentTeamDisplay } from '../game/identity';
 import { playerLeague } from '../game/worldEngine';
 import { cupFinalOpponent } from '../game/cupEngine';
@@ -74,155 +77,129 @@ function OutcomeList({ distribution }: { distribution: DecisionDistribution }): 
   );
 }
 
-/**
- * A stacked bar of the outcome split, ordered good -> neutral -> bad.
- *
- * Deliberately not colour-only: the segments carry a title and the detailed list underneath names
- * every outcome with its percentage, so nothing is communicated by hue alone.
- */
-function OddsBar({ distribution }: { distribution: DecisionDistribution }): JSX.Element | null {
-  if (distribution.outcomes.length < 2) return null;
-
-  const order: OutcomeValence[] = [
-    'majorPositive',
-    'positive',
-    'neutral',
-    'negative',
-    'majorNegative',
-  ];
-  const segments = order
-    .map((valence) => ({
-      valence,
-      percent: distribution.outcomes
-        .filter((o) => o.valence === valence)
-        .reduce((sum, o) => sum + o.percent, 0),
-    }))
-    .filter((segment) => segment.percent > 0);
-
-  /*
-   * Roll the five valences up into three numbers for the summary (v0.4.7, Phase 9.1).
-   *
-   * The bar alone shows the shape and not the size: a player can see that a choice is mostly green
-   * without knowing whether that is 55% or 85%, which is exactly the judgement he is being asked
-   * to make. Three figures beside the bar give him that without expanding anything - and this is a
-   * *summary*, so the concrete outcomes stay one tap away and are not replaced by it.
-   */
-  const share = (valences: OutcomeValence[]): number =>
-    segments.filter((s) => valences.includes(s.valence)).reduce((sum, s) => sum + s.percent, 0);
-
-  const summary = [
-    { key: 'good', icon: '🟢', label: 'טוב', percent: share(['majorPositive', 'positive']) },
-    { key: 'flat', icon: '⚪', label: 'ללא שינוי', percent: share(['neutral']) },
-    { key: 'bad', icon: '🔴', label: 'רע', percent: share(['negative', 'majorNegative']) },
-  ].filter((row) => row.percent > 0);
-
-  return (
-    <div className="odds-summary">
-      <div className="odds-bar" role="img" aria-label={ariaFor(distribution)}>
-        {segments.map((segment) => (
-          <span
-            key={segment.valence}
-            className={`odds-seg valence-${segment.valence}`}
-            style={{ width: `${segment.percent}%` }}
-          />
-        ))}
-      </div>
-      <div className="odds-figures">
-        {summary.map((row) => (
-          <span key={row.key} className={`odds-figure is-${row.key}`}>
-            {/* The icon is decoration; the label is what carries the meaning for a screen reader
-                and for anyone who cannot distinguish the colours. */}
-            <span aria-hidden>{row.icon}</span>
-            <span className="odds-figure-pct">{row.percent}%</span>
-            <span className="sr-only">{row.label}</span>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ariaFor(distribution: DecisionDistribution): string {
-  return distribution.outcomes.map((o) => `${o.label} ${o.percent}%`).join(', ');
-}
-
-interface ChoiceBlockProps {
+interface EventChoiceCardProps {
   career: Career;
   event: GameEvent;
   choiceIndex: number;
-  expanded: boolean;
-  onToggle: () => void;
   onChoose: () => void;
+  onDetails: () => void;
+  selected: boolean;
   disabled: boolean;
 }
 
-function ChoiceBlock({
+/**
+ * One event choice, as a career decision (v0.9.5).
+ *
+ * ## What this replaced
+ *
+ * A `btn btn-choice` with a risk label, an always-visible odds bar, and a "מה יכול לקרות?" toggle
+ * that expanded the concrete outcomes INLINE. Four choices with four outcomes each was an
+ * unreadable wall on a phone, and expanding one pushed the others off the screen - so the
+ * comparison the bar existed to enable stopped working the moment anyone used it.
+ *
+ * Now each choice is a card carrying its own consequences, and the concrete outcomes moved into a
+ * sheet. Comparing two choices is reading two cards; reading the full outcome list is one tap and
+ * does not move anything.
+ *
+ * ## Where every number comes from
+ *
+ * `calculateOutcomeDistribution` - the same call the resolver is handed. `outcomeSummary` groups
+ * its percentages by valence and computes nothing; `consequenceHints` supplies the fact lines in
+ * the engine's own words. A choice whose distribution has one outcome gets NO odds at all and
+ * shows its authored hint instead, because it has no odds to show.
+ */
+function EventChoiceCard({
   career,
   event,
   choiceIndex,
-  expanded,
-  onToggle,
   onChoose,
+  onDetails,
+  selected,
   disabled,
-}: ChoiceBlockProps): JSX.Element {
+}: EventChoiceCardProps): JSX.Element {
   const choice = event.choices[choiceIndex]!;
   const distribution = useMemo(
     () => calculateOutcomeDistribution(career, event, choice, career.seasonSlot),
     [career, event, choice],
   );
   const hints = useMemo(() => consequenceHints(distribution, choice), [distribution, choice]);
-  const probabilistic = distribution.outcomes.length >= 2;
+  const probabilistic = isProbabilistic(distribution);
+
+  /*
+   * The qualitative line, for a choice with nothing to be uncertain about. The author's own hint
+   * comes first because it was written for this situation; the risk band is the fallback.
+   */
+  const note = probabilistic
+    ? undefined
+    : (choice.hint ?? (choice.risk ? CHOICE_RISK_LABELS[choice.risk] : undefined));
+
+  /*
+   * The engine's own qualitative read, kept (v0.9.5).
+   *
+   * `riskLevelFrom` weighs how likely AND how severe the downside is, so "unlikely but
+   * catastrophic" and "likely but mild" do not collapse into the same word - which is a judgement
+   * the three summary figures genuinely cannot express. It sits as the card's subtitle, beside
+   * the numbers rather than instead of them.
+   */
+  const subtitle = probabilistic
+    ? `${RISK_LABELS[distribution.risk]}${hasHighUpside(distribution) ? ' · פוטנציאל גבוה' : ''}`
+    : undefined;
 
   return (
-    <div className={`choice-block risk-${choice.risk ?? 'balanced'}`}>
-      <button
-        type="button"
-        className="btn btn-choice"
-        onClick={onChoose}
-        disabled={disabled}
-      >
-        <span>{choice.label}</span>
-        <span className="hint">
-          {probabilistic
-            ? RISK_LABELS[distribution.risk]
-            : (choice.hint ?? (choice.risk ? CHOICE_RISK_LABELS[choice.risk] : ''))}
-          {probabilistic && hasHighUpside(distribution) ? ' · פוטנציאל גבוה' : ''}
-        </span>
-      </button>
+    <DecisionChoiceCard
+      title={choice.label}
+      subtitle={subtitle}
+      facts={factsFromHints(hints)}
+      odds={probabilistic ? outcomeSummary(distribution) : null}
+      note={note}
+      onChoose={onChoose}
+      selected={selected}
+      disabled={disabled}
+      /* Only a probabilistic choice has outcomes worth opening. */
+      {...(probabilistic ? { onDetails } : {})}
+    />
+  );
+}
 
-      {probabilistic && (
-        <>
-          {/*
-            An at-a-glance split, always visible. The detailed percentages are collapsed because
-            four choices with four outcomes each is an unreadable wall on a 360px phone — but the
-            player has to be able to *compare* choices without expanding every one, and a risk
-            label alone does not let him do that. The bar is the comparison; the list is the detail.
-          */}
-          <OddsBar distribution={distribution} />
+/**
+ * Everything a choice could actually do, behind one tap.
+ *
+ * The exact outcome labels, the exact engine percentages, and the consequence hints - the same
+ * three things the inline expansion used to show, in a surface that does not push the decision
+ * off the screen when it opens.
+ */
+function OutcomeSheet({
+  career,
+  event,
+  choiceIndex,
+  onClose,
+}: {
+  career: Career;
+  event: GameEvent;
+  choiceIndex: number | null;
+  onClose: () => void;
+}): JSX.Element | null {
+  const choice = choiceIndex === null ? null : event.choices[choiceIndex];
+  const distribution = useMemo(
+    () => (choice ? calculateOutcomeDistribution(career, event, choice, career.seasonSlot) : null),
+    [career, event, choice],
+  );
+  if (!choice || !distribution) return null;
+  const hints = consequenceHints(distribution, choice);
 
-          <button type="button" className="odds-toggle" onClick={onToggle} disabled={disabled}>
-            {/*
-              "What could happen?" rather than "show odds" (Phase 9.2). The player is not asking
-              for numbers, he is asking what this decision might do to his career - and what the
-              expansion actually contains is v0.4.6's concrete outcome descriptions.
-            */}
-            {expanded ? 'להסתיר' : 'מה יכול לקרות?'}
-          </button>
-          {expanded && (
-            <>
-              <OutcomeList distribution={distribution} />
-              {hints.length > 0 && (
-                <ul className="odds-hints">
-                  {hints.map((hint) => (
-                    <li key={hint}>{hint}</li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-        </>
-      )}
-    </div>
+  return (
+    <Sheet open title="מה יכול לקרות?" subtitle={choice.label} onClose={onClose}>
+      <div className="stack">
+        <OutcomeList distribution={distribution} />
+        {hints.length > 0 && (
+          <ul className="odds-hints">
+            {hints.map((hint) => (
+              <li key={hint}>{hint}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Sheet>
   );
 }
 
@@ -407,7 +384,16 @@ export function DecisionCard({
   onChoose,
   defaultExpanded,
 }: DecisionCardProps): JSX.Element {
-  const [expanded, setExpanded] = useState<string | null>(defaultExpanded ?? null);
+  /*
+   * `defaultExpanded` is a choice id; it now opens that choice's outcome sheet instead of an
+   * inline expansion. Gallery only - it exists so the outcome detail can be screenshotted, which
+   * is how a surface stops going unchecked.
+   */
+  const [detailsFor, setDetailsFor] = useState<number | null>(() => {
+    if (!defaultExpanded) return null;
+    const at = event.choices.findIndex((choice) => choice.id === defaultExpanded);
+    return at >= 0 ? at : null;
+  });
   const [committed, setCommitted] = useState<string | null>(null);
 
   const visual = eventVisual(event, career);
@@ -418,75 +404,91 @@ export function DecisionCard({
     <article
       className={`card event-card variant-${visual.variant} importance-${visual.importance}`}
     >
-      <div className="stack">
-        {/*
-          A header strip that says what kind of moment this is. Events used to be
-          indistinguishable from each other; the variant changes the accent, the icon and this
-          label without becoming a different layout.
-        */}
-        <div className="event-head">
-          <span className="event-head-icon" aria-hidden>
-            {visual.icon}
-          </span>
-          <span className="event-head-label">{visual.label}</span>
-          {visual.importance === 'major' && <span className="event-head-flag">רגע גדול</span>}
-        </div>
+      {/*
+        The same scene as every other decision in the game (v0.9.5): the framing and the question
+        are PINNED, the description gives way, the choices never scroll off.
 
-        {/*
-          Maccabi gets its own header (v0.4.5.1). Sami Ofer and news-from-home are distinct enough
-          moments to deserve their own framing; everything else about the club gets the "מהבית"
-          band so it cannot read as a message from the current club.
-        */}
-        {maccabi === 'sami_ofer' && <SamiOferHeader career={career} />}
-        {maccabi === 'ambient_news' && <AmbientNewsHeader career={career} />}
-        {maccabi === 'relationship' && <MaccabiBanner career={career} />}
+        Before this the whole card took an internal scroll at 320x568, so a match moment rendered
+        as a scoreboard, a question, a paragraph - and the top third of one choice. The choices
+        were reachable, but only by scrolling to them, which is not what "what do you do" should
+        require.
+      */}
+      <DecisionScene
+        head={
+          <div className="stack-sm">
+            {/*
+              A header strip that says what kind of moment this is. Events used to be
+              indistinguishable from each other; the variant changes the accent, the icon and this
+              label without becoming a different layout.
+            */}
+            <div className="event-head">
+              <span className="event-head-icon" aria-hidden>
+                {visual.icon}
+              </span>
+              <span className="event-head-label">{visual.label}</span>
+              {visual.importance === 'major' && <span className="event-head-flag">רגע גדול</span>}
+            </div>
 
-        {asMatch && maccabi !== 'sami_ofer' && <MatchStrip career={career} event={event} />}
+            {/*
+              Maccabi gets its own header (v0.4.5.1). Sami Ofer and news-from-home are distinct
+              enough moments to deserve their own framing; everything else about the club gets the
+              "מהבית" band so it cannot read as a message from the current club.
+            */}
+            {maccabi === 'sami_ofer' && <SamiOferHeader career={career} />}
+            {maccabi === 'ambient_news' && <AmbientNewsHeader career={career} />}
+            {maccabi === 'relationship' && <MaccabiBanner career={career} />}
 
-        {/*
-          v0.6.3, D5: a cup final shows both finalists. The opponent comes from the authoritative
-          cup state - the same fact the event was gated on - so the strip can never name a club
-          that is not actually in the final. Neutral by design: two crests, two names, no home
-          side, matching the event's competition-owned gold treatment.
-        */}
-        {event.conditions.cupFinal !== undefined && <CupFinalStrip career={career} />}
+            {asMatch && maccabi !== 'sami_ofer' && <MatchStrip career={career} event={event} />}
 
-        {/*
-          v0.5, Phase 30: when a person is central to the event, name them. The header reads
-          career state - the one place the name lives - so a recurring character is always the
-          same person here, whatever this file says about him.
-        */}
-        {event.category === 'people' && <PersonHeader career={career} eventId={event.id} />}
+            {/*
+              v0.6.3, D5: a cup final shows both finalists. The opponent comes from the
+              authoritative cup state - the same fact the event was gated on - so the strip can
+              never name a club that is not actually in the final.
+            */}
+            {event.conditions.cupFinal !== undefined && <CupFinalStrip career={career} />}
 
-        {event.kicker && <div className="kicker">{event.kicker}</div>}
-        <h2 className="card-title">{event.title}</h2>
-        <p className="card-body">{event.description}</p>
+            {/*
+              v0.5, Phase 30: when a person is central to the event, name them. The header reads
+              career state - the one place the name lives - so a recurring character is always the
+              same person here, whatever this file says about him.
+            */}
+            {event.category === 'people' && <PersonHeader career={career} eventId={event.id} />}
 
-        {/*
-          `event-choices` (v0.9.3, Phase 8). Named so a very short viewport can give the CHOICE
-          LIST its own scroll while the question above it stays put - see the max-height rules in
-          gamefeel.css. On a 568px-tall phone a four-choice event with odds cannot fit, and hiding
-          a choice would be worse than scrolling to it.
-        */}
-        <div className="stack-sm event-choices" style={{ marginTop: 4 }}>
-          {event.choices.map((choice, index) => (
-            <ChoiceBlock
-              key={choice.id}
-              career={career}
-              event={event}
-              choiceIndex={index}
-              expanded={expanded === choice.id}
-              onToggle={() => setExpanded(expanded === choice.id ? null : choice.id)}
-              onChoose={() => {
-                if (committed) return;
-                setCommitted(choice.id);
-                onChoose(choice.id);
-              }}
-              disabled={committed !== null && committed !== choice.id}
-            />
-          ))}
-        </div>
-      </div>
+            {event.kicker && <div className="kicker">{event.kicker}</div>}
+            <h2 className="card-title">{event.title}</h2>
+          </div>
+        }
+        /* The one thing allowed to give way. Everything above asks the question; this elaborates. */
+        context={<p className="card-body">{event.description}</p>}
+        choices={
+          <div className="event-choices">
+            <DecisionChoices count={event.choices.length}>
+              {event.choices.map((choice, index) => (
+                <EventChoiceCard
+                  key={choice.id}
+                  career={career}
+                  event={event}
+                  choiceIndex={index}
+                  onChoose={() => {
+                    if (committed) return;
+                    setCommitted(choice.id);
+                    onChoose(choice.id);
+                  }}
+                  onDetails={() => setDetailsFor(index)}
+                  selected={committed === choice.id}
+                  disabled={committed !== null && committed !== choice.id}
+                />
+              ))}
+            </DecisionChoices>
+          </div>
+        }
+      />
+      <OutcomeSheet
+        career={career}
+        event={event}
+        choiceIndex={detailsFor}
+        onClose={() => setDetailsFor(null)}
+      />
     </article>
   );
 }

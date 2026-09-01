@@ -201,6 +201,24 @@ describe('the scene holds the choices and lets the context give way', () => {
     expect(rule('.dc-scene-choices')).not.toContain('overflow');
   });
 
+  it('keeps every choice reachable wherever a tier does give the region a scroll', () => {
+    /*
+     * One place is allowed to override the rule above: at 320x568 an event with two odds-bearing
+     * cards does not fit, and the brief's escape hatch is an internal scroll in a dedicated
+     * choice region. What must never happen is `hidden`, which would make a legal choice
+     * unreachable rather than merely off-screen - so every override is checked for `auto`.
+     */
+    const overrides = [...css.matchAll(/\.dc-scene-choices\s*\{([^}]*)\}/g)].map((m) => m[1] ?? '');
+    expect(overrides.length).toBeGreaterThanOrEqual(2);
+    for (const body of overrides) {
+      if (!body.includes('overflow')) continue;
+      expect(body).toContain('overflow-y: auto');
+      expect(body).not.toContain('hidden');
+      /* A scrolling region must also be allowed to shrink, or it just pushes the document. */
+      expect(body).toContain('min-height: 0');
+    }
+  });
+
   it('changes no font size in any height tier', () => {
     /*
      * The release rule, checked on the new block specifically. A short screen removes content and
