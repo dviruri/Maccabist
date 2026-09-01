@@ -687,14 +687,37 @@ export function simulateEuropeanSeason(
     atNode.delete(nodeId);
     if (entrants.length === 0) continue;
 
-    // Odd field: the best-ranked club receives a bye - the seeded draw's kindness, documented.
+    /*
+     * Odd field: the best-ranked club receives a bye - the seeded draw's kindness, documented.
+     *
+     * v0.9.6 RECORDS it. The advancement itself is unchanged and always worked; what was missing
+     * was any trace of it in the journey, so a watched club's story jumped from the first
+     * qualifying round to the third with nothing in between. It had not skipped a round, it had
+     * been given one - and a story that cannot say which is indistinguishable from a bug.
+     *
+     * The step carries no opponent and no score because there was no match. `matches` is
+     * untouched for the same reason, and so are the coefficient points: a bye earns neither, and
+     * changing that would move real football outcomes to fix a presentation gap.
+     */
     if (entrants.length % 2 === 1) {
       const bye = entrants.shift()!;
+      bye.steps?.push({
+        kind: 'bye',
+        competition: node.competition,
+        stage: nodeId,
+        advanceTo: node.winTo,
+      });
       if (node.winTo === LEAGUE_PHASE) {
         bye.reachedLeaguePhase = true;
         bye.furthest = LEAGUE_PHASE;
         leaguePhase[node.competition].push(bye);
       } else {
+        /*
+         * And `furthest` moves, which it did not before. The winner of a tie sets
+         * `furthest = node.winTo`; the club given a bye reached exactly the same round and was
+         * left recorded at the previous one. Same fact, same field, now the same answer.
+         */
+        bye.furthest = node.winTo;
         atNode.set(node.winTo, [...(atNode.get(node.winTo) ?? []), bye]);
       }
     }

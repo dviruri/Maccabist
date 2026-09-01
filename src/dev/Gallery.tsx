@@ -311,10 +311,16 @@ const galleryJourney = (): EuropeanJourney => ({
         aggFor: 3, aggAgainst: 2, won: true,
       },
     },
+    /*
+     * A BYE at the second round (v0.9.6). The gallery carries one because this step had no way to
+     * be looked at otherwise, and the bug it fixes was a rendering gap - a journey that read
+     * "first round ... third round" with nothing between. Now it can be screenshotted.
+     */
+    { kind: 'bye', competition: 'uefa_champions_league', stage: 'ucl_q2', advanceTo: 'ucl_q3' },
     {
       kind: 'tie',
       tie: {
-        stage: 'ucl_q2', competition: 'uefa_champions_league', opponentId: 'fld_red_star',
+        stage: 'ucl_q3', competition: 'uefa_champions_league', opponentId: 'fld_red_star',
         opponentName: 'הכוכב האדום',
         legs: [{ for: 0, against: 1, home: true }, { for: 1, against: 2, home: false }],
         aggFor: 1, aggAgainst: 3, won: false,

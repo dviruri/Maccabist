@@ -769,6 +769,18 @@ export interface EuropeanTie {
 export type EuropeanStep =
   | { kind: 'entered'; competition: UefaCompetitionId; entry: string; reason: UefaEntryReasonKind }
   | { kind: 'tie'; tie: EuropeanTie }
+  /**
+   * A round the club advanced through without playing (v0.9.6).
+   *
+   * A qualifying node with an odd number of entrants gives the best-ranked club a bye. The engine
+   * has always done this; until v0.9.6 it recorded NOTHING, so a watched journey read
+   * "סיבוב ראשון ... סיבוב שלישי" and the second round simply was not there. The club had not
+   * skipped it - it had walked through it - but the story could not say so.
+   *
+   * Deliberately carries no opponent, no score, no legs and no venue. A bye is a bye, and
+   * inventing a match to fill the gap would be a worse lie than the gap was.
+   */
+  | { kind: 'bye'; competition: UefaCompetitionId; stage: string; advanceTo: string }
   | { kind: 'dropped'; from: UefaCompetitionId; to: UefaCompetitionId; toEntry: string }
   | {
       kind: 'league_phase';

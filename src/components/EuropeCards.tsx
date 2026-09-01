@@ -90,8 +90,15 @@ export function EuropeCard({
     (step): step is Extract<EuropeanStep, { kind: 'entered' }> => step.kind === 'entered',
   );
   const nextRoute = nextSeasonRoute(career, career.currentClubId);
+  /*
+   * Byes belong here (v0.9.6). Without them the qualifying story renders the rounds that had a
+   * MATCH and silently omits the one the club was given, so Q1 is followed by Q3.
+   */
   const qualifyingSteps = journey.steps.filter(
-    (step) => (step.kind === 'tie' && step.tie.stage in QUALIFYING_GRAPH) || step.kind === 'dropped',
+    (step) =>
+      (step.kind === 'tie' && step.tie.stage in QUALIFYING_GRAPH) ||
+      step.kind === 'dropped' ||
+      step.kind === 'bye',
   );
 
   return (
@@ -127,6 +134,8 @@ export function EuropeCard({
       {qualifyingSteps.map((step, index) =>
         step.kind === 'tie' ? (
           <TieLine key={index} tie={step.tie} />
+        ) : step.kind === 'bye' ? (
+          <ByeLine key={index} stage={step.stage} />
         ) : step.kind === 'dropped' ? (
           <p key={index} className="euro-drop-line">
             ← ירדנו ל{step.toEntry === LEAGUE_PHASE ? `שלב הליגה של ${UEFA_COMPETITIONS[step.to].name}` : (QUALIFYING_GRAPH[step.toEntry]?.label ?? UEFA_COMPETITIONS[step.to].name)}
@@ -161,6 +170,22 @@ export function EuropeCard({
 }
 
 /**
+ * A round walked through rather than played (v0.9.6).
+ *
+ * Names the round and says what happened, which is nothing: an odd field, and the club with the
+ * best coefficient goes straight to the next round. No opponent, no score, no legs - a bye has
+ * none of those, and drawing an empty scoreline would be inventing a match.
+ */
+function ByeLine({ stage }: { stage: string }): JSX.Element {
+  return (
+    <div className="euro-journey-line euro-bye-line">
+      <span className="euro-bye-stage">{QUALIFYING_GRAPH[stage]?.label ?? stage}</span>
+      <span className="euro-bye-note">מעבר אוטומטי</span>
+    </div>
+  );
+}
+
+/**
  * The whole journey as season-summary story lines - the record the archive keeps, told in the
  * order it happened, ending in a standing, an exit, or a trophy.
  */
@@ -180,6 +205,8 @@ export function EuropeJourneySummary({ journey }: { journey: EuropeanJourney }):
             );
           case 'tie':
             return <TieLine key={index} tie={step.tie} />;
+          case 'bye':
+            return <ByeLine key={index} stage={step.stage} />;
           case 'dropped':
             return (
               <div key={index} className="euro-journey-line euro-drop-line">

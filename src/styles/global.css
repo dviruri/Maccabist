@@ -4401,6 +4401,21 @@ p {
   color: var(--text-secondary);
 }
 .euro-journey-entered { font-weight: 800; color: var(--text-primary); }
+/*
+ * A bye (v0.9.6). Deliberately quiet: it is a real part of the story and it is not a result, so
+ * it reads as a round that happened rather than as a match that was won. The round is named at
+ * primary weight because it IS a round the club traversed; the note explaining it is secondary.
+ */
+.euro-bye-line { justify-content: flex-start; gap: 8px; }
+.euro-bye-stage { font-weight: 800; color: var(--text-primary); }
+.euro-bye-note {
+  font-weight: 700;
+  color: var(--text-secondary);
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11.5px;
+}
 .euro-champion-line {
   font-weight: 900;
   color: var(--gold);
