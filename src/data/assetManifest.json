@@ -1,0 +1,173 @@
+{
+  "basePath": "/assets/maccabist",
+  "playerAssets": {
+    "outfield": {
+      "child": {
+        "hero": {
+          "green": "/assets/maccabist/players/outfield/child/hero/green.png",
+          "yellow": "/assets/maccabist/players/outfield/child/hero/yellow.png",
+          "red": "/assets/maccabist/players/outfield/child/hero/red.png",
+          "blue": "/assets/maccabist/players/outfield/child/hero/blue.png",
+          "white": "/assets/maccabist/players/outfield/child/hero/white.png",
+          "black": "/assets/maccabist/players/outfield/child/hero/black.png"
+        },
+        "celebration": {
+          "green": "/assets/maccabist/players/outfield/child/celebration/green.png",
+          "yellow": "/assets/maccabist/players/outfield/child/celebration/yellow.png",
+          "red": "/assets/maccabist/players/outfield/child/celebration/red.png",
+          "blue": "/assets/maccabist/players/outfield/child/celebration/blue.png",
+          "white": "/assets/maccabist/players/outfield/child/celebration/white.png",
+          "black": "/assets/maccabist/players/outfield/child/celebration/black.png"
+        }
+      },
+      "youth": {
+        "hero": {
+          "green": "/assets/maccabist/players/outfield/youth/hero/green.png",
+          "yellow": "/assets/maccabist/players/outfield/youth/hero/yellow.png",
+          "red": "/assets/maccabist/players/outfield/youth/hero/red.png",
+          "blue": "/assets/maccabist/players/outfield/youth/hero/blue.png",
+          "white": "/assets/maccabist/players/outfield/youth/hero/white.png",
+          "black": "/assets/maccabist/players/outfield/youth/hero/black.png"
+        },
+        "celebration": {
+          "green": "/assets/maccabist/players/outfield/youth/celebration/green.png",
+          "yellow": "/assets/maccabist/players/outfield/youth/celebration/yellow.png",
+          "red": "/assets/maccabist/players/outfield/youth/celebration/red.png",
+          "blue": "/assets/maccabist/players/outfield/youth/celebration/blue.png",
+          "white": "/assets/maccabist/players/outfield/youth/celebration/white.png",
+          "black": "/assets/maccabist/players/outfield/youth/celebration/black.png"
+        }
+      },
+      "adult": {
+        "hero": {
+          "green": "/assets/maccabist/players/outfield/adult/hero/green.png",
+          "yellow": "/assets/maccabist/players/outfield/adult/hero/yellow.png",
+          "red": "/assets/maccabist/players/outfield/adult/hero/red.png",
+          "blue": "/assets/maccabist/players/outfield/adult/hero/blue.png",
+          "white": "/assets/maccabist/players/outfield/adult/hero/white.png",
+          "black": "/assets/maccabist/players/outfield/adult/hero/black.png"
+        },
+        "celebration": {
+          "green": "/assets/maccabist/players/outfield/adult/celebration/green.png",
+          "yellow": "/assets/maccabist/players/outfield/adult/celebration/yellow.png",
+          "red": "/assets/maccabist/players/outfield/adult/celebration/red.png",
+          "blue": "/assets/maccabist/players/outfield/adult/celebration/blue.png",
+          "white": "/assets/maccabist/players/outfield/adult/celebration/white.png",
+          "black": "/assets/maccabist/players/outfield/adult/celebration/black.png"
+        }
+      }
+    },
+    "goalkeeper": {
+      "child": {
+        "ready": {
+          "blue": "/assets/maccabist/players/goalkeeper/child/ready/blue.png",
+          "pink": "/assets/maccabist/players/goalkeeper/child/ready/pink.png",
+          "purple": "/assets/maccabist/players/goalkeeper/child/ready/purple.png",
+          "black": "/assets/maccabist/players/goalkeeper/child/ready/black.png"
+        },
+        "celebration": {
+          "blue": "/assets/maccabist/players/goalkeeper/child/celebration/blue.png",
+          "pink": "/assets/maccabist/players/goalkeeper/child/celebration/pink.png",
+          "purple": "/assets/maccabist/players/goalkeeper/child/celebration/purple.png",
+          "black": "/assets/maccabist/players/goalkeeper/child/celebration/black.png"
+        }
+      },
+      "youth": {
+        "ready": {
+          "blue": "/assets/maccabist/players/goalkeeper/youth/ready/blue.png",
+          "pink": "/assets/maccabist/players/goalkeeper/youth/ready/pink.png",
+          "purple": "/assets/maccabist/players/goalkeeper/youth/ready/purple.png",
+          "black": "/assets/maccabist/players/goalkeeper/youth/ready/black.png"
+        },
+        "celebration": {
+          "blue": "/assets/maccabist/players/goalkeeper/youth/celebration/blue.png",
+          "pink": "/assets/maccabist/players/goalkeeper/youth/celebration/pink.png",
+          "purple": "/assets/maccabist/players/goalkeeper/youth/celebration/purple.png",
+          "black": "/assets/maccabist/players/goalkeeper/youth/celebration/black.png"
+        }
+      },
+      "adult": {
+        "ready": {
+          "blue": "/assets/maccabist/players/goalkeeper/adult/ready/blue.png",
+          "pink": "/assets/maccabist/players/goalkeeper/adult/ready/pink.png",
+          "purple": "/assets/maccabist/players/goalkeeper/adult/ready/purple.png",
+          "black": "/assets/maccabist/players/goalkeeper/adult/ready/black.png"
+        },
+        "celebration": {
+          "blue": "/assets/maccabist/players/goalkeeper/adult/celebration/blue.png",
+          "pink": "/assets/maccabist/players/goalkeeper/adult/celebration/pink.png",
+          "purple": "/assets/maccabist/players/goalkeeper/adult/celebration/purple.png",
+          "black": "/assets/maccabist/players/goalkeeper/adult/celebration/black.png"
+        }
+      }
+    }
+  },
+  "clubColorFallbacks": {
+    "maccabi-haifa": {
+      "role": "outfield",
+      "primary": "green",
+      "goalkeeperPrimary": "black",
+      "goalkeeperAlt": [
+        "blue",
+        "purple",
+        "pink"
+      ]
+    },
+    "maccabi-tel-aviv": {
+      "role": "outfield",
+      "primary": "yellow",
+      "goalkeeperPrimary": "black",
+      "goalkeeperAlt": [
+        "blue",
+        "purple",
+        "pink"
+      ]
+    },
+    "beitar-jerusalem": {
+      "role": "outfield",
+      "primary": "yellow",
+      "secondary": "black",
+      "goalkeeperPrimary": "black",
+      "goalkeeperAlt": [
+        "blue",
+        "purple"
+      ]
+    },
+    "hapoel-default": {
+      "role": "outfield",
+      "primary": "red",
+      "goalkeeperPrimary": "black",
+      "goalkeeperAlt": [
+        "blue",
+        "pink"
+      ]
+    },
+    "national-blue-default": {
+      "role": "outfield",
+      "primary": "blue",
+      "goalkeeperPrimary": "black",
+      "goalkeeperAlt": [
+        "blue",
+        "purple"
+      ]
+    },
+    "light-default": {
+      "role": "outfield",
+      "primary": "white",
+      "goalkeeperPrimary": "black",
+      "goalkeeperAlt": [
+        "blue",
+        "pink"
+      ]
+    },
+    "dark-default": {
+      "role": "outfield",
+      "primary": "black",
+      "goalkeeperPrimary": "purple",
+      "goalkeeperAlt": [
+        "black",
+        "blue"
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "outfield_total": 36,
+  "goalkeeper_total": 24,
+  "bonus_characters_total": 42,
+  "backgrounds_total": 6,
+  "trophies_total": 3,
+  "age_groups": [
+    "child",
+    "youth",
+    "adult"
+  ],
+  "outfield_colors": [
+    "green",
+    "yellow",
+    "red",
+    "blue",
+    "white",
+    "black"
+  ],
+  "goalkeeper_colors": [
+    "blue",
+    "pink",
+    "purple",
+    "black"
+  ]
+}
