@@ -334,23 +334,21 @@ describe('the recolour touches the kit and nothing else', () => {
   });
 
   it('confines the colour with a mask, and rebuilds the fabric with layered blends', () => {
+    /*
+     * The CANVAS compositor's contract. v0.9.4.x moved the DOM character onto a pre-rendered art
+     * pack, so these CSS rules no longer dress the in-game player - but the share poster still
+     * composites, from the same constants, and this is what it composites.
+     *
+     * The DOM half of this assertion moved to `tests/playerAsset.test.ts`, inverted: PlayerRender
+     * must now contain none of these layers.
+     */
     const css = fs.readFileSync(path.join(ROOT, 'src/styles/gamefeel.css'), 'utf8');
     const kitRule = css.slice(css.indexOf('\n.pr-kit {'));
     const body = kitRule.slice(0, kitRule.indexOf('}'));
     expect(body).toContain('mask-image: var(--pr-mask)');
-    /*
-     * The three passes. COLOUR lands the club's hue normally, SHADE multiplies the artwork's own
-     * folds back over it, ACCENT screens the neon trim on top - which is what separates a designed
-     * kit from a tinted rectangle. And the colour layer is a lit GRADIENT, never a flat fill.
-     */
     expect(css).toContain('.pr-kit-colour { mix-blend-mode: normal; }');
     expect(css).toContain('mix-blend-mode: multiply');
     expect(css).toContain('.pr-kit-accent { mix-blend-mode: screen; }');
-    const render = fs.readFileSync(path.join(ROOT, 'src/components/PlayerRender.tsx'), 'utf8');
-    expect(render).toContain('linear-gradient(180deg');
-    for (const layer of ['pr-kit-colour', 'pr-kit-shade', 'pr-kit-accent']) {
-      expect(render, `PlayerRender is missing the ${layer} pass`).toContain(layer);
-    }
   });
 
   it('keeps the CSS shade remap and the canvas one from drifting apart', () => {
@@ -400,7 +398,13 @@ describe('v0.9.4 Phase 5: one component, and the right club on every screen', ()
       .filter((file) => file.endsWith('.tsx') && !file.endsWith('PlayerRender.tsx'))
       .filter((file) => {
         const text = stripComments(fs.readFileSync(file, 'utf8'));
-        return text.includes('getCareerPlayerArt') || text.includes('resolvePlayerArt');
+        /* v0.9.4.x adds the new pack's resolver to the list; the rule is unchanged. */
+        return (
+          text.includes('getCareerPlayerArt') ||
+          text.includes('resolvePlayerArt') ||
+          text.includes('resolveCharacterAsset') ||
+          text.includes('assets/maccabist')
+        );
       });
     expect(offenders).toEqual([]);
   });
