@@ -29,6 +29,8 @@
     "truth:audit": "vite-node scripts/seasonTruthAudit.ts --",
     "archive:stress": "vite-node scripts/archiveStress.ts --",
     "europe:metrics": "vite-node scripts/europeMetrics.ts --",
+    "regress": "vite-node scripts/sameSeedRegression.ts",
+    "viewport:audit": "node scripts/viewportAudit.mjs",
     "kit:lab": "vite-node scripts/kitLab.ts --",
     "contrast:audit": "node scripts/contrastAudit.mjs"
   },
