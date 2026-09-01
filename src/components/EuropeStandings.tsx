@@ -1,3 +1,4 @@
+import { mayShowLeaguePhaseTable } from '../game/europePresentation';
 import { UEFA_COMPETITIONS } from '../data/uefa';
 import type { Career, UefaCompetitionId } from '../types';
 import { ClubCrest } from './ClubCrest';
@@ -37,6 +38,18 @@ export function EuropeStandings({ career }: { career: Career }): JSX.Element {
         אין טבלת שלב ליגה לעונה הזאת. היא נשמרת מהעונה הבאה ואילך.
       </p>
     );
+  }
+
+  /*
+   * v0.9.6: the sheet refuses to open the future.
+   *
+   * The link that reaches this is already gated, but the sheet is reachable by other routes and a
+   * stored table is a FINAL table - the engine computed it when the season began. Guarding here
+   * too means no path can reach it early, and the wording says which it is rather than pretending
+   * the data does not exist.
+   */
+  if (!mayShowLeaguePhaseTable(career)) {
+    return <p className="card-body">שלב הליגה בעיצומו. הטבלה תיפתח בסיכום העונה.</p>;
   }
 
   /* The competition the player's club is actually in leads; the others follow. */

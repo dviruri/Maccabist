@@ -1,3 +1,8 @@
+import {
+  europeReveal,
+  mayShowLeaguePhaseTable,
+  revealedSteps,
+} from '../game/europePresentation';
 import { getCompetitionAsset } from '../data/competitionAssets';
 import { QUALIFYING_GRAPH, LEAGUE_PHASE, LP_DROP_TARGETS, UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
 import type { Career, EuropeanJourney, EuropeanStep, EuropeanTie, UefaCompetitionId } from '../types';
@@ -86,15 +91,22 @@ export function EuropeCard({
     return null;
   }
 
-  const entered = journey.steps.find(
+  const nextRoute = nextSeasonRoute(career, career.currentClubId);
+  const reveal = europeReveal(career);
+  /*
+   * EVERYTHING this card renders comes from `shown`, never from `journey.steps` (v0.9.6).
+   *
+   * Two rules meet here. Byes belong in the qualifying story - without them it renders the rounds
+   * that had a MATCH and silently omits the one the club was given, so Q1 is followed by Q3. And
+   * nothing may be rendered that the player has not lived through, which is what `revealedSteps`
+   * decides. Reading the raw journey for even one field - the entry, say - is how a component
+   * starts having its own opinion about chronology.
+   */
+  const shown = revealedSteps(career, journey);
+  const entered = shown.find(
     (step): step is Extract<EuropeanStep, { kind: 'entered' }> => step.kind === 'entered',
   );
-  const nextRoute = nextSeasonRoute(career, career.currentClubId);
-  /*
-   * Byes belong here (v0.9.6). Without them the qualifying story renders the rounds that had a
-   * MATCH and silently omits the one the club was given, so Q1 is followed by Q3.
-   */
-  const qualifyingSteps = journey.steps.filter(
+  const qualifyingSteps = shown.filter(
     (step) =>
       (step.kind === 'tie' && step.tie.stage in QUALIFYING_GRAPH) ||
       step.kind === 'dropped' ||
@@ -143,8 +155,20 @@ export function EuropeCard({
         ) : null,
       )}
 
-      {journey.reachedLeaguePhase ? (
-        <p className="euro-state-line euro-up">בשלב הליגה של {UEFA_COMPETITIONS[journey.finalCompetition].name} — העונה האירופית לפנינו</p>
+      {/*
+        v0.9.6: the state line is chronology-aware.
+
+        Before the season starts there is nothing to report and the entry line above has already
+        said where the club came in. Once qualifying is history it may say the club is through and
+        that the league phase is UNDER WAY - it may not say where it finished, because it has not.
+        Only at settlement does the completed shape of the season become sayable.
+      */}
+      {reveal === 'entry' ? null : journey.reachedLeaguePhase ? (
+        <p className="euro-state-line euro-up">
+          {reveal === 'qualifying'
+            ? `העפלנו לשלב הליגה של ${UEFA_COMPETITIONS[journey.finalCompetition].name} — שלב הליגה בעיצומו`
+            : `בשלב הליגה של ${UEFA_COMPETITIONS[journey.finalCompetition].name} — העונה האירופית לפנינו`}
+        </p>
       ) : (
         <p className="euro-state-line">העונה האירופית הסתיימה בקיץ. הליגה מחכה.</p>
       )}
@@ -153,7 +177,8 @@ export function EuropeCard({
         v0.9.1: next season's earned route is a DIFFERENT fact and is labelled as one. It comes
         from the v0.8 resolver's own nextEntries, so the access rules are never re-derived here.
       */}
-      {journey.reachedLeaguePhase && onOpenStandings && career.world.europe?.current?.standings && (
+      {/* The table is a RESULT, so the link to it only exists once the table belongs to the past. */}
+      {mayShowLeaguePhaseTable(career) && journey.reachedLeaguePhase && onOpenStandings && career.world.europe?.current?.standings && (
         <button type="button" className="euro-standings-link" onClick={onOpenStandings}>
           לטבלת שלב הליגה ›
         </button>

@@ -1,6 +1,7 @@
 import { deriveCareerFeed, type FeedItem } from '../game/careerFeed';
 import { getPersonArt } from '../ui/playerArt';
 import { activeFixture, knownCupFinal } from '../game/fixture';
+import { revealedFurthest, revealedSteps } from '../game/europePresentation';
 import { currentCampaign } from '../game/europeStatus';
 import { currentLeagueContext } from '../game/leagueEngine';
 import { isInAcademy } from '../game/rules';
@@ -214,12 +215,26 @@ function EuropeContext({
   const campaign = currentCampaign(career, career.currentClubId);
   if (!campaign) return null;
   const journey = career.world.europe?.current?.playerJourney;
-  const phase = journey?.steps.find((step) => step.kind === 'league_phase');
+  /*
+   * v0.9.6: what the player has LIVED THROUGH, not what the engine has already simulated.
+   *
+   * This line used to read the `league_phase` step straight out of the stored journey and print
+   * its position - so at the first preseason beat, before a single European match had been
+   * played, the home screen announced the club's FINAL European standing. The engine runs the
+   * whole continental season up front, which is correct for determinism and catastrophic as a
+   * source of truth for a screen.
+   *
+   * `europePresentation` is now the only thing that decides what may be said, and it says
+   * nothing about a result until the result belongs to the past.
+   */
+  const revealed = journey ? revealedSteps(career, journey) : [];
+  const phase = revealed.find((step) => step.kind === 'league_phase');
+  const furthest = journey ? revealedFurthest(career, journey) : null;
   const where =
     phase && phase.kind === 'league_phase'
       ? `מקום ${phase.position}`
-      : journey && journey.furthest !== 'entry'
-        ? EURO_STAGE_TEXT[journey.furthest] ?? campaign.stage
+      : furthest && furthest !== 'entry'
+        ? EURO_STAGE_TEXT[furthest] ?? campaign.stage
         : campaign.stage;
 
   return (
