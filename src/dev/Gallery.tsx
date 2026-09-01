@@ -948,6 +948,35 @@ const retirementCareer = (): Career => ({
   phase: 'retirement_decision',
 });
 
+/**
+ * Decision shapes the gallery could not previously reach (v0.9.5, phase 6 QA).
+ *
+ * A mandatory offer renders ONE card with no stay side, and a release phrases itself through the
+ * engine's own labels rather than a derived destination. Both are layout branches that had never
+ * been screenshotted.
+ */
+const mandatoryOffer = (): Career['pendingOffers'] => [
+  {
+    id: 'release_demo',
+    kind: 'release',
+    clubId: 'hapoel_kfar_saba',
+    clubName: 'הפועל כפר סבא',
+    league: 'הליגה הלאומית',
+    country: 'ישראל',
+    title: 'המועדון לא מאריך',
+    description: 'החוזה נגמר והמועדון החליט לא להאריך. צריך למצוא בית חדש.',
+    acceptEffects: {},
+    declineEffects: {},
+    acceptLabel: 'להמשיך הלאה',
+    declineLabel: '',
+    mandatory: true,
+    expectedRole: 'starter',
+    direction: 'down',
+    hints: ['📄 החוזה הסתיים'],
+  },
+];
+
+
 const homeCareer = (): Career => ({
   ...tableCareer(MACCABI_ID, 3),
   phase: 'preseason',
@@ -1669,6 +1698,20 @@ export function Gallery(): JSX.Element {
       subtitle="מכבי חיפה"
       onContinue={noop}
     />],
+    ['decision-mandatory', <GamePage
+      career={{ ...homeCareer(), phase: 'offseason', pendingOffers: mandatoryOffer() }}
+      actions={noopActions}
+      onExit={noop}
+    />],
+    /* No agent signed: the agent's read is absent and the scene must still compose. */
+    ['decision-no-agent', <GamePage
+      career={{ ...homeCareer(), phase: 'offseason', people: undefined, pendingOffers: decisionOffers() }}
+      actions={noopActions}
+      onExit={noop}
+    />],
+    /* The widest choice shape the event pool actually contains. There is no 4-choice event. */
+    ['event-three', <GamePage career={playCareer(tableCareer(MACCABI_ID, 3), 'ppl_pc_choose_focus')} actions={noopActions} onExit={noop} />],
+    ['event-cup-final', <GamePage career={playCareer(tableCareer(MACCABI_ID, 2), 'sen_cup_final_won')} actions={noopActions} onExit={noop} />],
     ['youth-fork', <GamePage career={youthForkCareer(1)} actions={noopActions} onExit={noop} />],
     ['youth-fork-two', <GamePage career={youthForkCareer(2)} actions={noopActions} onExit={noop} />],
     ['retirement-decision', <GamePage career={retirementCareer()} actions={noopActions} onExit={noop} />],

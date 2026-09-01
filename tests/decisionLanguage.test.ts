@@ -282,3 +282,47 @@ describe('the event pool still resolves exactly as before', () => {
     }
   });
 });
+
+describe('RTL: nothing means the opposite of what it points at', () => {
+  const screen = read('src/components/DecisionScreen.tsx');
+
+  it("points the offer pager's arrows the way they actually travel", () => {
+    /*
+     * Measured, not reasoned (v0.9.5 phase 6). The document is dir="rtl" and the pager is a plain
+     * flex, so its FIRST child renders on the RIGHT - confirmed by temporarily replacing the
+     * glyphs with the words PREV and NEXT and screenshotting: previous sits on the right, and the
+     * active dot for offer 1 is the rightmost dot.
+     *
+     * So travelling to the previous offer moves RIGHTWARD, and its arrow must point right. v0.9.3
+     * shipped ‹ there - on the right, pointing away from where it took you. This pins the pairing
+     * so the next person cannot restore the intuition instead of the behaviour.
+     */
+    const prevAt = screen.indexOf('aria-label="ההצעה הקודמת"');
+    const nextAt = screen.indexOf('aria-label="ההצעה הבאה"');
+    expect(prevAt).toBeGreaterThan(-1);
+    expect(nextAt).toBeGreaterThan(prevAt);
+
+    /* Comments are not glyphs: the prev button's own note quotes the ‹ it replaced. */
+    const prevButton = stripComments(screen.slice(prevAt, screen.indexOf('</button>', prevAt)));
+    const nextButton = stripComments(screen.slice(nextAt, screen.indexOf('</button>', nextAt)));
+    expect(prevButton, 'previous is on the right, so it points right').toContain('›');
+    expect(prevButton).not.toContain('‹');
+    expect(nextButton, 'next is on the left, so it points left').toContain('‹');
+    expect(nextButton).not.toContain('›');
+  });
+
+  it('keeps offer 1 first in the DOM, so the dots read right to left', () => {
+    /* The dots and the arrows have to agree about which end the first offer is. */
+    expect(screen).toContain('offers.map((o, i) => (');
+    expect(screen).toContain("aria-current={i === index ? 'true' : undefined}");
+  });
+
+  it('isolates every number that sits inside Hebrew', () => {
+    /*
+     * A Latin-digit run inside RTL text can pull an adjacent period or percent sign to the wrong
+     * side. The card's percentages use <bdi>; the retirement headline uses <Ltr>.
+     */
+    expect(read('src/components/DecisionChoice.tsx')).toContain('<bdi className="dc-odds-pct">');
+    expect(read('src/pages/GamePage.tsx')).toContain('אתה בן <Ltr>{career.age}</Ltr>');
+  });
+});

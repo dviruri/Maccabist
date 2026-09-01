@@ -87,6 +87,15 @@ const SCENES = [
    * The two career forks (v0.9.5). Neither was audited before, which is part of why both were
    * still rendering button rows after three passes of visual work.
    */
+  /*
+   * The decision branches phase 6 added scenes for: a MANDATORY offer renders one card and no
+   * stay side, an offer with no signed agent must still compose, and three choices is the widest
+   * shape the event pool actually contains.
+   */
+  { id: 'decision-mandatory', bare: '1', need: ['.dc-title', '.dc-choice', '.gf-bottomnav'] },
+  { id: 'decision-no-agent', bare: '1', need: ['.dc-title', '.dc-choice', '.dc-choice-quiet', '.gf-bottomnav'] },
+  { id: 'event-three', bare: '1', need: ['.card-title', '.dc-choice', '.gf-bottomnav'] },
+  { id: 'event-cup-final', bare: '1', need: ['.card-title', '.dc-choice', '.gf-bottomnav'] },
   { id: 'youth-fork', bare: '1', need: ['.promotion-title', '.dc-choice', '.gf-bottomnav'] },
   { id: 'youth-fork-two', bare: '1', need: ['.promotion-title', '.dc-choice', '.gf-bottomnav'] },
   { id: 'retirement-decision', bare: '1', need: ['.dc-title', '.dc-choice', '.dc-choice-quiet', '.gf-bottomnav'] },

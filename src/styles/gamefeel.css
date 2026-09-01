@@ -1954,9 +1954,19 @@
  * phone gets a stack - the layout gives way, and the type never shrinks to force it.
  */
 .dc-choices-2 { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); }
-/* Three and four go 2-up rather than becoming a tall stack the document would have to scroll. */
+/*
+ * Three or four choices need a much higher floor than two do, and that is about the CONTENT.
+ *
+ * A two-choice dilemma has short verbs for labels - "עוברים לטורינו", "נשארים". A three-choice
+ * event does not: the widest shape the pool actually contains is the personal-coach question,
+ * whose options are sentences ("מאמן טכני - הרגל החלשה, הנגיעה הראשונה"). At minmax(140px) those
+ * rendered as two columns of six-line towers, which is precisely the "do not shrink text to force
+ * side-by-side" failure in layout form.
+ *
+ * At 200px they stack on every phone and only pair up on a tablet, where there is genuinely room.
+ */
 .dc-choices-3,
-.dc-choices-4 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.dc-choices-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 
 .dc-choice-wrap { display: grid; gap: 4px; min-width: 0; }
 

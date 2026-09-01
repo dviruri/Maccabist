@@ -341,7 +341,15 @@ export function DecisionScreen({
                   aria-label="ההצעה הקודמת"
                   onClick={() => setIndex((i) => Math.max(0, i - 1))}
                 >
-                  ‹
+                  {/*
+                    RIGHT-pointing, and that is not a typo (v0.9.5 RTL audit).
+
+                    The document is dir="rtl", so this button - first in the DOM - renders on the
+                    RIGHT, and the dots run right to left with offer 1 rightmost. Moving to the
+                    previous offer therefore travels RIGHTWARD. The glyph inherited from v0.9.3
+                    was ‹, which sat on the right pointing away from where it took you.
+                  */}
+                  ›
                 </button>
                 <div className="gf-dec-dots">
                   {offers.map((o, i) => (
@@ -363,7 +371,8 @@ export function DecisionScreen({
                   aria-label="ההצעה הבאה"
                   onClick={() => setIndex((i) => Math.min(offers.length - 1, i + 1))}
                 >
-                  ›
+                  {/* Left-pointing: the next offer is further left in an RTL row. */}
+                  ‹
                 </button>
               </div>
             ) : undefined
