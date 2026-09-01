@@ -92,7 +92,12 @@ export function DecisionHead({
   media,
 }: {
   kicker?: string;
-  title: string;
+  /**
+   * A node, not a string, so a headline containing a NUMBER can bidi-isolate it. "אתה בן 35. כמה
+   * עוד נשאר?" is Hebrew with a Latin-digit run in the middle, and the surrounding period can
+   * migrate to the wrong side of the digits without an isolate.
+   */
+  title: ReactNode;
   media?: ReactNode;
 }): JSX.Element {
   return (

@@ -1,6 +1,12 @@
 import { useState } from 'react';
 
 import { CareerTimeline } from '../components/CareerTimeline';
+import {
+  DecisionChoiceCard,
+  DecisionChoices,
+  DecisionHead,
+  DecisionScene,
+} from '../components/DecisionChoice';
 import { CareerFeedFull, CareerHomeScene } from '../components/CareerHome';
 import { MatchdayExperience } from '../components/Matchday';
 import { buildMatchday } from '../game/matchdayPresenter';
@@ -575,6 +581,29 @@ function PreSeasonCard({ career, onStart }: { career: Career; onStart: () => voi
   );
 }
 
+/**
+ * The end of the road (v0.9.5).
+ *
+ * ## What changed
+ *
+ * A card with a kicker, a headline, a paragraph and two `btn btn-choice` rows. The single most
+ * emotional decision in the game - whether a career ends - was rendered in the same furniture as
+ * a training dilemma, and the two futures were two grey buttons with a grey hint underneath.
+ *
+ * It is now the same decision language as everything else, which is exactly the point: this is
+ * the last career choice the player ever makes, and it should read like one. Two cards, each a
+ * future, and pressing one commits.
+ *
+ * ## Honesty
+ *
+ * The retirement flow models nothing numeric - no probability of another good season, no injury
+ * risk, no projected decline. So there are no percentages here and there is no odds bar; every
+ * fact is a plain consequence of the two paths the engine actually offers. "עוד סיכוי לתארים" is
+ * true because another season is another season of competitions; "עוברים לסיכום המורשת" is true
+ * because that is literally the next screen. Nothing else is claimed.
+ *
+ * Retirement rules are untouched: the same two `actions.retirementChoice` calls, unchanged.
+ */
 function RetirementDecision({
   career,
   actions,
@@ -582,36 +611,65 @@ function RetirementDecision({
   career: Career;
   actions: GameActions;
 }): JSX.Element {
+  /* The same double-commit guard the rest of the release carries. This one especially. */
+  const [committed, setCommitted] = useState<'continue' | 'retire' | null>(null);
+
   return (
     <article className="card event-card">
-      <div className="stack">
-        <div className="kicker">סוף הדרך מתקרב</div>
-        <h2 className="card-title">
-          אתה בן <Ltr>{career.age}</Ltr>. כמה עוד נשאר?
-        </h2>
-        <p className="card-body">
-          הגוף מזכיר לך כל בוקר כמה שנים עברו. אתה יכול למשוך עוד עונה - או לסיים את זה
-          בזמן, בתנאים שלך.
-        </p>
-        <div className="stack-sm">
-          <button
-            type="button"
-            className="btn btn-choice"
-            onClick={() => actions.retirementChoice('continue')}
-          >
-            <span>עוד עונה אחת</span>
-            <span className="hint">עוד משחקים, עוד סיכוי לתארים - ועוד שחיקה</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-choice"
-            onClick={() => actions.retirementChoice('retire')}
-          >
-            <span>לתלות את הנעליים</span>
-            <span className="hint">לסיים ולחשב את מדד האגדה</span>
-          </button>
-        </div>
-      </div>
+      <DecisionScene
+        head={
+          <DecisionHead
+            kicker="סוף הדרך מתקרב"
+            title={
+              <>
+                אתה בן <Ltr>{career.age}</Ltr>. כמה עוד נשאר?
+              </>
+            }
+          />
+        }
+        context={
+          <p className="card-body">
+            הגוף מזכיר לך כל בוקר כמה שנים עברו. אתה יכול למשוך עוד עונה - או לסיים את זה
+            בזמן, בתנאים שלך.
+          </p>
+        }
+        choices={
+          <DecisionChoices count={2}>
+            <DecisionChoiceCard
+              title="עוד עונה אחת"
+              icon="⚽"
+              facts={[
+                { tone: 'positive', text: 'עוד משחקים' },
+                { tone: 'positive', text: 'עוד סיכוי לתארים' },
+                { tone: 'negative', text: 'עוד שחיקה' },
+              ]}
+              onChoose={() => {
+                if (committed) return;
+                setCommitted('continue');
+                actions.retirementChoice('continue');
+              }}
+              selected={committed === 'continue'}
+              disabled={committed !== null && committed !== 'continue'}
+            />
+            <DecisionChoiceCard
+              title="לתלות את הנעליים"
+              icon="🏁"
+              tone="quiet"
+              facts={[
+                { tone: 'neutral', text: 'מסיימים את הקריירה' },
+                { tone: 'neutral', text: 'עוברים לסיכום המורשת' },
+              ]}
+              onChoose={() => {
+                if (committed) return;
+                setCommitted('retire');
+                actions.retirementChoice('retire');
+              }}
+              selected={committed === 'retire'}
+              disabled={committed !== null && committed !== 'retire'}
+            />
+          </DecisionChoices>
+        }
+      />
     </article>
   );
 }
