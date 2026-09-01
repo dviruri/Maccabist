@@ -105,8 +105,18 @@ const DECISION_PHASES: ReadonlySet<Career['phase']> = new Set([
 
 export function GamePage({ career, actions, onExit }: Props): JSX.Element {
   const [sheet, setSheet] = useState<SheetId>(null);
-  const [matchdaysSeen, setMatchdaysSeen] = useState<string[]>([]);
-  const [ceremoniesSeen, setCeremoniesSeen] = useState<string[]>([]);
+  /*
+   * v0.9.6: which cinematics have been shown lives in the CAREER, not in this component.
+   *
+   * It used to be two `useState` arrays here. React state does not survive a refresh, so every
+   * completed matchday and ceremony replayed on reload - and permanently, because finishing one
+   * only marked it locally and never advanced the career, so there was nothing else to move the
+   * player past it. Reload, watch it again, reload, watch it again.
+   *
+   * The ledger is saved with everything else now (see `seenPresentationKeys`), so the answer to
+   * "has he seen this" is the same before and after a refresh.
+   */
+  const seen = career.seenPresentationKeys ?? [];
   const close = (): void => setSheet(null);
 
   const table = currentTable(career);
@@ -147,15 +157,15 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
   const moment =
     deriveArrivalMoment(career) ??
     deriveDebutMoment(career) ??
-    seasonMoments.find((candidate) => !ceremoniesSeen.includes(candidate.key)) ??
+    seasonMoments.find((candidate) => !seen.includes(candidate.key)) ??
     null;
-  if (moment && !ceremoniesSeen.includes(moment.key)) {
+  if (moment && !seen.includes(moment.key)) {
     return (
       <div className="gf-moment-screen">
         <CareerMomentScreen
           career={career}
           moment={moment}
-          onContinue={() => setCeremoniesSeen((seen) => [...seen, moment.key])}
+          onContinue={() => actions.markPresentationSeen(moment.key)}
         />
       </div>
     );
@@ -168,12 +178,12 @@ export function GamePage({ career, actions, onExit }: Props): JSX.Element {
    */
   const matchday =
     career.phase === 'mid_season' || career.phase === 'season_result' ? buildMatchday(career) : null;
-  if (matchday && !matchdaysSeen.includes(matchday.fixture.id)) {
+  if (matchday && !seen.includes(matchday.fixture.id)) {
     return (
       <MatchdayExperience
         career={career}
         matchday={matchday}
-        onContinue={() => setMatchdaysSeen((seen) => [...seen, matchday.fixture.id])}
+        onContinue={() => actions.markPresentationSeen(matchday.fixture.id)}
       />
     );
   }

@@ -52,6 +52,14 @@ export interface GameActions {
   takeOffer(offerId: string): void;
   refuseOffers(): void;
   retirementChoice(decision: RetirementDecision): void;
+  /**
+   * Records that a one-time cinematic has been shown (v0.9.6).
+   *
+   * Goes through the same `step` every gameplay action uses, so it lands in the Career and is
+   * persisted by the same effect - which is the whole point. It changes nothing else about the
+   * career, and a key already present is a no-op.
+   */
+  markPresentationSeen(key: string): void;
   /** Escape hatch for the dev panel only. */
   overrideCareer(next: Career): void;
 }
@@ -91,6 +99,25 @@ export function useGame(): GameState {
   const step = useCallback((fn: (current: Career) => Career) => {
     setCareer((current) => (current ? fn(current) : current));
   }, []);
+
+  /*
+   * Presentation bookkeeping, kept deliberately dull.
+   *
+   * No engine call, no RNG, no phase change - it appends a string and nothing else. Marking is
+   * idempotent so a double-tap on Continue cannot grow the ledger, and because it flows through
+   * `setCareer` the persistence effect writes it immediately: a refresh one frame after Continue
+   * lands past the cinematic rather than back inside it.
+   */
+  const markPresentationSeen = useCallback(
+    (key: string) => {
+      step((current) =>
+        current.seenPresentationKeys?.includes(key)
+          ? current
+          : { ...current, seenPresentationKeys: [...(current.seenPresentationKeys ?? []), key] },
+      );
+    },
+    [step],
+  );
 
   /**
    * Keeps the loop tight: the pre-season card is worth one click at the very start of a
@@ -141,9 +168,10 @@ export function useGame(): GameState {
       refuseOffers: () => step((c) => rollIntoSeason(rejectOffers(c))),
       retirementChoice: (decision) =>
         step((c) => rollIntoSeason(decideRetirement(c, decision))),
+      markPresentationSeen,
       overrideCareer: (next) => setCareer(next),
     }),
-    [step, rollIntoSeason],
+    [step, rollIntoSeason, markPresentationSeen],
   );
 
   return { career, meta, screen, legacySaveDropped, actions };

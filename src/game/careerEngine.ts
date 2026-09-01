@@ -118,6 +118,16 @@ export const SCHEMA_VERSION = 4;
 export function hydrateCareer(career: Career): Career {
   let next = career;
 
+  /*
+   * v0.9.6: the presentation ledger. A save written before it has none, and every screen that
+   * consults it expects an array - so it is backfilled here rather than defaulted at each of the
+   * half-dozen read sites. An old save simply starts with nothing seen, which is correct: the
+   * beat it is sitting on has genuinely not been shown by this build.
+   */
+  if (!Array.isArray(next.seenPresentationKeys)) {
+    next = { ...next, seenPresentationKeys: [] };
+  }
+
   if (!next.world || !Array.isArray(next.world.clubSeasons)) {
     next = {
       ...next,
@@ -499,6 +509,15 @@ export function createCareer(input: NewCareerInput): Career {
      * migration for old saves rather than something every new career also passes through.
      */
     seasonParticipation: { season: FIRST_ACADEMY_SEASON, appearances: 0, starts: 0 },
+    /*
+     * And its own presentation ledger, for the same reason (v0.9.6).
+     *
+     * `hydrateCareer(created) === created` is a real invariant here - hydration is a migration for
+     * OLD saves, not a step every new career passes through - and two existing tests assert it by
+     * reference. Initialising the field at creation is what keeps that true; backfilling it in
+     * hydrate alone made a fresh career come back as a new object.
+     */
+    seenPresentationKeys: [],
     // v0.6: a fresh career has announced nothing - every legacy milestone is ahead of it.
     legacyMilestones: [],
     seasonOpening: null,

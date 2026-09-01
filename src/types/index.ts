@@ -2001,6 +2001,25 @@ export interface Career {
   birthCohort: number;
   /** Where in the season we are, so the displayed age moves naturally through the year. */
   seasonPoint: SeasonPoint;
+  /**
+   * Which one-time cinematics the player has already been shown (v0.9.6).
+   *
+   * PRESENTATION ONLY. Nothing in the simulation reads this, nothing branches on it, and no RNG
+   * stream touches it - a test asserts all three. It lives on the Career purely because the
+   * Career is the thing that gets saved, and a "seen" flag that does not survive a refresh is not
+   * a seen flag at all.
+   *
+   * Before this, `matchdaysSeen` and `ceremoniesSeen` were React `useState` in `GamePage`, so a
+   * browser reload emptied them and every completed matchday and ceremony replayed - forever, on
+   * every refresh, because finishing one only marked it locally and never advanced the career.
+   *
+   * Keys are season-scoped by construction (`cup_final_2044`, `championship_2044`,
+   * `league_2044_mid_<opponent>`), so a championship in a later season is a different key and
+   * still gets its moment.
+   *
+   * Optional because saves written before v0.9.6 have none; `hydrateCareer` backfills it.
+   */
+  seenPresentationKeys?: string[];
   origin: CareerOrigin;
   /** Every Maccabi trial the player has attended, in order. */
   trials: TrialResult[];
