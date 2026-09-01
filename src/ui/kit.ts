@@ -27,13 +27,42 @@ import type { Position } from '../types';
  * Haifa youth side wears its parent's green for exactly the same reason it wears its parent's
  * crest, with no second table to keep in step.
  *
- * ## Strength, not tint
+ * ## Dye, shading, accents - in that order
  *
- * The recolour is a `screen` blend over the artwork's own black fabric, so folds, seams and
- * highlights all survive. How hard it has to push depends on the colour: a dark red needs almost
- * full strength to read as red, and white needs restraint or the shirt becomes a flat white
- * shape with no fabric left in it. `strength` is computed from the colour's own luminance rather
- * than hand-tuned per club, so a club added later behaves correctly without being listed here.
+ * The shirt is not tinted. It is rebuilt in three passes over the pose's garment mask:
+ *
+ *   COLOUR  the club's colour as a lit gradient, painted normally - so the hue that lands is the
+ *           club's actual hue, at full saturation.
+ *   SHADE   the artwork itself, levels-remapped and MULTIPLIED back - so every fold, seam and
+ *           shadow the artist drew re-darkens the new colour. This is where the cloth comes from.
+ *   ACCENT  the artwork once more, screened gently - so the neon flashes and the trim survive as
+ *           kit design rather than being buried under paint.
+ *
+ * ## Why the v0.9.4 screen-blend version had to go
+ *
+ * That version screened one club colour over the artwork's own near-black fabric and scaled the
+ * layer's OPACITY down for bright colours, on the theory that a bright colour would otherwise
+ * obliterate the cloth. Over a near-black base that theory is backwards, and the measured numbers
+ * say so. The garment's median luminance is 0.139 (`GARMENT_FABRIC_MEDIAN`, measured off the
+ * artwork through the mask), so screening colour C at opacity a lands on
+ *
+ *     0.139 + a * 0.861 * C
+ *
+ * At Maccabi Tel Aviv's #f4d03f and the a=0.68 that function returned for it, that is rgb(179,
+ * 158, 73) - OLIVE. The opacity was not moderating the colour, it was dimming it, and the darker
+ * the club's shirt was supposed to be the less anyone noticed. Reducing opacity on a screen pass
+ * cannot preserve fabric either: in a channel where C is near 1 the fabric's whole 0.02..0.25
+ * range is compressed to nothing, whatever the opacity.
+ *
+ * So the colour is now painted at full strength and the fabric is restored by MULTIPLYING the
+ * artwork back over it. That inverts the failure: the club's hue is exact, and the shading has
+ * more range than the screen version ever had, because the remap AMPLIFIES the fabric's variation
+ * instead of compressing it.
+ *
+ * There is one set of layer numbers for every club (`GARMENT_LAYERS`, `GARMENT_SHADE_FILTER`) -
+ * the per-club luminance tuning was the bug, not a feature. What is still per-club is the
+ * gradient's two ends, and whether a shirt is so dark it needs the club's secondary to read at
+ * all.
  */
 
 export type GoalkeeperColour = 'blue' | 'pink' | 'purple' | 'black';
@@ -43,12 +72,20 @@ export interface KitPalette {
   primary: string;
   /** Trim and the lift under a very dark shirt. */
   secondary: string;
-  /** How strongly the recolour layer is applied, 0..1. Derived from `primary`'s luminance. */
-  strength: number;
   /**
-   * True when `primary` is so dark that screening it changes almost nothing. The renderer adds a
-   * second, quiet pass in `secondary` so the player stays visible against a night stadium -
-   * without substituting a colour the club does not own.
+   * The lit and shadowed ends of the shirt. The colour layer is a vertical gradient - light
+   * falling from above, shadow gathering below - so that even before the artwork's own shading is
+   * multiplied back the garment already has large-scale lighting on it.
+   *
+   * For a shirt too dark to read on its own these are pulled towards the club's SECONDARY rather
+   * than towards white, which is what `needsLift` decides.
+   */
+  primaryLight: string;
+  primaryDark: string;
+  /**
+   * True when `primary` is so dark that a shirt painted in it is a silhouette against a night
+   * stadium. The gradient's lit end then carries the club's OWN secondary - a black shirt with
+   * white shoulders, not a grey wash and not a colour the club does not have.
    */
   needsLift: boolean;
   kind: 'outfield' | 'goalkeeper';
@@ -101,15 +138,126 @@ function clamp(value: number, min: number, max: number): number {
   return value < min ? min : value > max ? max : value;
 }
 
+/** Mix a colour toward another, 0..1. The gradient's two ends come from here. */
+function mixHex(from: string, to: string, amount: number): string {
+  const a = parseHex(from);
+  const b = parseHex(to);
+  const channel = (x: number, y: number): string =>
+    Math.round(x * (1 - amount) + y * amount)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${channel(a.r, b.r)}${channel(a.g, b.g)}${channel(a.b, b.b)}`;
+}
+
 /**
- * How hard the recolour has to push, from the colour's own luminance.
+ * Below this luminance a shirt painted in the club's colour is a silhouette, not a kit.
  *
- * A dark colour screened over black barely moves, so it needs nearly all of it; a bright one
- * would obliterate the fabric, so it gets much less. The clamps are the two ends of that: 0.95
- * for near-black club colours, 0.62 for white ones - measured against the artwork, not guessed.
+ * The same threshold decides `needsLift` and which way the gradient's lit end is pulled, so a
+ * club can never be dark enough to disappear yet not dark enough to be helped.
  */
-function strengthFor(primary: string): number {
-  return clamp(1.05 - luminanceOf(primary) * 0.5, 0.62, 0.95);
+const LIFT_BELOW = 0.17;
+
+/**
+ * The levels remap applied to the artwork before it is multiplied back as the SHADE pass.
+ *
+ * The garment as drawn occupies roughly 0.02..0.25 luminance with highlights to 0.65 - far too
+ * dark to multiply with directly, which is why the v0.9.4 attempt could only afford an opacity of
+ * 0.09 and therefore restored nothing. This lifts that band into 0.37..1.0, where multiplying it
+ * against the club's colour reads as lit cloth:
+ *
+ *   brightness(2.4)   spreads the fabric across the usable range; the top ~7% clips, which is the
+ *                     neon flashes blowing out - they come back in the ACCENT pass.
+ *   contrast(0.62)    pulls the black point up off zero, so a fold shades the colour instead of
+ *                     punching a hole in it.
+ *   brightness(1.75)  sets the final level: the median fold lands near 0.77, so the shirt sits at
+ *                     roughly three quarters of the club's colour and darkens from there.
+ *
+ * Three stages rather than one because each one clamps: collapsing them into a single
+ * brightness/contrast pair needs brightness(11.7), which clips the whole garment to white before
+ * the contrast stage ever sees it.
+ *
+ * `src/styles/gamefeel.css` declares exactly this string on `.pr-kit-shade`, and a test asserts
+ * the two have not drifted. The canvas poster feeds it to `ctx.filter`.
+ */
+export const GARMENT_SHADE_FILTER = 'brightness(2.4) contrast(0.62) brightness(1.75)';
+
+/**
+ * The opacity of each pass. One set of numbers for every club in the game.
+ *
+ * The v0.9.4 version derived these from the club colour's luminance and that was the whole bug -
+ * see the note at the top of this file. A club added tomorrow needs no entry here and no tuning.
+ */
+export const GARMENT_LAYERS = {
+  /** COLOUR. Not quite opaque: the last few percent of the artwork underneath is free grain. */
+  colour: 0.94,
+  /** SHADE. The remap in `GARMENT_SHADE_FILTER` does the tuning, so this is simply all of it. */
+  shade: 1,
+  /** ACCENT. Enough for the neon trim to read as kit design, not enough to wash out the colour. */
+  accent: 0.38,
+} as const;
+
+/**
+ * The garment's median luminance in the artwork, measured through the mask across all four poses
+ * (`scripts/kitProbe.html`). Not a tuning knob - it is what the shading model is calibrated to,
+ * and it is what `sampleGarment` samples at by default.
+ */
+export const GARMENT_FABRIC_MEDIAN = 0.139;
+
+/** The gradient's two ends. Dark clubs are lifted with their own secondary, everyone else lit. */
+function gradientFor(primary: string, secondary: string): { primaryLight: string; primaryDark: string } {
+  return luminanceOf(primary) < LIFT_BELOW
+    ? { primaryLight: mixHex(primary, secondary, 0.38), primaryDark: mixHex(primary, '#000000', 0.3) }
+    : { primaryLight: mixHex(primary, '#ffffff', 0.22), primaryDark: mixHex(primary, '#000000', 0.42) };
+}
+
+/** The shared layer values every kit carries. */
+function layersFor(primary: string, secondary: string): {
+  primaryLight: string;
+  primaryDark: string;
+  needsLift: boolean;
+} {
+  return { ...gradientFor(primary, secondary), needsLift: luminanceOf(primary) < LIFT_BELOW };
+}
+
+/* ------------------------------------------------------------------ */
+/* The compositing model, in one place, so the result can be asserted  */
+/* ------------------------------------------------------------------ */
+
+/** The `GARMENT_SHADE_FILTER` chain, per channel, with the clamp at every stage that CSS does. */
+function shadeCurve(x: number): number {
+  const b1 = clamp(x * 2.4, 0, 1);
+  const c = clamp((b1 - 0.5) * 0.62 + 0.5, 0, 1);
+  return clamp(c * 1.75, 0, 1);
+}
+
+/**
+ * What the renderer actually produces for one garment pixel, as an 0..255 colour.
+ *
+ * The DOM and the canvas each spell this stack in their own vocabulary, so neither of them can be
+ * asserted against directly - and "does Maccabi Tel Aviv's shirt come out yellow or olive" is
+ * precisely the question the v0.9.4 pass got wrong and shipped. This is the third spelling: pure,
+ * exported, and the one the tests interrogate.
+ *
+ * `fabric` is the artwork's own luminance at that pixel, defaulting to the measured median.
+ */
+export function sampleGarment(
+  kit: KitPalette,
+  fabric: number = GARMENT_FABRIC_MEDIAN,
+): { r: number; g: number; b: number } {
+  const colour = parseHex(kit.primary);
+  const shade = shadeCurve(fabric);
+  const channel = (c: number): number => {
+    /* COLOUR: normal blend over the artwork, which is near-neutral at this luminance. */
+    const painted = (c / 255) * GARMENT_LAYERS.colour + fabric * (1 - GARMENT_LAYERS.colour);
+    /* SHADE: multiply the remapped artwork back over it. */
+    const shaded = painted * shade;
+    /* ACCENT: screen the artwork on top, gently. */
+    const screened = 1 - (1 - shaded) * (1 - fabric);
+    return Math.round(
+      clamp(shaded * (1 - GARMENT_LAYERS.accent) + screened * GARMENT_LAYERS.accent, 0, 1) * 255,
+    );
+  };
+  return { r: channel(colour.r), g: channel(colour.g), b: channel(colour.b) };
 }
 
 /**
@@ -125,9 +273,7 @@ export function resolveClubKitPalette(clubId: string): KitPalette {
   return {
     primary,
     secondary: visual.secondary,
-    strength: strengthFor(primary),
-    /* Below this the shirt reads as black whatever is screened onto it. */
-    needsLift: luminanceOf(primary) < 0.17,
+    ...layersFor(primary, visual.secondary),
     kind: 'outfield',
   };
 }
@@ -191,8 +337,7 @@ export function resolveGoalkeeperKit(input: {
   return {
     primary: kit.primary,
     secondary: kit.secondary,
-    strength: strengthFor(kit.primary),
-    needsLift: luminanceOf(kit.primary) < 0.17,
+    ...layersFor(kit.primary, kit.secondary),
     kind: 'goalkeeper',
     goalkeeperColour: pick,
   };

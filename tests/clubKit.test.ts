@@ -24,12 +24,15 @@ import { describe, expect, it } from 'vitest';
 import { MACCABI_ACADEMY_ID, MACCABI_ID } from '../src/data/clubs';
 import { clubVisual } from '../src/data/clubVisuals';
 import {
+  GARMENT_LAYERS,
+  GARMENT_SHADE_FILTER,
   GOALKEEPER_COLOURS,
   GOALKEEPER_KITS,
   luminanceOf,
   resolveClubKitPalette,
   resolveGoalkeeperKit,
   resolvePlayerKit,
+  sampleGarment,
 } from '../src/ui/kit';
 import { resolvePlayerArt } from '../src/ui/playerArt';
 import type { Position } from '../src/types';
@@ -72,16 +75,71 @@ describe('the outfield kit is the club', () => {
     expect(y.r > 200 && y.g > 170 && y.b < 120, `${yellow} is not yellow`).toBe(true);
   });
 
-  it('never asks a bright colour to push as hard as a dark one', () => {
-    const dark = resolveClubKitPalette(REPRESENTATIVE.dark);
-    const white = resolveClubKitPalette(REPRESENTATIVE.white);
-    const green = resolveClubKitPalette(REPRESENTATIVE.green);
-    expect(dark.strength).toBeGreaterThan(green.strength);
-    expect(green.strength).toBeGreaterThan(white.strength);
-    for (const kit of [dark, white, green]) {
-      expect(kit.strength).toBeGreaterThanOrEqual(0.62);
-      expect(kit.strength).toBeLessThanOrEqual(0.95);
+  /*
+   * The test that replaced "never asks a bright colour to push as hard as a dark one".
+   *
+   * That one asserted the SHAPE of a tuning curve: strength scaled down as the club colour got
+   * brighter. It passed for the whole of v0.9.4 while the thing it was guarding was broken, because
+   * the curve was the bug - reducing a screen layer's opacity over near-black fabric multiplies the
+   * colour down instead of moderating it, and Maccabi Tel Aviv's #f4d03f shipped as rgb(179,158,73).
+   * Olive. The old assertion had no opinion about that, because it never looked at the result.
+   *
+   * So this asserts the RESULT instead, through `sampleGarment` - the composite the renderer
+   * actually performs. It is a stricter test than the one it replaces, not a weaker one: it would
+   * have failed on the code it replaces, and it constrains any future retuning to keep the club's
+   * hue rather than to keep a particular curve.
+   */
+  it('puts the club\'s own hue on the shirt, at strength, for every colour family', () => {
+    for (const [family, clubId] of Object.entries(REPRESENTATIVE)) {
+      const kit = resolveClubKitPalette(clubId);
+      const want = hex(kit.primary);
+      const got = sampleGarment(kit);
+      /* A grey has no hue to keep; the dark and white families are checked below instead. */
+      if (Math.max(want.r, want.g, want.b) - Math.min(want.r, want.g, want.b) < 30) continue;
+
+      const wantHue = hueDegrees(want.r, want.g, want.b);
+      const gotHue = hueDegrees(got.r, got.g, got.b);
+      const drift = Math.abs(((gotHue - wantHue + 540) % 360) - 180);
+      expect(drift, `${family}: hue ${wantHue.toFixed(0)} rendered as ${gotHue.toFixed(0)}`)
+        .toBeLessThanOrEqual(22);
+
+      /*
+       * And it must still be a COLOUR when it lands. Olive is not a hue failure - #f4d03f and
+       * rgb(179,158,73) are 8 degrees apart - it is a saturation-and-value failure, which is
+       * exactly why a hue check alone would have let v0.9.4 through.
+       */
+      const chroma = (Math.max(got.r, got.g, got.b) - Math.min(got.r, got.g, got.b)) / 255;
+      const wantChroma = (Math.max(want.r, want.g, want.b) - Math.min(want.r, want.g, want.b)) / 255;
+      expect(chroma, `${family}: rgb(${got.r},${got.g},${got.b}) has lost its saturation`)
+        .toBeGreaterThan(wantChroma * 0.5);
     }
+  });
+
+  it('keeps the folds, which is what "flat" actually meant', () => {
+    /*
+     * The property that separates this from v0.9.4, stated as the numbers rather than as a colour.
+     *
+     * "Olive" was the symptom; FLAT was the disease. Screening a colour over the artwork compresses
+     * the fabric into nothing in any channel where the colour is near 1 - for Maccabi Tel Aviv's
+     * yellow the red channel spanned 173..185 across the shirt's real fold range, twelve levels,
+     * which is a painted shape rather than cloth. Multiplying the remapped artwork back spans the
+     * same range over 126..212.
+     *
+     * The two samples are the artwork's measured p25 and p75 through the garment mask, so this is
+     * the range of an actual fold on an actual shirt, not two arbitrary inputs.
+     */
+    for (const [family, clubId] of Object.entries(REPRESENTATIVE)) {
+      const kit = resolveClubKitPalette(clubId);
+      if (luminanceOf(kit.primary) < 0.17) continue; /* a black shirt has nothing to shade. */
+      const shadow = sampleGarment(kit, 0.075);
+      const light = sampleGarment(kit, 0.216);
+      const range = Math.max(light.r - shadow.r, light.g - shadow.g, light.b - shadow.b);
+      expect(range, `${family}: only ${range} levels between fold and highlight`).toBeGreaterThan(50);
+    }
+
+    /* And every family carries one set of layer numbers - the per-club tuning WAS the bug. */
+    expect(GARMENT_LAYERS.colour).toBeGreaterThan(0.9);
+    expect(GARMENT_LAYERS.accent).toBeLessThan(0.5);
   });
 
   it('lifts a near-black shirt with the club\'s OWN secondary, and nothing else', () => {
@@ -91,6 +149,29 @@ describe('the outfield kit is the club', () => {
     /* A club whose colour is perfectly visible needs no lift at all. */
     expect(resolveClubKitPalette(REPRESENTATIVE.green).needsLift).toBe(false);
     expect(resolveClubKitPalette(REPRESENTATIVE.yellowBlue).needsLift).toBe(false);
+
+    /*
+     * v0.9.4.x: the lift is the gradient's lit end, not a fourth layer washed over the top. A flat
+     * pass of the secondary at a fixed opacity is a grey film - it makes a black shirt visible by
+     * making it not black. Pulling the LIT END towards the secondary gives the same visibility as
+     * a designed kit: dark body, lighter shoulders, and the shading still runs through it.
+     */
+    const lit = hex(dark.primaryLight);
+    const base = hex(dark.primary);
+    const secondary = hex(dark.secondary);
+    /* It reads at all: the lit end is genuinely lighter than the body of the shirt. */
+    expect(luminanceOf(dark.primaryLight)).toBeGreaterThan(luminanceOf(dark.primary));
+    /*
+     * And it is the club's own secondary that lifts it - asserted as the mix, because the obvious
+     * "closer to the secondary than to white" phrasing is vacuous for the many clubs whose
+     * secondary IS white, which is exactly the case this representative club turned out to be.
+     */
+    const towards = (from: number, to: number): number => Math.round(from * 0.62 + to * 0.38);
+    expect([lit.r, lit.g, lit.b]).toEqual([
+      towards(base.r, secondary.r),
+      towards(base.g, secondary.g),
+      towards(base.b, secondary.b),
+    ]);
   });
 });
 
@@ -252,13 +333,49 @@ describe('the recolour touches the kit and nothing else', () => {
     expect(artRule.slice(0, artRule.indexOf('}'))).not.toContain('filter');
   });
 
-  it('confines the colour with a mask, and keeps the fabric with a blend', () => {
+  it('confines the colour with a mask, and rebuilds the fabric with layered blends', () => {
     const css = fs.readFileSync(path.join(ROOT, 'src/styles/gamefeel.css'), 'utf8');
     const kitRule = css.slice(css.indexOf('\n.pr-kit {'));
     const body = kitRule.slice(0, kitRule.indexOf('}'));
     expect(body).toContain('mask-image: var(--pr-mask)');
-    /* `screen` over black fabric yields the colour and keeps every fold and highlight. */
-    expect(body).toContain('mix-blend-mode: screen');
+    /*
+     * The three passes. COLOUR lands the club's hue normally, SHADE multiplies the artwork's own
+     * folds back over it, ACCENT screens the neon trim on top - which is what separates a designed
+     * kit from a tinted rectangle. And the colour layer is a lit GRADIENT, never a flat fill.
+     */
+    expect(css).toContain('.pr-kit-colour { mix-blend-mode: normal; }');
+    expect(css).toContain('mix-blend-mode: multiply');
+    expect(css).toContain('.pr-kit-accent { mix-blend-mode: screen; }');
+    const render = fs.readFileSync(path.join(ROOT, 'src/components/PlayerRender.tsx'), 'utf8');
+    expect(render).toContain('linear-gradient(180deg');
+    for (const layer of ['pr-kit-colour', 'pr-kit-shade', 'pr-kit-accent']) {
+      expect(render, `PlayerRender is missing the ${layer} pass`).toContain(layer);
+    }
+  });
+
+  it('keeps the CSS shade remap and the canvas one from drifting apart', () => {
+    /*
+     * The stylesheet and the share poster each spell the same levels remap in their own
+     * vocabulary, and a shirt that looks subtly unlike itself on the poster is precisely the bug
+     * two hand-kept copies produce. The exported constant is the single source; both must use it.
+     */
+    const css = fs.readFileSync(path.join(ROOT, 'src/styles/gamefeel.css'), 'utf8');
+    const shadeRule = css.slice(css.indexOf('\n.pr-kit-shade {'));
+    expect(shadeRule.slice(0, shadeRule.indexOf('}'))).toContain(`filter: ${GARMENT_SHADE_FILTER};`);
+    expect(fs.readFileSync(path.join(ROOT, 'src/services/posterRenderer.ts'), 'utf8')).toContain(
+      'GARMENT_SHADE_FILTER',
+    );
+  });
+
+  it('isolates the blend group, so the kit can never darken the stadium behind him', () => {
+    /*
+     * `mix-blend-mode` reaches for the nearest stacking context's backdrop. Without an isolation
+     * boundary on `.pr` the multiply pass finds the scene behind the player wherever the mask
+     * feathers over a transparent edge of the artwork, and quietly darkens it.
+     */
+    const css = fs.readFileSync(path.join(ROOT, 'src/styles/gamefeel.css'), 'utf8');
+    const wrapper = css.slice(css.indexOf('\n.pr {'));
+    expect(wrapper.slice(0, wrapper.indexOf('}'))).toContain('isolation: isolate');
   });
 });
 
@@ -322,9 +439,13 @@ describe('v0.9.4 Phase 5: one component, and the right club on every screen', ()
     const poster = read('src/services/posterRenderer.ts');
     expect(poster).toContain('resolvePlayerKit');
     expect(poster).toContain('garmentMask');
-    /* Mask first, club colour into it, then screened on - the canvas spelling of the CSS. */
-    expect(poster).toContain("'source-in'");
+    /* Build the layer, cut it to the garment, then blend - the canvas spelling of the CSS. */
+    expect(poster).toContain("'destination-in'");
+    /* The same three passes as the DOM: colour normally, shade multiplied, accent screened. */
+    expect(poster).toContain("'source-over'");
+    expect(poster).toContain("'multiply'");
     expect(poster).toContain("'screen'");
+    expect(poster).toContain('GARMENT_LAYERS');
   });
 
   it('archives the seed, so a retired goalkeeper keeps his colour', () => {
@@ -360,30 +481,42 @@ function hex(value: string): { r: number; g: number; b: number } {
   };
 }
 
-describe('luminance drives the strength, so a new club needs no tuning', () => {
-  it('never gives a brighter colour more strength than a darker one', () => {
+describe('one set of layer numbers, so a new club needs no tuning at all', () => {
+  it('gives every club in the world the same passes, and a shirt that reads as its colour', () => {
     /*
-     * The property, not a hand-written order. The first version of this listed the representative
-     * clubs in the sequence I assumed and failed: Kiryat Shmona's blue (0.283) is very slightly
-     * darker than Hapoel's red (0.292), which no amount of asserting was going to change. Sorting
-     * by the measured value and checking strength moves the other way tests the resolver instead
-     * of my guess.
+     * What replaced the strength-curve property test.
+     *
+     * That one checked that a brighter club colour got a lower `strength` than a darker one, and
+     * it held for the whole of v0.9.4 while the shirts it was guarding came out muddy - because
+     * the curve itself was the fault. The honest version of "a new club needs no tuning" is that
+     * there is nothing left to tune: the passes are constant, and what has to hold is that the
+     * RESULT still reads as the club's colour whatever that colour is.
      */
     const clubs = Object.values(REPRESENTATIVE);
-    const rows = clubs
-      .map((clubId) => ({
-        clubId,
-        lum: luminanceOf(clubVisual(clubId).primary),
-        strength: resolveClubKitPalette(clubId).strength,
-      }))
-      .sort((a, b) => a.lum - b.lum);
-    for (let i = 1; i < rows.length; i += 1) {
-      expect(
-        rows[i]!.strength,
-        `${rows[i]!.clubId} (lum ${rows[i]!.lum.toFixed(3)}) vs ${rows[i - 1]!.clubId}`,
-      ).toBeLessThanOrEqual(rows[i - 1]!.strength);
+    for (const clubId of clubs) {
+      const kit = resolveClubKitPalette(clubId);
+      const got = sampleGarment(kit);
+      const want = hex(kit.primary);
+      /*
+       * Every channel moves the same way the club's colour does: the shirt's dominant channel is
+       * the club colour's dominant channel. A dimming bug breaks this for exactly the colours it
+       * is worst on, which is how olive would be caught.
+       */
+      const rank = (c: { r: number; g: number; b: number }): string =>
+        (['r', 'g', 'b'] as const)
+          .slice()
+          .sort((a, b) => c[b] - c[a])
+          .join('');
+      if (Math.max(want.r, want.g, want.b) - Math.min(want.r, want.g, want.b) < 30) continue;
+      expect(rank(got), `${clubId}: rgb(${got.r},${got.g},${got.b}) from ${kit.primary}`).toBe(
+        rank(want),
+      );
     }
-    /* And the spread is real: the darkest club pushes meaningfully harder than the brightest. */
-    expect(rows[0]!.strength - rows[rows.length - 1]!.strength).toBeGreaterThan(0.2);
+  });
+
+  it('never lets the accent pass wash out the colour underneath it', () => {
+    /* The neon trim is decoration on the kit, never the kit itself. */
+    expect(GARMENT_LAYERS.accent).toBeLessThan(GARMENT_LAYERS.colour / 2);
+    expect(GARMENT_SHADE_FILTER).toMatch(/^brightness\([\d.]+\) contrast\([\d.]+\) brightness\([\d.]+\)$/);
   });
 });

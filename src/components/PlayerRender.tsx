@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { resolvePlayerKit, type KitPalette } from '../ui/kit';
+import { GARMENT_LAYERS, resolvePlayerKit, type KitPalette } from '../ui/kit';
 import { resolvePlayerArt, type PlayerArtContext } from '../ui/playerArt';
 import type { Position } from '../types';
 
@@ -14,21 +14,23 @@ import type { Position } from '../types';
  *
  * ## How the shirt gets its colour without the face getting it too
  *
- * Three layers in one box:
+ * Four layers in one box, every one after the first confined by the pose's GARMENT MASK:
  *
  *   1. the character artwork, untouched
- *   2. a flat club colour, masked to the pose's GARMENT MASK, blended with `screen`
- *   3. for a very dark club colour only, a quiet second pass in the club's secondary
+ *   2. COLOUR  the club's colour as a lit vertical gradient, blended normally
+ *   3. SHADE   the artwork again, levels-remapped by CSS and `multiply`-ed back: this is where
+ *              the folds, seams and shadows come from
+ *   4. ACCENT  the artwork a third time, `screen`-ed gently: the neon trim, back on top
  *
- * `screen` is the whole trick. The artwork's shirt is black fabric with real folds, seams and
- * highlights; screening a colour onto black yields that colour, and screening it onto a highlight
- * yields a lighter version of that colour. So the shading survives and the result is cloth rather
- * than a flat shape pasted over cloth. `strength` decides how hard it pushes, from the colour's
- * own luminance (see `ui/kit.ts`).
+ * The dye is the club's, the cloth is the artist's. `ui/kit.ts` carries the whole argument for
+ * why this replaced v0.9.4's single screen pass - the short version is that screening a colour at
+ * reduced opacity over near-black fabric dims the colour instead of moderating it, which is how
+ * Maccabi Tel Aviv's yellow shipped as olive.
  *
- * There is NO filter on the character. No hue-rotate, no saturate, nothing that touches the whole
- * image - skin, face, hair, eyes, hands, the ball and the background are all exactly as drawn.
- * The mask is what confines the colour, and the mask was built to exclude every one of those.
+ * There is NO filter on the character. The remap in step 3 is declared in the stylesheet, on the
+ * SHADE layer's own class - a compositing layer, not the image. Nothing touches skin, face, hair,
+ * eyes, hands, the ball or the background, which are all exactly as drawn; the mask confines the
+ * colour, and the mask was built to exclude every one of those.
  *
  * ## Geometry
  *
@@ -91,34 +93,47 @@ export function PlayerRender({
         aria-hidden
         onError={() => setMaskFailed(true)}
       />
-      {!artFailed && !maskFailed && <KitLayers mask={art.garmentMask} kit={kit} />}
+      {!artFailed && !maskFailed && <KitLayers art={art.src} mask={art.garmentMask} kit={kit} />}
     </div>
   );
 }
 
-function KitLayers({ mask, kit }: { mask: string; kit: KitPalette }): JSX.Element {
+function KitLayers({ art, mask, kit }: { art: string; mask: string; kit: KitPalette }): JSX.Element {
   const style = {
     '--pr-mask': `url(${mask})`,
   } as React.CSSProperties;
+  const texture = {
+    ...style,
+    backgroundImage: `url(${art})`,
+  } as React.CSSProperties;
   return (
     <>
+      {/*
+        COLOUR: the club's own hue at full strength, lit from above. For a club dark enough to be
+        a silhouette the lit end carries its SECONDARY instead of white, so Sturm Graz gets a
+        black shirt with white shoulders rather than a grey wash - see `gradientFor` in ui/kit.ts.
+      */}
       <div
-        className="pr-kit"
-        style={{ ...style, background: kit.primary, opacity: kit.strength }}
+        className="pr-kit pr-kit-colour"
+        style={{
+          ...style,
+          background: `linear-gradient(180deg, ${kit.primaryLight} 0%, ${kit.primary} 45%, ${kit.primaryDark} 100%)`,
+          opacity: GARMENT_LAYERS.colour,
+        }}
         aria-hidden
       />
-      {/*
-        Only for a shirt so dark that screening it changes nothing - a black or near-black club.
-        A quiet pass in the club's OWN secondary keeps him visible against a night stadium without
-        putting a colour on him that his club does not have.
-      */}
-      {kit.needsLift && (
-        <div
-          className="pr-kit pr-kit-lift"
-          style={{ ...style, background: kit.secondary, opacity: 0.22 }}
-          aria-hidden
-        />
-      )}
+      {/* SHADE: the artwork's own folds and shadows, remapped by CSS, multiplied back over it */}
+      <div
+        className="pr-kit pr-kit-shade"
+        style={{ ...texture, opacity: GARMENT_LAYERS.shade }}
+        aria-hidden
+      />
+      {/* ACCENT: the neon trim and seams, screened back on top of the new colour */}
+      <div
+        className="pr-kit pr-kit-accent"
+        style={{ ...texture, opacity: GARMENT_LAYERS.accent }}
+        aria-hidden
+      />
     </>
   );
 }

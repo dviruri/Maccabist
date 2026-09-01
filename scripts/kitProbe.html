@@ -1,0 +1,49 @@
+<!--
+  Garment luminance probe (v0.9.4.x).
+
+  Measures the artwork's own fabric through the garment mask, per pose, and prints the
+  distribution. The shading model in src/ui/kit.ts is calibrated to these numbers rather than to a
+  guess: GARMENT_FABRIC_MEDIAN and the three stages of GARMENT_SHADE_FILTER all come from the
+  p05/p50/p75/p95 this reports.
+
+  That calibration is the whole reason v0.9.4's recolour failed and this one does not. That
+  version assumed a bright club colour would "obliterate" the fabric and scaled its opacity down
+  to compensate; the measurement says the garment's median luminance is 0.139, on which reducing
+  a screen layer's opacity does not moderate the colour, it multiplies it down. Maccabi Tel Aviv's
+  yellow arrived as olive. Nobody had looked at the numbers.
+
+  Open under headless Chrome with --allow-file-access-from-files and --dump-dom:
+    chrome --headless=new --allow-file-access-from-files --dump-dom file:///.../kitProbe.html
+-->
+<!doctype html><meta charset=utf-8><body><pre id=o>working</pre>
+<script>
+const ART='file:///C:/work/Maccabist/public/assets/gamefeel/players/';
+const POSES=['adult/outfield-hero','adult/outfield-celebration','adult/goalkeeper-hero','teen/outfield-hero'];
+const load=(u)=>new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=u;});
+(async()=>{
+ const out=[];
+ for(const p of POSES){
+  try{
+   const [art,mask]=await Promise.all([load(ART+p+'.webp'),load(ART+p+'-kit.png')]);
+   const W=256,H=384;
+   const ca=document.createElement('canvas');ca.width=W;ca.height=H;
+   const cm=document.createElement('canvas');cm.width=W;cm.height=H;
+   const a=ca.getContext('2d'),m=cm.getContext('2d');
+   a.drawImage(art,0,0,W,H);m.drawImage(mask,0,0,W,H);
+   const A=a.getImageData(0,0,W,H).data, M=m.getImageData(0,0,W,H).data;
+   const lums=[];let n=0;
+   for(let i=0;i<W*H;i++){
+    if(M[i*4+3]<200)continue; // only solidly-masked garment pixels
+    n++;
+    const r=A[i*4],g=A[i*4+1],b=A[i*4+2];
+    lums.push((0.299*r+0.587*g+0.114*b)/255);
+   }
+   lums.sort((x,y)=>x-y);
+   const q=(f)=>lums.length?lums[Math.floor(f*(lums.length-1))].toFixed(3):'-';
+   const mean=(lums.reduce((s,v)=>s+v,0)/lums.length).toFixed(3);
+   out.push(`${p}\n  masked px ${n} (${(100*n/(W*H)).toFixed(1)}% of box)\n  lum mean ${mean}  p05 ${q(.05)} p25 ${q(.25)} p50 ${q(.5)} p75 ${q(.75)} p95 ${q(.95)} p99 ${q(.99)}`);
+  }catch(e){out.push(p+' FAILED '+e);}
+ }
+ document.getElementById('o').textContent=out.join('\n');
+})();
+</script>

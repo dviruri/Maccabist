@@ -2,7 +2,12 @@ import { getClubCrest, clubVisual } from '../data/clubVisuals';
 import { HONOR_LABELS } from '../game/honorsEngine';
 import { trophyIconKind } from '../components/honorIcons';
 import { resolvePlayerArt } from '../ui/playerArt';
-import { resolvePlayerKit, type KitPalette } from '../ui/kit';
+import {
+  GARMENT_LAYERS,
+  GARMENT_SHADE_FILTER,
+  resolvePlayerKit,
+  type KitPalette,
+} from '../ui/kit';
 import type { ArchivedCareer, IndividualHonorType } from '../types';
 
 /**
@@ -389,7 +394,7 @@ export async function renderCareerPoster(
       ctx.shadowBlur = 46;
       ctx.drawImage(art, ax, ay, artW, artH);
       ctx.restore();
-      if (kitMask) drawKit(ctx, kitMask, kit, ax, ay, artW, artH);
+      if (kitMask) drawKit(ctx, art, kitMask, kit, ax, ay, artW, artH);
       // a floor of light under his feet, so he is standing somewhere
       const floor = ctx.createRadialGradient(cx, h - (story ? 30 : 20), 6, cx, h - (story ? 30 : 20), artW * 0.7);
       floor.addColorStop(0, 'rgba(41, 217, 106, 0.22)');
@@ -414,13 +419,17 @@ export async function downloadCareerPoster(archive: ArchivedCareer, format: Post
 /**
  * The club kit, composited onto a canvas (v0.9.4).
  *
- * The DOM does this with `mask-image` and `mix-blend-mode: screen`; a canvas needs the same two
- * steps written out. An offscreen canvas holds the mask, `source-in` fills it with the club's
- * colour, and the result is screened onto the poster - so the shirt gets the colour, the fabric
- * keeps its folds, and the mask keeps the colour off his face exactly as it does in the game.
+ * The same three passes as `components/PlayerRender.tsx`, in canvas vocabulary: COLOUR normally,
+ * SHADE multiplied through `GARMENT_SHADE_FILTER`, ACCENT screened. Each one is built on its own
+ * offscreen canvas and cut to the garment with `destination-in` before it reaches the poster, so
+ * the mask keeps the colour off his face here exactly as it does in the game.
+ *
+ * The opacities and the filter are imported rather than repeated - the poster looking subtly
+ * unlike the game because one of two copies was retuned is a bug waiting to happen.
  */
 function drawKit(
   ctx: CanvasRenderingContext2D,
+  art: HTMLImageElement,
   mask: HTMLImageElement,
   kit: KitPalette,
   x: number,
@@ -428,22 +437,48 @@ function drawKit(
   w: number,
   h: number,
 ): void {
-  const paint = (colour: string, alpha: number): void => {
+  const lw = Math.max(1, Math.round(w));
+  const lh = Math.max(1, Math.round(h));
+  /** A masked layer: draw the fill, keep only the garment, then blend it onto the poster. */
+  const paint = (fill: (lc: CanvasRenderingContext2D) => void, blend: GlobalCompositeOperation, alpha: number): void => {
     const layer = document.createElement('canvas');
-    layer.width = Math.max(1, Math.round(w));
-    layer.height = Math.max(1, Math.round(h));
+    layer.width = lw;
+    layer.height = lh;
     const lc = layer.getContext('2d');
     if (!lc) return;
-    lc.drawImage(mask, 0, 0, layer.width, layer.height);
-    lc.globalCompositeOperation = 'source-in';
-    lc.fillStyle = colour;
-    lc.fillRect(0, 0, layer.width, layer.height);
+    fill(lc);
+    /* The mask is a cutter, never a filtered image: whatever `fill` set has to be off by now. */
+    lc.filter = 'none';
+    lc.globalCompositeOperation = 'destination-in';
+    lc.drawImage(mask, 0, 0, lw, lh);
     ctx.save();
-    ctx.globalCompositeOperation = 'screen';
+    ctx.globalCompositeOperation = blend;
     ctx.globalAlpha = alpha;
     ctx.drawImage(layer, x, y, w, h);
     ctx.restore();
   };
-  paint(kit.primary, kit.strength);
-  if (kit.needsLift) paint(kit.secondary, 0.22);
+  /* COLOUR: the club's hue, as the lit gradient the DOM renders - light above, shadow below. */
+  paint(
+    (lc) => {
+      const grad = lc.createLinearGradient(0, 0, 0, lh);
+      grad.addColorStop(0, kit.primaryLight);
+      grad.addColorStop(0.45, kit.primary);
+      grad.addColorStop(1, kit.primaryDark);
+      lc.fillStyle = grad;
+      lc.fillRect(0, 0, lw, lh);
+    },
+    'source-over',
+    GARMENT_LAYERS.colour,
+  );
+  /* SHADE: the artwork's folds through the same levels remap the stylesheet applies. */
+  paint(
+    (lc) => {
+      lc.filter = GARMENT_SHADE_FILTER;
+      lc.drawImage(art, 0, 0, lw, lh);
+    },
+    'multiply',
+    GARMENT_LAYERS.shade,
+  );
+  /* ACCENT: the neon trim, back on top. */
+  paint((lc) => lc.drawImage(art, 0, 0, lw, lh), 'screen', GARMENT_LAYERS.accent);
 }

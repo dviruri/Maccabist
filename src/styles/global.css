@@ -31,7 +31,13 @@
      #82958a measures 5.07:1 at worst and is still clearly a step below --text-secondary at
      7.07:1, so the hierarchy survives.
   */
-  --text-tertiary: #82958a;
+  /*
+   * v0.9.4.x: nudged up from #82958a. That value fell to 4.43 against the green-tinted row the
+   * player's own club gets in a league table (rgba(15,166,74,0.16) over the card), which is the
+   * one row he actually reads - and it is 12px. This clears AA on every surface the token is used
+   * on, worst case 4.78, and is a change of five luminance points nobody will see as a restyle.
+   */
+  --text-tertiary: #879b90;
 
   /* Contextual accents. Each one means something. */
   --gold: #ffc94a;          /* legendary only - achievements, retirement */
@@ -200,6 +206,14 @@ body {
 
 button {
   font-family: inherit;
+  /*
+   * v0.9.4.x: buttons do not inherit text colour, and this app makes tappable surfaces out of
+   * <button> everywhere. Any descendant without an explicit colour fell to the UA default -
+   * BLACK - which is how the home screen's Europe panel shipped "הקונפרנס ליג · מקום 12" in
+   * near-black on dark glass. Element-level specificity, so every class that declares its own
+   * button colour still wins.
+   */
+  color: inherit;
 }
 
 h1,

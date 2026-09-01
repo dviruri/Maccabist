@@ -28,7 +28,9 @@
     "world-metrics": "vite-node scripts/worldMetrics.ts --",
     "truth:audit": "vite-node scripts/seasonTruthAudit.ts --",
     "archive:stress": "vite-node scripts/archiveStress.ts --",
-    "europe:metrics": "vite-node scripts/europeMetrics.ts --"
+    "europe:metrics": "vite-node scripts/europeMetrics.ts --",
+    "kit:lab": "vite-node scripts/kitLab.ts --",
+    "contrast:audit": "node scripts/contrastAudit.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

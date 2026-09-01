@@ -1057,9 +1057,149 @@ function useOverflowProbe(enabled: boolean, pinnedWidth: string | null, need: st
   }, [enabled, pinnedWidth, need]);
 }
 
+/**
+ * Contrast probe (v0.9.4.x).
+ *
+ * With `?contrast=1`, reports every rendered text node whose colour fails WCAG AA against the
+ * background it actually sits on, as JSON a `--dump-dom` run can read.
+ *
+ * ## Why this had to ask the page rather than read the stylesheet
+ *
+ * Maccabist declares almost no literal text colours - the palette is tokens, and colour is
+ * inherited. The readability bugs that reached players were therefore invisible in the CSS: a
+ * <button>, which this app uses for every tappable surface, does not inherit `color` from its
+ * parent, so any descendant without an explicit colour fell to the UA default. That default is
+ * BLACK, and the home screen's Europe panel shipped its competition and position line in
+ * near-black on dark glass. Nothing in the source said `black` anywhere.
+ *
+ * Only the computed style of a rendered node can catch that, and only if the background is
+ * resolved the way the eye resolves it - by compositing the translucent glass surfaces up the
+ * ancestor chain until something opaque is reached, because that is the whole design language.
+ */
+function parseRgb(value: string): [number, number, number, number] {
+  const nums = value.match(/[\d.]+/g)?.map(Number) ?? [];
+  return [nums[0] ?? 0, nums[1] ?? 0, nums[2] ?? 0, nums[3] ?? 1];
+}
+
+/** Composite `src` (with alpha) over `dst`. */
+function over(src: [number, number, number, number], dst: [number, number, number]): [number, number, number] {
+  const a = src[3];
+  return [src[0] * a + dst[0] * (1 - a), src[1] * a + dst[1] * (1 - a), src[2] * a + dst[2] * (1 - a)];
+}
+
+function relativeLuminance([r, g, b]: [number, number, number]): number {
+  const channel = (v: number): number => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
+function contrastRatio(a: [number, number, number], b: [number, number, number]): number {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/**
+ * The colour behind this element, as the eye sees it.
+ *
+ * Walks outward compositing every translucent background onto the next until an opaque one is
+ * found. Falling back to the page's own near-black is right for this app and, more importantly,
+ * is the conservative choice: assuming a dark backdrop can only ever make dark text look worse,
+ * so the probe cannot pass a genuine dark-on-dark by guessing.
+ */
+function effectiveBackground(el: Element): [number, number, number] {
+  const stack: [number, number, number, number][] = [];
+  let node: Element | null = el;
+  while (node) {
+    const bg = parseRgb(getComputedStyle(node).backgroundColor);
+    if (bg[3] > 0) {
+      stack.push(bg);
+      if (bg[3] >= 0.999) break;
+    }
+    node = node.parentElement;
+  }
+  let base: [number, number, number] = [14, 18, 15];
+  for (let i = stack.length - 1; i >= 0; i -= 1) base = over(stack[i]!, base);
+  return base;
+}
+
+interface ContrastFail {
+  ratio: string;
+  color: string;
+  bg: string;
+  px: number;
+  weight: number;
+  sel: string;
+  text: string;
+}
+
+function useContrastProbe(enabled: boolean): void {
+  useEffect(() => {
+    if (!enabled) return;
+    const run = (): void => {
+      const fails: ContrastFail[] = [];
+      for (const el of Array.from(document.querySelectorAll('*'))) {
+        /* Gallery chrome is the harness, not the game. */
+        if (el.closest('.gallery-label, .gallery-title')) continue;
+        /* Only elements that render text THEMSELVES; a wrapper's colour is its children's. */
+        const own = Array.from(el.childNodes)
+          .filter((n) => n.nodeType === Node.TEXT_NODE)
+          .map((n) => n.textContent ?? '')
+          .join('')
+          .trim();
+        if (!own) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.width < 1 || rect.height < 1) continue;
+        const style = getComputedStyle(el);
+        if (style.visibility === 'hidden' || style.display === 'none') continue;
+        /* Deliberately faded things - a fading-out toast, a decorative watermark - are not bugs. */
+        if (Number(style.opacity) < 0.9) continue;
+        /* Text painted as a gradient through the background is not this check's business. */
+        if (style.webkitTextFillColor === 'transparent' || style.color === 'rgba(0, 0, 0, 0)') continue;
+        /*
+         * A watermark is not text. `.gf-hero-ghost` paints the position initials at 210px and
+         * rgba(255,255,255,0.045) behind the hero, deliberately at the edge of visible; reporting
+         * it every run would train the reader to skim past real findings. Nobody sets a quarter of
+         * an alpha on something they expect to be read, so the alpha is the signal.
+         */
+        if (parseRgb(style.color)[3] < 0.25) continue;
+
+        const bg = effectiveBackground(el);
+        const fg = over(parseRgb(style.color), bg);
+        const px = parseFloat(style.fontSize);
+        const weight = Number(style.fontWeight) || 400;
+        const large = px >= 24 || (px >= 18.66 && weight >= 700);
+        const ratio = contrastRatio(fg, bg);
+        if (ratio >= (large ? 3 : 4.5)) continue;
+        const cls = typeof el.className === 'string' && el.className ? `.${el.className.trim().split(/\s+/).join('.')}` : '';
+        fails.push({
+          ratio: ratio.toFixed(2),
+          color: `rgb(${fg.map(Math.round).join(',')})`,
+          bg: `rgb(${bg.map(Math.round).join(',')})`,
+          px: Math.round(px),
+          weight,
+          sel: `${el.tagName.toLowerCase()}${cls}`.slice(0, 70),
+          text: own.slice(0, 48),
+        });
+      }
+      const tag = document.createElement('script');
+      tag.id = 'audit-result';
+      tag.type = 'application/json';
+      tag.textContent = JSON.stringify(fails);
+      document.getElementById('audit-result')?.remove();
+      document.body.appendChild(tag);
+    };
+    const id = window.setTimeout(run, 400);
+    return () => window.clearTimeout(id);
+  }, [enabled]);
+}
+
 export function Gallery(): JSX.Element {
   const params = new URLSearchParams(window.location.search);
   useOverflowProbe(params.get('probe') === '1', params.get('w'), params.get('need'));
+  useContrastProbe(params.get('contrast') === '1');
   const only = params.get('only');
   /*
    * `?bare=1` (v0.9.3): the scene with no gallery chrome at all - no frame label, no gallery

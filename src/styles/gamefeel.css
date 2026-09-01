@@ -1677,6 +1677,13 @@
 .pr {
   /* No size of its own: the caller's class positions it, the image gives it height. */
   line-height: 0;
+  /*
+   * The kit layers blend, and a blend reaches for the nearest stacking context's backdrop. Without
+   * this it would find the stadium behind him wherever the mask feathers over a semi-transparent
+   * edge of the artwork - `multiply` would quietly darken the background around his shoulders.
+   * Isolating pins the blend group to this box: the layers can only ever see the character.
+   */
+  isolation: isolate;
 }
 .pr-art {
   display: block;
@@ -1700,10 +1707,32 @@
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
-  mix-blend-mode: screen;
   pointer-events: none;
 }
-.pr-kit-lift { mix-blend-mode: screen; }
+/*
+ * COLOUR. Blended normally and at 0.94, so what lands on the shirt is the club's actual hue.
+ * v0.9.4 screened it instead, at an opacity scaled DOWN by the colour's luminance - which over
+ * near-black fabric multiplies the colour down rather than moderating it, and is why Maccabi Tel
+ * Aviv's #f4d03f arrived as rgb(179,158,73). See the note at the top of src/ui/kit.ts.
+ */
+.pr-kit-colour { mix-blend-mode: normal; }
+.pr-kit-shade,
+.pr-kit-accent {
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+/*
+ * SHADE. The artwork's own pixels, levels-remapped and multiplied back: this is the cloth. The
+ * filter is on THIS LAYER, never on `.pr-art` - the character image itself is untouched, and a
+ * test asserts that. The chain must stay identical to `GARMENT_SHADE_FILTER` in src/ui/kit.ts,
+ * which is what the share poster's canvas uses; a test asserts that too.
+ */
+.pr-kit-shade {
+  filter: brightness(2.4) contrast(0.62) brightness(1.75);
+  mix-blend-mode: multiply;
+}
+/* ACCENT. The neon trim and seams, lifted back over the colour. */
+.pr-kit-accent { mix-blend-mode: screen; }
 
 /* =====================================================================
    v0.9.4 PHASE 1 — ONE CONTEXTUAL PANEL
@@ -1732,14 +1761,20 @@
   gap: 10px;
 }
 .gf-context-title { font-size: var(--gf-meta); font-weight: 900; color: var(--green-bright); }
-.gf-context-euro .gf-context-title { color: #8fb8ff; }
+/* brighter than the old #8fb8ff: this is a heading on dark glass, not decoration */
+.gf-context-euro .gf-context-title { color: #a9c8ff; }
 .gf-context-urgent .gf-context-title { color: var(--gold); }
 .gf-context-more {
   color: var(--text-secondary);
   font-weight: 800;
   font-size: var(--gf-meta);
 }
-.gf-context-line { font-size: var(--gf-body); font-weight: 700; line-height: 1.3; }
+/*
+ * Explicit, not inherited (v0.9.4.x). This line already shipped once in UA black because its
+ * parent is a <button>; the global reset now inherits colour, and this states the intent anyway
+ * so the panel cannot regress if the reset ever changes.
+ */
+.gf-context-line { font-size: var(--gf-body); font-weight: 700; line-height: 1.3; color: var(--text-primary); }
 /*
  * The panel keeps its head row even at 320x568 - it fits, measured, so there was no reason to take
  * it. An earlier attempt hid it in the short-height tier and quietly did nothing: these rules are
