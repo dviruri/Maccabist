@@ -1417,11 +1417,137 @@ function useTouchProbe(enabled: boolean): void {
   }, [enabled]);
 }
 
+/*
+ * Player-crop probe (v0.9.6.1).
+ *
+ * With `?crop=1`, samples the player art's RENDERED geometry across its whole entrance and
+ * reports how much it moved.
+ *
+ * The reported bug was a jump: the player appeared almost full-body, then snapped into his
+ * intended crop. Every other probe here would have passed it - the element was present, inside
+ * the viewport, unclipped and legible at both ends. What was wrong only existed BETWEEN the
+ * frames, so the only way to catch it is to measure more than one.
+ *
+ * Measured on the bounding rect rather than the computed transform string, deliberately. The
+ * rect is what the player's eye actually sees, and it stays honest if the crop is ever moved to
+ * `scale`, `zoom`, width, or a different property entirely.
+ */
+/*
+ * The entrance is stretched BEFORE anything renders.
+ *
+ * This has to happen at module scope, not inside the probe's effect. A CSS animation takes its
+ * duration when it starts, and the shipped entrance is 380ms - under --virtual-time-budget it had
+ * always finished by the time an effect ran, so `getAnimations()` returned an empty list and the
+ * probe reported "no crop jump" for every scene including ones with the bug put back.
+ *
+ * An inline property on <html> also outranks the `prefers-reduced-motion` block, which headless
+ * Chrome can otherwise satisfy and collapse the entrance to 1ms.
+ *
+ * Only the duration changes. The keyframes are the ones the game ships.
+ */
+const CROP_PROBE_DURATION = '60s';
+if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('crop') === '1') {
+  document.documentElement.style.setProperty('--gf-t-enter', CROP_PROBE_DURATION);
+  document.documentElement.style.setProperty('--gf-t-quick', CROP_PROBE_DURATION);
+}
+
+function useCropProbe(enabled: boolean): void {
+  useEffect(() => {
+    if (!enabled) return;
+
+    /*
+     * The entrance is SEEKED, not watched.
+     *
+     * The first version of this probe sampled requestAnimationFrame and reported "no crop jump"
+     * on CSS with the bug deliberately put back - a false pass, which is the worst thing an audit
+     * can do. Headless Chrome under --virtual-time-budget delivers rAF very coarsely (measured: 4
+     * to 11 callbacks across 6 seconds even with the entrance slowed to 4s), so the animation
+     * reliably began and ended between two samples.
+     *
+     * The Web Animations API removes the timing problem entirely. Every CSS animation on the
+     * element is paused and its `currentTime` set to a series of exact points, so the geometry is
+     * read at 0%, 25%, 50%, 75% and 100% of the real entrance no matter how the host schedules
+     * frames. Deterministic, and it measures the keyframes the game actually ships.
+     */
+    const run = (): void => {
+      const rows: unknown[] = [];
+      for (const el of Array.from(
+        document.querySelectorAll('.pr-art, .gf-hero-art, .gf-md-art, .gf-moment-player, .gf-moment-art'),
+      )) {
+        const animations = el.getAnimations();
+        const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/).join('.') : '';
+        const sel = `.${cls}`.slice(0, 70);
+
+        /* The settled geometry: what the layout intends, and what every other frame must match. */
+        const settled = el.getBoundingClientRect();
+
+        const durations = animations.map((a) => {
+          const timing = a.effect?.getComputedTiming();
+          return Number(timing?.activeDuration ?? 0) || 0;
+        });
+        const duration = Math.max(0, ...durations);
+
+        const widths: number[] = [];
+        const heights: number[] = [];
+        const lefts: number[] = [];
+        for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
+          for (const animation of animations) {
+            try {
+              animation.pause();
+              animation.currentTime = duration * fraction;
+            } catch {
+              /* A finished or non-seekable animation cannot move the geometry anyway. */
+            }
+          }
+          const rect = el.getBoundingClientRect();
+          widths.push(rect.width);
+          heights.push(rect.height);
+          lefts.push(rect.left);
+        }
+        for (const animation of animations) {
+          try {
+            animation.play();
+          } catch {
+            /* Restoring playback is a courtesy to the screenshot runner, not part of the result. */
+          }
+        }
+
+        if (settled.width === 0 && settled.height === 0) continue;
+        const span = (values: number[]): number => Math.round(Math.max(...values) - Math.min(...values));
+        rows.push({
+          sel,
+          animations: animations.length,
+          durationMs: Math.round(duration),
+          minW: Math.round(Math.min(...widths)),
+          maxW: Math.round(Math.max(...widths)),
+          minH: Math.round(Math.min(...heights)),
+          maxH: Math.round(Math.max(...heights)),
+          minX: Math.round(Math.min(...lefts)),
+          maxX: Math.round(Math.max(...lefts)),
+          /* Rounding and sub-pixel layout are not a jump; a visible re-crop is far larger. */
+          jumped: span(widths) > 2 || span(heights) > 2 || span(lefts) > 2,
+        });
+      }
+      const tag = document.createElement('script');
+      tag.id = 'crop-result';
+      tag.type = 'application/json';
+      tag.textContent = JSON.stringify(rows);
+      document.getElementById('crop-result')?.remove();
+      document.body.appendChild(tag);
+    };
+
+    /* Long enough for the art to have loaded and laid out; the seek does the rest. */
+    const id = window.setTimeout(run, 600);
+    return () => window.clearTimeout(id);
+  }, [enabled]);
+}
+
 export function Gallery(): JSX.Element {
   const params = new URLSearchParams(window.location.search);
   useOverflowProbe(params.get('probe') === '1', params.get('w'), params.get('need'));
   useContrastProbe(params.get('contrast') === '1');
   useTouchProbe(params.get('touch') === '1');
+  useCropProbe(params.get('crop') === '1');
   const only = params.get('only');
   /*
    * `?bare=1` (v0.9.3): the scene with no gallery chrome at all - no frame label, no gallery

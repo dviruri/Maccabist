@@ -33,6 +33,7 @@
     "fixture:audit": "vite-node scripts/fixtureAudit.ts --",
     "rc:audit": "vite-node scripts/rcAudit.ts --",
     "touch:audit": "node scripts/touchAudit.mjs",
+    "crop:audit": "node scripts/cropAudit.mjs",
     "viewport:audit": "node scripts/viewportAudit.mjs",
     "kit:lab": "vite-node scripts/kitLab.ts --",
     "contrast:audit": "node scripts/contrastAudit.mjs"

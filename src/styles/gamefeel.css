@@ -164,7 +164,7 @@
   z-index: var(--z-art);
   filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.7));
   pointer-events: none;
-  animation: gf-rise var(--gf-t-enter) ease-out;
+  animation: gf-player-fade var(--gf-t-enter) ease-out;
   -webkit-mask-image: linear-gradient(to bottom, #000 74%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 74%, transparent 100%);
 }
@@ -349,6 +349,24 @@
   from { transform: translateY(14px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+/*
+ * The player's own entrance (v0.9.6.1).
+ *
+ * gf-rise animates `transform`, which REPLACES the whole property - so on any element whose crop
+ * is a static transform (.gf-hero-art, .gf-md-art, .gf-moment-player) the art rendered for the
+ * animation's duration at scale(1) with no translateX: nearly full-body and off-centre, then
+ * snapped to the intended crop on the last frame. That snap was the visible jump on first paint.
+ *
+ * Deliberately opacity-only: no transform, translate, scale, width, height or transform-origin,
+ * so the geometry the layout computed is the geometry every frame draws. gf-rise itself is left
+ * alone - panels and cards still need it, and .gf-moment-art has no static transform to lose.
+ *
+ * There is no `to` on purpose. An omitted 100% keyframe resolves to the element's OWN computed
+ * value, so .gf-md-art fades to its declared 0.9 rather than to 1 and then popping back down.
+ */
+@keyframes gf-player-fade {
+  from { opacity: 0; }
+}
 @keyframes gf-fade {
   from { opacity: 0; }
   to { opacity: 0.8; }
@@ -509,7 +527,7 @@
   z-index: var(--z-art);
   opacity: 0.9;
   filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.8));
-  animation: gf-rise var(--gf-t-enter) ease-out;
+  animation: gf-player-fade var(--gf-t-enter) ease-out;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
@@ -1466,7 +1484,7 @@
   transform: translateX(-50%) scale(1.35);
   z-index: var(--z-panel);
   filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.8));
-  animation: gf-rise var(--gf-t-enter) ease-out;
+  animation: gf-player-fade var(--gf-t-enter) ease-out;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
