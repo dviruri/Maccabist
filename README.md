@@ -17,7 +17,16 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.6.2 — Hebrew Copy QA & Final Beta Readiness.** A complete review of
+**Current stable release: v0.9.6.3 — Final Micro Hotfix.** Two corrections and an accurate release
+record. A club knocked out of Europe in qualifying kept its midseason wording to the end of the
+season, still telling the player to focus on a league that had already finished; a settled season
+is now described in the past tense however it ended. One Hebrew idiom corrected —
+`לטוב ולחובה` → `לטוב ולרע` — and permanently guarded. The v0.9.6.2 report is corrected to record
+that its stability gate ran `npx vitest run` rather than `npm test`, which is why the TypeScript
+test compile went unverified and CI failed until `c261755`. This release proves the gate with three
+consecutive `npm test` runs (`V0963_REPORT.md`).
+
+**v0.9.6.2 — Hebrew Copy QA & Final Beta Readiness.** A complete review of
 every player-facing Hebrew string — 115 files, 4,441 lines — plus the last of the European
 presentation-truth bugs. The career feed no longer tells a club still playing qualifiers that its
 European summer ended early, and an eliminated campaign is now described as eliminated rather than
