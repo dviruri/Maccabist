@@ -17,7 +17,19 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.6.1 — Release Candidate Truth & Visual Stability Hotfix.** Four
+**Current stable release: v0.9.6.2 — Hebrew Copy QA & Final Beta Readiness.** A complete review of
+every player-facing Hebrew string — 115 files, 4,441 lines — plus the last of the European
+presentation-truth bugs. The career feed no longer tells a club still playing qualifiers that its
+European summer ended early, and an eliminated campaign is now described as eliminated rather than
+rendered like a live one. The Hebrew pass found that the prose itself is strong and left it alone;
+what was broken was Hebrew assembled at runtime. A goal used to be credited to `לפועל באר שבע`
+instead of `להפועל`, and transliterated clubs lost their first letter outright — `המבורג` became
+`למבורג`, `הופנהיים` became `לופנהיים` — because the definite-article contraction was applied to
+club names, where the ה belongs to the name. Anything a player did exactly once read `1 הופעות`.
+Full detail in `HEBREW_COPY_AUDIT.md`; verified by a 240-career invariant audit, a four-way browser
+sweep and three consecutive suite runs (`V0962_REPORT.md`).
+
+**v0.9.6.1 — Release Candidate Truth & Visual Stability Hotfix.** Four
 things playtesting found in v0.9.6. Every European surface now derives what it shows by replaying
 the path the player has actually lived through, so the home screen and the Europe detail can no
 longer name different competitions — v0.9.6 gated the journey's steps but not its future-complete
