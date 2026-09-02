@@ -135,17 +135,35 @@ export function simulateHalfStats(career: Career, rng: Rng, games: number): Simu
   const assists = appearances === 0 ? 0 : rolledAssists;
 
   const cleanSheetBase = config.cleanSheetRate * (0.5 + level.quality / 140);
-  const cleanSheets =
+  const rolledCleanSheets =
     config.cleanSheetRate > 0
       ? Math.max(0, Math.round(rng.gaussian(starts * cleanSheetBase, starts * 0.1 + 0.6)))
       : 0;
 
   // Goalkeepers are also judged on what goes past them.
   const concededPerGame = config.concededRate * (1.35 - level.quality / 150) * (1.25 - abilityFactor * 0.22);
-  const goalsConceded =
+  const rolledGoalsConceded =
     config.concededRate > 0
       ? Math.max(0, Math.round(rng.gaussian(starts * Math.max(0.25, concededPerGame), starts * 0.2 + 1)))
       : 0;
+
+  /*
+   * The defensive half of the same rule (v0.9.6.1).
+   *
+   * v0.9.6 stopped a player scoring in a season he never played. These two rolls have exactly the
+   * same shape and were missed: with `starts === 0` the mean is zero but the spread is not -
+   * `gaussian` is bounded at +/- spread, so 0.6 rounds to one clean sheet and 1.0 rounds to one
+   * goal conceded. Reproduced across 300 goalkeeper, centre-back and full-back careers: a keeper
+   * who conceded in a season with no appearances, and a centre-back who kept a clean sheet in one.
+   *
+   * Gated on APPEARANCES rather than starts, deliberately: a substitute appearance can genuinely
+   * end in a clean sheet, and clamping on starts would delete real football.
+   *
+   * Rolled first and discarded after, never skipped - the same reason as the goals above. A
+   * short-circuit would consume two fewer values in precisely the seasons this triggers on.
+   */
+  const cleanSheets = appearances === 0 ? 0 : rolledCleanSheets;
+  const goalsConceded = appearances === 0 ? 0 : rolledGoalsConceded;
 
   /* ---------------- rating ---------------- */
   let rating =

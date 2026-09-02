@@ -31,7 +31,7 @@ import type { Career, Position } from '../src/types';
 const POSITIONS: Position[] = ['GK', 'CB', 'FB', 'CM', 'WG', 'ST'];
 
 describe('season output is impossible without appearances', () => {
-  it('never records a goal or an assist in a season with no appearances', () => {
+  it('never records ANY football output in a season with no appearances', () => {
     /*
      * Swept across positions and both policies, because the bug needed a season the player barely
      * featured in - which a loyal career at a big club produces far more often than an ambitious
@@ -53,8 +53,17 @@ describe('season output is impossible without appearances', () => {
             const s = record.stats;
             if (s.appearances > 0) continue;
             zeroAppearanceSeasons += 1;
-            if (s.goals > 0 || s.assists > 0) {
-              offenders.push(`seed ${career.seed} ${record.season}: ${s.goals}g ${s.assists}a in 0 apps`);
+            /*
+             * All four, not just the two v0.9.6 covered (v0.9.6.1). The defensive rolls have the
+             * same unconditional noise floor: `gaussian` is bounded at +/- spread, so with zero
+             * starts 0.6 rounds to one clean sheet and 1.0 rounds to one goal conceded. Found in
+             * 300 GK/CB/FB careers - a keeper who conceded in a season he never played, and a
+             * centre-back who kept a clean sheet in one.
+             */
+            for (const key of ['goals', 'assists', 'cleanSheets', 'goalsConceded'] as const) {
+              if ((s[key] ?? 0) > 0) {
+                offenders.push(`seed ${career.seed} ${record.season}: ${key}=${s[key]} in 0 apps`);
+              }
             }
           }
         },
@@ -99,6 +108,36 @@ describe('season output is impossible without appearances', () => {
     expect([...new Set(offenders)]).toEqual([]);
   });
 
+  it('finds zero-appearance seasons for a goalkeeper and a defender too', () => {
+    /*
+     * Non-vacuity for the DEFENSIVE half specifically. The attacking clamp is exercised by any
+     * position; clean sheets and goals conceded are only rolled where `cleanSheetRate` and
+     * `concededRate` are non-zero, so the sweep has to actually reach those careers.
+     */
+    let defensiveZeroSeasons = 0;
+    const offenders: string[] = [];
+    for (let i = 0; i < 36; i += 1) {
+      simulateCareer({
+        playerName: 'אורי דביר',
+        position: (['GK', 'CB', 'FB'] as const)[i % 3]!,
+        seed: 60000 + i,
+        policy: i % 2 === 0 ? balancedPolicy : ambitiousPolicy,
+        onStep: (career: Career) => {
+          for (const record of career.seasonHistory) {
+            const s = record.stats;
+            if (s.appearances !== 0) continue;
+            defensiveZeroSeasons += 1;
+            if (s.cleanSheets > 0 || s.goalsConceded > 0) {
+              offenders.push(`seed ${career.seed} ${record.season}: cs=${s.cleanSheets} conceded=${s.goalsConceded}`);
+            }
+          }
+        },
+      });
+    }
+    expect(defensiveZeroSeasons, 'no defensive zero-appearance season occurred').toBeGreaterThan(0);
+    expect([...new Set(offenders)]).toEqual([]);
+  });
+
   it('takes both rolls whether or not the output is kept', () => {
     /*
      * The determinism guard, checked as source: skipping the draws is invisible in output until a
@@ -118,5 +157,13 @@ describe('season output is impossible without appearances', () => {
     const clampAt = region.indexOf('appearances === 0 ? 0 : rolledGoals');
     const rollAt = region.indexOf('rng.normal');
     expect(clampAt).toBeGreaterThan(rollAt);
+
+    /* The defensive pair follows the same shape (v0.9.6.1). */
+    const wider = source.slice(at, at + 4000);
+    expect(wider).toContain('const rolledCleanSheets =');
+    expect(wider).toContain('const rolledGoalsConceded =');
+    expect(wider.indexOf('appearances === 0 ? 0 : rolledCleanSheets')).toBeGreaterThan(
+      wider.indexOf('rng.gaussian'),
+    );
   });
 });

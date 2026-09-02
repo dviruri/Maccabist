@@ -126,9 +126,18 @@ for (let i = 0; i < careers; i += 1) {
         if (s.starts > s.appearances) {
           fail('stats', seed, `starts ${s.starts} > appearances ${s.appearances} in ${record.season}`);
         }
-        /* A season with no appearances cannot have produced goals or assists. */
-        if (s.appearances === 0 && (s.goals > 0 || s.assists > 0)) {
-          fail('stats', seed, `output with zero appearances in ${record.season}`);
+        /*
+         * A season with no appearances has no football output of ANY kind (v0.9.6.1).
+         *
+         * v0.9.6 covered goals and assists. The defensive rolls have the same unconditional noise
+         * floor, so a player who never started could still record a clean sheet or concede a goal.
+         */
+        if (s.appearances === 0) {
+          for (const key of ['goals', 'assists', 'cleanSheets', 'goalsConceded'] as const) {
+            if ((s[key] ?? 0) > 0) {
+              fail('stats', seed, `${key}=${s[key]} with zero appearances in ${record.season}`);
+            }
+          }
         }
       }
       if (!finite(career.ability) || career.ability < 0 || career.ability > 100) {
