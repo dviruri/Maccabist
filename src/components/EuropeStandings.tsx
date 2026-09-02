@@ -1,4 +1,4 @@
-import { mayShowLeaguePhaseTable } from '../game/europePresentation';
+import { mayShowLeaguePhaseTable, visibleEuropeanCampaign } from '../game/europePresentation';
 import { UEFA_COMPETITIONS } from '../data/uefa';
 import type { Career, UefaCompetitionId } from '../types';
 import { ClubCrest } from './ClubCrest';
@@ -54,7 +54,12 @@ export function EuropeStandings({ career }: { career: Career }): JSX.Element {
 
   /* The competition the player's club is actually in leads; the others follow. */
   const order: UefaCompetitionId[] = ['uefa_champions_league', 'uefa_europa_league', 'uefa_conference_league'];
-  const mine = current?.playerJourney?.finalCompetition;
+  /*
+   * Which competition leads the sheet - from the VISIBLE campaign, not `finalCompetition`
+   * (v0.9.6.1). This sheet only opens at full reveal, where the two agree, but reading the
+   * future-complete field here would be the same mistake in a place it happens not to show.
+   */
+  const mine = visibleEuropeanCampaign(career, playerClubId)?.competition;
   const sorted = mine ? [mine, ...order.filter((id) => id !== mine)] : order;
 
   return (

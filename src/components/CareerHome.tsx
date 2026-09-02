@@ -1,8 +1,7 @@
 import { deriveCareerFeed, type FeedItem } from '../game/careerFeed';
 import { getPersonArt } from '../ui/playerArt';
 import { activeFixture, knownCupFinal } from '../game/fixture';
-import { revealedFurthest, revealedSteps } from '../game/europePresentation';
-import { currentCampaign } from '../game/europeStatus';
+import { revealedFurthest, revealedSteps, visibleEuropeanCampaign } from '../game/europePresentation';
 import { currentLeagueContext } from '../game/leagueEngine';
 import { isInAcademy } from '../game/rules';
 import { seasonPhaseSteps } from '../ui/format';
@@ -77,7 +76,7 @@ function HomeStatusRow({
 }): JSX.Element | null {
   const league = currentLeagueContext(career);
   /* The club's LIVE campaign, which follows drop-downs - never its starting entry (v0.9.1). */
-  const europe = showEurope ? currentCampaign(career, career.currentClubId) : null;
+  const europe = showEurope ? visibleEuropeanCampaign(career, career.currentClubId) : null;
   /* Academy football has no table; the season's shape is still real and worth one word. */
   const phase = league ? null : seasonPhaseSteps(career).find((step) => step.current)?.label ?? null;
 
@@ -213,7 +212,14 @@ function EuropeContext({
   career: Career;
   onOpenEurope: () => void;
 }): JSX.Element | null {
-  const campaign = currentCampaign(career, career.currentClubId);
+  /*
+   * v0.9.6.1: the VISIBLE campaign, never the recorded one.
+   *
+   * `currentCampaign` reads `finalCompetition` and `reachedLeaguePhase`, which describe the end of
+   * a season the engine simulated in advance - so at preseason this panel announced the club was
+   * in the Conference League league phase before it had played a Champions League qualifier.
+   */
+  const campaign = visibleEuropeanCampaign(career, career.currentClubId);
   if (!campaign) return null;
   const journey = career.world.europe?.current?.playerJourney;
   /*
@@ -356,7 +362,7 @@ export type HomeContext = 'offer' | 'europe' | 'feed';
 /** Which state the slot will show. Exported so the chips above it can avoid repeating it. */
 export function homeContextOf(career: Career): HomeContext {
   if (career.pendingOffers.length > 0) return 'offer';
-  if (currentCampaign(career, career.currentClubId)) return 'europe';
+  if (visibleEuropeanCampaign(career, career.currentClubId)) return 'europe';
   return 'feed';
 }
 

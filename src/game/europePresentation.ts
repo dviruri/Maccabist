@@ -1,5 +1,5 @@
-import type { Career, EuropeanJourney, EuropeanStep } from '../types';
-import { QUALIFYING_GRAPH } from '../data/uefa';
+import type { Career, EuropeanJourney, EuropeanStep, UefaCompetitionId } from '../types';
+import { LEAGUE_PHASE, QUALIFYING_GRAPH, UEFA_COMPETITIONS } from '../data/uefa';
 
 /**
  * What the player is allowed to KNOW about Europe right now (v0.9.6, Phase 2).
@@ -165,4 +165,153 @@ export function revealedFurthest(career: Career, journey: EuropeanJourney): stri
     default:
       return journey.furthest;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* What competition is he in RIGHT NOW                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The competition and stage the player is allowed to believe he is in at this moment.
+ *
+ * `eliminated` means the revealed path ended in a qualifying defeat with no drop-down: the
+ * campaign is over and there is no current competition to name. The competition field then holds
+ * the last one he was actually in, which is what "we went out of the Europa League" needs.
+ */
+export interface VisibleEuropeanCampaign {
+  competition: UefaCompetitionId;
+  competitionName: string;
+  /** Hebrew phrase for where in the competition this is. */
+  stage: string;
+  /** True only in the league phase proper, never a qualifying route. */
+  inLeaguePhase: boolean;
+  /** The revealed path ended in a defeat with nowhere to drop to. */
+  eliminated: boolean;
+  reveal: EuropeReveal;
+}
+
+function stageLabel(node: string): { stage: string; inLeaguePhase: boolean } {
+  if (node === LEAGUE_PHASE) return { stage: 'שלב הליגה', inLeaguePhase: true };
+  return { stage: QUALIFYING_GRAPH[node]?.label ?? 'מוקדמות', inLeaguePhase: false };
+}
+
+/**
+ * THE answer to "which European competition am I in", for every player-facing current-season
+ * surface (v0.9.6.1).
+ *
+ * ## Why filtering `journey.steps` was not enough
+ *
+ * v0.9.6 stopped components rendering future STEPS. But the journey carries future-complete
+ * SCALARS too - `finalCompetition`, `reachedLeaguePhase`, `furthest`, `wonCompetition` - and those
+ * describe the END of a season the engine simulated in advance. They were never gated.
+ *
+ * So `currentCampaign` read `finalCompetition` and `reachedLeaguePhase`, and at PRESEASON a club
+ * that had entered the Champions League and would eventually fall to the Conference already
+ * reported "הקונפרנס ליג / שלב הליגה". Reproduced before the fix: the same Europe card printed
+ * "הקונפרנס ליג" in its header and "נכנסנו למוקדמות ליגת האלופות" three lines below it.
+ *
+ * ## How this answers instead
+ *
+ * It REPLAYS the revealed path. Nothing is read off a scalar; the competition is wherever the
+ * revealed steps have carried the club, using the same `QUALIFYING_GRAPH` the engine walks:
+ *
+ *   entered  start here, in this competition
+ *   tie      won -> `winTo` (another round, or the league phase). Lost -> await a drop.
+ *   bye      -> `advanceTo`
+ *   dropped  a new competition, and a new node inside it
+ *
+ * A lost tie with no drop after it is elimination, and no current competition is invented.
+ *
+ * At FULL reveal every step is revealed, so the walk naturally lands on the same place
+ * `finalCompetition` would have - derived rather than asserted, which is the point.
+ */
+export function visibleEuropeanCampaign(
+  career: Career,
+  clubId: string,
+): VisibleEuropeanCampaign | null {
+  const current = career.world.europe?.current;
+  if (!current || current.season !== career.currentSeason) return null;
+
+  const journey = [current.playerJourney, current.maccabiJourney].find(
+    (candidate) => candidate && candidate.clubId === clubId,
+  );
+  const reveal = europeReveal(career);
+
+  if (!journey) {
+    /*
+     * No recorded journey - a club the world does not watch. All that is known is where it
+     * entered, which is a fact from the draw and safe at any reveal.
+     */
+    const entry = current.entries.find((e) => e.clubId === clubId);
+    if (!entry) return null;
+    const { stage, inLeaguePhase } = stageLabel(entry.entry);
+    return {
+      competition: entry.competition,
+      competitionName: UEFA_COMPETITIONS[entry.competition].name,
+      stage,
+      inLeaguePhase,
+      eliminated: false,
+      reveal,
+    };
+  }
+
+  let competition: UefaCompetitionId | null = null;
+  let node: string | null = null;
+  let eliminated = false;
+
+  for (const step of revealedSteps(career, journey)) {
+    switch (step.kind) {
+      case 'entered':
+        competition = step.competition;
+        node = step.entry;
+        eliminated = false;
+        break;
+      case 'tie': {
+        const graphNode = QUALIFYING_GRAPH[step.tie.stage];
+        /* A knockout tie is past qualifying; the competition does not change there. */
+        if (!graphNode) break;
+        competition = step.tie.competition;
+        if (step.tie.won) {
+          node = graphNode.winTo;
+          eliminated = false;
+        } else {
+          /*
+           * Out of this round. Whether that ends the campaign depends on whether a `dropped`
+           * step follows - which the next iteration will say. Marked eliminated for now so a
+           * defeat that is the LAST revealed step reads as one.
+           */
+          eliminated = true;
+        }
+        break;
+      }
+      case 'bye':
+        competition = step.competition;
+        node = step.advanceTo;
+        eliminated = false;
+        break;
+      case 'dropped':
+        competition = step.to;
+        node = step.toEntry;
+        eliminated = false;
+        break;
+      case 'league_phase':
+        competition = step.competition;
+        node = LEAGUE_PHASE;
+        eliminated = false;
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (!competition) return null;
+  const { stage, inLeaguePhase } = stageLabel(node ?? '');
+  return {
+    competition,
+    competitionName: UEFA_COMPETITIONS[competition].name,
+    stage,
+    inLeaguePhase: inLeaguePhase && !eliminated,
+    eliminated,
+    reveal,
+  };
 }

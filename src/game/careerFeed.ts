@@ -1,6 +1,6 @@
 import { UEFA_COMPETITIONS } from '../data/uefa';
 import { stageConfig } from '../data/academy';
-import { currentCampaign } from './europeStatus';
+import { visibleEuropeanCampaign } from './europePresentation';
 import { activeFixture } from './fixture';
 import { currentTable } from './leagueEngine';
 import { isInAcademy } from './rules';
@@ -237,7 +237,8 @@ const CLUB_POOLS: Record<string, readonly string[]> = {
 };
 
 function clubItem(career: Career): FeedItem | null {
-  const europe = currentCampaign(career, career.currentClubId);
+  /* The visible campaign: this line names a competition to the player (v0.9.6.1). */
+  const europe = visibleEuropeanCampaign(career, career.currentClubId);
   if (europe) {
     const pool = europe.inLeaguePhase ? CLUB_POOLS.europe_lp! : CLUB_POOLS.europe_out!;
     return {

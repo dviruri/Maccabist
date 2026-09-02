@@ -2,6 +2,7 @@ import {
   europeReveal,
   mayShowLeaguePhaseTable,
   revealedSteps,
+  visibleEuropeanCampaign,
 } from '../game/europePresentation';
 import { getCompetitionAsset } from '../data/competitionAssets';
 import { QUALIFYING_GRAPH, LEAGUE_PHASE, LP_DROP_TARGETS, UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
@@ -102,6 +103,21 @@ export function EuropeCard({
    * decides. Reading the raw journey for even one field - the entry, say - is how a component
    * starts having its own opinion about chronology.
    */
+  /*
+   * v0.9.6.1: the header, the badge and the tier styling all come from the VISIBLE campaign.
+   *
+   * They used to read `journey.finalCompetition` - a future-complete field - so this card could
+   * print "הקונפרנס ליג" at the top while its own entry line three rows below said
+   * "נכנסנו למוקדמות ליגת האלופות". One card, two competitions, at preseason.
+   */
+  const visible = visibleEuropeanCampaign(career, career.currentClubId);
+  /*
+   * Fail closed rather than fall back. Inside this block the journey exists and belongs to this
+   * club, so the resolver cannot legitimately return null - and a `?? journey.finalCompetition`
+   * fallback would quietly reintroduce the future-complete read this phase removed, in the one
+   * branch nobody tests.
+   */
+  if (!visible) return null;
   const shown = revealedSteps(career, journey);
   const entered = shown.find(
     (step): step is Extract<EuropeanStep, { kind: 'entered' }> => step.kind === 'entered',
@@ -119,14 +135,14 @@ export function EuropeCard({
      * facts, under floodlights. Tier still drives the border (gold for the Champions League).
      */
     <CinematicBackdrop backdrop="europe-night" className="gf-euro-scene">
-      <section className={`card euro-card euro-${UEFA_COMPETITIONS[journey.finalCompetition].tier} gf-euro-card`}>
+      <section className={`card euro-card euro-${UEFA_COMPETITIONS[visible.competition].tier} gf-euro-card`}>
       <div className="euro-head">
-        <CompetitionBadge competition={journey.finalCompetition} size={26} />
+        <CompetitionBadge competition={visible.competition} size={26} />
         <div className="euro-head-text">
           {/* v0.9.1: explicitly THIS season, and the competition is the journey's current one -
               a club that dropped to the Conference League reads Conference League here. */}
           <div className="kicker">אירופה העונה</div>
-          <div className="euro-title">{UEFA_COMPETITIONS[journey.finalCompetition].name}</div>
+          <div className="euro-title">{visible.competitionName}</div>
         </div>
       </div>
 
@@ -163,14 +179,35 @@ export function EuropeCard({
         that the league phase is UNDER WAY - it may not say where it finished, because it has not.
         Only at settlement does the completed shape of the season become sayable.
       */}
-      {reveal === 'entry' ? null : journey.reachedLeaguePhase ? (
-        <p className="euro-state-line euro-up">
-          {reveal === 'qualifying'
-            ? `העפלנו לשלב הליגה של ${UEFA_COMPETITIONS[journey.finalCompetition].name} — שלב הליגה בעיצומו`
-            : `בשלב הליגה של ${UEFA_COMPETITIONS[journey.finalCompetition].name} — העונה האירופית לפנינו`}
-        </p>
+      {reveal === 'entry' ? null : reveal === 'qualifying' ? (
+        visible.inLeaguePhase ? (
+          <p className="euro-state-line euro-up">
+            העפלנו לשלב הליגה של {visible.competitionName} — שלב הליגה בעיצומו
+          </p>
+        ) : (
+          <p className="euro-state-line">העונה האירופית הסתיימה בקיץ. הליגה מחכה.</p>
+        )
       ) : (
-        <p className="euro-state-line">העונה האירופית הסתיימה בקיץ. הליגה מחכה.</p>
+        /*
+         * v0.9.6.1: at FULL reveal the season is over, so it is described in the past tense.
+         *
+         * This branch used to say "בשלב הליגה של X — העונה האירופית לפנינו" - "the European season
+         * is ahead of us" - on a settled season that had already finished. Chronologically
+         * impossible, and the one place in the card that still spoke as though the future were
+         * coming.
+         *
+         * Every fact below is one the journey already records: the trophy, the furthest knockout
+         * stage reached, or the league phase. Nothing new is invented.
+         */
+        <p className={`euro-state-line${journey.wonCompetition ? ' euro-up' : ''}`}>
+          {journey.wonCompetition
+            ? `זכינו ב${UEFA_COMPETITIONS[journey.wonCompetition].name}!`
+            : KNOCKOUT_TITLES[journey.furthest]
+              ? `${UEFA_COMPETITIONS[journey.finalCompetition].name} — הגענו ל${KNOCKOUT_TITLES[journey.furthest]}`
+              : journey.reachedLeaguePhase
+                ? `סיימנו את שלב הליגה של ${UEFA_COMPETITIONS[journey.finalCompetition].name}`
+                : 'העונה האירופית הסתיימה בקיץ.'}
+        </p>
       )}
 
       {/*
@@ -193,6 +230,18 @@ export function EuropeCard({
     </CinematicBackdrop>
   );
 }
+
+/**
+ * The furthest knockout round a campaign reached, for the settled state line. The same vocabulary
+ * `CareerMoments` uses, so the card and the season's moments cannot describe one run two ways.
+ */
+const KNOCKOUT_TITLES: Record<string, string> = {
+  final: 'הגמר',
+  sf: 'חצי הגמר',
+  qf: 'רבע הגמר',
+  r16: 'שמינית הגמר',
+  ko_playoff: 'פלייאוף הנוקאאוט',
+};
 
 /**
  * A round walked through rather than played (v0.9.6).

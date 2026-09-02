@@ -576,6 +576,20 @@ function withEurope(career: Career): Career {
             season: career.currentSeason,
             clubId: career.currentClubId,
             steps: [
+              /*
+               * The entry step (v0.9.6.1). Every journey the engine produces opens with one -
+               * verified across 2,100 real campaigns - and since Phase 1 the home panel derives
+               * the competition by walking the REVEALED steps rather than reading the journey's
+               * future-complete `finalCompetition`. A fixture that jumps straight to a final
+               * league-phase table is a journey no season can generate, and it made this test
+               * assert the panel's presence through a path the game never takes.
+               */
+              {
+                kind: 'entered',
+                competition: 'uefa_conference_league',
+                entry: 'uecl_q2',
+                reason: { kind: 'league_position', position: 4 },
+              },
               {
                 kind: 'league_phase',
                 competition: 'uefa_conference_league',
