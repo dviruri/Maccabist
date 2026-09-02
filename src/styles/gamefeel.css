@@ -586,7 +586,8 @@
   font-size: var(--gf-meta);
   font-weight: 800;
   padding: 7px 14px;
-  min-height: 36px;
+  /* 44px: absolutely placed at the foot of the stage, so this costs no layout height at all. */
+  min-height: 44px;
   cursor: pointer;
 }
 .gf-md-history {
@@ -670,7 +671,8 @@
   color: var(--text-secondary);
   font-weight: 800;
   font-size: var(--gf-meta);
-  min-height: 36px;
+  /* 44px, the one-handed minimum. The matchday controls are pressed more than any others. */
+  min-height: 44px;
   padding: 4px 8px;
   cursor: pointer;
   text-decoration: underline;
@@ -729,8 +731,8 @@
   font-weight: 900;
   font-size: 18px;
   line-height: 1;
-  width: 40px;
-  min-height: 40px;
+  width: 44px;
+  min-height: 44px;
   cursor: pointer;
 }
 .gf-dec-page-btn:disabled { opacity: 0.35; cursor: default; }
@@ -1235,7 +1237,11 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
+  /*
+   * 44px. Only the TAPPABLE chips need it, but a chip is 6px of padding either side of one line
+   * of text and giving them all the same box keeps the row visually even (v0.9.6, Phase 9).
+   */
+  min-height: 44px;
   padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid var(--gf-glass-border);
@@ -1266,8 +1272,10 @@
   color: var(--green-bright);
   font-weight: 800;
   font-size: var(--gf-meta);
-  padding: 2px;
-  min-height: 30px;
+  /* 44px hit area in BOTH axes, layout unchanged - see .dc-choice-details (v0.9.6, Phase 9). */
+  padding: 9px 14px;
+  margin: -9px -14px;
+  min-height: 44px;
   cursor: pointer;
 }
 
@@ -2079,9 +2087,19 @@
 .dc-odds-pct { font-variant-numeric: tabular-nums; }
 
 /* The details link. Outside the card's press target, on purpose - see DecisionChoice.tsx. */
+/*
+ * The hit area is 44px; the LAYOUT cost is unchanged (v0.9.6, Phase 9).
+ *
+ * This rendered as a 78x22 target - the only route to a choice's outcome sheet, and too small for
+ * a thumb on a game played one-handed. Padding grows the rect the browser actually hit-tests, and
+ * the matching negative margin pulls the surrounding layout back to where it was, so the decision
+ * screen's one-screen budget is untouched. Verified by `npm run touch:audit` and re-measured by
+ * `npm run viewport:audit`.
+ */
 .dc-choice-details {
   justify-self: start;
-  padding: 2px 4px;
+  padding: 13px 8px;
+  margin: -13px -8px;
   background: none;
   border: 0;
   font: inherit;

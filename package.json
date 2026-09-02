@@ -31,6 +31,8 @@
     "europe:metrics": "vite-node scripts/europeMetrics.ts --",
     "regress": "vite-node scripts/sameSeedRegression.ts",
     "fixture:audit": "vite-node scripts/fixtureAudit.ts --",
+    "rc:audit": "vite-node scripts/rcAudit.ts --",
+    "touch:audit": "node scripts/touchAudit.mjs",
     "viewport:audit": "node scripts/viewportAudit.mjs",
     "kit:lab": "vite-node scripts/kitLab.ts --",
     "contrast:audit": "node scripts/contrastAudit.mjs"

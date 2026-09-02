@@ -115,8 +115,24 @@ export function simulateHalfStats(career: Career, rng: Rng, games: number): Simu
    * in practice; carrying 0.55 across to a true normal tripled the variance and produced 103-goal
    * seasons. 0.2 reproduces the old central spread and adds the tail that was missing.
    */
-  const goals = Math.max(0, Math.round(rng.normal(expectedGoals, expectedGoals * 0.2 + 0.6)));
-  const assists = Math.max(0, Math.round(rng.normal(expectedAssists, expectedAssists * 0.2 + 0.5)));
+  const rolledGoals = Math.max(0, Math.round(rng.normal(expectedGoals, expectedGoals * 0.2 + 0.6)));
+  const rolledAssists = Math.max(0, Math.round(rng.normal(expectedAssists, expectedAssists * 0.2 + 0.5)));
+  /*
+   * No appearances, no output (v0.9.6, Phase 8).
+   *
+   * With `appearances === 0` the expectation is zero, but the spread is not: the `+ 0.6` and
+   * `+ 0.5` noise floors exist so a low-expectation season still has a tail, and they are added
+   * unconditionally. So `rng.normal(0, 0.6)` rounds to 1 often enough that a player who did not
+   * play a single match was credited with a goal. Found by the RC audit at five distinct season
+   * records in twenty-four careers - "output with zero appearances" - and it is a football lie of
+   * exactly the kind this release exists to remove.
+   *
+   * The rolls are taken FIRST and discarded after, never skipped. Short-circuiting before them
+   * would consume two fewer values in precisely the seasons this triggers on, and every later
+   * roll in the career would shift - the same trap as the cup pool in Phase 7.
+   */
+  const goals = appearances === 0 ? 0 : rolledGoals;
+  const assists = appearances === 0 ? 0 : rolledAssists;
 
   const cleanSheetBase = config.cleanSheetRate * (0.5 + level.quality / 140);
   const cleanSheets =

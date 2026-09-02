@@ -31,7 +31,7 @@ import { ACTIVE_CLUBS, MACCABI_ACADEMY_ID, MACCABI_ID, MACCABI_YOUTH_ID } from '
 import { sameFootballIdentity } from '../src/data/clubVisuals';
 import { getClub } from '../src/data/clubs';
 import { knownCupFinal } from '../src/game/fixture';
-import { balancedPolicy, simulateCareer } from '../src/game/simulate';
+import { ambitiousPolicy, balancedPolicy, simulateCareer } from '../src/game/simulate';
 import type { Career } from '../src/types';
 
 const isAgeGroupClub = (id: string): boolean => {
@@ -198,5 +198,44 @@ describe('the pool change did not move the simulation', () => {
       };
     };
     expect(run()).toEqual(run());
+  });
+});
+
+describe('a transfer offer is never to the club he already plays for', () => {
+  it('never offers a release destination that is his own club', () => {
+    /*
+     * Found by the RC audit at 240 careers (2 occurrences), invisible at 60.
+     *
+     * The release destination pool excluded Maccabi and nothing else, so a senior starved of
+     * minutes could be handed an offer naming the club he already played for - "they are willing
+     * to give you a stage", about his own team. Rare enough never to have been noticed, common
+     * enough that a beta tester would eventually see it.
+     */
+    const offenders: string[] = [];
+    let offers = 0;
+    for (let i = 0; i < 120; i += 1) {
+      simulateCareer({
+        playerName: 'אורי דביר',
+        position: (['GK', 'CB', 'CM', 'ST'] as const)[i % 4]!,
+        seed: 20000 + i,
+        policy: i % 2 === 0 ? balancedPolicy : ambitiousPolicy,
+        onStep: (career: Career) => {
+          for (const offer of career.pendingOffers) {
+            offers += 1;
+            /*
+             * `contract` and `promotion` are legitimately from his own identity - a renewal, and
+             * the academy-to-senior step inside one club. Every other kind means MOVING, and
+             * moving to where you already are is not a thing.
+             */
+            if (offer.kind === 'contract' || offer.kind === 'promotion') continue;
+            if (sameFootballIdentity(offer.clubId, career.currentClubId)) {
+              offenders.push(`${offer.kind}: ${career.currentClubId} -> ${offer.clubId}`);
+            }
+          }
+        },
+      });
+    }
+    expect(offers, 'no offers were generated, so this proves nothing').toBeGreaterThan(500);
+    expect([...new Set(offenders)]).toEqual([]);
   });
 });

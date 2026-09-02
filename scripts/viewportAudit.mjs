@@ -99,6 +99,20 @@ const SCENES = [
   { id: 'youth-fork', bare: '1', need: ['.promotion-title', '.dc-choice', '.gf-bottomnav'] },
   { id: 'youth-fork-two', bare: '1', need: ['.promotion-title', '.dc-choice', '.gf-bottomnav'] },
   { id: 'retirement-decision', bare: '1', need: ['.dc-title', '.dc-choice', '.dc-choice-quiet', '.gf-bottomnav'] },
+  /*
+   * v0.9.6, Phase 9: the states the RC brief lists that were never audited - the sheets, the two
+   * new full-time results, and a seventeen-year-old (the `youth` art bucket, which no scene drew).
+   * A sheet legitimately scrolls INSIDE itself; what must not happen is the document scrolling or
+   * its close control being unreachable.
+   */
+  { id: 'sheet-table', bare: '1', need: ['.sheet-close'] },
+  { id: 'sheet-club', bare: '1', need: ['.sheet-close'] },
+  { id: 'sheet-timeline', bare: '1', need: ['.sheet-close'] },
+  /* A standalone PlayerHub card, not a full GamePage - so it has no bottom nav to ask for. */
+  { id: 'hub-europe', bare: '1', need: ['.hub-strip'] },
+  { id: 'gf-matchday-ft-loss', bare: '1', need: ['.gf-md-ft', '.gf-btn'] },
+  { id: 'gf-matchday-ft-draw', bare: '1', need: ['.gf-md-ft', '.gf-btn'] },
+  { id: 'gf-play-home-teen', bare: '1', need: ['.gf-hero-name', '.gf-bottomnav', '.pr-art'] },
   { id: 'gf-play-decision', bare: '1', need: ['.dc-title', '.dc-choice', '.dc-choice-quiet', '.gf-dec-pager', '.gf-bottomnav'] },
   { id: 'gf-moment', bare: 'shell', need: ['.gf-moment-title', '.gf-btn-primary'] },
   { id: 'gf-moment-uefa', bare: '1', need: ['.gf-moment-title', '.gf-btn-primary', '.gf-moment-player'] },

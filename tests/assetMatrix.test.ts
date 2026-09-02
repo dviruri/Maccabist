@@ -140,3 +140,91 @@ describe('the three age buckets are genuinely different artwork', () => {
     }
   });
 });
+
+/**
+ * PNG structure, read straight out of the bytes (v0.9.6, Phase 6).
+ *
+ * No image library is available in this toolchain, and none is needed: the two things worth
+ * checking live in the first two chunks. IHDR is always first and carries the dimensions and the
+ * colour type; IEND is always last, so its presence is what distinguishes a complete file from a
+ * download that stopped halfway - which is exactly the corruption a size check cannot see.
+ */
+interface PngInfo {
+  width: number;
+  height: number;
+  colourType: number;
+  hasAlpha: boolean;
+  complete: boolean;
+}
+
+function readPng(file: string): PngInfo {
+  const buffer = fs.readFileSync(file);
+  /* IHDR is fixed: 8-byte signature, 4-byte length, 4-byte type, then the fields. */
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  const colourType = buffer.readUInt8(25);
+  /* 4 = greyscale+alpha, 6 = truecolour+alpha. 3 is a palette, which may carry a tRNS chunk. */
+  const hasAlpha =
+    colourType === 4 || colourType === 6 || buffer.includes(Buffer.from('tRNS', 'ascii'));
+  /* A complete PNG ends with the IEND chunk; a truncated download does not. */
+  const complete = buffer.subarray(-8).includes(Buffer.from('IEND', 'ascii'));
+  return { width, height, colourType, hasAlpha, complete };
+}
+
+describe('every asset is a complete, transparent, correctly sized PNG', () => {
+  const files = walk(PACK).filter((file) => file.endsWith('.png'));
+
+  it('has non-zero dimensions and is not truncated', () => {
+    const bad: string[] = [];
+    for (const file of files) {
+      const png = readPng(file);
+      const name = path.relative(PACK, file).split(path.sep).join('/');
+      if (png.width <= 0 || png.height <= 0) bad.push(`${name}: ${png.width}x${png.height}`);
+      if (!png.complete) bad.push(`${name}: no IEND chunk - truncated`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('carries an alpha channel, so nobody is drawn on a baked background', () => {
+    /*
+     * The player is composited over a stadium. An asset that lost its transparency would render
+     * as a filled rectangle over the scene - visible instantly, and exactly the kind of thing an
+     * export step silently changes.
+     */
+    const opaque = files
+      .filter((file) => !readPng(file).hasAlpha)
+      .map((file) => path.relative(PACK, file).split(path.sep).join('/'));
+    expect(opaque).toEqual([]);
+  });
+
+  it('has exactly one known canvas-size outlier, and no new ones', () => {
+    /*
+     * Measured in v0.9.6, Phase 6, and recorded rather than "fixed" - regenerating artwork is out
+     * of scope for a QA release.
+     *
+     * 54 of the 60 files are 1024x1536. The six `outfield/youth/hero/*` files are 1086x1448,
+     * left over from the pack that preceded `e250aa2` and not replaced when the new age art
+     * landed. Every caller sizes by CSS width with `height: auto`, so at equal width those six
+     * render about 11% shorter than the rest.
+     *
+     * Inspected at 390x844 with a seventeen-year-old (the `gf-play-home-teen` scene exists
+     * because none did, which is why this went unnoticed): the hero frame crops through
+     * `transform: scale(1.75)` and a mask with `overflow: hidden`, so the difference is absorbed
+     * and nothing looks wrong. It is a file inconsistency, not a visible defect.
+     *
+     * Pinned exactly, so a SEVENTH odd file or a different outlier fails here.
+     */
+    const sizes = new Map<string, string[]>();
+    for (const file of files) {
+      const png = readPng(file);
+      const key = `${png.width}x${png.height}`;
+      sizes.set(key, [...(sizes.get(key) ?? []), path.relative(PACK, file).split(path.sep).join('/')]);
+    }
+
+    expect([...sizes.keys()].sort()).toEqual(['1024x1536', '1086x1448']);
+    expect(sizes.get('1024x1536')).toHaveLength(54);
+    expect(sizes.get('1086x1448')!.sort()).toEqual(
+      OUTFIELD_COLOURS.map((colour) => `outfield/youth/hero/${colour}.png`).sort(),
+    );
+  });
+});

@@ -6,6 +6,7 @@
  * chances without ever guaranteeing a specific club.
  */
 
+import { sameFootballIdentity } from '../data/clubVisuals';
 import {
   agentLoanFactor,
   agentOfferFactor,
@@ -625,7 +626,11 @@ export function seniorTransitionOffers(
      */
     const destinations = ACTIVE_CLUBS.filter(
       (c) => c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_alef',
-    ).filter((c) => c.id !== MACCABI_ID);
+    )
+      /* Released BY Maccabi, so not back to Maccabi - the story rule this fork is built on. */
+      .filter((c) => c.id !== MACCABI_ID)
+      /* And never his own club: an offer to move to where he already is (v0.9.6, Phase 8). */
+      .filter((c) => !sameFootballIdentity(c.id, career.currentClubId));
     const offers: TransferOffer[] = [];
     // The floor stays small so club fit dominates - otherwise every club looks equally likely
     // to a low-value player, whose real interest weights are all near zero.
@@ -670,11 +675,25 @@ export function generateOffers(career: Career, rng: Rng): TransferOffer[] {
       recent.every((s) => s.stats.appearances < 10) &&
       career.roleValue < 50;
     if (starved) {
+      /*
+       * v0.9.6, Phase 8: his OWN club is not a destination.
+       *
+       * This filter excluded Maccabi and nothing else, so a senior starved of minutes at, say,
+       * Hapoel Afula could be handed a release offer naming Hapoel Afula - "they are willing to
+       * give you a stage", about the club he already plays for. Found by the RC audit at 2
+       * occurrences in 240 careers, which is rare enough to never have been noticed and common
+       * enough that a beta tester would eventually see it.
+       *
+       * `rng.weighted` consumes exactly one value for any non-empty pool, so removing one club
+       * changes WHICH club is drawn without shifting the stream.
+       */
       const destinations = ACTIVE_CLUBS.filter(
         (c) =>
           c.isSenior &&
           (c.tier === 'israeli_mid' || c.tier === 'israeli_low' || c.tier === 'israeli_top' || c.tier === 'israeli_alef'),
-      ).filter((c) => c.id !== MACCABI_ID);
+      )
+        .filter((c) => c.id !== MACCABI_ID)
+        .filter((c) => !sameFootballIdentity(c.id, career.currentClubId));
       const chosen = rng.weighted(destinations, (c) => interestWeight(career, c) + 0.2);
       if (chosen) return [releaseOffer(career.world, chosen)];
     }

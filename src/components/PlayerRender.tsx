@@ -25,7 +25,8 @@ import type { Position } from '../types';
  * The old compositor still exists in `ui/kit.ts` and is still used by the share poster, which is
  * a canvas and a separate decision; nothing in this file touches it any more. What this file DOES
  * still get from there, through the selector, is the goalkeeper colour rule - a keeper's kit is
- * his own rather than his club's, hashed from (seed, club, season) so it holds all season.
+ * his own rather than his club's, hashed from (seed, club) so he keeps one shirt for as
+ * long as he is at that club - v0.9.5.1 removed the season from that identity.
  *
  * ## Geometry
  *
@@ -51,7 +52,13 @@ export function PlayerRender({
    * still at, and a historic era shows the club of that era.
    */
   clubId: string;
-  /** Career seed and season - a goalkeeper's kit is a stable hash of these plus the club. */
+  /**
+   * The career seed, and the season.
+   *
+   * `seed` picks the goalkeeper's kit, with the club. `season` does NOT - v0.9.5.1 took it out of
+   * that identity so a keeper stops changing shirt every year - and is passed only because the
+   * resolver still accepts it for call-site compatibility.
+   */
   seed: number;
   season: number;
   context?: PlayerArtContext;

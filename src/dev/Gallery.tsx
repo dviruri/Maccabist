@@ -1343,10 +1343,85 @@ function useContrastProbe(enabled: boolean): void {
   }, [enabled]);
 }
 
+/**
+ * Touch-target probe (v0.9.6, Phase 9).
+ *
+ * With `?touch=1`, reports every interactive element whose hit area is smaller than a thumb.
+ *
+ * The one-screen audit already answers "does it fit" and "is it inside the viewport". Neither
+ * answers "can it be pressed": a control can be perfectly visible, perfectly unclipped, and still
+ * be a 20px target on a 430px phone. That is a real beta-blocker on a game played entirely with
+ * one thumb, and it is not visible in a screenshot.
+ *
+ * 44px is the figure both platform guidelines settle on. Elements are measured on their RENDERED
+ * rect, so padding counts and a small glyph inside a large button passes - which is how the
+ * decision cards and the bottom nav are built.
+ */
+const TOUCH_MIN = 44;
+
+interface TouchFail {
+  sel: string;
+  w: number;
+  h: number;
+  text: string;
+}
+
+function useTouchProbe(enabled: boolean): void {
+  useEffect(() => {
+    if (!enabled) return;
+    const run = (): void => {
+      const fails: TouchFail[] = [];
+      const seen = new Set<string>();
+      for (const el of Array.from(document.querySelectorAll('button, a[href], [role="button"]'))) {
+        /* Gallery chrome is the harness, not the game. */
+        if (el.closest('.gallery-label, .gallery-title')) continue;
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) continue;
+
+        /*
+         * A dot in a pager is a deliberate exception: it is one of a row of small indicators with
+         * a large shared parent, and enlarging each dot would be a worse control, not a better
+         * one. It is reported separately rather than silently skipped.
+         */
+        const isPagerDot = el.classList.contains('gf-dec-dot');
+        if (isPagerDot) continue;
+
+        /*
+         * Compared on the ROUNDED rect, which is what the device actually presents. Sub-pixel
+         * layout puts a `min-height: 44px` control at 43.99, and reporting that as undersized
+         * sends the next person chasing a pixel that does not exist.
+         */
+        if (Math.round(rect.width) >= TOUCH_MIN && Math.round(rect.height) >= TOUCH_MIN) continue;
+        const cls = typeof el.className === 'string' && el.className ? `.${el.className.trim().split(/\s+/).join('.')}` : '';
+        const key = `${el.tagName}${cls}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        fails.push({
+          sel: key.slice(0, 70),
+          w: Math.round(rect.width),
+          h: Math.round(rect.height),
+          text: (el.textContent ?? '').trim().slice(0, 30),
+        });
+      }
+      const tag = document.createElement('script');
+      tag.id = 'touch-result';
+      tag.type = 'application/json';
+      tag.textContent = JSON.stringify(fails);
+      document.getElementById('touch-result')?.remove();
+      document.body.appendChild(tag);
+    };
+    const id = window.setTimeout(run, 400);
+    return () => window.clearTimeout(id);
+  }, [enabled]);
+}
+
 export function Gallery(): JSX.Element {
   const params = new URLSearchParams(window.location.search);
   useOverflowProbe(params.get('probe') === '1', params.get('w'), params.get('need'));
   useContrastProbe(params.get('contrast') === '1');
+  useTouchProbe(params.get('touch') === '1');
   const only = params.get('only');
   /*
    * `?bare=1` (v0.9.3): the scene with no gallery chrome at all - no frame label, no gallery
@@ -1634,7 +1709,8 @@ export function Gallery(): JSX.Element {
     ['gf-play-signing', <GamePage career={signingCareer()} actions={noopActions} onExit={noop} />],
     /*
      * v0.9.4, Phase 3: a goalkeeper's own home. His kit is one of four colours, chosen from
-     * (seed, club, season), and it must be the same colour on every screen for that season.
+     * (seed, club) - v0.9.5.1 removed the season, so he keeps that shirt on every screen for as
+     * long as he stays at the club rather than only for one year.
      */
     ['gf-play-home-gk', <GamePage
       career={{ ...homeCareer(), position: 'GK' }}
@@ -1644,6 +1720,16 @@ export function Gallery(): JSX.Element {
     /* And a boy in the academy: youth artwork, wearing the parent club's inherited colours. */
     ['gf-play-home-youth', <GamePage
       career={{ ...academyBoy(), phase: 'preseason', seasonPoint: 'preseason' }}
+      actions={noopActions}
+      onExit={noop}
+    />],
+    /*
+     * A SEVENTEEN-year-old, so the `youth` art bucket renders (v0.9.6, Phase 6). `academyBoy` is
+     * twelve and therefore `child`; there was no scene that drew the youth outfield hero at all,
+     * which is why its odd canvas size went unnoticed.
+     */
+    ['gf-play-home-teen', <GamePage
+      career={{ ...academyBoy(), age: 17, academyStage: 'u19', phase: 'preseason', seasonPoint: 'preseason' }}
       actions={noopActions}
       onExit={noop}
     />],
