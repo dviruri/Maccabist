@@ -17,12 +17,15 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.5.1 — Fixture Identity + Stable Goalkeeper Kit.** A correctness
-hotfix on top of v0.9.5. A club can no longer play itself: opponent validity is decided by
-football IDENTITY rather than by club id, so a Maccabi Haifa youth or academy side — which wears
-the parent's name, crest and colours — can never be drawn against Maccabi Haifa. And a goalkeeper
-now keeps ONE shirt colour for as long as he stays at a club, with exactly one restriction: never
-his own club's basic outfield colour (`V0951_REPORT.md`).
+**Current stable release: v0.9.6 — Release Candidate QA & Truth Pass.** The release that makes
+the game safe to hand to someone. No football lies: a qualifying round the player was given is now
+shown as one rather than silently skipped; Europe no longer reveals its own final table before a
+match has been played; the matchday screen no longer invents a scoreline for a European tie whose
+real aggregate is already stored; a player no longer scores in a season he never played; and no
+club — or offer — is ever paired with itself. Cinematics survive a refresh instead of replaying
+forever, nobody celebrates a defeat, and every touch target is thumb-sized. Verified by a
+240-career invariant audit, a six-viewport browser sweep and ten consecutive suite runs
+(`V096_REPORT.md`).
 
 **v0.9.5 — Decisions & Career Flow.** v0.9.5 changes how a career
 decision is made, and nothing about what it does. Every decision in the game — a transfer offer,
