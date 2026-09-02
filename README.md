@@ -17,7 +17,20 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.6 — Release Candidate QA & Truth Pass.** The release that makes
+**Current stable release: v0.9.6.1 — Release Candidate Truth & Visual Stability Hotfix.** Four
+things playtesting found in v0.9.6. Every European surface now derives what it shows by replaying
+the path the player has actually lived through, so the home screen and the Europe detail can no
+longer name different competitions — v0.9.6 gated the journey's steps but not its future-complete
+scalars, and two surfaces were still reading the end of a season that had not started. A finished
+European campaign no longer says it is still ahead. A goalkeeper no longer concedes, and a
+defender no longer keeps a clean sheet, in a season with no appearances — the same noise-floor bug
+v0.9.6 fixed for goals, in the two rolls it missed. And the player now appears already in his
+intended crop: every player surface crops with a static transform, and the shared entrance
+animation was overwriting it, so the art drew uncropped for the length of the animation and then
+snapped into place. Verified by a 240-career invariant audit, a three-viewport crop sweep and
+three consecutive suite runs (`V0961_REPORT.md`).
+
+**v0.9.6 — Release Candidate QA & Truth Pass.** The release that makes
 the game safe to hand to someone. No football lies: a qualifying round the player was given is now
 shown as one rather than silently skipped; Europe no longer reveals its own final table before a
 match has been played; the matchday screen no longer invents a scoreline for a European tie whose

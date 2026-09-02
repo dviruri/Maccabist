@@ -384,6 +384,8 @@ describe('the panel never vanishes on a real career', () => {
     let journeys = 0;
     const silent: string[] = [];
     const badFirstStep: string[] = [];
+    const diverged: string[] = [];
+    let converged = 0;
     for (let i = 0; i < 12; i += 1) {
       simulateCareer({
         playerName: 'אורי דביר',
@@ -405,6 +407,24 @@ describe('the panel never vanishes on a real career', () => {
                   journey.steps.map((step) => step.kind).join(','),
               );
             }
+            /*
+             * And the replay has no holes on real data either. Forced to full reveal, walking the
+             * steps must land on the competition the engine recorded - which is the whole basis
+             * for dropping `finalCompetition` as a source. Asserted on engine journeys rather
+             * than only on the six hand-built routes above, because a real season can drop
+             * competitions in shapes the fixtures do not enumerate.
+             */
+            const settled = visibleEuropeanCampaign(
+              { ...career, seasonPoint: 'season_end' } as Career,
+              career.currentClubId,
+            );
+            if (settled) converged += 1;
+            if (settled && settled.competition !== journey.finalCompetition) {
+              diverged.push(
+                `${career.currentSeason}: replay=${settled.competition} ` +
+                  `recorded=${journey.finalCompetition} steps=${journey.steps.map((s) => s.kind).join(',')}`,
+              );
+            }
           }
         },
       });
@@ -412,5 +432,7 @@ describe('the panel never vanishes on a real career', () => {
     expect(journeys, 'no European campaign was observed - the sweep proves nothing').toBeGreaterThan(50);
     expect([...new Set(badFirstStep)].slice(0, 5)).toEqual([]);
     expect([...new Set(silent)].slice(0, 5)).toEqual([]);
+    expect(converged, 'the settled comparison never ran - it proves nothing').toBeGreaterThan(50);
+    expect([...new Set(diverged)].slice(0, 5)).toEqual([]);
   });
 });

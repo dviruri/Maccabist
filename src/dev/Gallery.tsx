@@ -1446,7 +1446,12 @@ function useTouchProbe(enabled: boolean): void {
  * Only the duration changes. The keyframes are the ones the game ships.
  */
 const CROP_PROBE_DURATION = '60s';
-if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('crop') === '1') {
+/*
+ * Gated on the gallery too, not just on ?crop=1. This module is imported by App.tsx rather than
+ * lazily loaded, so module scope runs on a real player's first paint - and `?crop=1` on its own
+ * would then hand that player sixty-second animations.
+ */
+if (isGalleryRequested() && new URLSearchParams(window.location.search).get('crop') === '1') {
   document.documentElement.style.setProperty('--gf-t-enter', CROP_PROBE_DURATION);
   document.documentElement.style.setProperty('--gf-t-quick', CROP_PROBE_DURATION);
 }
