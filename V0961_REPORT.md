@@ -7,7 +7,7 @@ no rebalancing, no regenerated assets. Base: v0.9.6 (`e7d5588`).
 
 | | |
 |---|---|
-| Final commit | `8bef627` |
+| Final code commit | `8bef627` (this report is `c6e5368`, and the SHA note that follows it touches no shipped code) |
 | Branch | `main` |
 | Version | 0.9.6 → **0.9.6.1** |
 | Tests | **1326 passing, 78 files** (v0.9.6: 1302 / 77) |
