@@ -183,6 +183,15 @@ export interface VisibleEuropeanCampaign {
   competitionName: string;
   /** Hebrew phrase for where in the competition this is. */
   stage: string;
+  /**
+   * The same place, without repeating the competition (v0.9.6.2).
+   *
+   * `stage` carries the graph's full label - "מוקדמות ליגת האלופות — סיבוב ראשון" - which is
+   * right on its own but reads twice over on a surface that has already named the competition:
+   * "ליגת האלופות · מוקדמות ליגת האלופות — סיבוב ראשון". Both Home and the Europe card show the
+   * name beside the stage, so both use this.
+   */
+  stageShort: string;
   /** True only in the league phase proper, never a qualifying route. */
   inLeaguePhase: boolean;
   /** The revealed path ended in a defeat with nowhere to drop to. */
@@ -190,9 +199,27 @@ export interface VisibleEuropeanCampaign {
   reveal: EuropeReveal;
 }
 
-function stageLabel(node: string): { stage: string; inLeaguePhase: boolean } {
-  if (node === LEAGUE_PHASE) return { stage: 'שלב הליגה', inLeaguePhase: true };
-  return { stage: QUALIFYING_GRAPH[node]?.label ?? 'מוקדמות', inLeaguePhase: false };
+/**
+ * The compact stage name, keyed off the node's ROUND rather than its label text.
+ *
+ * Reading the round from the id keeps this independent of the Hebrew in `QUALIFYING_GRAPH`, so
+ * rewording a label cannot silently change what Home says.
+ */
+const QUALIFYING_SHORT: Record<string, string> = {
+  q1: 'מוקדמות — סיבוב ראשון',
+  q2: 'מוקדמות — סיבוב שני',
+  q3: 'מוקדמות — סיבוב שלישי',
+  po: 'פלייאוף',
+};
+
+function stageLabel(node: string): { stage: string; stageShort: string; inLeaguePhase: boolean } {
+  if (node === LEAGUE_PHASE) return { stage: 'שלב הליגה', stageShort: 'שלב הליגה', inLeaguePhase: true };
+  const round = node.split('_').pop() ?? '';
+  return {
+    stage: QUALIFYING_GRAPH[node]?.label ?? 'מוקדמות',
+    stageShort: QUALIFYING_SHORT[round] ?? 'מוקדמות',
+    inLeaguePhase: false,
+  };
 }
 
 /**
@@ -244,11 +271,12 @@ export function visibleEuropeanCampaign(
      */
     const entry = current.entries.find((e) => e.clubId === clubId);
     if (!entry) return null;
-    const { stage, inLeaguePhase } = stageLabel(entry.entry);
+    const { stage, stageShort, inLeaguePhase } = stageLabel(entry.entry);
     return {
       competition: entry.competition,
       competitionName: UEFA_COMPETITIONS[entry.competition].name,
       stage,
+      stageShort,
       inLeaguePhase,
       eliminated: false,
       reveal,
@@ -305,11 +333,12 @@ export function visibleEuropeanCampaign(
   }
 
   if (!competition) return null;
-  const { stage, inLeaguePhase } = stageLabel(node ?? '');
+  const { stage, stageShort, inLeaguePhase } = stageLabel(node ?? '');
   return {
     competition,
     competitionName: UEFA_COMPETITIONS[competition].name,
     stage,
+    stageShort,
     inLeaguePhase: inLeaguePhase && !eliminated,
     eliminated,
     reveal,

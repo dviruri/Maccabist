@@ -184,6 +184,16 @@ export function EuropeCard({
           <p className="euro-state-line euro-up">
             העפלנו לשלב הליגה של {visible.competitionName} — שלב הליגה בעיצומו
           </p>
+        ) : visible.eliminated ? (
+          /*
+           * Keyed on `eliminated`, not on `!inLeaguePhase` (v0.9.6.2). The two happen to coincide
+           * at this reveal - by midseason qualifying is history, so a club is either through or
+           * out - but they are different claims, and the feed shipped a season of "Europe is
+           * over" to clubs still playing qualifiers by treating one as the other.
+           */
+          <p className="euro-state-line">
+            הודחנו ב{visible.stageShort}. העונה האירופית הסתיימה בקיץ.
+          </p>
         ) : (
           <p className="euro-state-line">העונה האירופית הסתיימה בקיץ. הליגה מחכה.</p>
         )

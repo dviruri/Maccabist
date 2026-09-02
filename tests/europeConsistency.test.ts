@@ -436,3 +436,73 @@ describe('the panel never vanishes on a real career', () => {
     expect([...new Set(diverged)].slice(0, 5)).toEqual([]);
   });
 });
+
+describe('an eliminated campaign is presented as eliminated', () => {
+  /*
+   * v0.9.6.2. `eliminated` was already on the campaign and Home ignored it, so a club knocked
+   * out in the play-off round rendered "קונפרנס ליג · פלייאוף" - identical in shape to a club
+   * still playing in that round. The player could not tell a live campaign from a dead one.
+   */
+  const eliminatedInPlayoff: EuropeanJourney = {
+    season: 2046,
+    clubId: CLUB,
+    steps: [
+      { kind: 'entered', competition: 'uefa_conference_league', entry: 'uecl_po', reason: { kind: 'league_position', position: 3 } },
+      tie('uecl_po', 'uefa_conference_league', false),
+    ] as EuropeanStep[],
+    finalCompetition: 'uefa_conference_league',
+    furthest: 'uecl_po',
+    matches: 2,
+    wonCompetition: null,
+    reachedFinal: false,
+    reachedSemiFinal: false,
+    reachedLeaguePhase: false,
+  };
+
+  it('reports the campaign as over, at the stage it actually ended', () => {
+    const visible = visibleEuropeanCampaign(careerWith(eliminatedInPlayoff, 'midseason'), CLUB)!;
+    expect(visible.eliminated).toBe(true);
+    expect(visible.inLeaguePhase).toBe(false);
+    expect(visible.stageShort).toBe('פלייאוף');
+  });
+
+  it('gives Home a compact stage that does not repeat the competition', () => {
+    /*
+     * The panel renders "{competitionName} · {stage}". With the graph's full label that read
+     * "ליגת האלופות · מוקדמות ליגת האלופות — סיבוב ראשון".
+     */
+    const entryOnly: EuropeanJourney = {
+      ...eliminatedInPlayoff,
+      steps: [
+        { kind: 'entered', competition: 'uefa_champions_league', entry: 'ucl_q1', reason: { kind: 'champion' } },
+      ] as EuropeanStep[],
+    };
+    const visible = visibleEuropeanCampaign(careerWith(entryOnly, 'preseason'), CLUB)!;
+    expect(visible.stage).toContain(visible.competitionName);
+    expect(visible.stageShort).not.toContain(visible.competitionName);
+    expect(visible.stageShort).toBe('מוקדמות — סיבוב ראשון');
+  });
+
+  it('makes Home and the Europe card read elimination off the same field', () => {
+    /*
+     * The agreement the brief asks for, enforced at the source rather than by comparing two
+     * rendered strings: neither surface may decide elimination for itself.
+     */
+    for (const file of ['src/components/CareerHome.tsx', 'src/components/EuropeCards.tsx']) {
+      const source = stripComments(read(file));
+      expect(source, `${file} ignores the eliminated flag`).toContain('eliminated');
+      expect(source).toContain('stageShort');
+    }
+    /* And neither may treat "not in the league phase" as "knocked out". */
+    for (const file of ['src/components/CareerHome.tsx', 'src/components/EuropeCards.tsx', 'src/game/careerFeed.ts']) {
+      expect(stripComments(read(file)).includes('!visible.inLeaguePhase'), file).toBe(false);
+      expect(stripComments(read(file)).includes('!campaign.inLeaguePhase'), file).toBe(false);
+    }
+  });
+
+  it('still names the competition it went out of', () => {
+    /* Elimination is not amnesia - the club was in the Conference League and that is a fact. */
+    const visible = visibleEuropeanCampaign(careerWith(eliminatedInPlayoff, 'midseason'), CLUB)!;
+    expect(visible.competition).toBe('uefa_conference_league');
+  });
+});

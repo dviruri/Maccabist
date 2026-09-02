@@ -237,12 +237,21 @@ function EuropeContext({
   const revealed = journey ? revealedSteps(career, journey) : [];
   const phase = revealed.find((step) => step.kind === 'league_phase');
   const furthest = journey ? revealedFurthest(career, journey) : null;
-  const where =
-    phase && phase.kind === 'league_phase'
+  /*
+   * An eliminated campaign is described as one (v0.9.6.2).
+   *
+   * `eliminated` was already on the campaign and this panel ignored it, so a club knocked out in
+   * the play-off round still read "קונפרנס ליג · פלייאוף" - the exact shape of a club currently
+   * playing in it. The stage is the real one the club went out at; no opponent, score or round
+   * is invented, and the Europe card is told the same thing by the same field.
+   */
+  const where = campaign.eliminated
+    ? `הודחנו ב${campaign.stageShort}`
+    : phase && phase.kind === 'league_phase'
       ? `מקום ${phase.position}`
       : furthest && furthest !== 'entry'
-        ? EURO_STAGE_TEXT[furthest] ?? campaign.stage
-        : campaign.stage;
+        ? EURO_STAGE_TEXT[furthest] ?? campaign.stageShort
+        : campaign.stageShort;
 
   return (
     /*
