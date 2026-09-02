@@ -588,7 +588,7 @@ function withEurope(career: Career): Career {
                 kind: 'entered',
                 competition: 'uefa_conference_league',
                 entry: 'uecl_q2',
-                reason: { kind: 'league_position', position: 4 },
+                reason: 'league_position',
               },
               {
                 kind: 'league_phase',

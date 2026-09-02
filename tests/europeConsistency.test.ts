@@ -447,7 +447,7 @@ describe('an eliminated campaign is presented as eliminated', () => {
     season: 2046,
     clubId: CLUB,
     steps: [
-      { kind: 'entered', competition: 'uefa_conference_league', entry: 'uecl_po', reason: { kind: 'league_position', position: 3 } },
+      { kind: 'entered', competition: 'uefa_conference_league', entry: 'uecl_po', reason: 'league_position' },
       tie('uecl_po', 'uefa_conference_league', false),
     ] as EuropeanStep[],
     finalCompetition: 'uefa_conference_league',
@@ -474,7 +474,7 @@ describe('an eliminated campaign is presented as eliminated', () => {
     const entryOnly: EuropeanJourney = {
       ...eliminatedInPlayoff,
       steps: [
-        { kind: 'entered', competition: 'uefa_champions_league', entry: 'ucl_q1', reason: { kind: 'champion' } },
+        { kind: 'entered', competition: 'uefa_champions_league', entry: 'ucl_q1', reason: 'champion' },
       ] as EuropeanStep[],
     };
     const visible = visibleEuropeanCampaign(careerWith(entryOnly, 'preseason'), CLUB)!;

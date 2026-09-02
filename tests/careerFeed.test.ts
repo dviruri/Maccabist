@@ -183,8 +183,13 @@ function withJourney(career: Career, steps: EuropeanStep[], seasonPoint: SeasonP
   };
 }
 
-const entered = (competition: UefaCompetitionId, entry: string): EuropeanStep =>
-  ({ kind: 'entered', competition, entry, reason: { kind: 'league_position', position: 2 } }) as EuropeanStep;
+const entered = (competition: UefaCompetitionId, entry: string): EuropeanStep => ({
+  kind: 'entered',
+  competition,
+  entry,
+  /* `reason` is a plain UefaEntryReasonKind, not an object - the cast used to hide the difference. */
+  reason: 'league_position',
+});
 
 function clubLine(career: Career): string {
   return deriveCareerFeed(career).find((item) => item.role === 'club-director')?.text ?? '';
