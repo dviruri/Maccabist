@@ -41,6 +41,7 @@ below is a grammar, terminology or truth fix; none is a change of voice.
 | `src/pages/RetirementPage.tsx` | `1 הופעות רשמיות בירוק.` | `הופעה אחת רשמית בירוק.` | number agreement |
 | `src/game/milestones.ts` | `ערב אירופאי בסמי עופר` | `ערב אירופי בסמי עופר` | consistency — 48 other uses take the `אירופ־י` form |
 | `src/data/events/seniorPhaseEvents.ts` | `ערב אירופאי שלא שוכחים בחיפה` | `ערב אירופי שלא שוכחים בחיפה` | consistency |
+| `src/data/events/legacyEvents.ts` | `משפטים כאלה זוכרים - לטוב ולחובה.` | `משפטים כאלה זוכרים - לטוב ולרע.` | unnatural Hebrew / wrong idiom (v0.9.6.3) |
 
 ## What the runtime bugs actually looked like
 
@@ -104,7 +105,14 @@ actually found in the shipped game, plus unit tests for the three helpers and a 
 that no club name in the database is mangled by a preposition. Comments are stripped before the
 token scan, since the notes explaining these rules necessarily quote the wrong forms.
 
-Verified non-vacuous: reintroducing `חריצה` fails the test with the correct file and line.
+Verified non-vacuous: reintroducing `חריצה` fails the test with the correct file and line, and the
+same holds for `לטוב ולחובה`.
+
+**v0.9.6.3 addition.** One more outlier surfaced after this audit shipped: a legacy event read
+`משפטים כאלה זוכרים - לטוב ולחובה`, where the idiom is `לטוב ולרע`. The game already uses the
+correct form in three other places (`peopleEvents`, `seniorPhaseEvents`, and now this one), which
+is what makes it a typo rather than a house style. Only the **phrase** is guarded — `חובה` alone is
+an ordinary word, and blacklisting it would train the next person to add exceptions.
 
 One note against my own work here: fixing the noun exposed the adjective. `הופעות רשמיות` became
 `הופעה אחת רשמיות` on the first pass — correct in number, wrong in agreement — because the
@@ -119,9 +127,10 @@ followed only by prepositional phrases (`עם הסרט`, `בירוק`, `מהפס
 | Files carrying Hebrew | 115 |
 | Lines containing Hebrew | 4,441 |
 | Files audited | 115 |
-| Files changed | 14 |
-| Copy corrections | 25 distinct changes |
+| Files changed | 15 |
+| Copy corrections | 26 distinct changes |
 | Spelling / malformed word | 2 (`חריצה`, both occurrences) |
+| Wrong idiom | 1 (`לטוב ולחובה`, added v0.9.6.3) |
 | Terminology | 3 |
 | Grammar (prefixes, contraction) | 7 |
 | Number agreement | 9 (two of which also required the adjective to agree) |

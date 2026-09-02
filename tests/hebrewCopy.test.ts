@@ -46,6 +46,11 @@ const FORBIDDEN: { token: string; why: string }[] = [
   { token: 'בהליגה האירופית', why: 'ב contracts the definite article: בליגה האירופית' },
   { token: 'להגמר', why: 'ל contracts the definite article: לגמר' },
   { token: 'בהגמר', why: 'ב contracts the definite article: בגמר' },
+  /*
+   * The idiom is לטוב ולרע. Only the PHRASE is forbidden - חובה on its own is an ordinary word
+   * and blacklisting it would train the next person to add exceptions.
+   */
+  { token: 'לטוב ולחובה', why: 'wrong idiom; "for better or worse" is לטוב ולרע' },
 ];
 
 describe('tokens that are never right', () => {
