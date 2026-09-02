@@ -37,6 +37,15 @@ const SCENES = [
   'gf-moment-relegation',
   'gf-moment-debut',
   'gf-play-championship',
+  /* v0.9.6.2: the decision screens and the composed trophy moment, which the brief names. */
+  'gf-play-decision',
+  'decision-mandatory',
+  'decision-no-agent',
+  'youth-fork',
+  'retirement-decision',
+  'gf-moment',
+  'gf-hero-gk',
+  'gf-hero-youth-gk',
 ];
 
 /*
@@ -103,6 +112,15 @@ for (const [width, height] of VIEWPORTS) {
     const unwatched = rows.filter((r) => r.animations === 0);
     measured += rows.length;
     if (jumped.length) failures += 1;
+    /* Everything measured, so a non-jumping element is visible as evidence rather than absent. */
+    if (process.env.CROP_VERBOSE) {
+      for (const r of rows) {
+        console.log(
+          `       ${r.jumped ? 'JUMP' : '    '} ${r.sel} anim=${r.animations}(${r.animationNames}) dur=${r.durationMs} ` +
+            `w:${r.minW}->${r.maxW} tf=[${r.transforms}]`,
+        );
+      }
+    }
     const detail = jumped
       .map((r) => `${r.sel} w:${r.minW}->${r.maxW} h:${r.minH}->${r.maxH} x:${r.minX}->${r.maxX}`)
       .join('  ');

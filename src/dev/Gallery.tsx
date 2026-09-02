@@ -1492,6 +1492,7 @@ function useCropProbe(enabled: boolean): void {
         });
         const duration = Math.max(0, ...durations);
 
+        const transforms: string[] = [];
         const widths: number[] = [];
         const heights: number[] = [];
         const lefts: number[] = [];
@@ -1508,20 +1509,41 @@ function useCropProbe(enabled: boolean): void {
           widths.push(rect.width);
           heights.push(rect.height);
           lefts.push(rect.left);
+          transforms.push(getComputedStyle(el).transform);
         }
+        /*
+         * The SETTLED geometry, with every animation cancelled (v0.9.6.2).
+         *
+         * Seeking 0->100% only compares frames the animation itself produces. It cannot see the
+         * step from the animation's last frame to the element's own static CSS, which is where
+         * `.gf-moment-art` actually jumped: gf-rise holds it at scale(1) for the whole entrance
+         * INCLUDING its 100% keyframe, and the `transform: scale(1.04)` in a different rule only
+         * takes effect once the animation stops applying. The probe reported "no jump" while a
+         * 4% snap sat at the very end of it.
+         *
+         * `cancel` rather than `finish`: an animation with the default `fill: none` still applies
+         * during its active interval, so finishing it can leave the effect in place.
+         */
         for (const animation of animations) {
           try {
-            animation.play();
+            animation.cancel();
           } catch {
-            /* Restoring playback is a courtesy to the screenshot runner, not part of the result. */
+            /* Nothing to cancel means nothing was overriding the static geometry anyway. */
           }
         }
+        const afterRect = el.getBoundingClientRect();
+        widths.push(afterRect.width);
+        heights.push(afterRect.height);
+        lefts.push(afterRect.left);
+        transforms.push(getComputedStyle(el).transform);
 
         if (settled.width === 0 && settled.height === 0) continue;
         const span = (values: number[]): number => Math.round(Math.max(...values) - Math.min(...values));
         rows.push({
           sel,
           animations: animations.length,
+          animationNames: animations.map((a) => (a as unknown as { animationName?: string }).animationName ?? '?').join('+'),
+          transforms: [...new Set(transforms)].join(' | ').slice(0, 300),
           durationMs: Math.round(duration),
           minW: Math.round(Math.min(...widths)),
           maxW: Math.round(Math.max(...widths)),

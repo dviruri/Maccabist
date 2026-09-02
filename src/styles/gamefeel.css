@@ -1057,7 +1057,25 @@
   -webkit-mask-image: radial-gradient(ellipse 72% 68% at 50% 46%, #000 58%, transparent 100%);
   mask-image: radial-gradient(ellipse 72% 68% at 50% 46%, #000 58%, transparent 100%);
   mix-blend-mode: screen;
-  transform: scale(1.04);
+  /*
+   * The 4% zoom that used to sit here is gone (v0.9.6.2).
+   *
+   * It never applied. Every moment object in the game is a trophy or an award - the only
+   * production source is `moment.object` in CareerMoments, and all three sites call
+   * `getTrophyArt` - so the higher-specificity rule immediately below always won with
+   * `transform: none`.
+   *
+   * Dead, but not harmless: `.gf-moment-art` also runs `animation: gf-rise`, declared ~700 lines
+   * earlier, and gf-rise animates `transform`. Any moment art that ever fell outside the
+   * trophy/award selector would have drawn at scale(1) for the whole entrance and snapped to 1.04
+   * at the end - the v0.9.6.1 bug, lying in wait in a second place. The cascade-aware audit in
+   * tests/playerCropStability found it; the browser probe could not, because no reachable scene
+   * reaches the declaration.
+   *
+   * Removed rather than re-animated, because there is no jump to fix today and the entrance
+   * itself is fine. If photographic moment art is ever introduced and wants a zoom, it must take
+   * an opacity-only entrance the way the player art does - see gf-player-fade.
+   */
 }
 /* trophies and awards are transparent PNGs already - keep them crisp and unblended */
 .gf-moment-art[src*="/trophies/"],
