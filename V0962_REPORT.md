@@ -8,11 +8,11 @@ every player-facing Hebrew string in the game.
 | | |
 |---|---|
 | Starting commit | `0c86c81` (v0.9.6.1) |
-| Ending commit | `63e7c52` |
+| Ending commit | `c261755` (see the CI note below — `823ae80` was the report, `c261755` the hotfix that followed it) |
 | Starting tests | 1326 passing, 78 files |
 | Ending tests | **1349 passing, 79 files** |
 | Version | 0.9.6.1 → **0.9.6.2** |
-| Suite stability | **3 consecutive runs, 3/3 green, identical counts** |
+| Suite stability | 3 consecutive `npx vitest run`, 3/3 green — **not** the full `npm test`; see below |
 
 | Hash | Phase |
 |---|---|
@@ -21,6 +21,8 @@ every player-facing Hebrew string in the game.
 | `e289d45` | 3 — crop audit that sees the cascade |
 | `22642ee` | 4 & 5 — Hebrew copy audit |
 | `63e7c52` | version and README |
+| `823ae80` | this report |
+| `c261755` | post-report CI hotfix — TypeScript-invalid test fixtures |
 
 ## Product fixes
 
@@ -35,6 +37,10 @@ Four states now, resolved in `europeContext` from the typed result of `visibleEu
 and nothing else. Elimination outranks everything, since a club knocked out of qualifying is still
 nominally "in" the competition it went out of; a settled season outranks the league phase, so a
 finished campaign no longer promises `לילות גדולים מחכים` about nights that already happened.
+
+> **Superseded by v0.9.6.3.** Putting elimination above the reveal stage was itself wrong at season
+> end: a club knocked out in qualifying kept `הליגה היא הכול עכשיו` into June, by which point the
+> league has finished too. The reveal stage is now checked first.
 
 Eight tests; **four of them fail against the old two-state logic.**
 
@@ -180,6 +186,28 @@ base exactly.
 | 2 | 79 files, 1349 tests, green (574s) |
 | 3 | 79 files, 1349 tests, green (592s) |
 
+### Correction: the stability gate was run with the wrong command
+
+Added after the fact, because the claim above was measured with
+`npx vitest run` rather than `npm test`.
+
+`npm test` is `tsc -p tsconfig.test.json && vitest run`. Vitest does not typecheck, so the
+TypeScript compile step — the one CI runs first — was never run during this release. The three
+runs were genuinely green; they simply did not cover that step.
+
+CI then failed on it. `EuropeanStep`'s `entered` variant takes `reason: UefaEntryReasonKind`, a
+plain string union, and two fixtures added in `b41c9c3` and `004ed7f` passed
+`{ kind: 'league_position', position: 2 }`. The `as EuropeanStep` cast could not bridge the two
+types, so `tsc` rejected it while the tests stayed green — nothing reads `reason` at runtime.
+Because the workflow runs the suite before the build in the same job, the artifact was never
+uploaded and the deploy failed from `b41c9c3` onward.
+
+`c261755` corrected the fixtures (and two more of the same wrong shape that had only typechecked
+because they sat inside broader casts). CI is green from that commit.
+
+v0.9.6.3 runs the real gate: three consecutive `npm test`, with the TypeScript compile included.
+See `V0963_REPORT.md`.
+
 Plus `git diff --check` clean, `npm run build` passing, `npm run rc:audit -- 240` at 0 violations
 across 546,961 season records, and `npm run fixture:audit -- 800` at 0 self-opponent violations
 across 64,592 fixtures and 149,680 European ties.
@@ -201,6 +229,8 @@ filed here instead of fixed.
   labels and the media feed's goal counts were left alone because their values are structurally
   never 1 (club records and the thresholds `[50, 100, …]`; guards at `>= 3` and `>= 5`). If either
   guard changes, the wording needs revisiting.
+- **The stability figure above was measured with the wrong command.** Corrected in place rather
+  than deleted; see the correction under Stability.
 - **`0.9.6.2` is not valid semver.** It is what the brief asked for and npm accepts it, but a
   tool that parses the version strictly would reject it.
 
