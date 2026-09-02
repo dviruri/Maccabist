@@ -257,18 +257,28 @@ const CLUB_POOLS: Record<string, readonly string[]> = {
 };
 
 /**
- * Which European thing the club is allowed to say right now (v0.9.6.2).
+ * Which European thing the club is allowed to say right now (v0.9.6.2, reordered v0.9.6.3).
  *
  * Reads only the typed result of `visibleEuropeanCampaign` - the chronology itself is decided in
  * `europePresentation` and is deliberately not re-derived here.
  *
- * Order matters. Elimination outranks everything, because a club knocked out of qualifying is
- * still nominally "in" the competition it went out of. A settled season outranks the league
- * phase, so a finished campaign does not promise nights that have already happened.
+ * Order matters, and v0.9.6.2 had it wrong. Elimination was checked first, so a club knocked out
+ * in qualifying kept the `europe_out` wording all the way to season end:
+ *
+ *   הקיץ האירופי נגמר מוקדם. הליגה היא הכול עכשיו.
+ *   אירופה נסגרה השנה. נתמקד בליגה.
+ *
+ * Both are true in midseason and false in June: by then the league is over too, so there is
+ * nothing left to focus on. The reveal stage is the outer question - once the season is settled
+ * EVERY campaign is described in the past tense, however it ended - and elimination only decides
+ * the wording while the season is still running.
+ *
+ * `europe_settled` reads correctly for a knocked-out club because the competition on the campaign
+ * is the one it went out of, so "המסע האירופי בליגת האלופות הסתיים" is exactly what happened.
  */
 function europeContext(campaign: VisibleEuropeanCampaign): string {
-  if (campaign.eliminated) return 'europe_out';
   if (campaign.reveal === 'full') return 'europe_settled';
+  if (campaign.eliminated) return 'europe_out';
   if (campaign.inLeaguePhase) return 'europe_lp';
   return 'europe_qualifying';
 }

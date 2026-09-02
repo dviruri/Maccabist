@@ -257,6 +257,52 @@ describe('the club line tells the truth about Europe', () => {
     expect(['הסתיים', 'סיימנו'].some((past) => line.includes(past)), line).toBe(true);
   });
 
+  it('does not tell a knocked-out club to focus on the league after the league is over', () => {
+    /*
+     * v0.9.6.3. `eliminated` was checked before the reveal stage, so a club knocked out in
+     * qualifying kept the midseason wording all the way to season end - "הליגה היא הכול עכשיו"
+     * and "נתמקד בליגה" - by which point the league has finished too.
+     */
+    const line = clubLine(
+      withJourney(
+        seniorCareer(),
+        [
+          entered('uefa_champions_league', 'ucl_q1'),
+          {
+            kind: 'tie',
+            tie: { competition: 'uefa_champions_league', stage: 'ucl_q1', opponentName: 'יריבה', won: false },
+          } as EuropeanStep,
+        ],
+        'season_end',
+      ),
+    );
+    expect(line).not.toBe('');
+    for (const stale of ['הליגה היא הכול עכשיו', 'נתמקד בליגה', 'נגמר מוקדם', 'אירופה נסגרה']) {
+      expect(line, `season end still says "${stale}"`).not.toContain(stale);
+    }
+    /* Nothing is still ahead, either. */
+    expect(line).not.toContain('מחכים');
+    expect(['הסתיים', 'סיימנו'].some((past) => line.includes(past)), line).toBe(true);
+  });
+
+  it('still names the competition it went out of once the season is settled', () => {
+    /* Settled wording, not amnesia: the club really was in the Champions League. */
+    const line = clubLine(
+      withJourney(
+        seniorCareer(),
+        [
+          entered('uefa_champions_league', 'ucl_q1'),
+          {
+            kind: 'tie',
+            tie: { competition: 'uefa_champions_league', stage: 'ucl_q1', opponentName: 'יריבה', won: false },
+          } as EuropeanStep,
+        ],
+        'season_end',
+      ),
+    );
+    expect(line).toContain('ליגת האלופות');
+  });
+
   it('never leaks a competition the revealed path has not reached', () => {
     /*
      * The journey ENDS in the Conference League - `finalCompetition` says so - but at preseason
