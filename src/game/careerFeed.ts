@@ -1,6 +1,7 @@
-import { UEFA_COMPETITIONS } from '../data/uefa';
+import { UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
 import { stageConfig } from '../data/academy';
 import { visibleEuropeanCampaign } from './europePresentation';
+import type { VisibleEuropeanCampaign } from './europePresentation';
 import { activeFixture } from './fixture';
 import { currentTable } from './leagueEngine';
 import { isInAcademy } from './rules';
@@ -229,22 +230,56 @@ function mediaItem(career: Career): FeedItem | null {
 /* ------------------------------------------------------------------ */
 
 const CLUB_POOLS: Record<string, readonly string[]> = {
-  europe_lp: ['עונה אירופית ב{comp}.', 'אנחנו ב{comp}. לילות גדולים מחכים.'],
+  /*
+   * Four European states, not two (v0.9.6.2).
+   *
+   * This pool was chosen with `inLeaguePhase ? europe_lp : europe_out`, which made
+   * `!inLeaguePhase` a synonym for elimination. A club still alive in qualifying - the normal
+   * state for Maccabi through most of a preseason - was told "הקיץ האירופי נגמר מוקדם" before
+   * it had played a single qualifier.
+   *
+   * The states come from `visibleEuropeanCampaign` and are resolved in `europeContext` below.
+   * `{comp}` is the bare name, for a construct like "מוקדמות ליגת האלופות"; `{inComp}` is the
+   * name with ב attached, which is a different word in Hebrew - see `inCompetition`.
+   */
+  europe_qualifying: ['אנחנו במוקדמות {comp}. יש עוד דרך לעבור.', 'אירופה מתחילה {inComp}. כל סיבוב קובע.'],
+  europe_lp: ['עונה אירופית {inComp}.', 'אנחנו {inComp}. לילות גדולים מחכים.'],
+  europe_settled: ['המסע האירופי {inComp} הסתיים.', 'סיימנו את העונה האירופית {inComp}.'],
   europe_out: ['הקיץ האירופי נגמר מוקדם. הליגה היא הכול עכשיו.', 'אירופה נסגרה השנה. נתמקד בליגה.'],
   title_race: ['אנחנו במקום {pos}. המרוץ פתוח.', 'מקום {pos} בטבלה - כל נקודה נחשבת.'],
   relegation: ['מקום {pos}. צריך נקודות, מהר.', 'המצב בטבלה לא טוב. מקום {pos}.'],
   mid: ['מקום {pos} בטבלה.', 'אנחנו במקום {pos}. יש לאן לעלות.'],
 };
 
+/**
+ * Which European thing the club is allowed to say right now (v0.9.6.2).
+ *
+ * Reads only the typed result of `visibleEuropeanCampaign` - the chronology itself is decided in
+ * `europePresentation` and is deliberately not re-derived here.
+ *
+ * Order matters. Elimination outranks everything, because a club knocked out of qualifying is
+ * still nominally "in" the competition it went out of. A settled season outranks the league
+ * phase, so a finished campaign does not promise nights that have already happened.
+ */
+function europeContext(campaign: VisibleEuropeanCampaign): string {
+  if (campaign.eliminated) return 'europe_out';
+  if (campaign.reveal === 'full') return 'europe_settled';
+  if (campaign.inLeaguePhase) return 'europe_lp';
+  return 'europe_qualifying';
+}
+
 function clubItem(career: Career): FeedItem | null {
   /* The visible campaign: this line names a competition to the player (v0.9.6.1). */
   const europe = visibleEuropeanCampaign(career, career.currentClubId);
   if (europe) {
-    const pool = europe.inLeaguePhase ? CLUB_POOLS.europe_lp! : CLUB_POOLS.europe_out!;
+    const context = europeContext(europe);
+    const name = UEFA_COMPETITIONS[europe.competition].name;
     return {
       role: 'club-director',
       roleLabel: 'המועדון',
-      text: `המועדון: ${pick(pool, career, 'club', europe.competition).replace('{comp}', UEFA_COMPETITIONS[europe.competition].name)}`,
+      text: `המועדון: ${pick(CLUB_POOLS[context]!, career, 'club', `${context}:${europe.competition}`)
+        .replace('{inComp}', inCompetition(name))
+        .replace('{comp}', name)}`,
     };
   }
   const table = currentTable(career);

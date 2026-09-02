@@ -12,7 +12,8 @@ import { createCareer } from '../src/game/careerEngine';
 import { deriveCareerFeed } from '../src/game/careerFeed';
 import { createRng } from '../src/game/random';
 import { openWorldSeason } from '../src/game/worldEngine';
-import type { Career, SeasonPoint } from '../src/types';
+import { LEAGUE_PHASE } from '../src/data/uefa';
+import type { Career, EuropeanStep, SeasonPoint, UefaCompetitionId } from '../src/types';
 
 function seniorCareer(overrides: Partial<Career> = {}, seed = 4): Career {
   const base: Career = {
@@ -132,5 +133,161 @@ describe('variety is wording, never invented fact', () => {
     for (let seed = 1; seed <= 20; seed += 1) {
       expect(deriveCareerFeed(seniorCareer({}, seed)).length).toBeLessThanOrEqual(4);
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* European state (v0.9.6.2)                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The club line must describe the European state the player is actually in.
+ *
+ * Before v0.9.6.2 the pool was chosen with `inLeaguePhase ? europe_lp : europe_out`, so
+ * `!inLeaguePhase` meant "eliminated". A club alive in qualifying - which is where a Maccabi
+ * season starts - was told the European summer had ended early before it had played a qualifier.
+ */
+
+const OUT_WORDING = ['נגמר מוקדם', 'אירופה נסגרה'];
+const QUALIFYING_WORDING = ['במוקדמות', 'אירופה מתחילה'];
+
+function withJourney(career: Career, steps: EuropeanStep[], seasonPoint: SeasonPoint): Career {
+  return {
+    ...career,
+    seasonPoint,
+    world: {
+      ...career.world,
+      europe: {
+        coefficients: { associations: {}, clubs: {} },
+        history: [],
+        current: {
+          season: career.currentSeason,
+          entries: [],
+          winners: {} as never,
+          maccabiJourney: null,
+          playerJourney: {
+            season: career.currentSeason,
+            clubId: career.currentClubId,
+            steps,
+            finalCompetition: 'uefa_conference_league',
+            furthest: 'league_phase',
+            matches: 0,
+            wonCompetition: null,
+            reachedFinal: false,
+            reachedSemiFinal: false,
+            reachedLeaguePhase: false,
+          },
+        },
+      },
+    } as never,
+  };
+}
+
+const entered = (competition: UefaCompetitionId, entry: string): EuropeanStep =>
+  ({ kind: 'entered', competition, entry, reason: { kind: 'league_position', position: 2 } }) as EuropeanStep;
+
+function clubLine(career: Career): string {
+  return deriveCareerFeed(career).find((item) => item.role === 'club-director')?.text ?? '';
+}
+
+describe('the club line tells the truth about Europe', () => {
+  it('does not call an active Champions League qualifier a finished season', () => {
+    const line = clubLine(
+      withJourney(seniorCareer(), [entered('uefa_champions_league', 'ucl_q1')], 'preseason'),
+    );
+    expect(line).not.toBe('');
+    for (const wrong of OUT_WORDING) expect(line).not.toContain(wrong);
+    expect(QUALIFYING_WORDING.some((right) => line.includes(right))).toBe(true);
+  });
+
+  it('does not call an active Conference qualifier a finished season either', () => {
+    const line = clubLine(
+      withJourney(seniorCareer(), [entered('uefa_conference_league', 'uecl_q2')], 'preseason'),
+    );
+    for (const wrong of OUT_WORDING) expect(line).not.toContain(wrong);
+    expect(QUALIFYING_WORDING.some((right) => line.includes(right))).toBe(true);
+  });
+
+  it('says the league phase when the club is in the league phase', () => {
+    const line = clubLine(
+      withJourney(
+        seniorCareer(),
+        [entered('uefa_conference_league', LEAGUE_PHASE)],
+        'midseason',
+      ),
+    );
+    for (const wrong of OUT_WORDING) expect(line).not.toContain(wrong);
+    expect(line).toContain('קונפרנס ליג');
+  });
+
+  it('only says Europe is over once the club is actually out', () => {
+    const line = clubLine(
+      withJourney(
+        seniorCareer(),
+        [
+          entered('uefa_conference_league', 'uecl_q2'),
+          {
+            kind: 'tie',
+            tie: {
+              competition: 'uefa_conference_league',
+              stage: 'uecl_q2',
+              opponentName: 'יריבה',
+              won: false,
+            },
+          } as EuropeanStep,
+        ],
+        'midseason',
+      ),
+    );
+    expect(OUT_WORDING.some((right) => line.includes(right))).toBe(true);
+  });
+
+  it('does not promise nights that have already happened once the season is settled', () => {
+    const line = clubLine(
+      withJourney(seniorCareer(), [entered('uefa_conference_league', LEAGUE_PHASE)], 'season_end'),
+    );
+    /* "לילות גדולים מחכים" is a promise, and at season end there is nothing left to wait for. */
+    expect(line).not.toContain('מחכים');
+    /* Either settled variant is fine; both are past tense. */
+    expect(['הסתיים', 'סיימנו'].some((past) => line.includes(past)), line).toBe(true);
+  });
+
+  it('never leaks a competition the revealed path has not reached', () => {
+    /*
+     * The journey ENDS in the Conference League - `finalCompetition` says so - but at preseason
+     * only the Champions League entry is revealed, so that is the only competition nameable.
+     */
+    const line = clubLine(
+      withJourney(
+        seniorCareer(),
+        [
+          entered('uefa_champions_league', 'ucl_q1'),
+          {
+            kind: 'tie',
+            tie: { competition: 'uefa_champions_league', stage: 'ucl_q1', opponentName: 'יריבה', won: false },
+          } as EuropeanStep,
+          { kind: 'dropped', to: 'uefa_conference_league', toEntry: 'uecl_q3' } as EuropeanStep,
+        ],
+        'preseason',
+      ),
+    );
+    expect(line).toContain('ליגת האלופות');
+    expect(line).not.toContain('קונפרנס');
+  });
+
+  it('is deterministic for an identical European state', () => {
+    const career = withJourney(seniorCareer(), [entered('uefa_champions_league', 'ucl_q1')], 'preseason');
+    expect(clubLine(career)).toBe(clubLine(career));
+  });
+
+  it('attaches ב to a competition name as Hebrew requires', () => {
+    /*
+     * "ב" swallows the definite ה: it is "בקונפרנס ליג", never "בהקונפרנס ליג". The pool used to
+     * interpolate the bare name straight after a ב, which shipped both broken forms.
+     */
+    const line = clubLine(
+      withJourney(seniorCareer(), [entered('uefa_conference_league', LEAGUE_PHASE)], 'midseason'),
+    );
+    expect(line).not.toContain('בה');
   });
 });
