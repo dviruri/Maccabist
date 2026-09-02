@@ -12,7 +12,7 @@ then had to be apologised for.
 | | |
 | --- | --- |
 | starting commit | `e250aa2` (v0.9.5.1 + the new age asset pack) |
-| ending commit | `RELEASE_SHA` |
+| ending commit | `9694ed4` |
 | starting tests | **69 files / 1244 tests** |
 | ending tests | **76 files / 1302 tests** (+7 files, +58 tests) |
 | starting build | passing |
