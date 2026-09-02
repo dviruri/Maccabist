@@ -95,7 +95,7 @@ const CHECKS: readonly MilestoneCheck[] = [
     icon: '✨',
     major: false,
     applies: (c) => c.maccabi.europeanRuns > 0 && countsForMaccabiLegacy(c),
-    text: () => 'ערב אירופאי בסמי עופר',
+    text: () => 'ערב אירופי בסמי עופר',
   },
 ];
 

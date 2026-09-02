@@ -8,6 +8,7 @@ import {
   currentTable,
   maccabiLeagueContext,
 } from '../game/leagueEngine';
+import { countLabel } from '../ui/format';
 import type { Career, LeagueContext, LeagueTable, TableRow } from '../types';
 import { Ltr } from './primitives';
 import { ClubCrest } from './ClubCrest';
@@ -122,7 +123,9 @@ function SituationLine({ context }: { context: LeagueContext }): JSX.Element {
 }
 
 export function situationText(context: LeagueContext): string {
-  const n = (value: number): string => String(Math.abs(Math.round(value)));
+  /* "1 נקודות" is not Hebrew, and a one-point gap is the most common thing this line says. */
+  const pts = (value: number): string =>
+    countLabel(Math.abs(Math.round(value)), 'נקודה אחת', 'נקודות');
 
   if (context.championClinched) return 'האליפות כבר בכיס';
   if (context.promotionClinched) return 'העלייה כבר מובטחת';
@@ -131,22 +134,22 @@ export function situationText(context: LeagueContext): string {
   if (context.titleRace) {
     return context.position === 1
       ? 'בראש הטבלה, ומחזיקים'
-      : `${n(context.pointsFromTop)} נקודות מהפסגה`;
+      : `${pts(context.pointsFromTop)} מהפסגה`;
   }
   if (context.promotionRace && context.pointsFromPromotion !== null) {
     return context.pointsFromPromotion <= 0
       ? 'בתוך מקומות העלייה'
-      : `${n(context.pointsFromPromotion)} נקודות ממקומות העלייה`;
+      : `${pts(context.pointsFromPromotion)} ממקומות העלייה`;
   }
   if (context.relegationBattle && context.pointsFromSafety !== null) {
     return context.pointsFromSafety >= 0
-      ? `${n(context.pointsFromSafety)} נקודות מעל הקו האדום`
-      : `${n(context.pointsFromSafety)} נקודות מתחת לקו האדום`;
+      ? `${pts(context.pointsFromSafety)} מעל הקו האדום`
+      : `${pts(context.pointsFromSafety)} מתחת לקו האדום`;
   }
   if (context.europeRace && context.pointsFromEurope !== null) {
     return context.pointsFromEurope <= 0
       ? 'בתוך מקומות אירופה'
-      : `${n(context.pointsFromEurope)} נקודות ממקומות אירופה`;
+      : `${pts(context.pointsFromEurope)} ממקומות אירופה`;
   }
   if (context.overperforming) return 'מעל למה שציפו מהקבוצה הזאת';
   if (context.underperforming) return 'מתחת למה שציפו מהקבוצה הזאת';

@@ -461,7 +461,7 @@ export const SENIOR_PHASE_EVENTS: GameEvent[] = [
               roleValue: 8,
               confidence: 11,
               remember: 'european_night',
-              milestone: { id: 'european_night', icon: '✨', text: 'ערב אירופאי שלא שוכחים בחיפה', major: true },
+              milestone: { id: 'european_night', icon: '✨', text: 'ערב אירופי שלא שוכחים בחיפה', major: true },
             },
             modifiers: [
               { attribute: 'ability', above: 70, multiplier: 1.45 },

@@ -6,6 +6,7 @@ import {
 } from '../game/europePresentation';
 import { getCompetitionAsset } from '../data/competitionAssets';
 import { QUALIFYING_GRAPH, LEAGUE_PHASE, LP_DROP_TARGETS, UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
+import { contractedPrefix } from '../game/hebrew';
 import type { Career, EuropeanJourney, EuropeanStep, EuropeanTie, UefaCompetitionId } from '../types';
 import { nextSeasonRoute } from '../game/europeStatus';
 import { CinematicBackdrop } from './gamefeel';
@@ -211,9 +212,9 @@ export function EuropeCard({
          */
         <p className={`euro-state-line${journey.wonCompetition ? ' euro-up' : ''}`}>
           {journey.wonCompetition
-            ? `זכינו ב${UEFA_COMPETITIONS[journey.wonCompetition].name}!`
+            ? `זכינו ${inCompetition(UEFA_COMPETITIONS[journey.wonCompetition].name)}!`
             : KNOCKOUT_TITLES[journey.furthest]
-              ? `${UEFA_COMPETITIONS[journey.finalCompetition].name} — הגענו ל${KNOCKOUT_TITLES[journey.furthest]}`
+              ? `${UEFA_COMPETITIONS[journey.finalCompetition].name} — הגענו ${contractedPrefix('ל', KNOCKOUT_TITLES[journey.furthest]!)}`
               : journey.reachedLeaguePhase
                 ? `סיימנו את שלב הליגה של ${UEFA_COMPETITIONS[journey.finalCompetition].name}`
                 : 'העונה האירופית הסתיימה בקיץ.'}

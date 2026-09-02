@@ -1,3 +1,4 @@
+import { countLabel } from './hebrew';
 import { getLeague } from '../data/leagues';
 import { leagueScheduleBreakdown } from './leagueSchedule';
 import { leagueLineFor } from './segmentEngine';
@@ -307,11 +308,11 @@ export function honorStatLabel(honor: IndividualHonor): string | null {
   if (honor.statValue === undefined) return null;
   switch (honor.type) {
     case 'top_scorer':
-      return `${honor.statValue} שערים`;
+      return countLabel(honor.statValue, 'שער אחד', 'שערים');
     case 'assists_leader':
-      return `${honor.statValue} בישולים`;
+      return countLabel(honor.statValue, 'בישול אחד', 'בישולים');
     case 'goalkeeper_of_season':
-      return `${honor.statValue} שערים נקיים`;
+      return countLabel(honor.statValue, 'שער נקי אחד', 'שערים נקיים');
     default:
       return null;
   }

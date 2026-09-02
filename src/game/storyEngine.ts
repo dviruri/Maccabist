@@ -8,6 +8,7 @@
  * Pure and deterministic: the same career always produces the same story.
  */
 
+import { countLabel, hebrewPrefix } from './hebrew';
 import { getClub, MACCABI_ID } from '../data/clubs';
 import { TRAITS_BY_ID } from '../data/traits';
 import type { Career, TraitId } from '../types';
@@ -257,7 +258,7 @@ export function careerStory(career: Career): string[] {
   /* ---------- the turn ---------- */
   if (r.returned && hasMemory(career, 'released_by_maccabi')) {
     lines.push(
-      `חזרת למכבי חיפה בגיל ${r.returnAge} - למועדון שלא רצה אותך - והפעם נשארת ${r.seasonsAfterReturn} עונות.`,
+      `חזרת למכבי חיפה בגיל ${r.returnAge} - למועדון שלא רצה אותך - והפעם נשארת ${countLabel(r.seasonsAfterReturn, 'עונה אחת', 'עונות')}.`,
     );
   } else if (r.returned) {
     lines.push(`בגיל ${r.returnAge} חזרת הביתה, וסגרת את המעגל שהתחיל במגרשי האימונים.`);
@@ -268,12 +269,12 @@ export function careerStory(career: Career): string[] {
   /* ---------- how it is remembered ---------- */
   if (r.captainSeasons >= 3 && r.championships >= 1) {
     lines.push(
-      `${r.captainSeasons} עונות עם הסרט ו-${r.championships} אליפויות. השם שלך נשאר במועדון גם אחרי שהנעליים ירדו.`,
+      `${countLabel(r.captainSeasons, 'עונה אחת', 'עונות')} עם הסרט ${hebrewPrefix('ו', countLabel(r.championships, 'אליפות אחת', 'אליפויות'))}. השם שלך נשאר במועדון גם אחרי שהנעליים ירדו.`,
     );
   } else if (r.championships >= 1) {
     lines.push(`הרמת ${r.championships === 1 ? 'אליפות' : `${r.championships} אליפויות`} עם מכבי חיפה.`);
   } else if (r.appearances >= 100) {
-    lines.push(`${r.appearances} הופעות בירוק, בלי תואר גדול. גם זו קריירה שרוב האנשים היו רוצים.`);
+    lines.push(`${countLabel(r.appearances, 'הופעה אחת', 'הופעות')} בירוק, בלי תואר גדול. גם זו קריירה שרוב האנשים היו רוצים.`);
   } else if (r.appearances > 0 && r.appearances < 25) {
     lines.push(
       `בקבוצה הבוגרת של מכבי חיפה הספקת ${count(r.appearances, 'הופעה אחת', 'הופעות')} בלבד. את השאר עשית במקומות אחרים.`,

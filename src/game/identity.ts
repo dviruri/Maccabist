@@ -109,14 +109,31 @@ export function teamDisplayFor(
 }
 
 /**
- * A Hebrew inseparable prefix, contracted correctly (v0.9.3).
+ * A Hebrew inseparable prefix on a CLUB name (v0.9.3, corrected v0.9.6.2).
  *
- * ל / ב / מ swallow a following definite article, so "ל" + "הפועל באר שבע" is "להפועל באר שבע",
- * never "להפועל" alongside a stray ה. The same rule `inCompetition` applies to ב for competition
- * names, generalised - v0.9's "זכייה בהקונפרנס ליג" was this bug in its other letter.
+ * ל / ב / מ swallow a following definite ARTICLE - that is why `inCompetition` turns
+ * "הקונפרנס ליג" into "בקונפרנס ליג". This function generalised that rule to club names, and
+ * that was wrong: in a club name the leading ה is part of the name, not an article.
+ *
+ * The result was shipped in the matchday timeline, which writes a line for every goal, and on
+ * the decision card:
+ *
+ *   שער לפועל באר שבע     should be   שער להפועל באר שבע
+ *   נשאר בפועל תל אביב     should be   נשאר בהפועל תל אביב
+ *
+ * Worse on transliterations, where the ה is simply the first letter and stripping it destroys
+ * the name outright - 37 clubs in the database begin with one:
+ *
+ *   המבורג   -> למבורג        היידנהיים -> ליידנהיים
+ *   הופנהיים -> לופנהיים      הרקליס    -> לרקליס
+ *   האל סיטי -> לאל סיטי
+ *
+ * Israeli football writes "ניצחון להפועל", "שער להפועל", "עבר להפועל" - the ה stays. So a club
+ * name simply takes the prefix, and the contraction rule stays where it belongs, on competition
+ * names, in `inCompetition`.
  */
 export function withHebrewPrefix(prefix: string, name: string): string {
-  return name.startsWith('ה') ? `${prefix}${name.slice(1)}` : `${prefix}${name}`;
+  return `${prefix}${name}`;
 }
 
 /** One string for compact places (timeline rows, chips). */

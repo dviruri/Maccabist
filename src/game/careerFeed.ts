@@ -1,5 +1,6 @@
 import { UEFA_COMPETITIONS, inCompetition } from '../data/uefa';
 import { stageConfig } from '../data/academy';
+import { getClub } from '../data/clubs';
 import { visibleEuropeanCampaign } from './europePresentation';
 import type { VisibleEuropeanCampaign } from './europePresentation';
 import { activeFixture } from './fixture';
@@ -199,7 +200,11 @@ const MEDIA_POOLS: Record<string, readonly string[]> = {
 function mediaItem(career: Career): FeedItem | null {
   const half = career.firstHalfStats;
   if (!half || half.appearances < 5) return null;
-  const club = activeFixture(career)?.playerClubName ?? '';
+  /*
+   * The club must be nameable, or the line reads "מדברים על השוער של ." - there is no active
+   * fixture at every beat, and the empty fallback left a sentence with a hole in it.
+   */
+  const club = activeFixture(career)?.playerClubName ?? getClub(career.currentClubId).name;
   if (career.position === 'GK' && half.cleanSheets >= 3) {
     return {
       role: 'journalist',

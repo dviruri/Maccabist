@@ -146,10 +146,8 @@ export function careerYears(career: Career): string {
   return `${first}–${last}`;
 }
 
-/** Hebrew singular/plural: countLabel(1, 'שער אחד', 'שערים') -> "שער אחד". */
-export function countLabel(count: number, singular: string, plural: string): string {
-  return count === 1 ? singular : `${count} ${plural}`;
-}
+/* Hebrew number agreement lives in game/hebrew, which has no imports - see the note there. */
+export { countLabel } from '../game/hebrew';
 
 /**
  * The author's own read on a choice, used when a choice has only one outcome and therefore no

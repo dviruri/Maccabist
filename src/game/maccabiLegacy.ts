@@ -22,6 +22,7 @@
  * anywhere in this module (Phase 46).
  */
 
+import { countLabel } from './hebrew';
 import { MACCABI_ID } from '../data/clubs';
 import {
   historicalLadder,
@@ -224,14 +225,14 @@ export function maccabiLegacyComponents(career: Career): LegacyComponent[] {
       label: 'הופעות בירוק',
       points: curve(f.appearances, t.appearances) * w.longevity,
       max: w.longevity,
-      detail: `${f.appearances} הופעות רשמיות`,
+      detail: countLabel(f.appearances, 'הופעה אחת רשמית', 'הופעות רשמיות'),
     },
     {
       key: 'seasons',
       label: 'עונות במכבי',
       points: curve(f.seasons, t.seasons) * w.seasons,
       max: w.seasons,
-      detail: `${f.seasons} עונות`,
+      detail: countLabel(f.seasons, 'עונה אחת', 'עונות'),
     },
     {
       key: 'achievement',
@@ -245,7 +246,9 @@ export function maccabiLegacyComponents(career: Career): LegacyComponent[] {
       label: 'מנהיגות',
       points: curve(f.captainSeasons, t.captainSeasons, 0.8) * w.leadership,
       max: w.leadership,
-      detail: f.captainSeasons > 0 ? `${f.captainSeasons} עונות עם הסרט` : 'בלי הסרט',
+      detail: f.captainSeasons > 0
+          ? `${countLabel(f.captainSeasons, 'עונה אחת', 'עונות')} עם הסרט`
+          : 'בלי הסרט',
     },
     {
       key: 'contribution',
@@ -254,8 +257,8 @@ export function maccabiLegacyComponents(career: Career): LegacyComponent[] {
       max: w.contribution,
       detail:
         career.position === 'GK'
-          ? `${f.cleanSheets} שערים נקיים`
-          : `${f.goals} שערים, ${f.assists} בישולים`,
+          ? countLabel(f.cleanSheets, 'שער נקי אחד', 'שערים נקיים')
+          : `${countLabel(f.goals, 'שער אחד', 'שערים')}, ${countLabel(f.assists, 'בישול אחד', 'בישולים')}`,
     },
     {
       key: 'story',

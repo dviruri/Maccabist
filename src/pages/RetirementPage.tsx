@@ -1,3 +1,4 @@
+import { countLabel } from '../game/hebrew';
 import { CinematicBackdrop } from '../components/gamefeel';
 import { PlayerRender } from '../components/PlayerRender';
 import { CareerTimeline } from '../components/CareerTimeline';
@@ -297,7 +298,7 @@ export function RetirementPage({ career, onNewCareer, onOpenMeta, isBest }: Prop
                 ? 'שיא ההופעות של המועדון שייך לך.'
                 : appearanceStanding.rank <= 10
                   ? `מקום ${appearanceStanding.rank} בהופעות בכל הזמנים של מכבי.`
-                  : `${appearanceStanding.playerValue} הופעות רשמיות בירוק.`}
+                  : `${countLabel(appearanceStanding.playerValue, 'הופעה אחת רשמית', 'הופעות רשמיות')} בירוק.`}
             </div>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { activeFixture, type PresentationFixture } from './fixture';
 import { withHebrewPrefix } from './identity';
 import { createRng, clamp, type Rng } from './random';
+import { countLabel } from './hebrew';
 import type { Career, Position } from '../types';
 
 /**
@@ -220,10 +221,11 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
   moments.push({ minute: 90, kind: 'full_time', text: 'שריקת סיום', big: false });
   moments.sort((a, b) => a.minute - b.minute || (a.kind === 'kickoff' ? -1 : 0));
 
-  const period = isCupFinal ? 'העונה' : 'בסיבוב הראשון';
+  /* Both are labels before a colon, so both are bare - it read "בסיבוב הראשון: ..." beside "העונה: ...". */
+  const period = isCupFinal ? 'העונה' : 'הסיבוב הראשון';
   const factsLine = isKeeper
-    ? `${period}: ${half.appearances} הופעות · ${half.cleanSheets} שערים נקיים`
-    : `${period}: ${half.appearances} הופעות · ${half.goals} שערים · ${half.assists} בישולים`;
+    ? `${period}: ${countLabel(half.appearances, 'הופעה אחת', 'הופעות')} · ${countLabel(half.cleanSheets, 'שער נקי אחד', 'שערים נקיים')}`
+    : `${period}: ${countLabel(half.appearances, 'הופעה אחת', 'הופעות')} · ${countLabel(half.goals, 'שער אחד', 'שערים')} · ${countLabel(half.assists, 'בישול אחד', 'בישולים')}`;
 
   return {
     fixture,

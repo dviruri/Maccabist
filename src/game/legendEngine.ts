@@ -9,6 +9,7 @@
  * All weights and targets live in balance.ts (LEGEND) so this is easy to rebalance.
  */
 
+import { countLabel, hebrewPrefix } from './hebrew';
 import { resolveEnding } from '../data/endings';
 import { MACCABI_ID } from '../data/clubs';
 import type { Career, CareerEnding, LegendComponent, LegendResult } from '../types';
@@ -58,7 +59,7 @@ export function computeLegendComponents(career: Career): LegendComponent[] {
       label: 'הופעות במכבי',
       points: ratio(m.appearances, t.appearances) * w.appearances,
       max: w.appearances,
-      detail: `${m.appearances} הופעות`,
+      detail: countLabel(m.appearances, 'הופעה אחת', 'הופעות'),
     },
     {
       key: 'output',
@@ -69,15 +70,15 @@ export function computeLegendComponents(career: Career): LegendComponent[] {
       max: w.output,
       detail:
         career.position === 'GK'
-          ? `${m.cleanSheets} שערים נקיים`
-          : `${m.goals} שערים, ${m.assists} בישולים`,
+          ? countLabel(m.cleanSheets, 'שער נקי אחד', 'שערים נקיים')
+          : `${countLabel(m.goals, 'שער אחד', 'שערים')}, ${countLabel(m.assists, 'בישול אחד', 'בישולים')}`,
     },
     {
       key: 'seasons',
       label: 'עונות בירוק',
       points: ratio(m.seasons, t.seasons) * w.seasons,
       max: w.seasons,
-      detail: `${m.seasons} עונות`,
+      detail: countLabel(m.seasons, 'עונה אחת', 'עונות'),
     },
     {
       key: 'titles',
@@ -91,7 +92,9 @@ export function computeLegendComponents(career: Career): LegendComponent[] {
       label: 'קפטן',
       points: ratio(m.captainSeasons, t.captain) * w.captain,
       max: w.captain,
-      detail: m.captainSeasons > 0 ? `${m.captainSeasons} עונות עם הסרט` : 'לא היית קפטן',
+      detail: m.captainSeasons > 0
+          ? `${countLabel(m.captainSeasons, 'עונה אחת', 'עונות')} עם הסרט`
+          : 'לא היית קפטן',
     },
     {
       key: 'academy',
@@ -112,7 +115,9 @@ export function computeLegendComponents(career: Career): LegendComponent[] {
       label: 'החזרה הביתה',
       points: m.returned ? w.homecoming * (0.45 + 0.55 * ratio(m.seasonsAfterReturn, t.homecomingSeasons)) : 0,
       max: w.homecoming,
-      detail: m.returned ? `חזרת בגיל ${m.returnAge} ל-${m.seasonsAfterReturn} עונות` : 'לא הייתה חזרה',
+      detail: m.returned
+          ? `חזרת בגיל ${m.returnAge} ${hebrewPrefix('ל', countLabel(m.seasonsAfterReturn, 'עונה אחת', 'עונות'))}`
+          : 'לא הייתה חזרה',
     },
     {
       key: 'europe',

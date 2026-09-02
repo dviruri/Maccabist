@@ -1142,8 +1142,8 @@ export const ACADEMY_EVENTS: GameEvent[] = [
             id: 'lesson',
             baseWeight: 45,
             tone: 'bad',
-            preview: 'חריצה מאוחרת על שחקן מפתח, ושיעור בחדר ההלבשה',
-            text: 'נכנסת מאוחר בחריצה על שחקן מפתח. בחדר ההלבשה הסבירו לך מה זה כבוד.',
+            preview: 'כניסה מאוחרת בשחקן מפתח, ושיעור בחדר ההלבשה',
+            text: 'נכנסת מאוחר בשחקן מפתח. בחדר ההלבשה הסבירו לך מה זה כבוד.',
             effects: { coachTrust: -6, discipline: -4, confidence: -5 },
           },
           {
