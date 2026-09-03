@@ -17,7 +17,16 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.6.4 — Anonymous Product Analytics.** Adds GA4 product analytics for
+**Current stable release: v0.9.6.5 — Analytics Truth Hotfix.** Four corrections to v0.9.6.4. A
+career started before the non-blocking consent bar was answered is no longer lost: it is held
+locally and sent once if the player grants, discarded if they decline. `senior_debut` now reads the
+engine's own milestone instead of a cumulative appearance total that included academy football — it
+had been firing on entry to the senior stage in 30 of 30 simulated careers, with zero senior
+appearances. `?analyticsDebug=1` now actually sets GA4 `debug_mode`. And the decline button reads
+`לא, תודה`, because the choice really is permanent. The core metric is stated accurately:
+`career_started` counts newly-created careers among players who granted consent.
+
+**v0.9.6.4 — Anonymous Product Analytics.** Adds GA4 product analytics for
 the friend beta, built around one question: how many careers have actually been started. The
 `career_started` event fires from the single action that creates a career and is deduped on the
 career's own id, so a refresh, a resume or a re-render cannot inflate it and a save from before
