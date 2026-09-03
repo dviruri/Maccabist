@@ -17,7 +17,14 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.6.6 — Matchday Substitute Truth Hotfix.** Beta testing found the
+**Current stable release: v0.9.6.7 — GA4 Bootstrap Fix.** Production testing showed the Google tag
+loading with HTTP 200 and no `g/collect` request ever being made, so GA4 DebugView stayed empty.
+The internal command queue had been written as an arrow function with a rest parameter, which
+pushes a real `Array` onto `dataLayer`; the official bootstrap pushes the function's native
+`arguments`, and gtag.js tells a queued command apart from a data push by exactly that difference.
+Transport only — consent, privacy, environment exclusions and every event's semantics are unchanged.
+
+**v0.9.6.6 — Matchday Substitute Truth Hotfix.** Beta testing found the
 player shown starting on the bench and then scoring in the 24th minute. The presenter knew whether
 he played and whether he started, but nothing modelled the moment a substitute walked on, so every
 player-owned minute was drawn from the full ninety — measured across 60 careers, 222 of 229 bench

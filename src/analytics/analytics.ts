@@ -202,6 +202,36 @@ interface GtagWindow {
  *
  * Ad-personalisation signals are switched off: this is product measurement, not marketing.
  */
+/**
+ * The Google tag command queue (v0.9.6.7).
+ *
+ * ## Why this is a normal function
+ *
+ * The official bootstrap is:
+ *
+ *     window.dataLayer = window.dataLayer || [];
+ *     function gtag(){dataLayer.push(arguments);}
+ *
+ * and the `arguments` there is load-bearing. v0.9.6.4 wrote it as an arrow with a rest parameter,
+ * which pushes a real `Array` instead of an `Arguments` object. gtag.js tells its two kinds of
+ * dataLayer entry apart by that distinction - a command versus a data push - so the queued `js`
+ * and `config` commands were never executed as commands.
+ *
+ * In production the symptom was exactly that: `gtag/js?id=...` returned HTTP 200, and no request
+ * to `google-analytics.com/g/collect` was ever made. The tag loaded and then had nothing it
+ * recognised to do.
+ *
+ * An arrow function cannot be used here: it has no `arguments` of its own.
+ */
+export function createGtagQueue(dataLayer: unknown[]): GtagFn {
+  // eslint-disable-next-line prefer-rest-params, func-style
+  function gtag(): void {
+    // eslint-disable-next-line prefer-rest-params
+    dataLayer.push(arguments);
+  }
+  return gtag;
+}
+
 function loadGtag(): GtagFn | null {
   try {
     if (typeof window === 'undefined' || typeof document === 'undefined') return null;
@@ -209,9 +239,7 @@ function loadGtag(): GtagFn | null {
     if (holder.gtag) return holder.gtag;
 
     holder.dataLayer = holder.dataLayer ?? [];
-    const gtag: GtagFn = (...args: unknown[]) => {
-      holder.dataLayer!.push(args);
-    };
+    const gtag = createGtagQueue(holder.dataLayer);
     holder.gtag = gtag;
 
     const tag = document.createElement('script');

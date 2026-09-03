@@ -247,6 +247,39 @@ production traffic is never flagged as debug.
 
 ---
 
+## Troubleshooting
+
+### The Google tag loads but no `collect` request is made
+
+A healthy session shows **two** kinds of request in DevTools → Network:
+
+```
+googletagmanager.com/gtag/js?id=G-4KJEM0LPCF   -> 200   (the tag itself)
+google-analytics.com/g/collect...              -> sent  (the actual events)
+```
+
+Seeing the first without the second means the tag loaded and then had nothing it recognised to do.
+That was a real bug in v0.9.6.4-v0.9.6.6: the internal command queue was written as an arrow
+function with a rest parameter, so it pushed a real `Array` onto `dataLayer`. The official
+bootstrap pushes the function's native `arguments`, and gtag.js tells a queued **command** apart
+from a plain data push by exactly that difference — so the `js` and `config` commands were never
+executed as commands and nothing was ever collected. **v0.9.6.7** corrected it to Google-compatible
+`dataLayer.push(arguments)` semantics.
+
+If it happens again, check in this order:
+
+1. **Consent.** Nothing loads before the player answers; `maccabist.analytics.consent` must be
+   `granted`.
+2. **Environment.** Analytics is off on localhost and under the gallery/audit flags. Use
+   `?analyticsDebug=1` to force it on.
+3. **The tag request.** No `gtag/js` request at all means consent or environment, not transport.
+4. **The collect request.** `gtag/js` at 200 with no `g/collect` points at the bootstrap or at an
+   ad blocker. Check `window.dataLayer[0]` in the console: it should print as `Arguments`, not as
+   an `Array`.
+
+Note when testing `career_started`: it is deduped per career id, so **create a genuinely new
+career**. An existing one will correctly refuse to report itself twice.
+
 ## Reliability
 
 Analytics is fire-and-forget and can never affect gameplay:

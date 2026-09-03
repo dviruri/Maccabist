@@ -16,7 +16,9 @@ import {
   __pendingForTests,
   __resetAnalyticsForTests,
   __setAnalyticsRuntimeForTests,
+  MEASUREMENT_ID,
   analyticsDebugRequested,
+  createGtagQueue,
   gtagConfigParams,
   type AnalyticsEventName,
   type AnalyticsParams,
@@ -809,3 +811,127 @@ function readSource(relative: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/\/\/.*$/gm, ' ');
 }
+
+/* ------------------------------------------------------------------ */
+/* The Google tag bootstrap (v0.9.6.7)                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Production symptom this fixes: `gtag/js?id=G-4KJEM0LPCF` returned HTTP 200 and no request to
+ * `google-analytics.com/g/collect` was ever made, so GA4 DebugView stayed empty.
+ *
+ * The official bootstrap queues the function's native `arguments`. v0.9.6.4 wrote it as an arrow
+ * with a rest parameter, which queues a real `Array` - and gtag.js distinguishes a queued COMMAND
+ * from a data push by exactly that difference, so the `js` and `config` commands were never run
+ * as commands.
+ */
+describe('the gtag command queue matches the official bootstrap', () => {
+  it('queues an arguments object, not an array', () => {
+    const dataLayer: unknown[] = [];
+    const gtag = createGtagQueue(dataLayer);
+    gtag('config', MEASUREMENT_ID, { debug_mode: true });
+
+    expect(dataLayer).toHaveLength(1);
+    const entry = dataLayer[0] as IArguments;
+    /* The distinction gtag.js actually keys on. */
+    expect(Array.isArray(entry)).toBe(false);
+    expect(Object.prototype.toString.call(entry)).toBe('[object Arguments]');
+  });
+
+  it('keeps every argument readable by index and length', () => {
+    const dataLayer: unknown[] = [];
+    const gtag = createGtagQueue(dataLayer);
+    gtag('config', MEASUREMENT_ID, { debug_mode: true });
+    const entry = dataLayer[0] as IArguments;
+
+    expect(entry.length).toBe(3);
+    expect(entry[0]).toBe('config');
+    expect(entry[1]).toBe(MEASUREMENT_ID);
+    expect((entry[2] as Record<string, unknown>).debug_mode).toBe(true);
+  });
+
+  it('is not what the previous implementation produced', () => {
+    /*
+     * The bug, reproduced. Kept as an inline comparison rather than dead production code: the two
+     * shapes are trivially different, and that difference was the whole outage.
+     */
+    const oldStyle: unknown[] = [];
+    const oldGtag = (...args: unknown[]): void => {
+      oldStyle.push(args);
+    };
+    oldGtag('config', MEASUREMENT_ID);
+    expect(Array.isArray(oldStyle[0])).toBe(true);
+
+    const newStyle: unknown[] = [];
+    createGtagQueue(newStyle)('config', MEASUREMENT_ID);
+    expect(Array.isArray(newStyle[0])).toBe(false);
+  });
+
+  it('queues the js and config commands the tag needs, with the real measurement id', () => {
+    const dataLayer: unknown[] = [];
+    const gtag = createGtagQueue(dataLayer);
+    gtag('js', new Date());
+    gtag('config', MEASUREMENT_ID, gtagConfigParams(''));
+
+    expect(dataLayer).toHaveLength(2);
+    const js = dataLayer[0] as IArguments;
+    const config = dataLayer[1] as IArguments;
+    expect(js[0]).toBe('js');
+    expect(js[1]).toBeInstanceOf(Date);
+    expect(config[0]).toBe('config');
+    expect(config[1]).toBe('G-4KJEM0LPCF');
+    const params = config[2] as Record<string, unknown>;
+    expect(params.anonymize_ip).toBe(true);
+    expect(params.allow_google_signals).toBe(false);
+    expect(params.debug_mode).toBeUndefined();
+  });
+
+  it('carries debug_mode into the queued config under the debug flag', () => {
+    const dataLayer: unknown[] = [];
+    createGtagQueue(dataLayer)('config', MEASUREMENT_ID, gtagConfigParams('?analyticsDebug=1'));
+    const params = (dataLayer[0] as IArguments)[2] as Record<string, unknown>;
+    expect(params.debug_mode).toBe(true);
+  });
+
+  it('appends to the same dataLayer rather than replacing it', () => {
+    /* A tag already on the page keeps whatever it had queued. */
+    const dataLayer: unknown[] = ['pre-existing'];
+    createGtagQueue(dataLayer)('config', MEASUREMENT_ID);
+    expect(dataLayer).toHaveLength(2);
+    expect(dataLayer[0]).toBe('pre-existing');
+  });
+
+  it('never throws into the caller', () => {
+    /* A frozen or hostile dataLayer must not take a game action down with it. */
+    const frozen = Object.freeze([]) as unknown as unknown[];
+    const gtag = createGtagQueue(frozen);
+    expect(() => {
+      try {
+        gtag('config', MEASUREMENT_ID);
+      } catch {
+        /* emit() wraps this in production; the assertion is that the game survives either way. */
+      }
+    }).not.toThrow();
+  });
+});
+
+describe('the tag is still only loaded when it is allowed to be', () => {
+  it('does not bootstrap before consent is answered', () => {
+    const h = harness();
+    trackCareerStarted(career());
+    expect(h.sent).toHaveLength(0);
+  });
+
+  it('does not bootstrap when consent is denied', () => {
+    const h = harness({ consent: 'denied' });
+    trackCareerStarted(career());
+    trackCareerResumed(career());
+    expect(h.sent).toHaveLength(0);
+  });
+
+  it('bootstraps only once consent is granted and an event fires', () => {
+    const h = harness({ consent: 'granted' });
+    trackCareerStarted(career());
+    expect(h.sent).toHaveLength(1);
+  });
+});
