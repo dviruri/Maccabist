@@ -59,6 +59,8 @@ export type ConsentChoice = 'granted' | 'denied' | 'unset';
 const CONSENT_KEY = 'maccabist.analytics.consent';
 const SENT_KEY = 'maccabist.analytics.sent';
 const SESSION_KEY = 'maccabist.analytics.session';
+/** Events created before the player answered the consent bar. See `holdUntilConsent` (v0.9.6.5). */
+const PENDING_KEY = 'maccabist.analytics.pending';
 
 /**
  * How many dedupe keys to keep. A long career emits one `season_completed` per season, so this is
@@ -108,6 +110,39 @@ let initialised = false;
 const QA_FLAGS = ['gallery', 'probe', 'contrast', 'touch', 'crop'] as const;
 
 /**
+ * Is this session asking for GA4 DebugView?
+ *
+ * v0.9.6.4 used `?analyticsDebug=1` only to force analytics past the environment block, which was
+ * half the job: events were sent, but without `debug_mode` GA4 does not route them to DebugView,
+ * so the flag did not actually do the thing it was documented to do.
+ */
+export function analyticsDebugRequested(search?: string): boolean {
+  try {
+    if (search === undefined && typeof window === 'undefined') return false;
+    const query = search ?? window.location.search;
+    return new URLSearchParams(query).get('analyticsDebug') === '1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The GA4 `config` payload, built separately so it can be asserted without a browser.
+ *
+ * Product measurement only: IP anonymised, Google Signals and ad personalisation off. `debug_mode`
+ * appears only when explicitly requested, so normal traffic is never flagged as debug.
+ */
+export function gtagConfigParams(search?: string): Record<string, boolean> {
+  const config: Record<string, boolean> = {
+    anonymize_ip: true,
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
+  };
+  if (analyticsDebugRequested(search)) config.debug_mode = true;
+  return config;
+}
+
+/**
  * May this environment emit real analytics?
  *
  * No, unless it is a real deployed build being played by a person. The browser audits drive the
@@ -121,7 +156,11 @@ export function environmentAllowsAnalytics(location?: {
   search?: string;
 }): boolean {
   try {
-    if (typeof window === 'undefined') return false;
+    /*
+     * An explicitly supplied location is authoritative, so this is decidable without a browser.
+     * Production always calls with no argument, where the absence of `window` still means no.
+     */
+    if (!location && typeof window === 'undefined') return false;
     const hostname = location?.hostname ?? window.location.hostname;
     const search = location?.search ?? window.location.search;
     const params = new URLSearchParams(search);
@@ -183,11 +222,7 @@ function loadGtag(): GtagFn | null {
     document.head.appendChild(tag);
 
     gtag('js', new Date());
-    gtag('config', MEASUREMENT_ID, {
-      anonymize_ip: true,
-      allow_google_signals: false,
-      allow_ad_personalization_signals: false,
-    });
+    gtag('config', MEASUREMENT_ID, gtagConfigParams());
     return gtag;
   } catch {
     return null;
@@ -276,6 +311,9 @@ export function setConsent(choice: Exclude<ConsentChoice, 'unset'>): void {
   } catch {
     /* A player who cannot persist the choice is simply asked again next time. */
   }
+  /* Answering the bar is what releases anything held while it was open (v0.9.6.5). */
+  if (choice === 'granted') flushPending();
+  else clearPending();
 }
 
 /** True when the player has been asked and has not yet answered. */
@@ -346,6 +384,123 @@ export function sessionId(): string {
     return fresh;
   } catch {
     return 'session';
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Held events                                                         */
+/* ------------------------------------------------------------------ */
+
+interface PendingEvent {
+  name: AnalyticsEventName;
+  key: string;
+  params: AnalyticsParams;
+}
+
+/**
+ * Events created before the player answered the consent bar (v0.9.6.5).
+ *
+ * ## The bug this fixes
+ *
+ * The bar is non-blocking, which is the right call for a game - but it meant a player could create
+ * a career, hit `emit`, be turned away because consent was still `unset`, and only then press
+ * אישור. That career was never reported. The one number the beta exists to produce was quietly
+ * losing exactly the players who engage fastest.
+ *
+ * ## What is stored
+ *
+ * The event name, its dedupe key, and the already-whitelisted scalar payload - the same object
+ * that would have gone to Google. Never a `Career`, never a name, never free text; the payload was
+ * built by `events.ts` before it got here and contains only enums, ids, numbers and booleans.
+ *
+ * ## Lifecycle
+ *
+ * unset  -> held locally, nothing sent
+ * grant  -> flushed exactly once, then deduped normally like any other event
+ * deny   -> discarded, nothing sent, ever
+ *
+ * Held in `localStorage`, so closing the tab before answering does not lose it.
+ */
+function readPending(): PendingEvent[] {
+  try {
+    const raw = runtime.readLocal(PENDING_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    /* Malformed or hand-edited storage is dropped, never trusted into a send. */
+    return parsed.filter((entry): entry is PendingEvent => {
+      if (!entry || typeof entry !== 'object') return false;
+      const candidate = entry as Partial<PendingEvent>;
+      if (typeof candidate.name !== 'string' || typeof candidate.key !== 'string') return false;
+      if (!candidate.params || typeof candidate.params !== 'object') return false;
+      return Object.values(candidate.params).every(
+        (value) => ['string', 'number', 'boolean'].includes(typeof value),
+      );
+    });
+  } catch {
+    return [];
+  }
+}
+
+function writePending(events: PendingEvent[]): void {
+  try {
+    runtime.writeLocal(PENDING_KEY, JSON.stringify(events));
+  } catch {
+    /* Nothing to do: an unstorable pending event is simply one that is never sent. */
+  }
+}
+
+function clearPending(): void {
+  writePending([]);
+}
+
+function flushPending(): void {
+  try {
+    const held = readPending();
+    /* Cleared FIRST, so a throw mid-send can never replay the same event on the next grant. */
+    clearPending();
+    for (const event of held) emit(event.name, event.key, event.params);
+  } catch {
+    /* Silent, like everything else here. */
+  }
+}
+
+/**
+ * Send now, or hold until the player decides.
+ *
+ * Used for `career_started` only. The other events describe things that happen while playing, so
+ * a player who has not answered yet will answer long before they matter; the career count is the
+ * one number where losing the very first moment would bias the result.
+ */
+export function emitOrHold(
+  name: AnalyticsEventName,
+  dedupeKey: string,
+  params: AnalyticsParams,
+): void {
+  try {
+    /* Dev, tests, gallery and the browser audits hold nothing and send nothing. */
+    if (!runtime.enabled) return;
+    const consent = getConsent();
+    if (consent === 'granted') {
+      emit(name, dedupeKey, params);
+      return;
+    }
+    if (consent === 'denied') return;
+    if (alreadySent(dedupeKey)) return;
+    const held = readPending();
+    if (held.some((event) => event.key === dedupeKey)) return;
+    writePending([...held, { name, key: dedupeKey, params }]);
+  } catch {
+    /* Never allowed to interrupt career creation. */
+  }
+}
+
+/** Test seam: the raw held payloads, for asserting what does and does not get stored. */
+export function __pendingForTests(): string {
+  try {
+    return runtime.readLocal(PENDING_KEY) ?? '';
+  } catch {
+    return '';
   }
 }
 

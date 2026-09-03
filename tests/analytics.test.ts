@@ -13,8 +13,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  __pendingForTests,
   __resetAnalyticsForTests,
   __setAnalyticsRuntimeForTests,
+  analyticsDebugRequested,
+  gtagConfigParams,
   type AnalyticsEventName,
   type AnalyticsParams,
   environmentAllowsAnalytics,
@@ -230,42 +233,99 @@ describe('season_completed', () => {
   });
 });
 
-describe('senior_debut', () => {
+describe('senior_debut follows the engine, not a cumulative total', () => {
   /*
-   * Both states are derived from ONE base career on purpose.
+   * The v0.9.6.5 fix. This used `!isInAcademy(c) && c.stats.appearances > 0`, and `career.stats`
+   * is the CUMULATIVE career total including every academy and youth appearance - so it was
+   * satisfied the instant a player entered the senior stage carrying years of youth football.
+   * Across 30 simulated careers it fired early in 30 of them, with 64-182 cumulative appearances
+   * and zero senior ones.
    *
-   * `career.id` embeds `Date.now()`, so two separate `createCareer` calls can land on different
-   * ids when they straddle a millisecond - and `reportCareerProgress` correctly treats a changed
-   * id as a career switch rather than a transition. Building "before" and "after" independently
-   * made this block pass alone and fail inside the full suite, which is a flaw in the fixture
-   * rather than in the guard: a real transition is always one career evolving.
+   * The engine already decides a debut when it writes the season record and stamps a
+   * `senior_debut` milestone. Analytics now watches that, so there is one definition.
    */
   const base = career();
-  const academy = (): Career => ({ ...base, academyStage: 'youth' as Career['academyStage'] });
-  const senior = (appearances: number): Career => ({
+
+  /** A youth career with a lot of football behind it and no senior minutes at all. */
+  const youthVeteran = (): Career => ({
     ...base,
     academyStage: 'senior',
-    stats: { ...base.stats, appearances },
+    stats: { ...base.stats, appearances: 143 },
+    milestones: [],
+    seasonHistory: Array.from({ length: 5 }, (_, i) => ({
+      season: 2036 + i,
+      age: 14 + i,
+      academyStage: 'u19',
+      clubId: MACCABI_ID,
+      clubName: 'מכבי חיפה',
+      teamName: 'נוער',
+      league: 'ליגת הנוער',
+      onLoan: false,
+      stats: { appearances: 28, starts: 26, minutes: 2200, goals: 6, assists: 3, cleanSheets: 0, goalsConceded: 0, rating: 70 },
+      firstHalf: null,
+      ability: 60,
+      role: 'starter',
+      coachTrust: 70,
+      trophies: [],
+      captain: false,
+      olderGroup: 'none',
+    })) as unknown as Career['seasonHistory'],
+  });
+
+  const debuted = (from: Career): Career => ({
+    ...from,
+    milestones: [
+      ...from.milestones,
+      { id: 'senior_debut', season: 2041, age: 19, icon: '⚽', text: 'הופעת הבכורה בבוגרים', major: true },
+    ] as Career['milestones'],
+  });
+
+  it('does not fire for 143 youth appearances and a senior stage with no senior football', () => {
+    const h = harness({ consent: 'granted' });
+    const veteran = youthVeteran();
+    expect(veteran.stats.appearances).toBeGreaterThan(100);
+    expect(veteran.academyStage).toBe('senior');
+    expect(
+      veteran.seasonHistory.some((r) => r.academyStage === 'senior' && r.stats.appearances > 0),
+    ).toBe(false);
+
+    const beforePromotion: Career = { ...veteran, academyStage: 'u19' };
+    reportCareerProgress(beforePromotion, veteran);
+    expect(h.of('senior_debut')).toHaveLength(0);
   });
 
   it('fires on the first genuine senior appearance', () => {
     const h = harness({ consent: 'granted' });
-    reportCareerProgress(academy(), senior(1));
+    const veteran = youthVeteran();
+    reportCareerProgress(veteran, debuted(veteran));
     expect(h.of('senior_debut')).toHaveLength(1);
   });
 
-  it('does not fire again on later appearances', () => {
+  it('does not fire again on later senior appearances', () => {
     const h = harness({ consent: 'granted' });
-    reportCareerProgress(academy(), senior(1));
-    reportCareerProgress(senior(1), senior(12));
+    const veteran = youthVeteran();
+    const first = debuted(veteran);
+    reportCareerProgress(veteran, first);
+    reportCareerProgress(first, { ...first, stats: { ...first.stats, appearances: 200 } });
     expect(h.of('senior_debut')).toHaveLength(1);
   });
 
-  it('does not fire for reaching a senior squad without playing', () => {
-    /* Senior stage with zero appearances is not a debut. */
+  it('does not backfill a career that had already debuted when it loaded', () => {
     const h = harness({ consent: 'granted' });
-    reportCareerProgress(academy(), senior(0));
+    const already = debuted(youthVeteran());
+    reportCareerProgress(null, already);
+    reportCareerProgress(already, { ...already, age: already.age + 1 });
     expect(h.of('senior_debut')).toHaveLength(0);
+  });
+
+  it('uses the engine milestone rather than a second definition of a debut', () => {
+    const analytics = readSource('src/analytics/events.ts');
+    expect(analytics).toContain("milestone.id === 'senior_debut'");
+    /* The old cumulative test must not come back. */
+    expect(analytics).not.toContain('stats.appearances > 0');
+    expect(analytics).not.toContain('isInAcademy');
+    /* And the engine really is where a debut is decided. */
+    expect(readSource('src/game/seasonEngine.ts')).toContain("id: 'senior_debut'");
   });
 });
 
@@ -346,6 +406,182 @@ describe('career_completed', () => {
     reportCareerProgress(retired, retired);
     reportCareerProgress(before, retired);
     expect(h.of('career_completed')).toHaveLength(1);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* The consent race                                                    */
+/* ------------------------------------------------------------------ */
+
+describe('a career started before the consent bar is answered', () => {
+  /*
+   * v0.9.6.5. The bar does not block the game, so a player could create a career, be turned away
+   * by `emit` because consent was still unset, and only then press the accept button - and that
+   * career was never reported. The one number the beta exists to produce was losing exactly the
+   * players who engage fastest.
+   */
+  function reload(h: ReturnType<typeof harness>): Sent[] {
+    const sent: Sent[] = [];
+    __setAnalyticsRuntimeForTests({
+      enabled: true,
+      send: (name, params) => sent.push({ name, params }),
+      readLocal: (key) => h.local.get(key) ?? null,
+      writeLocal: (key, value) => void h.local.set(key, value),
+      readSession: () => null,
+      writeSession: () => {},
+      randomId: () => 'reloaded',
+    });
+    return sent;
+  }
+
+  it('sends nothing immediately, but holds it', () => {
+    const h = harness();
+    trackCareerStarted(career());
+    expect(h.sent).toHaveLength(0);
+    expect(__pendingForTests()).toContain('career_started');
+  });
+
+  it('sends exactly one once consent is granted', () => {
+    const h = harness();
+    trackCareerStarted(career());
+    setConsent('granted');
+    expect(h.of('career_started')).toHaveLength(1);
+    expect(__pendingForTests()).not.toContain('career_started');
+  });
+
+  it('does not duplicate when consent is granted again or the career re-reported', () => {
+    const h = harness();
+    const fresh = career();
+    trackCareerStarted(fresh);
+    setConsent('granted');
+    setConsent('granted');
+    trackCareerStarted(fresh);
+    expect(h.of('career_started')).toHaveLength(1);
+  });
+
+  it('survives a refresh taken before answering', () => {
+    const h = harness();
+    trackCareerStarted(career());
+    expect(h.sent).toHaveLength(0);
+
+    /* Tab closed and reopened: durable storage survives, the in-memory runtime does not. */
+    const afterReload = reload(h);
+    setConsent('granted');
+    expect(afterReload.filter((event) => event.name === 'career_started')).toHaveLength(1);
+  });
+
+  it('does not duplicate across a refresh taken after granting', () => {
+    const h = harness();
+    const fresh = career();
+    trackCareerStarted(fresh);
+    setConsent('granted');
+    expect(h.of('career_started')).toHaveLength(1);
+
+    const afterReload = reload(h);
+    trackCareerStarted(fresh);
+    setConsent('granted');
+    expect(afterReload).toHaveLength(0);
+  });
+
+  it('discards it entirely when consent is declined', () => {
+    const h = harness();
+    trackCareerStarted(career());
+    setConsent('denied');
+    expect(h.sent).toHaveLength(0);
+    expect(__pendingForTests()).not.toContain('career_started');
+
+    /* And a later change of heart does not resurrect a discarded career. */
+    const afterReload = reload(h);
+    setConsent('granted');
+    expect(afterReload).toHaveLength(0);
+  });
+
+  it('holds nothing at all in an excluded environment', () => {
+    const h = harness({ enabled: false });
+    trackCareerStarted(career());
+    expect(h.sent).toHaveLength(0);
+    expect(__pendingForTests()).toBe('');
+  });
+
+  it('still behaves exactly once when consent was granted before the career started', () => {
+    const h = harness({ consent: 'granted' });
+    const fresh = career();
+    trackCareerStarted(fresh);
+    trackCareerStarted(fresh);
+    expect(h.of('career_started')).toHaveLength(1);
+    expect(__pendingForTests()).not.toContain('career_started');
+  });
+
+  it('never holds a player-entered name', () => {
+    harness();
+    trackCareerStarted(career({ playerName: 'DISTINCTIVE_NAME_MARKER' }));
+    const raw = __pendingForTests();
+    expect(raw).toContain('career_started');
+    expect(raw).not.toContain('DISTINCTIVE_NAME_MARKER');
+    expect(raw).not.toContain('playerName');
+    /* Only whitelisted scalars are held - the same object that would have gone to Google. */
+    const held = JSON.parse(raw) as { params: Record<string, unknown> }[];
+    expect(held.length).toBeGreaterThan(0);
+    for (const entry of held) {
+      for (const value of Object.values(entry.params)) {
+        expect(['string', 'number', 'boolean']).toContain(typeof value);
+      }
+    }
+  });
+
+  it('ignores malformed pending storage instead of trusting it', () => {
+    const h = harness();
+    h.local.set('maccabist.analytics.pending', '{"not":"an array"}');
+    expect(() => setConsent('granted')).not.toThrow();
+    expect(h.sent).toHaveLength(0);
+
+    const nested = '[{"name":"career_started","key":"k","params":{"nested":{"a":1}}}]';
+    h.local.set('maccabist.analytics.pending', nested);
+    setConsent('granted');
+    expect(h.sent).toHaveLength(0);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* GA4 debug mode                                                      */
+/* ------------------------------------------------------------------ */
+
+describe('analyticsDebug really reaches GA4 DebugView', () => {
+  /*
+   * v0.9.6.4 used the flag only to bypass the environment block, so events were sent but without
+   * `debug_mode` - and GA4 does not route them to DebugView without it. The flag did not do the
+   * thing it was documented to do.
+   */
+  it('sets debug_mode when explicitly requested', () => {
+    expect(analyticsDebugRequested('?analyticsDebug=1')).toBe(true);
+    expect(gtagConfigParams('?analyticsDebug=1').debug_mode).toBe(true);
+  });
+
+  it('leaves normal production traffic unflagged', () => {
+    expect(analyticsDebugRequested('')).toBe(false);
+    expect(gtagConfigParams('').debug_mode).toBeUndefined();
+    expect(gtagConfigParams('?w=390&bare=1').debug_mode).toBeUndefined();
+  });
+
+  it('keeps product-only settings on in both cases', () => {
+    for (const search of ['', '?analyticsDebug=1']) {
+      const config = gtagConfigParams(search);
+      expect(config.anonymize_ip).toBe(true);
+      expect(config.allow_google_signals).toBe(false);
+      expect(config.allow_ad_personalization_signals).toBe(false);
+    }
+  });
+
+  it('does not weaken the QA exclusions without the override', () => {
+    for (const flag of ['gallery', 'probe', 'contrast', 'touch', 'crop']) {
+      expect(
+        environmentAllowsAnalytics({ hostname: 'dviruri.github.io', search: '?' + flag + '=1' }),
+      ).toBe(false);
+    }
+    /* The override is the only way past them, and it must be typed deliberately. */
+    expect(environmentAllowsAnalytics({ hostname: 'localhost', search: '?analyticsDebug=1' })).toBe(
+      true,
+    );
   });
 });
 

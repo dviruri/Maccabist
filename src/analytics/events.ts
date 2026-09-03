@@ -22,9 +22,8 @@
  */
 
 import { visibleEuropeanCampaign } from '../game/europePresentation';
-import { isInAcademy } from '../game/rules';
 import type { Career, SeasonRecord } from '../types';
-import { alreadySent, emit, sessionId } from './analytics';
+import { alreadySent, emit, emitOrHold, sessionId } from './analytics';
 
 /* ------------------------------------------------------------------ */
 /* Career lifecycle                                                    */
@@ -38,7 +37,12 @@ import { alreadySent, emit, sessionId } from './analytics';
  * written before v0.9.6.4 can therefore never produce one: resuming does not go through here.
  */
 export function trackCareerStarted(career: Career): void {
-  emit('career_started', `career_started:${career.id}`, {
+  /*
+   * `emitOrHold`, not `emit` (v0.9.6.5). The consent bar does not block the game, so a player can
+   * create a career and only then answer it. Sent immediately once granted; held locally until
+   * then; discarded on decline.
+   */
+  emitOrHold('career_started', `career_started:${career.id}`, {
     position: career.position,
     origin: career.origin,
     starting_stage: career.academyStage,
@@ -84,13 +88,31 @@ function trackSeasonCompleted(career: Career, record: SeasonRecord): void {
 }
 
 /**
- * The first genuine senior APPEARANCE - not senior age, not joining a senior squad.
+ * The first genuine senior APPEARANCE, read from the engine's own decision (v0.9.6.5).
  *
- * Uses the game's own canonical milestone predicate (`first_senior_appearance` in
- * game/milestones): out of the academy, and at least one appearance recorded.
+ * ## What was wrong
+ *
+ * This used `!isInAcademy(career) && career.stats.appearances > 0`. `career.stats` is the
+ * CUMULATIVE career total and includes every academy and youth appearance, so the condition was
+ * satisfied the instant a player entered the senior stage carrying years of youth football.
+ * Measured across 30 simulated careers, it fired early in 30 of them - with 64 to 182 cumulative
+ * appearances and ZERO senior appearances. The event was reporting "reached the senior stage",
+ * not "debuted".
+ *
+ * ## What it uses now
+ *
+ * `seasonEngine` already decides this, at the moment the season record is written:
+ *
+ *     career.academyStage === 'senior' &&
+ *     full.appearances > 0 &&
+ *     !career.seasonHistory.some((s) => s.academyStage === 'senior' && s.stats.appearances > 0)
+ *
+ * and stamps a `senior_debut` milestone. Analytics watches for that milestone rather than
+ * re-deriving the rule, so there is exactly one definition of a debut in the codebase and the
+ * event cannot disagree with the ceremony the player is shown.
  */
 function seniorDebutReached(career: Career): boolean {
-  return !isInAcademy(career) && career.stats.appearances > 0;
+  return career.milestones.some((milestone) => milestone.id === 'senior_debut');
 }
 
 function trackSeniorDebut(career: Career): void {

@@ -44,7 +44,7 @@ export function AnalyticsConsent(): JSX.Element | null {
           אישור
         </button>
         <button type="button" className="btn consent-btn consent-btn-quiet" onClick={() => answer('denied')}>
-          לא עכשיו
+          לא, תודה
         </button>
       </div>
     </div>

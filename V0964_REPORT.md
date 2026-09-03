@@ -64,6 +64,15 @@ Seven, each with `game_version` attached at the single exit point.
 > **`career_started` Event count is the authoritative number of newly-created careers tracked
 > after v0.9.6.4 went live.**
 
+> **Corrected in v0.9.6.5.** Three statements above did not hold as written. (1) The count is of
+> newly-created careers among players who **granted consent** — and in v0.9.6.4 a career started
+> before the non-blocking consent bar was answered was lost even if the player then granted.
+> v0.9.6.5 holds it locally and sends it on grant. (2) `senior_debut` used the cumulative
+> `career.stats.appearances`, which includes academy football, so it fired on entry to the senior
+> stage rather than on a first senior appearance — in 30 of 30 simulated careers. It now reads the
+> engine's own `senior_debut` milestone. (3) `?analyticsDebug=1` bypassed the environment block but
+> did not set GA4 `debug_mode`, so it did not reach DebugView. See `V0965_REPORT.md`.
+
 Full parameter lists, firing conditions and the GA4 instructions are in **`ANALYTICS.md`**.
 
 Two design points worth recording:

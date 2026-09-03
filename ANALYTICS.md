@@ -12,18 +12,35 @@ Anonymous product analytics, added in v0.9.6.4.
 **GA4 event:** `career_started`
 **Metric:** **Event count**
 
-That number is the count of new careers. It is designed to be trustworthy: the event fires from
-exactly one place in the code — the action that creates and commits a new career — and is deduped
-on the career's own id, so it cannot be produced by a refresh, a resume, a re-render or a reopened
-screen.
+That number is the count of **newly-created careers among players who granted analytics consent**.
+It is not a count of all careers played by everyone: a player who declines is not measured, by
+design and by law of consent.
 
-**Two limits, stated plainly:**
+Within that group it is built to be exact: the event fires from exactly one place in the code — the
+action that creates and commits a new career — and is deduped on the career's own id, so it cannot
+be produced by a refresh, a resume, a re-render or a reopened screen.
+
+**Three limits, stated plainly:**
 
 1. **It only counts careers created after v0.9.6.4 went live.** It cannot reconstruct careers
    started before analytics existed, and it deliberately does not try. A save from an earlier
    version is not a new career and will never be counted as one.
 2. **It counts careers, not people.** One friend starting four careers is four events. There is no
    login and no cross-device identity, by design.
+3. **It counts only consenting players.** Declining means zero events. Treat the number as a floor
+   on real activity, not a census.
+
+**A career started before the consent bar is answered is not lost** (v0.9.6.5). The bar does not
+block the game, so a player can create a career and answer afterwards. That event is held locally
+under `maccabist.analytics.pending` — event name, dedupe key and the whitelisted scalar payload
+only — and then:
+
+| The player | Result |
+|---|---|
+| grants consent | the held event is sent exactly once, then deduped normally |
+| declines | the held event is discarded and never sent |
+| refreshes before answering | it survives, and still sends exactly once on grant |
+| refreshes after granting | no duplicate |
 
 ---
 
@@ -106,11 +123,19 @@ Reopening a completed-season screen does not emit it again.
 
 | | |
 |---|---|
-| **Fires** | On the first genuine senior **appearance** — the game's own `first_senior_appearance` milestone predicate (out of the academy, at least one appearance) |
+| **Fires** | On the first genuine senior **appearance**, read from the `senior_debut` milestone that `src/game/seasonEngine.ts` stamps when it writes the season record |
 | **Dedupe** | `senior_debut:<career.id>` |
 | **Parameters** | `career_age`, `position`, `club_id`, `season_number` |
 
-Reaching senior age or joining a senior squad without playing does not count.
+Reaching senior age or joining a senior squad without playing does not count, and neither do
+academy appearances.
+
+Until v0.9.6.5 this used the cumulative `career.stats.appearances`, which includes youth football,
+so it fired the moment a player entered the senior stage carrying years of academy games — in 30
+out of 30 simulated careers, with 64-182 cumulative appearances and zero senior ones. It was
+measuring "reached the senior stage". It now watches the engine's own milestone, so there is one
+definition of a debut in the codebase and the event cannot disagree with the ceremony the player
+is shown.
 
 ### `transfer_completed`
 
@@ -184,7 +209,9 @@ with `אישור` and `לא עכשיו`.
 
 - The choice is stored in `localStorage` under **`maccabist.analytics.consent`** (`granted` /
   `denied`).
-- Either answer dismisses the bar permanently. There is no repeat prompt.
+- Either answer dismisses the bar permanently. There is no repeat prompt. The decline button reads
+  **`לא, תודה`** rather than "not now", because the choice really is permanent — the earlier
+  wording implied it would be asked again.
 - If declined, no event is sent and the Google tag is never even loaded — the game behaves
   identically in every other respect.
 - Ad personalisation and Google Signals are explicitly disabled in the gtag config; IP anonymisation
@@ -212,9 +239,11 @@ the game through headless Chrome dozens of times per run; if any of it reached G
 The Google tag is loaded **lazily by the analytics module after consent**, not from a `<script>` in
 `index.html`. So in every excluded case the network request is never made at all.
 
-**Override:** `?analyticsDebug=1` forces analytics on regardless — used with GA4 DebugView to verify
-the wiring by hand. It is the only way to emit from a local build, and it must be typed
-deliberately.
+**Override:** `?analyticsDebug=1` forces analytics on regardless AND sets GA4 `debug_mode: true`, so
+events actually appear in DebugView. (In v0.9.6.4 it only bypassed the environment block; without
+`debug_mode` GA4 does not route events to DebugView, so the flag did not do what it documented.)
+It is the only way to emit from a local build, and it must be typed deliberately. Normal
+production traffic is never flagged as debug.
 
 ---
 
@@ -250,5 +279,6 @@ Analytics is fire-and-forget and can never affect gameplay:
 | `maccabist.analytics.consent` | `granted` / `denied` |
 | `maccabist.analytics.sent` | dedupe registry, capped at 400 keys, oldest dropped |
 | `maccabist.analytics.session` | `sessionStorage` — the tab id, used only for `career_resumed` |
+| `maccabist.analytics.pending` | `career_started` events held until consent is answered |
 
 Clearing these resets the consent prompt and the dedupe registry. It does not touch the save.
