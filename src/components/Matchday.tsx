@@ -40,6 +40,7 @@ import { Ltr } from './primitives';
 
 const MOMENT_ICONS: Record<MatchMoment['kind'], string> = {
   kickoff: '⏱️',
+  sub_on: '🔄',
   chance: '⚡',
   player_goal: '⚽',
   player_assist: '🎯',

@@ -17,7 +17,16 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.6.5 — Analytics Truth Hotfix.** Four corrections to v0.9.6.4. A
+**Current stable release: v0.9.6.6 — Matchday Substitute Truth Hotfix.** Beta testing found the
+player shown starting on the bench and then scoring in the 24th minute. The presenter knew whether
+he played and whether he started, but nothing modelled the moment a substitute walked on, so every
+player-owned minute was drawn from the full ninety — measured across 60 careers, 222 of 229 bench
+matchdays carried a moment with no substitution at all, the earliest at minute 8. Matchday now has
+a `sub_on` moment, a substitute enters between the 46th and 75th minute, and every goal, assist,
+chance and save the player owns is generated after he is on the pitch. Presentation only: the
+scoreboard still reconciles exactly and no simulation, statistic or RNG changed.
+
+**v0.9.6.5 — Analytics Truth Hotfix.** Four corrections to v0.9.6.4. A
 career started before the non-blocking consent bar was answered is no longer lost: it is held
 locally and sent once if the player grants, discarded if they decline. `senior_debut` now reads the
 engine's own milestone instead of a cumulative appearance total that included academy football — it

@@ -27,6 +27,7 @@ import type { Career, Position } from '../types';
 
 export type MatchMomentKind =
   | 'kickoff'
+  | 'sub_on'
   | 'chance'
   | 'player_goal'
   | 'player_assist'
@@ -53,6 +54,8 @@ export interface MatchdayPresentation {
   /** Did the player take the pitch in this presentation - from real participation. */
   played: boolean;
   started: boolean;
+  /** The minute a substitute came on. Null when he started, or never played (v0.9.6.6). */
+  enteredAt: number | null;
   scoreFor: number;
   scoreAgainst: number;
   moments: MatchMoment[];
@@ -73,6 +76,95 @@ function minuteRun(rng: Rng, count: number, from: number, to: number): number[] 
   const minutes = new Set<number>();
   while (minutes.size < count) minutes.add(rng.int(from, to));
   return [...minutes].sort((a, b) => a - b);
+}
+
+/**
+ * When a substitute comes on (v0.9.6.6).
+ *
+ * 46-75 is narrow on purpose. Earlier than half time would be inventing an injury or a tactical
+ * disaster the aggregate stats say nothing about; later than 75 leaves no room for the substitute
+ * to then do the thing his real half-stats say he did. Both ends are presentation judgements, not
+ * simulation - the engine has no per-match minutes to contradict.
+ */
+const SUB_ON_FROM = 46;
+const SUB_ON_TO = 75;
+
+/**
+ * Where the player is, and from which minute he may own a moment.
+ *
+ * One source of truth so the invariant is structural rather than repeated: every generator below
+ * reads `firstMomentMinute` instead of asking `if (!started)` for itself.
+ */
+interface PlayerMatchAvailability {
+  played: boolean;
+  started: boolean;
+  /** The minute he came off the bench. Null when he started, or never played. */
+  enteredAt: number | null;
+  /**
+   * The earliest minute a player-owned moment may occupy. Null when he never played, so there is
+   * no legal minute at all. For a substitute this is strictly AFTER the entry, so the timeline
+   * reads "57' he comes on / 68' he scores" rather than both landing on the same minute.
+   */
+  firstMomentMinute: number | null;
+}
+
+function availabilityOf(rng: Rng, played: boolean, started: boolean): PlayerMatchAvailability {
+  if (!played) return { played, started, enteredAt: null, firstMomentMinute: null };
+  if (started) return { played, started, enteredAt: null, firstMomentMinute: 1 };
+  const enteredAt = rng.int(SUB_ON_FROM, SUB_ON_TO);
+  return { played, started, enteredAt, firstMomentMinute: enteredAt + 1 };
+}
+
+/**
+ * The first free minute at or after a random point in [from, to], scanning forward and wrapping.
+ *
+ * Deterministic and always terminates: a retry loop could in principle keep colliding, and this
+ * cannot, which matters because the caller needs a guarantee rather than a very high probability.
+ */
+function freeMinuteIn(rng: Rng, taken: Set<number>, from: number, to: number): number | null {
+  const span = to - from + 1;
+  if (span <= 0) return null;
+  const start = rng.int(from, to);
+  for (let step = 0; step < span; step += 1) {
+    const candidate = from + ((start - from + step) % span);
+    if (!taken.has(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Team scoring minutes, guaranteed to contain enough of them after the player came on.
+ *
+ * The presented score is a projection of aggregate half-stats, not a stored match result, so when
+ * an initially drawn minute lands before the substitute was on the pitch the honest fix is to move
+ * the minute rather than to drop his real goal. The COUNT never changes, so the scoreboard and the
+ * timeline still reconcile exactly.
+ */
+function scoringMinutes(
+  rng: Rng,
+  count: number,
+  from: number,
+  needed: number,
+): number[] {
+  const minutes = minuteRun(rng, count, 8, 88);
+  if (needed <= 0 || from <= 8) return minutes;
+  const shortfall = needed - minutes.filter((minute) => minute >= from).length;
+  if (shortfall <= 0) return minutes;
+
+  const taken = new Set(minutes);
+  const moved = [...minutes];
+  let remaining = shortfall;
+  /* The earliest minutes are the ones he demonstrably had no part in, so those are the ones to move. */
+  for (let i = 0; i < moved.length && remaining > 0; i += 1) {
+    if (moved[i]! >= from) continue;
+    const candidate = freeMinuteIn(rng, taken, from, 88);
+    if (candidate === null) break;
+    taken.delete(moved[i]!);
+    taken.add(candidate);
+    moved[i] = candidate;
+    remaining -= 1;
+  }
+  return moved.sort((a, b) => a - b);
 }
 
 /** A plausible one-match score, seeded, leaning on the real table gap. */
@@ -175,30 +267,64 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
 
   const moments: MatchMoment[] = [{ minute: 1, kind: 'kickoff', text: 'שריקת פתיחה', big: false }];
 
-  /* Distribute the goals across the ninety, then weave the player's own moments in. */
-  const goalMinutes = minuteRun(rng, scoreFor, 8, 88);
+  /*
+   * When the player is actually on the pitch (v0.9.6.6).
+   *
+   * The presenter knew `played` and `started` and stopped there, so a player shown as starting on
+   * the bench could be given a goal in the 24th minute - the contradiction beta testing found.
+   * Reproduced before the fix across 60 careers: 222 of 229 bench matchdays carried a
+   * player-owned moment with no substitution at all, the earliest at minute 8.
+   *
+   * Everything below reads `availability` rather than testing `started` for itself.
+   */
+  const availability = availabilityOf(rng, played, started);
+  const availableFrom = availability.firstMomentMinute;
+  if (availability.enteredAt !== null) {
+    /* No partner and no shirt number: the game does not know who came off, so it does not say. */
+    moments.push({
+      minute: availability.enteredAt,
+      kind: 'sub_on',
+      text: 'אתה נכנס מהספסל',
+      big: true,
+    });
+  }
+
+  /*
+   * Distribute the goals across the ninety, then weave the player's own moments in.
+   *
+   * A substitute's own goal and assist must land on team goals scored AFTER he came on, so the
+   * minutes are drawn with that requirement rather than corrected afterwards - moving a label
+   * alone would leave the scoreline and the timeline telling different stories.
+   */
+  const ownedGoals = (showPlayerGoal ? 1 : 0) + (showPlayerAssist ? 1 : 0);
+  const goalMinutes = scoringMinutes(rng, scoreFor, availableFrom ?? 8, ownedGoals);
   const concededMinutes = minuteRun(rng, scoreAgainst, 8, 88);
-  let playerGoalMinute: number | null = null;
-  let playerAssistMinute: number | null = null;
-  goalMinutes.forEach((minute, index) => {
-    if (showPlayerGoal && index === 0) {
-      playerGoalMinute = minute;
+
+  /* Chosen up front, from the minutes he could legally have been part of. */
+  const eligibleGoals = goalMinutes.filter((minute) => availableFrom !== null && minute >= availableFrom);
+  const playerGoalMinute = showPlayerGoal ? (eligibleGoals[0] ?? null) : null;
+  const playerAssistMinute = showPlayerAssist
+    ? (eligibleGoals.find((minute) => minute !== playerGoalMinute) ?? null)
+    : null;
+
+  for (const minute of goalMinutes) {
+    if (minute === playerGoalMinute) {
       moments.push({ minute, kind: 'player_goal', text: `שער שלך! ${career.playerName} כובש`, big: true });
-    } else if (showPlayerAssist && playerAssistMinute === null && minute !== playerGoalMinute) {
-      playerAssistMinute = minute;
+    } else if (minute === playerAssistMinute) {
       moments.push({ minute, kind: 'player_assist', text: 'בישול שלך - והכדור בפנים', big: true });
     } else {
       moments.push({ minute, kind: 'team_goal', text: `שער ${goalFor}`, big: false });
     }
-  });
+  }
   for (const minute of concededMinutes) {
     moments.push({ minute, kind: 'conceded', text: `שער ${goalAgainst}`, big: false });
   }
 
   /* Colour, position-aware. A benched player watches - the match happens without his moments. */
-  if (played) {
+  if (played && availableFrom !== null) {
     if (isKeeper) {
-      for (const minute of minuteRun(rng, rng.int(1, 2), 10, 85)) {
+      /* A substitute keeper's saves start after he is between the posts, not from the tenth minute. */
+      for (const minute of minuteRun(rng, rng.int(1, 2), Math.max(10, availableFrom), 85)) {
         const big = rng.chance(0.45);
         moments.push({
           minute,
@@ -209,7 +335,7 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
       }
     } else if (!showPlayerGoal && rng.chance(0.7)) {
       moments.push({
-        minute: rng.int(15, 80),
+        minute: rng.int(Math.max(15, availableFrom), 80),
         kind: 'chance',
         text: rng.pick(OUTFIELD_CHANCE_TEXT),
         big: false,
@@ -219,7 +345,13 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
 
   moments.push({ minute: 45, kind: 'half_time', text: 'מחצית', big: false });
   moments.push({ minute: 90, kind: 'full_time', text: 'שריקת סיום', big: false });
-  moments.sort((a, b) => a.minute - b.minute || (a.kind === 'kickoff' ? -1 : 0));
+  /*
+   * Same-minute order: kickoff first, then a substitution, then everything else. Without the
+   * `sub_on` rank a team goal drawn on the entry minute could print above it, which reads as the
+   * player having been involved before he was on.
+   */
+  const rank = (kind: MatchMomentKind): number => (kind === 'kickoff' ? 0 : kind === 'sub_on' ? 1 : 2);
+  moments.sort((a, b) => a.minute - b.minute || rank(a.kind) - rank(b.kind));
 
   /* Both are labels before a colon, so both are bare - it read "בסיבוב הראשון: ..." beside "העונה: ...". */
   const period = isCupFinal ? 'העונה' : 'הסיבוב הראשון';
@@ -232,6 +364,7 @@ export function buildMatchday(career: Career): MatchdayPresentation | null {
     competitionLabel: fixture.competition,
     played,
     started,
+    enteredAt: availability.enteredAt,
     scoreFor,
     scoreAgainst,
     moments,

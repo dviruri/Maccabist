@@ -80,6 +80,8 @@ export function scoringSide(kind: MatchMoment['kind']): 'player_club' | 'opponen
     case 'conceded':
       return 'opponent_club';
     case 'kickoff':
+    /* Coming off the bench changes the story, never the scoreboard (v0.9.6.6). */
+    case 'sub_on':
     case 'chance':
     case 'save':
     case 'big_save':
