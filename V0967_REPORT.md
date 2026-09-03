@@ -7,7 +7,7 @@ Analytics transport only. No gameplay, no simulation, no RNG, no change to the e
 | | |
 |---|---|
 | Starting HEAD | `d83da5b` (v0.9.6.6) |
-| Ending commit | `2f4d3f4` (code and version; this report follows it) |
+| Ending commit | `4814080` (code and version; this report follows it) |
 | Starting version | 0.9.6.6 |
 | Ending version | **0.9.6.7** |
 | Starting tests | 1415 passing, 80 files |
