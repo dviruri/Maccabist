@@ -1,7 +1,7 @@
 {
   "name": "maccabist",
   "private": true,
-  "version": "0.9.6.3",
+  "version": "0.9.6.4",
   "type": "module",
   "description": "מכביסט - a Hebrew football career simulation game",
   "scripts": {

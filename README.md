@@ -17,7 +17,16 @@ external services.
 
 **Play:** https://dviruri.github.io/Maccabist/
 
-**Current stable release: v0.9.6.3 — Final Micro Hotfix.** Two corrections and an accurate release
+**Current stable release: v0.9.6.4 — Anonymous Product Analytics.** Adds GA4 product analytics for
+the friend beta, built around one question: how many careers have actually been started. The
+`career_started` event fires from the single action that creates a career and is deduped on the
+career's own id, so a refresh, a resume or a re-render cannot inflate it and a save from before
+this release is never counted as new. Six more events measure progression — resumes, seasons,
+senior debuts, transfers, Europe, retirements — all with whitelisted payloads: no player name, no
+free text, no save data. Consent is asked once and analytics stays off until it is answered; local,
+dev, gallery and browser-audit runs never load the Google tag at all. See `ANALYTICS.md`.
+
+**v0.9.6.3 — Final Micro Hotfix.** Two corrections and an accurate release
 record. A club knocked out of Europe in qualifying kept its midseason wording to the end of the
 season, still telling the player to focus on a league that had already finished; a settled season
 is now described in the past tense however it ended. One Hebrew idiom corrected —
