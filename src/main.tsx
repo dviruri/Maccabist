@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { initAnalytics } from './analytics/analytics';
 import { App } from './App';
 import './styles/global.css';
 /*
@@ -11,6 +12,13 @@ import './styles/global.css';
 import './styles/density.css';
 // v0.9: the cinematic game-feel layer, on top of the base system.
 import './styles/gamefeel.css';
+
+/*
+ * Analytics is initialised before the first render so the consent bar knows on its first paint
+ * whether this environment would emit at all. It is a no-op in dev, in tests, on localhost, in
+ * the gallery and under every browser audit - see src/analytics/analytics.ts.
+ */
+initAnalytics();
 
 const container = document.getElementById('root');
 if (!container) throw new Error('#root not found');

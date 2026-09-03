@@ -17,6 +17,7 @@ import {
   type NewCareerInput,
   type RetirementDecision,
 } from '../game/careerEngine';
+import { reportCareerProgress, trackCareerResumed, trackCareerStarted } from '../analytics/events';
 import { storage } from '../services/storage';
 import type { Career, MetaProgress } from '../types';
 
@@ -81,6 +82,32 @@ export function useGame(): GameState {
   }, [career]);
 
   /*
+   * Anonymous progression analytics (v0.9.6.4).
+   *
+   * One observer, downstream of every gameplay action, rather than a call in each screen: `career`
+   * changes exactly once per engine transition, so this sees each one and no component has to
+   * remember to report anything.
+   *
+   * `previousCareerRef` starts null, and the analytics layer treats a null previous state as a
+   * baseline rather than a transition - which is what stops a loaded save reporting a debut it
+   * made eight seasons ago. Renders that do not change the career do not re-run this effect, and
+   * the persistent dedupe registry covers the ones that do (StrictMode invokes effects twice).
+   *
+   * Deliberately after the persistence effect and never awaited: nothing here can delay, block or
+   * alter a career transition, and `reportCareerProgress` swallows its own failures.
+   */
+  const previousCareerRef = useRef<Career | null>(null);
+  useEffect(() => {
+    if (!career) {
+      previousCareerRef.current = null;
+      return;
+    }
+    const previous = previousCareerRef.current;
+    previousCareerRef.current = career;
+    reportCareerProgress(previous, career);
+  }, [career]);
+
+  /*
    * Fold a finished career into the meta progression AND the archive exactly once.
    *
    * v0.7: the archive write happens here, at the moment of retirement, not when the user leaves
@@ -137,12 +164,21 @@ export function useGame(): GameState {
         const fresh = createCareer(input);
         recordedRef.current = null;
         storage.saveCareer(fresh);
+        /*
+         * THE career count (v0.9.6.4). This is the only path in the app that calls
+         * `createCareer`, so a resumed or hydrated save can never reach it - which is exactly
+         * what makes the GA4 event count trustworthy. Deduped on the career id as well, so a
+         * double-tap on the create button cannot report twice.
+         */
+        trackCareerStarted(fresh);
         setCareer(fresh);
         setScreen('game');
       },
       resumeCareer: () => {
         const saved = storage.loadCareer();
         if (!saved) return;
+        /* A resume is not a new career and is counted separately - once per tab session. */
+        trackCareerResumed(saved);
         setCareer(saved);
         setScreen(saved.retired ? 'retired' : 'game');
       },

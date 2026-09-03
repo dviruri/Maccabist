@@ -3,6 +3,7 @@ import { MetaPage } from './pages/MetaPage';
 import { NewCareerPage } from './pages/NewCareerPage';
 import { RetirementPage } from './pages/RetirementPage';
 import { WelcomePage } from './pages/WelcomePage';
+import { AnalyticsConsent } from './components/AnalyticsConsent';
 import { Gallery, isGalleryRequested } from './dev/Gallery';
 import { useGame } from './state/useGame';
 
@@ -52,6 +53,13 @@ export function App(): JSX.Element {
           onDismissLegacyNotice={actions.dismissLegacyNotice}
         />
       )}
+
+      {/*
+        Last in the tree and fixed to the bottom, so a one-time question cannot reflow a screen
+        whose fit is measured without it. Renders nothing at all unless this environment would
+        emit analytics and the player has not yet answered.
+      */}
+      <AnalyticsConsent />
     </div>
   );
 }

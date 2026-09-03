@@ -4434,3 +4434,51 @@ p {
 }
 .euro-summary-block { display: grid; gap: 7px; }
 .scv2-euro-row span { color: var(--text-secondary); }
+
+/* ---------------------------------------------------------------------
+   ANALYTICS CONSENT (v0.9.6.4)
+   A one-time bar, not a modal. It must not trap the player, must not
+   block a primary button, and must never appear twice - so it is fixed
+   to the bottom above the safe area and disappears for good on either
+   answer. Sized off the same tokens as the rest of the system.
+   --------------------------------------------------------------------- */
+.consent-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 90;
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: rgba(8, 12, 9, 0.97);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.55);
+  text-align: start;
+}
+.consent-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+.consent-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.76);
+}
+.consent-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+/* Thumb-sized, like every other control the touch audit checks. */
+.consent-btn {
+  flex: 1;
+  min-height: 44px;
+}
+.consent-btn-quiet {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}

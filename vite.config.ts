@@ -1,5 +1,20 @@
+import { readFileSync } from 'node:fs';
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+
+/*
+ * One version source (v0.9.6.4).
+ *
+ * Every analytics event carries `game_version`, and the owner needs to compare releases. Reading
+ * package.json here means the number is declared once and cannot drift from the released build -
+ * the alternative was a constant to remember to bump in a second place.
+ *
+ * vitest.config.ts defines the same value, so tests see the real version rather than a stub.
+ */
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string;
+};
 
 /**
  * Base path.
@@ -35,6 +50,7 @@ export default defineConfig(({ command, isPreview }) => {
 
   return {
     base,
+    define: { __APP_VERSION__: JSON.stringify(version) },
     plugins: [react()],
     server: {
       port: 5173,
